@@ -25,9 +25,15 @@ dans `jeu/notation.py` :
 - les attributs prennent les lignes telles que le moteur les écrit, sans
   rien diviser.
 
-En dessous de p10, la même courbe en miroir est appliquée. Ce n'est **pas
-couvert** par le fichier de référence (qui ne contient que des tops) : un
-échantillon de flops permettrait de le vérifier.
+## Vérification sous p10
+
+Ton échantillon de flops (65 prestations : les 40 pires du week-end, des
+entrants de moins de 30 minutes, des joueurs exactement au p10, des
+gardiens en négatif) a donné la règle exacte :
+`note = max(1, 4 − 3 × min(écart, 1))` avec `écart = (p10 − points) /
+|médiane − p10|`. 65/65 notes et 65/65 attributs exacts. Le fichier est
+dans `jeu/tests/donnees/` avec les tops ; le test de régression couvre les
+deux.
 
 ## Protocole
 
@@ -38,108 +44,106 @@ Pas de base 2024/25 disponible, donc la saison est coupée en deux :
 | amorce | J1 à J17 | tient lieu de « saison précédente » pour valoriser les cartes |
 | jeu | J18 à J34 | 17 journées jouées par des managers scriptés |
 
-Périmètre : les 462 joueurs des clubs de Ligue 1, avec leurs matchs de
-Ligue 1 et de C1. Une journée de jeu = du premier coup d'envoi d'une
-journée de L1 à la veille de la suivante (le milieu de semaine européen
-compte dans la journée qui le précède).
+Périmètre retenu : **ligue globale**, les 2 371 joueurs des clubs des cinq
+championnats, avec leurs matchs de championnat et de C1 (option a,
+décision du porteur). Une journée de jeu = du premier coup d'envoi d'une
+journée de Ligue 1 à la veille de la suivante ; les cinq championnats
+jouent le même week-end, le milieu de semaine européen compte dans la
+journée qui le précède.
 
-Quatre managers, tous à 40 crédits, 15 cartes, 4-3-3 :
+Quatre managers, 15 cartes, 4-3-3, tous recrutés par la même règle
+(maximiser la valeur totale sous budget et quotas, glouton lagrangien) ;
+seule la *valeur* qu'ils donnent à une carte diffère :
 
-- **naïf** achète les meilleurs OVR qu'il peut se payer, aligne par OVR ;
-- **forme** achète les cartes dont la forme récente (5 dernières
-  prestations) dépasse ce que leur OVR a déjà intégré, et réajuste chaque
-  semaine ;
-- **oracle** connaît l'avenir et achète les meilleurs points par crédit :
-  une borne haute, pas une stratégie ;
+- **naïf** : l'OVR, ce que le marché dit déjà ;
+- **forme** : la production récente, points par journée sur les cinq
+  dernières, absences comptées 0, avec un échantillon minimal de trois
+  matchs pleins. C'est le manager qui sait qui produit vraiment ; il
+  réajuste chaque semaine ;
+- **oracle** : la production future sur la moitié jouée, une borne haute ;
 - **hasard** ×5, effectif légal tiré au sort.
+
+Une première version du manager « forme » cherchait les cartes dont la
+forme dépassait l'OVR : sur 462 cartes de Ligue 1 ça marchait, sur 2 371
+ça ramassait des coups de chance sur trois matchs et finissait au niveau
+du hasard. Le critère de production avec échantillon a réglé le problème
+aux deux périmètres.
 
 ## Réglages retenus
 
 | constante | valeur | pourquoi |
 |---|---|---|
-| échelle OVR | calibrée sur le périmètre : p2 des moyennes → 40, p99,5 → 99 (L1 25/26 : 4,84 → 7,21) | les moyennes de saison sont resserrées, et la Ligue 1 note plus bas que la Premier League par construction du barème |
+| échelle OVR | calibrée sur le périmètre : p2 des moyennes → 40, p99,5 → 99 (global 25/26 : 4,90 → 7,69 ; Ligue 1 seule : 4,84 → 7,21) | les moyennes de saison sont resserrées, et chaque périmètre a sa distribution |
 | prior / K | 5,5 / 10 matchs pleins | un inconnu est bon marché |
 | EMA | α = 0,08, pondéré par minutes/60 | à 0,12 les prix bougeaient d'une bande par match |
-| prix | ×2 tous les 8 OVR, plancher 0,5 | pente 6 rend les hausses trop lucratives (valeur ×4 en 17 journées) |
-| budget | **40** | le meilleur 15 du périmètre coûte 64 ; à 60 ou 100 le naïf l'achète et fait jeu égal avec l'oracle |
+| prix | ×2 tous les 8 OVR, plancher 0,5 | pente 6 rend les hausses trop lucratives |
+| budget | **60** | le meilleur 15 global coûte 104 ; à 100 le naïf recolle sur le forme (+8 % seulement), à 60 l'écart est de 30 % |
 
-## Résultats (J18–J34)
+## Résultats, ligue globale (J18–J34, budget 60)
 
-| manager | points | valeur finale (départ 40) |
+| manager | points | valeur finale (départ 60) |
 |---|---|---|
-| oracle | 1 211 | 61 |
-| **forme** | **1 020** | **92** |
-| naïf | 947 | 63 |
-| hasard (moyenne de 5) | 687 | 43 |
+| oracle | 1 980 | 237 |
+| **forme** | **1 810** | **206** |
+| naïf | 1 392 | 143 |
+| hasard (moyenne de 5) | 732 | 62 |
+
+Même ordre en Ligue 1 seule à 40 crédits : oracle 1 609, forme 1 496,
+naïf 1 037, hasard 687.
 
 Réponses aux quatre questions de `GAME_DESIGN.md` :
 
-1. **L'informé bat le naïf**, de 8 % en points et de 45 % en valeur. Le
-   hasard est loin derrière. L'oracle garde une marge de 19 % sur
-   l'informé : il reste quelque chose à savoir. C'est l'ordre voulu.
-2. **Plancher / plafond.** 100 titulaires (≥ 450 min) finissent au prix
-   plancher de 0,5, soit le cinquième bas du périmètre : indifférencié mais
-   pas gênant. Deux cartes touchent 99 (voir ci-dessous).
-3. **Score d'équipe.** Médiane 44 par journée, loin des 66 visés, parce
-   que les managers scriptés alignent par OVR sans regarder qui joue :
-   0,9 à 2 remplacements automatiques par journée. Un humain fera mieux ;
-   `SCORE_REFERENCE = 60` est donc à revoir une fois des vrais managers
-   observés.
+1. **L'informé bat le naïf**, de 30 % en points et de 44 % en valeur. Le
+   hasard est loin derrière. L'oracle garde 9 % sur l'informé : il reste
+   quelque chose à savoir. C'est l'ordre voulu.
+2. **Plancher / plafond.** 551 titulaires (≥ 450 min) sur 2 371 finissent
+   au prix plancher de 0,5, le quart bas du périmètre : indifférencié mais
+   pas gênant. Six cartes touchent 97 et plus, quatre sont écrêtées à 99
+   (Kane, Kimmich, Gabriel, Yamal) : les parcours de C1 du printemps
+   dépassent le haut de l'échelle calibrée sur la première moitié. Avec
+   une vraie saison d'amorce le haut sera mieux placé.
+3. **Score d'équipe.** Médiane 51 par journée, sous les 66 visés, parce
+   que les managers scriptés alignent sans regarder qui joue : 0,6 à 1,7
+   remplacements automatiques par journée. `SCORE_REFERENCE = 60` est à
+   revoir une fois des vrais managers observés.
 4. **Banc.** Les remplacements automatiques se déclenchent presque chaque
    journée ; l'ordre du banc compte.
 
-## La découverte qui compte : le PSG
+## La C1 dans la note, périmètre global
 
-Les huit plus fortes hausses de prix entre J17 et J34 sont **toutes** des
-joueurs du PSG :
+En Ligue 1 seule, les huit plus fortes hausses étaient toutes des joueurs
+du PSG (coefficient de compétition 2,0 × coefficient de tour jusqu'à 2,2,
+tous deux dans la note). En ligue globale l'effet se répartit :
 
 | joueur | OVR J17 → J34 | prix |
 |---|---|---|
-| Ousmane Dembélé | 69 → 99 | 2,2 → 29,3 |
-| Nuno Mendes | 83 → 99 | 7,3 → 29,3 |
-| João Neves | 76 → 96 | 4,0 → 22,6 |
-| Kvaratskhelia | 74 → 94 | 3,4 → 19,0 |
-| Désiré Doué | 60 → 89 | 1,0 → 12,3 |
+| William Saliba | 72 → 98 | 2,8 → 26,9 |
+| Joshua Kimmich | 81 → 99 | 6,2 → 29,3 |
+| Ousmane Dembélé | 64 → 95 | 1,4 → 20,7 |
+| Julián Álvarez | 67 → 93 | 1,8 → 17,4 |
+| Elliot Anderson | 79 → 94 | 5,2 → 19,0 |
 
-Ce n'est pas la forme : c'est le barème. Le coefficient de compétition
-(C1 = 2,0) multiplié par le coefficient de tour (finale = 2,2) est *dans*
-la note. Un match de phase finale de C1 vaut jusqu'à 4,4 fois un match de
-Ligue 1, et le seul club de Ligue 1 qui va au bout est le PSG. Dans une
-ligue de jeu limitée à la Ligue 1, la stratégie dominante au printemps est
-« acheter du PSG », et l'informé le fait mécaniquement.
-
-C'est cohérent avec ce que le barème veut mesurer pour un Ballon d'Or.
-C'est discutable pour un jeu où l'on veut récompenser la connaissance
-des joueurs à bas prix. Trois options, à trancher :
-
-- **a.** Assumer : la C1 est le sommet, les cartes qui y brillent valent
-  cher. Le jeu récompense alors surtout d'anticiper les parcours européens.
-- **b.** Plafonner le coefficient de tour dans la note *du jeu* (par
-  exemple 1,3 au lieu de 2,2 en finale) tout en gardant le coefficient de
-  compétition. Le moteur ne change pas ; seule la couche jeu lit un
-  `coef` borné.
-- **c.** Élargir le périmètre aux cinq championnats + C1 dès la première
-  saison, où plusieurs clubs vont loin en Europe et l'effet se dilue.
-
-Recommandation : **b** pour une ligue Ligue 1, **a** pour une ligue Top 5.
-Le backtest peut chiffrer les deux en une minute.
+Arsenal, Bayern, Barcelone, PSG, Atlético, Nottingham : le printemps
+européen reste le moteur des plus-values, mais il n'y a plus un seul club
+à acheter. Le porteur a tranché pour cette option (a) : le barème reste
+tel quel, la C1 est le sommet et anticiper les parcours européens fait
+partie du jeu.
 
 ## Limites du protocole
 
 - L'amorce sur une demi-saison sous-estime les échantillons : avec une
   vraie saison précédente, K = 10 pèsera moins et les OVR de départ seront
-  plus étalés.
+  plus étalés, et le haut de l'échelle sera mieux placé.
 - Les managers scriptés ne regardent ni les blessures ni les calendriers ;
   leurs scores absolus sont bas. Les écarts *entre* stratégies sont ce qui
   compte.
-- La courbe de note sous p10 n'est pas vérifiée contre la chaîne de
-  visuels.
 
 ## Reproduire
 
 ```
 python3 -m jeu.importer --fotmob moteur/fotmob.db --jeu jeu/jeu_2526.sqlite
-python3 -m jeu.backtest --amorce 1-17 --jouer 18-34 --sortie out/
+python3 -m jeu.backtest --ligue 0 --amorce 1-17 --jouer 18-34 --sortie out/
+python3 -m jeu.backtest --ligue 53 ...          # Ligue 1 seule, pour comparer
 ```
 
 Les constantes se changent dans `jeu/evolution.py` ; `out/resume.json`

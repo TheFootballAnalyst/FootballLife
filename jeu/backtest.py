@@ -1,17 +1,25 @@
 """backtest.py — replay a season of the game offline.
 
-    python3 -m jeu.backtest --jeu jeu/jeu_2526.sqlite --ligue 53 \
+    python3 -m jeu.backtest --jeu jeu/jeu_2526.sqlite --ligue 0 \
                             --amorce 1-17 --jouer 18-34 --sortie out/
+    (--ligue 0 = the five leagues + Champions League, the "global league";
+     --ligue 53 = Ligue 1 clubs only)
 
 Seeds the cards on the gameweeks of --amorce (as if they were last season),
 then plays the gameweeks of --jouer with scripted managers:
 
-  naif      buys the highest-OVR cards it can afford, lines up by OVR
-  forme     buys cards whose recent form beats their OVR (cheap risers),
-            re-checks every gameweek and swaps when a better riser appears
-  oracle    knows the future: best points per credit over the played
-            half — an upper bound, not a strategy
+  naif      values a card by its OVR (what the market already says)
+  forme     values a card by its recent production: points per gameweek
+            over the last FENETRE_FORME gameweeks, absences counted as 0,
+            on a minimum sample — the "I know who actually produces"
+            manager; re-checks every gameweek
+  oracle    values a card by its future production over the played half:
+            an upper bound, not a strategy
   hasard    a random legal squad within budget
+
+Every manager fills its 15 by the same rule (choisir_effectif): pick the
+cards maximising  value − λ × prix  under the family quotas, sweeping λ so
+that the budget is spent as fully as possible.  Only the value differs.
 
 Every gameweek: score each lineup (scoring.score_equipe), pay out
 (evolution.gain_semaine), update every card (evolution.note_ema), reprice.
@@ -46,13 +54,19 @@ FENETRE_FORME = 5                                             # gameweeks
 # Data
 # --------------------------------------------------------------------------
 
+TOP5 = (47, 87, 55, 54, 53)   # Premier League, LaLiga, Serie A, Bundesliga, Ligue 1
+
+
 def charger(jeu: sqlite3.Connection, ligue_id: int):
     """Cards of the perimeter (players whose club plays the reference
-    league) and their performances by gameweek."""
-    clubs = {r[0] for r in jeu.execute("""
-        SELECT DISTINCT home_team_id FROM match WHERE competition_id=?
-        UNION SELECT DISTINCT away_team_id FROM match WHERE competition_id=?""",
-        (ligue_id, ligue_id))}
+    league, or any of the top 5 when ligue_id is 0) and their performances
+    by gameweek."""
+    ligues = TOP5 if ligue_id == 0 else (ligue_id,)
+    marks = ",".join("?" * len(ligues))
+    clubs = {r[0] for r in jeu.execute(f"""
+        SELECT DISTINCT home_team_id FROM match WHERE competition_id IN ({marks})
+        UNION SELECT DISTINCT away_team_id FROM match WHERE competition_id IN ({marks})""",
+        ligues * 2)}
     joueurs = {pid: dict(nom=nom, poste=poste, team_id=tid)
                for pid, nom, poste, tid in jeu.execute(
                    "SELECT player_id, nom, poste, team_id FROM joueur")
@@ -107,6 +121,19 @@ class Carte:
         return sum(n * m / 90 for n, m in recent) / w if w else None
 
 
+ECHANTILLON_MIN = 3.0        # full-match equivalents in the form window
+
+
+def production(prestas_par_j, pid, journees: list[int]) -> tuple[float, float]:
+    """(points per gameweek, full-match equivalents) over `journees`."""
+    pts = mins = 0.0
+    for num in journees:
+        for p in prestas_par_j[num].get(pid, []):
+            pts += p.note
+            mins += p.minutes
+    return (pts / len(journees) if journees else 0.0), mins / 90.0
+
+
 MINUTES_REGULIER = 450
 
 
@@ -132,26 +159,45 @@ def amorcer(joueurs, prestas, amorce: list[int]) -> dict[int, Carte]:
 # Managers
 # --------------------------------------------------------------------------
 
-def choisir_effectif(cartes: dict[int, Carte], budget: float, cle, rng=None) -> list[int]:
-    """Greedy: rank candidates by `cle` (desc), take the best affordable per
-    family quota, then loosen if the budget cannot fill the squad."""
-    ordre = sorted(cartes.values(), key=cle, reverse=True)
-    if rng:
-        rng.shuffle(ordre)
-    for facteur in (1.0, 0.85, 0.7, 0.55, 0.4, 0.25, 0.1, 0.0):
-        # spend at most `facteur` of the remaining budget on any one card
-        pris, reste, quotas = [], budget, dict(QUOTA_EFFECTIF)
-        for c in ordre:
-            if quotas[c.fam] <= 0 or c.prix > reste:
-                continue
-            if facteur and c.prix > max(E.PRIX_PLANCHER, reste * facteur) and len(pris) < 12:
-                continue
-            pris.append(c.pid)
-            reste -= c.prix
-            quotas[c.fam] -= 1
-            if len(pris) == E.TAILLE_EFFECTIF:
-                return pris
+LAMBDAS = [0.0, 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 5.0, 8.0, 12.0, 20.0]
+
+
+def _greedy(cartes, budget, valeur, lam, exclus=()):
+    ordre = sorted((c for c in cartes.values() if c.pid not in exclus),
+                   key=lambda c: valeur(c) - lam * c.prix, reverse=True)
+    pris, reste, quotas = [], budget, dict(QUOTA_EFFECTIF)
+    for c in ordre:
+        if quotas[c.fam] <= 0 or c.prix > reste:
+            continue
+        pris.append(c.pid)
+        reste -= c.prix
+        quotas[c.fam] -= 1
+        if len(pris) == E.TAILLE_EFFECTIF:
+            break
     return pris
+
+
+def choisir_effectif(cartes: dict[int, Carte], budget: float, valeur, rng=None) -> list[int]:
+    """The 15 cards maximising total `valeur` under budget and quotas.
+
+    Lagrangian greedy: for each λ, take cards by `valeur − λ × prix`; keep
+    the full squad with the highest total value.  Cheap enough to run for
+    2 000+ cards and close to the knapsack optimum on this data.
+    """
+    if rng:
+        ids = list(cartes)
+        rng.shuffle(ids)
+        rang = {pid: i for i, pid in enumerate(ids)}
+        valeur = lambda c: -rang[c.pid]           # noqa: E731 — random order
+    meilleur, meilleur_val = [], float("-inf")
+    for lam in LAMBDAS:
+        pris = _greedy(cartes, budget, valeur, lam)
+        if len(pris) < E.TAILLE_EFFECTIF:
+            continue
+        v = sum(valeur(cartes[p]) for p in pris)
+        if v > meilleur_val:
+            meilleur, meilleur_val = pris, v
+    return meilleur or _greedy(cartes, budget, valeur, LAMBDAS[-1])
 
 
 def onze_depuis(effectif: list[int], cartes: dict[int, Carte], cle) -> S.Composition:
@@ -179,54 +225,61 @@ class Manager:
         self.achats: dict[int, float] = {}
         self.points = 0.0
         self.rng = random.Random(seed)
+        self.prod: dict[int, float] = {}          # forme: production per gameweek
 
-    def cle(self, cartes, futur=None):
+    def observer(self, prestas_par_j, journees_passees: list[int]):
+        """forme: refresh recent production (0 for cards under the sample)."""
+        fen = journees_passees[-FENETRE_FORME:]
+        self.prod = {}
+        for pid in prestas_par_j.get("_tous", []):
+            pts, n = production(prestas_par_j, pid, fen)
+            self.prod[pid] = pts if n >= ECHANTILLON_MIN else 0.0
+
+    def valeur(self, futur=None):
         if self.strategie == "forme":
-            # a riser: recent form above what the OVR already prices in
-            return lambda c: 3 * ((c.forme() or E.PRIOR_NOTE) - E.note_depuis_ovr(c.ovr)) \
-                + (c.forme() or E.PRIOR_NOTE)
+            return lambda c: self.prod.get(c.pid, 0.0)
         if self.strategie == "oracle":
-            return lambda c: futur.get(c.pid, 0.0) / max(c.prix, E.PRIX_PLANCHER)
+            return lambda c: futur.get(c.pid, 0.0)
         if self.strategie == "hasard":
             return lambda c: 0.0
-        return lambda c: c.ovr
+        return lambda c: float(c.ovr)
 
     def recruter(self, cartes, futur=None):
-        cle = self.cle(cartes, futur)
-        self.effectif = choisir_effectif(cartes, self.cash, cle,
+        self.effectif = choisir_effectif(cartes, self.cash, self.valeur(futur),
                                          self.rng if self.strategie == "hasard" else None)
         for pid in self.effectif:
             self.achats[pid] = cartes[pid].prix
             self.cash -= cartes[pid].prix
 
     def ajuster(self, cartes):
-        """`forme` only: each gameweek, sell the worst-form card of a family
-        and buy the best riser it can afford in that family."""
+        """forme only: each gameweek, sell the least productive card of a
+        family for the most productive one it can then afford, if the gain
+        is clear (> 1 point per gameweek)."""
         if self.strategie != "forme":
             return
-        cle = self.cle(cartes)
+        val = self.valeur()
         for fam in QUOTA_EFFECTIF:
             miens = [pid for pid in self.effectif if cartes[pid].fam == fam]
             if not miens:
                 continue
-            pire = min(miens, key=lambda pid: cle(cartes[pid]))
+            pire = min(miens, key=lambda pid: val(cartes[pid]))
             dispo = self.cash + cartes[pire].prix
             cands = [c for c in cartes.values()
                      if c.fam == fam and c.pid not in self.effectif and c.prix <= dispo]
             if not cands:
                 continue
-            best = max(cands, key=cle)
-            if cle(best) > cle(cartes[pire]) + 0.5:
+            best = max(cands, key=val)
+            if val(best) > val(cartes[pire]) + 1.0:
                 self.cash += cartes[pire].prix - best.prix
                 self.effectif.remove(pire)
                 self.effectif.append(best.pid)
                 self.achats[best.pid] = best.prix
 
     def composer(self, cartes):
-        cle = (lambda c: c.forme() or E.PRIOR_NOTE) if self.strategie == "forme" else (lambda c: c.ovr)
-        return onze_depuis(self.effectif, cartes, cle)
+        val = self.valeur() if self.strategie == "forme" else (lambda c: float(c.ovr))
+        return onze_depuis(self.effectif, cartes, val)
 
-    def valeur(self, cartes):
+    def patrimoine(self, cartes):
         return round(self.cash + sum(cartes[p].prix for p in self.effectif), 1)
 
 
@@ -242,9 +295,12 @@ def jouer(jeu_path, ligue_id, amorce, a_jouer, sortie: pathlib.Path):
     futur = {pid: sum(p.note for num in a_jouer for p in prestas[num].get(pid, []))
              for pid in cartes}
 
+    prestas["_tous"] = list(cartes)          # ids, for Manager.observer
     managers = [Manager("naif", "naif"), Manager("forme", "forme"),
                 Manager("oracle", "oracle")] + [Manager(f"hasard{i}", "hasard", seed=i) for i in range(5)]
+    passees = list(amorce)
     for m in managers:
+        m.observer(prestas, passees)
         m.recruter(cartes, futur)
 
     sortie.mkdir(parents=True, exist_ok=True)
@@ -266,6 +322,7 @@ def jouer(jeu_path, ligue_id, amorce, a_jouer, sortie: pathlib.Path):
         semaine = prestas[num]
         ligne = {}
         for m in managers:
+            m.observer(prestas, passees)
             m.ajuster(cartes)
             compo = m.composer(cartes)
             r = S.score_equipe(compo, semaine, postes)
@@ -273,11 +330,12 @@ def jouer(jeu_path, ligue_id, amorce, a_jouer, sortie: pathlib.Path):
             m.cash += g
             m.points += r["score"]
             ligne[m.nom] = r["score"]
-            wm.writerow([num, m.nom, r["score"], g, round(m.cash, 1), m.valeur(cartes), len(r["entres"])])
+            wm.writerow([num, m.nom, r["score"], g, round(m.cash, 1), m.patrimoine(cartes), len(r["entres"])])
         scores_par_j.append(ligne)
         for pid, c in cartes.items():
             if pid in semaine:
                 c.jouer(semaine[pid])
+        passees.append(num)
         ecrire_cartes(num)
     fc.close()
     fm.close()
@@ -297,7 +355,7 @@ def jouer(jeu_path, ligue_id, amorce, a_jouer, sortie: pathlib.Path):
         "perimetre": {"ligue": ligue_id, "cartes": len(cartes),
                       "amorce": f"J{amorce[0]}-J{amorce[-1]}", "joue": f"J{a_jouer[0]}-J{a_jouer[-1]}"},
         "managers": {m.nom: {"points": round(m.points, 1), "cash": round(m.cash, 1),
-                             "valeur": m.valeur(cartes)} for m in managers},
+                             "valeur": m.patrimoine(cartes)} for m in managers},
         "score_median_par_journee": [round(x, 1) for x in medianes],
         "ecart_haut_bas_par_journee": [round(x, 1) for x in ecarts],
         "cartes_au_plancher": plancher, "cartes_ovr_97_plus": plafond,
@@ -313,7 +371,8 @@ def jouer(jeu_path, ligue_id, amorce, a_jouer, sortie: pathlib.Path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--jeu", default=str(RACINE / "jeu" / "jeu_2526.sqlite"))
-    ap.add_argument("--ligue", type=int, default=53)
+    ap.add_argument("--ligue", type=int, default=0,
+                    help="perimeter: a league id, or 0 for the top 5 (global league)")
     ap.add_argument("--amorce", default="1-17")
     ap.add_argument("--jouer", default="18-34")
     ap.add_argument("--sortie", default=str(RACINE / "out"))

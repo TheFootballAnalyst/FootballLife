@@ -157,6 +157,38 @@ def majorite_postes_et_clubs(jeu: sqlite3.Connection) -> None:
     jeu.commit()
 
 
+def importer_couleurs(jeu: sqlite3.Connection, cache: pathlib.Path = MOTEUR / "cache" / "matches") -> int:
+    """club.couleur from the kit colours in the cached match sheets.
+
+    FotMob gives `general.teamColors.lightMode.{home,away}` per match.  A
+    club's colour is its most frequent home-kit colour, unless that is plain
+    white or black (the card darkens the colour, so a white kit would give a
+    grey card): then the most frequent away colour.
+    """
+    from collections import Counter
+    votes: dict[int, Counter] = {}
+    for mid, h, a in jeu.execute("SELECT match_id, home_team_id, away_team_id FROM match"):
+        f = cache / f"{mid}.json"
+        if not f.exists():
+            continue
+        try:
+            tc = json.loads(f.read_text(encoding="utf-8"))["general"]["teamColors"]["lightMode"]
+        except (KeyError, TypeError, json.JSONDecodeError, OSError):
+            continue
+        for tid, cle in ((h, "home"), (a, "away")):
+            c = (tc.get(cle) or "").upper()
+            if c.startswith("#") and len(c) == 7:
+                votes.setdefault(tid, Counter())[c] += 1
+    n = 0
+    for tid, cnt in votes.items():
+        ordre = [c for c, _ in cnt.most_common()]
+        choix = next((c for c in ordre if c not in ("#FFFFFF", "#000000")), ordre[0])
+        jeu.execute("UPDATE club SET couleur=? WHERE team_id=?", (choix, tid))
+        n += 1
+    jeu.commit()
+    return n
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--fotmob", default=str(MOTEUR / "fotmob.db"))
@@ -165,7 +197,13 @@ def main():
     ap.add_argument("--ligue", type=int, default=53, help="reference league for the gameweeks")
     ap.add_argument("--adversaire", action="store_true", help="engine opponent coefficient")
     ap.add_argument("--journees", default=None, help="e.g. 1-5 to import a subset")
+    ap.add_argument("--couleurs-seulement", action="store_true",
+                    help="only refresh club colours from the cache")
     a = ap.parse_args()
+    if a.couleurs_seulement:
+        jeu = ouvrir_jeu(pathlib.Path(a.jeu))
+        print(f"{importer_couleurs(jeu)} couleurs de club -> {a.jeu}")
+        return
 
     fot = sqlite3.connect(a.fotmob)
     jeu = ouvrir_jeu(pathlib.Path(a.jeu))
@@ -179,7 +217,8 @@ def main():
         total += n
         print(f"J{j['numero']:>2}  {j['du']} -> {j['au']}  {n:>5} prestations")
     majorite_postes_et_clubs(jeu)
-    print(f"{total} prestations, {len(js)} journees -> {a.jeu}")
+    nc = importer_couleurs(jeu)
+    print(f"{total} prestations, {len(js)} journees, {nc} couleurs de club -> {a.jeu}")
 
 
 if __name__ == "__main__":

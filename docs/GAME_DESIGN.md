@@ -20,17 +20,19 @@ plus weekly payouts, is what a manager builds a better team with.
 
 ## The three open questions
 
-### 1. Perimeter — start with Ligue 1 + Champions League, model for all five
+### 1. Perimeter — global league: the five leagues + Champions League
 
-Recommendation: the first live season runs on **Ligue 1 plus the
-Champions League matches of Ligue 1 clubs**. The engine already rates the
-five leagues, so the data model carries a `perimetre` per game league
-(`ligue_jeu.perimetre`, a list of competition ids) from day one. Opening a
-"Top 5 + UCL" league later is a configuration row, not a rewrite.
+Decision (the project owner's, after the backtest): the game league is
+**global**, the players of the five big leagues with their league and
+Champions League matches, about 2 400 cards. The data model still carries
+a `perimetre` per game league (`ligue_jeu.perimetre`, a list of
+competition ids), so a Ligue 1-only league remains a configuration row.
 
-Why not everything at once: balancing the economy is hard enough on one
-pool of ~500 players; the first season is the one where prices and payouts
-get tuned in public, and mistakes are cheaper on a small pool.
+The backtest showed why global is the safer first perimeter for this
+engine: with the Champions League weighting inside the note, a Ligue
+1-only league had a single club (PSG) behind every spring price rise;
+across five leagues the rises spread over Arsenal, Bayern, Barcelona,
+PSG, Atlético and Nottingham (`BACKTEST.md`).
 
 ### 2. Frequency — one gameweek per league round, midweek included
 
@@ -78,10 +80,11 @@ Exponential so that the top of the market is scarce. A steeper slope
 (doubling every 6) made risers too lucrative in the backtest (an informed
 manager's value ×4 in half a season).
 
-**Budget.** Starts at **40** for 15 cards, spread evenly that buys an
-OVR-71 squad. The perimeter's best fifteen cost 64: at 60 or 100 credits
-the naive manager simply bought them and matched the oracle, so scarcity
-is what makes knowledge count. Each gameweek pays `0.05 × (score − 60)`
+**Budget.** Starts at **60** for 15 cards, spread evenly that buys an
+OVR-76 squad. The global perimeter's best fifteen cost 104: at 100
+credits the naive manager nearly matches the informed one (+8 %), at 60
+the informed one is 30 % ahead, so scarcity is what makes knowledge
+count. Each gameweek pays `0.05 × (score − 60)`
 credits, capped at 3 (`evolution.gain_semaine`). Payouts are small on
 purpose; the main way to grow is to hold cards that climb. See
 `BACKTEST.md` for the full run.
@@ -111,13 +114,11 @@ of **OVR**, not of note, and the OVR scale is calibrated on the
 perimeter's real season means (see above), so the spread of prices
 follows the spread that actually exists.
 
-**Open: the Champions League inside the note.** The backtest's eight
-biggest price rises were all PSG players, carried by the C1 knockout
-coefficients (competition 2.0 × final 2.2) that the engine puts inside the
-note. In a Ligue 1-only league that makes "buy PSG in spring" the dominant
-strategy. Three options are laid out in `BACKTEST.md`; the recommended one
-for a Ligue 1 league is to cap the *round* coefficient in the note the
-game uses, without touching the engine.
+**Decided: the Champions League stays inside the note.** The engine's
+competition and round coefficients are kept as they are (option a in
+`BACKTEST.md`): the Champions League is the summit, and anticipating
+European runs is part of the game. The global perimeter is what keeps
+that from collapsing onto one club.
 
 ## Deliberately left out of v1
 
@@ -134,7 +135,8 @@ game uses, without touching the engine.
 
 ## What the backtest must answer
 
-Answered in `BACKTEST.md`; kept here as the checklist for the next run.
+Answered in `BACKTEST.md` for both perimeters; kept here as the
+checklist for the next run (with a real previous season as the seed).
 
 1. Distribution of end-of-season budgets under a naive strategy (buy the
    15 highest-OVR cards you can afford) vs. an informed one (buy last

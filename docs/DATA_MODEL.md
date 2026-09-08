@@ -34,7 +34,7 @@ search boxes only.
 | table | one row per | notes |
 |-------|-------------|-------|
 | `competition` | competition × season | |
-| `club` | club | kit colour for the card |
+| `club` | club | kit colour for the card, from the cached match sheets (`importer_couleurs`) |
 | `joueur` | player | majority position for the season |
 | `journee` | gameweek | date window + lock time |
 | `match` | match | assigned to a gameweek |

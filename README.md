@@ -32,11 +32,12 @@ jeu/        the game layer: pure functions + schema, all tested
                  (40/40 notes and 240/240 attributes exact vs the visual pipeline)
   scoring.py     lineup + performances -> team score for a gameweek
   evolution.py   card OVR, price, manager budget over time
-  importer.py    fotmob.db -> game base (gameweeks, rated performances)
+  importer.py    fotmob.db -> game base (gameweeks, rated performances, club colours)
   backtest.py    replay a season with scripted managers
+  cartes.py      render match and season cards from the game base
   schema.sql     the game database
   tests/         incl. the reference performances in tests/donnees/
-donnees/    league logos, and how to fetch the FotMob base (README + script)
+donnees/    league logos; scripts to fetch the FotMob base and the portraits
 docs/
   CONTEXTE.md    the original project brief (French)
   REPONSES.md    answers on families, attribute floor, UCL bonus (French)
@@ -54,22 +55,26 @@ python3 -m pytest jeu/tests
 ```
 
 The engine itself needs a FotMob base (`fotmob.db`, one per season,
-300–550 MB), the match cache and the fonts/portraits, none of which are in
-the repository (see `.gitignore` and `donnees/README.md`). The game layer's
-tests run without them.
+300–550 MB), the match cache and the player portraits, none of which are
+in the repository (see `donnees/README.md`; fonts and club logos are).
+The game layer's tests run without them.
 
 ## Replaying a season
 
 ```
 python3 donnees/telecharger.py <release asset url>   # fotmob.db + cache into moteur/
+python3 donnees/portraits.py                         # portraits into moteur/images/joueurs/
 python3 -m jeu.importer                              # -> jeu/jeu_2526.sqlite
-python3 -m jeu.backtest                              # -> out/
+python3 -m jeu.backtest                              # -> out/ (global league)
+python3 -m jeu.cartes --journee 34 --n 8             # -> out/cartes/*.png
 ```
 
 ## Where things stand
 
 Phases 0 and 1 of `docs/ROADMAP.md` are done: engine under Git, game
-rules as code, the 2025/26 season imported and replayed, the economy
-tuned so that an informed manager beats a naive one (`docs/BACKTEST.md`).
-One design question is open before phase 2: how much of the Champions
-League weighting the game should keep inside the note.
+rules as code matching the production pipeline exactly (105 reference
+performances), the 2025/26 season imported and replayed, the economy
+tuned so that an informed manager beats a naive one by 30 %
+(`docs/BACKTEST.md`), first cards rendered. The perimeter is decided:
+one global league, five leagues plus Champions League. Next is phase 2,
+the weekly pipeline.

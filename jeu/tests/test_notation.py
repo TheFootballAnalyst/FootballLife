@@ -16,7 +16,7 @@ def test_curve_is_monotonic_and_saturates():
     prev = None
     for v in range(-300, 600):
         n = N.note_brute(float(v), s)
-        assert 2.0 < n < 10.0
+        assert 1.0 <= n < 10.0
         if prev is not None:
             assert n >= prev
         prev = n
@@ -47,17 +47,20 @@ def test_unknown_position_gives_none():
 
 
 def test_reference_values_from_the_visual_pipeline():
-    """40 performances rated by the production pipeline: note and six
-    attributes must match exactly (jeu/tests/donnees)."""
-    doc = json.loads((pathlib.Path(__file__).parent / "donnees"
-                      / "controle_2026-08-28_09-06.json").read_text(encoding="utf-8"))
-    ecarts = []
-    for row in doc["prestations"]:
-        m, e = row["moteur"], row["attendu"]
-        note = N.note_prestation(m)
-        att = N.attributs_prestation(m)
-        if abs(note - e["note_sur_10"]) > 0.051 or att != e["attributs"]:
-            ecarts.append((e["nom"], note, e["note_sur_10"], att, e["attributs"]))
+    """Performances rated by the production pipeline (40 tops, 65 flops and
+    edge cases): note and six attributes must match exactly."""
+    fichiers = sorted((pathlib.Path(__file__).parent / "donnees").glob("controle_*.json"))
+    assert len(fichiers) >= 2
+    ecarts, n = [], 0
+    for f in fichiers:
+        for row in json.loads(f.read_text(encoding="utf-8"))["prestations"]:
+            m, e = row["moteur"], row["attendu"]
+            note = N.note_prestation(m)
+            att = N.attributs_prestation(m)
+            n += 1
+            if abs(note - e["note_sur_10"]) > 0.051 or att != e["attributs"]:
+                ecarts.append((f.name, e["nom"], note, e["note_sur_10"], att, e["attributs"]))
+    assert n >= 100
     assert not ecarts, ecarts
 
 

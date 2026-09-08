@@ -23,8 +23,8 @@ Spec, as reverse-checked against the visual pipeline's reference output
     in between;
   - beyond p90 the curve saturates:  note = 8 + 2u / (1 + u)  with
     u = (points - p90) / (p90 - median), so 10 is an asymptote;
-  - below p10, mirror of the same curve (not covered by the reference file;
-    to confirm on a flops sample);
+  - below p10: note = max(1, 4 - 3 * min(ecart, 1)) with
+    ecart = (p10 - points) / |median - p10|  (checked on 61 flops);
   - minutes damping: the note departs from 6 in proportion to the square
     root of minutes played, full at 60 minutes.
 Attributes take the engine's `lignes` as they are (no coefficient removed):
@@ -144,16 +144,18 @@ def charger_echelles(chemin: pathlib.Path = ECHELLES_PATH) -> dict:
 def note_brute(valeur: float, seuils: Seuils) -> float:
     """Map the engine's `points` to a note, no damping.
 
-    Linear between the five anchors; saturating beyond p90 (and, mirrored,
-    below p10) so that the note approaches 10 (resp. 2) without reaching it:
-    a monstrous night reads 9.5, not 12.
+    Linear between the five anchors; saturating beyond p90 so that the note
+    approaches 10 without reaching it (a monstrous night reads 9.5, not 12);
+    below p10 a straight line down to the floor of 1.
     """
     if valeur >= seuils.p90:
         u = (valeur - seuils.p90) / (seuils.p90 - seuils.mediane)
         return 8.0 + 2.0 * u / (1.0 + u)
     if valeur <= seuils.p10:
-        u = (seuils.p10 - valeur) / (seuils.mediane - seuils.p10)
-        return 4.0 - 2.0 * u / (1.0 + u)
+        # Below p10: linear down to 1.0, reached one (median - p10) span
+        # under p10, then flat (visual pipeline rule, checked on 61 flops).
+        ecart = (seuils.p10 - valeur) / abs(seuils.mediane - seuils.p10)
+        return max(NOTE_MIN, 4.0 - 3.0 * min(ecart, 1.0))
     ancres = seuils.ancres()
     xs = [x for x, _ in ancres]
     i = bisect.bisect_right(xs, valeur) - 1

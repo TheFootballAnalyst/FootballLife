@@ -93,9 +93,9 @@ def test_weekly_gain_is_bounded():
 
 
 def test_initial_budget_buys_a_solid_but_not_star_squad():
-    # Spread evenly, 40 credits over 15 cards lands around OVR 71: solid
+    # Spread evenly, 60 credits over 15 cards lands at OVR 76: solid
     # regulars, no room for a squad of stars (docs/BACKTEST.md).
-    assert 68 < E.budget_moyen_par_carte() < 75
+    assert 73 < E.budget_moyen_par_carte() < 79
 
 
 def test_scale_calibrates_on_the_perimeter():

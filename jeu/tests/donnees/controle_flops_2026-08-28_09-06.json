@@ -1,0 +1,3190 @@
+{
+ "source": "flops et cas limites du 28/08 au 06/09/2026, chaine de visuels",
+ "prestations": [
+  {
+   "moteur": {
+    "nom": "Bart Verbruggen",
+    "club": "Brighton and Hove Albion",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "brut": -28.727421721134686,
+    "date": "2026-08-30",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "3-4",
+    "adversaire": "Chelsea",
+    "entrant": false,
+    "points": -32.86704319115019,
+    "statut": "flop_severe",
+    "lignes": {
+     "But evite vs xGOT (par unite)": -36.554547052430195,
+     "But encaisse": -1.83056,
+     "Sortie dans le dos": 1.83056,
+     "Passe reussie": 1.15194944128,
+     "Long ballon reussi": 0.9338144199999997,
+     "Arret": 0.91528,
+     "Arret dans la surface": 0.68646
+    }
+   },
+   "attendu": {
+    "nom": "Bart Verbruggen",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "date": "2026-08-30",
+    "score_brut": -32.87,
+    "note_sur_10": 2.4,
+    "p10_du_poste": -16.06,
+    "attributs": {
+     "ARR": 74,
+     "EVI": 42,
+     "SOR": 79,
+     "REL": 84,
+     "BUT": 41,
+     "PRO": 84
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Odysseas Vlachodimos",
+    "club": "Sevilla",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "brut": -27.107259673128077,
+    "date": "2026-08-29",
+    "ligue": "LaLiga",
+    "phase": "Phase reguliere",
+    "coef": 0.778,
+    "score": "1-3",
+    "adversaire": "Atlético Madrid",
+    "entrant": false,
+    "points": -31.013415792025828,
+    "statut": "flop_severe",
+    "lignes": {
+     "But evite vs xGOT (par unite)": -35.75243584853687,
+     "Long ballon reussi": 2.59573819876,
+     "Arret": 1.42417568,
+     "But encaisse": -1.0681317600000002,
+     "Arret plongeant": 1.06813176,
+     "Arret dans la surface": 0.53406588,
+     "Passe reussie": 0.18504029775103997
+    }
+   },
+   "attendu": {
+    "nom": "Odysseas Vlachodimos",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": -31.01,
+    "note_sur_10": 2.5,
+    "p10_du_poste": -16.06,
+    "attributs": {
+     "ARR": 77,
+     "EVI": 42,
+     "SOR": 40,
+     "REL": 88,
+     "BUT": 43,
+     "PRO": 88
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Marcelino Núñez",
+    "club": "Ipswich Town",
+    "poste": "Milieu relayeur",
+    "minutes": 62.0,
+    "brut": -13.509457600000001,
+    "date": "2026-08-30",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "2-5",
+    "adversaire": "Manchester United",
+    "entrant": false,
+    "points": -29.445213784960004,
+    "statut": "flop_severe",
+    "lignes": {
+     "Erreur menant a un but": -21.796000000000003,
+     "Duels defensifs (taux vs reference)": -15.393207040000002,
+     "Dribble par l'adversaire": -9.808200000000001,
+     "Tir contre": 6.5388,
+     "Recuperation": 2.1796,
+     "Duel perdu": -1.96164,
+     "Passe dans le dernier tiers": 1.96164,
+     "Occasion creee": 1.7436800000000003,
+     "Degagement": 1.7436800000000003,
+     "Ballon touche": 1.6129040000000001,
+     "Long ballon reussi": 1.559808944,
+     "Duel au sol gagne": 1.0898,
+     "Passe reussie": 0.7555853670400001,
+     "Duel gagne": 0.65388,
+     "Centre reussi": -0.456321056,
+     "xA (par unite)": 0.130776
+    }
+   },
+   "attendu": {
+    "nom": "Marcelino Núñez",
+    "poste": "Milieu relayeur",
+    "minutes": 62.0,
+    "date": "2026-08-30",
+    "score_brut": -29.45,
+    "note_sur_10": 1.0,
+    "p10_du_poste": -0.45,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 83,
+     "PRO": 77,
+     "DEF": 42,
+     "DRI": 72,
+     "CON": 56
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Franco Mastantuono",
+    "club": "Fiorentina",
+    "poste": "Ailier",
+    "minutes": 90.0,
+    "brut": -12.311903599999999,
+    "date": "2026-08-29",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "0-3",
+    "adversaire": "Frosinone",
+    "entrant": false,
+    "points": -27.93324688768,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -19.175247815680002,
+     "Dribble par l'adversaire": -11.448364799999998,
+     "Duel perdu": -6.296600639999999,
+     "Surperformance de finition (G - xG)": -5.266247808,
+     "xG hors penalty (par unite)": 3.5108318720000002,
+     "Occasion creee": 3.0528972800000007,
+     "Tir cadre": 2.48047904,
+     "Ballon touche": 2.022544448,
+     "Poteau ou barre": 1.9080608000000001,
+     "Duel gagne": 1.71725472,
+     "Faute commise": -1.5264486400000004,
+     "Faute subie": 1.5264486400000004,
+     "Tir non cadre": -1.4310455999999998,
+     "Passe dans le dernier tiers": 1.14483648,
+     "Ballon perdu au contact": -0.9540304000000001,
+     "xA (par unite)": 0.515176416,
+     "Recuperation": 0.47701520000000003,
+     "Tir contre par un defenseur": -0.19080608000000004
+    }
+   },
+   "attendu": {
+    "nom": "Franco Mastantuono",
+    "poste": "Ailier",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": -27.93,
+    "note_sur_10": 1.0,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 71,
+     "CRE": 89,
+     "PRO": 52,
+     "DEF": 40,
+     "DRI": 84,
+     "CON": 42
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Manuel Sánchez",
+    "club": "Levante",
+    "poste": "Lateral",
+    "minutes": 90.0,
+    "brut": -11.236620390399999,
+    "date": "2026-08-29",
+    "ligue": "LaLiga",
+    "phase": "Phase reguliere",
+    "coef": 0.778,
+    "score": "5-2",
+    "adversaire": "Real Betis",
+    "entrant": false,
+    "points": -24.02726538079232,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -22.044661866880002,
+     "Dribble par l'adversaire": -12.4769805,
+     "Duel perdu": -4.49171298,
+     "Interception": 3.99263376,
+     "Degagement": 3.3271948000000005,
+     "Faute commise": -2.6617558400000005,
+     "Tir contre": 2.4953961000000002,
+     "Passe dans le dernier tiers": 1.99631688,
+     "Degagement de la tete": 1.6635974000000002,
+     "Ballon touche": 1.597053504,
+     "Duel gagne": 0.99815844,
+     "Duel au sol gagne": 0.8317987000000001,
+     "Passe reussie": 0.7985320755116802,
+     "Long ballon reussi": -0.5716120666400001,
+     "Duel aerien gagne": 0.4359956065919998,
+     "Recuperation": 0.41589935000000006,
+     "Centre reussi": -0.33311874337600006
+    }
+   },
+   "attendu": {
+    "nom": "Manuel Sánchez",
+    "poste": "Lateral",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": -24.03,
+    "note_sur_10": 1.0,
+    "p10_du_poste": 0.89,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 45,
+     "PRO": 62,
+     "DEF": 41,
+     "DRI": 73,
+     "CON": 45
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "David de Gea",
+    "club": "Fiorentina",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "brut": -18.5998278112,
+    "date": "2026-08-29",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "0-3",
+    "adversaire": "Frosinone",
+    "entrant": false,
+    "points": -21.28006299879392,
+    "statut": "flop_severe",
+    "lignes": {
+     "But evite vs xGOT (par unite)": -25.49798465,
+     "Arret": 2.30925144,
+     "But encaisse": -1.15462572,
+     "Arret plongeant": 1.1546257199999999,
+     "Long ballon reussi": 0.8109321306799995,
+     "Arret dans la surface": 0.5773128599999999,
+     "Duel au sol gagne": 0.48109404999999994,
+     "Passe reussie": 0.03933117052608001
+    }
+   },
+   "attendu": {
+    "nom": "David de Gea",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": -21.28,
+    "note_sur_10": 3.5,
+    "p10_du_poste": -16.06,
+    "attributs": {
+     "ARR": 82,
+     "EVI": 43,
+     "SOR": 40,
+     "REL": 74,
+     "BUT": 43,
+     "PRO": 74
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Antonín Kinsky",
+    "club": "Tottenham Hotspur",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "brut": -17.776952515960243,
+    "date": "2026-08-29",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "0-2",
+    "adversaire": "Newcastle United",
+    "entrant": false,
+    "points": -20.338611373510112,
+    "statut": "sous_mediane",
+    "lignes": {
+     "But evite vs xGOT (par unite)": -21.632896007590112,
+     "Long ballon reussi": 1.2829937399999995,
+     "Passe reussie": 0.9265708940799999,
+     "But encaisse": -0.91528
+    }
+   },
+   "attendu": {
+    "nom": "Antonín Kinsky",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": -20.34,
+    "note_sur_10": 3.6,
+    "p10_du_poste": -16.06,
+    "attributs": {
+     "ARR": 40,
+     "EVI": 45,
+     "SOR": 40,
+     "REL": 85,
+     "BUT": 44,
+     "PRO": 85
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Demba Thiam",
+    "club": "Monza",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "brut": -17.55883230137403,
+    "date": "2026-08-29",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "2-3",
+    "adversaire": "Udinese",
+    "entrant": false,
+    "points": -20.089060036002024,
+    "statut": "flop_severe",
+    "lignes": {
+     "But evite vs xGOT (par unite)": -25.911429574207627,
+     "Sortie aerienne": 1.53950096,
+     "Sortie dans le dos": 1.53950096,
+     "Arret": 1.53950096,
+     "But encaisse": -1.15462572,
+     "Arret dans la surface": 1.1546257199999999,
+     "Long ballon reussi": 0.7853379272199997,
+     "Passe reussie": 0.41852873098559995
+    }
+   },
+   "attendu": {
+    "nom": "Demba Thiam",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": -20.09,
+    "note_sur_10": 3.6,
+    "p10_du_poste": -16.06,
+    "attributs": {
+     "ARR": 81,
+     "EVI": 43,
+     "SOR": 87,
+     "REL": 77,
+     "BUT": 43,
+     "PRO": 77
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Rayan",
+    "club": "Bournemouth",
+    "poste": "Ailier",
+    "minutes": 90.0,
+    "brut": -8.7372,
+    "date": "2026-08-29",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "1-1",
+    "adversaire": "Everton",
+    "entrant": false,
+    "points": -19.822959360000002,
+    "statut": "flop_severe",
+    "lignes": {
+     "Grosse occasion manquee": -9.0752,
+     "Duels defensifs (taux vs reference)": -8.025199360000002,
+     "Dribble par l'adversaire": -6.8064,
+     "Duel perdu": -6.12576,
+     "Tir cadre": 5.898880000000001,
+     "Surperformance de finition (G - xG)": -5.445120000000001,
+     "xG hors penalty (par unite)": 3.6300800000000004,
+     "Duel gagne": 2.0419199999999997,
+     "Recuperation": 1.7016,
+     "Ballon touche": 1.4520320000000002,
+     "Ballon perdu au contact": -1.1344,
+     "Degagement de la tete": 1.1344,
+     "Degagement": 0.9075200000000001,
+     "Passe dans le dernier tiers": 0.68064,
+     "Tir contre par un defenseur": -0.45376000000000005,
+     "Tir non cadre": -0.34032,
+     "xA (par unite)": 0.136128
+    }
+   },
+   "attendu": {
+    "nom": "Rayan",
+    "poste": "Ailier",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": -19.82,
+    "note_sur_10": 1.5,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 40,
+     "CRE": 76,
+     "PRO": 47,
+     "DEF": 44,
+     "DRI": 79,
+     "CON": 41
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Matheo Raab",
+    "club": "1. FC Union Berlin",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "brut": -16.904238531130197,
+    "date": "2026-08-29",
+    "ligue": "Bundesliga",
+    "phase": "Phase reguliere",
+    "coef": 0.731,
+    "score": "3-3",
+    "adversaire": "Eintracht Frankfurt",
+    "entrant": false,
+    "points": -19.340139303466056,
+    "statut": "sous_mediane",
+    "lignes": {
+     "But evite vs xGOT (par unite)": -18.480613586496617,
+     "Sortie aerienne": 1.3381393599999998,
+     "Long ballon reussi": -1.3289396518999999,
+     "But encaisse": -1.00360452,
+     "Passe reussie": 0.13487909493055997
+    }
+   },
+   "attendu": {
+    "nom": "Matheo Raab",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": -19.34,
+    "note_sur_10": 3.7,
+    "p10_du_poste": -16.06,
+    "attributs": {
+     "ARR": 40,
+     "EVI": 46,
+     "SOR": 75,
+     "REL": 44,
+     "BUT": 43,
+     "PRO": 44
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Danilo Veiga",
+    "club": "Lecce",
+    "poste": "Ailier",
+    "minutes": 90.0,
+    "brut": -7.6611736,
+    "date": "2026-08-31",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "0-4",
+    "adversaire": "Roma",
+    "entrant": false,
+    "points": -17.38167066368,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -11.543004615680001,
+     "Dribble par l'adversaire": -8.5862736,
+     "Duel perdu": -5.15176416,
+     "Interception": 4.57934592,
+     "Ballon perdu au contact": -2.8620911999999996,
+     "Ballon touche": 2.404156608,
+     "Recuperation": 2.385076,
+     "Passe dans le dernier tiers": 2.28967296,
+     "Faute commise": -1.5264486400000004,
+     "Duel gagne": 0.57241824,
+     "xA (par unite)": 0.057241824000000004
+    }
+   },
+   "attendu": {
+    "nom": "Danilo Veiga",
+    "poste": "Ailier",
+    "minutes": 90.0,
+    "date": "2026-08-31",
+    "score_brut": -17.38,
+    "note_sur_10": 2.0,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 73,
+     "PRO": 62,
+     "DEF": 42,
+     "DRI": 72,
+     "CON": 42
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Edward Nketiah",
+    "club": "Crystal Palace",
+    "poste": "Ailier",
+    "minutes": 68.0,
+    "brut": -7.479599999999999,
+    "date": "2026-08-28",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "1-4",
+    "adversaire": "Manchester City",
+    "entrant": false,
+    "points": -16.96971648,
+    "statut": "flop_severe",
+    "lignes": {
+     "Dribble par l'adversaire": -6.8064,
+     "Duel perdu": -6.12576,
+     "Surperformance de finition (G - xG)": -4.900608000000001,
+     "Duels defensifs (taux vs reference)": -4.65013248,
+     "Grosse occasion manquee": -4.5376,
+     "xG hors penalty (par unite)": 3.267072,
+     "Duel gagne": 2.72256,
+     "Interception": 2.72256,
+     "Ballon perdu au contact": -2.2688,
+     "Occasion creee": 1.8150400000000002,
+     "Faute commise": -1.8150400000000002,
+     "Recuperation": 1.7016,
+     "Ballon touche": 0.998272,
+     "Faute subie": 0.9075200000000001,
+     "Tir non cadre": -0.68064,
+     "Passe dans le dernier tiers": 0.68064
+    }
+   },
+   "attendu": {
+    "nom": "Edward Nketiah",
+    "poste": "Ailier",
+    "minutes": 68.0,
+    "date": "2026-08-28",
+    "score_brut": -16.97,
+    "note_sur_10": 2.1,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 40,
+     "CRE": 85,
+     "PRO": 47,
+     "DEF": 45,
+     "DRI": 85,
+     "CON": 41
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Kieron Bowie",
+    "club": "Sassuolo",
+    "poste": "Buteur",
+    "minutes": 72.0,
+    "brut": -8.801348921599999,
+    "date": "2026-08-29",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "2-1",
+    "adversaire": "Torino",
+    "entrant": false,
+    "points": -16.762169021187198,
+    "statut": "flop_severe",
+    "lignes": {
+     "Surperformance de finition (G - xG)": -8.26469202,
+     "Duels defensifs (taux vs reference)": -8.20062464,
+     "xG hors penalty (par unite)": 5.509794680000001,
+     "Dribble par l'adversaire": -4.8050535,
+     "Grosse occasion manquee": -3.203369,
+     "Duel perdu": -2.8830321,
+     "Faute commise": -2.5626952000000003,
+     "Tir cadre": 2.08218985,
+     "Interception": 1.9220213999999998,
+     "Occasion creee": 1.2813476000000001,
+     "Duel aerien gagne": -1.1524440314400002,
+     "Duel au sol gagne": 0.80084225,
+     "Ballon touche": 0.73677487,
+     "Degagement": 0.6406738000000001,
+     "Faute subie": 0.6406738000000001,
+     "Duel gagne": 0.48050534999999994,
+     "Recuperation": 0.400421125,
+     "Tir non cadre": -0.24025267499999997,
+     "Passe reussie": 0.21491787025280004,
+     "Tir contre par un defenseur": -0.16016845000000002
+    }
+   },
+   "attendu": {
+    "nom": "Kieron Bowie",
+    "poste": "Buteur",
+    "minutes": 72.0,
+    "date": "2026-08-29",
+    "score_brut": -16.76,
+    "note_sur_10": 1.3,
+    "p10_du_poste": -3.41,
+    "attributs": {
+     "FIN": 41,
+     "CRE": 81,
+     "PRO": 43,
+     "DEF": 43,
+     "DRI": 74,
+     "CON": 47
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Benja Domínguez",
+    "club": "Sassuolo",
+    "poste": "Ailier",
+    "minutes": 30.0,
+    "brut": -7.047445440000001,
+    "date": "2026-08-29",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "2-1",
+    "adversaire": "Torino",
+    "entrant": true,
+    "points": -15.989244214272002,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -7.670099126272,
+     "Dribble par l'adversaire": -4.579345919999999,
+     "Duel perdu": -4.121411328,
+     "Ballon perdu au contact": -3.05289728,
+     "Duel gagne": 1.3738037759999997,
+     "Faute subie": 1.2211589120000002,
+     "Ballon touche": 0.7937532928,
+     "xA (par unite)": 0.0457934592
+    }
+   },
+   "attendu": {
+    "nom": "Benja Domínguez",
+    "poste": "Ailier",
+    "minutes": 30.0,
+    "date": "2026-08-29",
+    "score_brut": -15.99,
+    "note_sur_10": 3.3,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 71,
+     "PRO": 41,
+     "DEF": 43,
+     "DRI": 81,
+     "CON": 41
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Deniz Undav",
+    "club": "VfB Stuttgart",
+    "poste": "Ailier",
+    "minutes": 74.0,
+    "brut": -6.9807576000000005,
+    "date": "2026-08-28",
+    "ligue": "Bundesliga",
+    "phase": "Phase reguliere",
+    "coef": 0.731,
+    "score": "1-5",
+    "adversaire": "Bayern München",
+    "entrant": false,
+    "points": -15.837942842880002,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -10.033218042880002,
+     "Dribble par l'adversaire": -7.4632176,
+     "Duel perdu": -4.47793056,
+     "Passe dans le dernier tiers": 2.4877392,
+     "Interception": 1.99019136,
+     "Occasion creee": 1.3267942400000001,
+     "Faute commise": -1.3267942400000001,
+     "Ballon touche": 0.961925824,
+     "Ballon perdu au contact": -0.8292464,
+     "Recuperation": 0.8292464,
+     "Duel gagne": 0.49754784,
+     "xA (par unite)": 0.19901913599999999
+    }
+   },
+   "attendu": {
+    "nom": "Deniz Undav",
+    "poste": "Ailier",
+    "minutes": 74.0,
+    "date": "2026-08-28",
+    "score_brut": -15.84,
+    "note_sur_10": 2.3,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 83,
+     "PRO": 64,
+     "DEF": 42,
+     "DRI": 71,
+     "CON": 43
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Karl Hein",
+    "club": "SV Werder Bremen",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "brut": -13.061200032130715,
+    "date": "2026-08-30",
+    "ligue": "Bundesliga",
+    "phase": "Phase reguliere",
+    "coef": 0.731,
+    "score": "1-4",
+    "adversaire": "Freiburg",
+    "entrant": false,
+    "points": -14.94331895676075,
+    "statut": "sous_mediane",
+    "lignes": {
+     "But evite vs xGOT (par unite)": -17.750626944752586,
+     "Long ballon reussi": 1.5982401980999996,
+     "But encaisse": -1.3381393599999998,
+     "Sortie aerienne": 1.3381393599999998,
+     "Arret": 0.6690696799999999,
+     "Passe reussie": 0.5399981098918399
+    }
+   },
+   "attendu": {
+    "nom": "Karl Hein",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "date": "2026-08-30",
+    "score_brut": -14.94,
+    "note_sur_10": 4.1,
+    "p10_du_poste": -16.06,
+    "attributs": {
+     "ARR": 70,
+     "EVI": 46,
+     "SOR": 75,
+     "REL": 84,
+     "BUT": 42,
+     "PRO": 84
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Jacob Greaves",
+    "club": "Ipswich Town",
+    "poste": "Defenseur central",
+    "minutes": 90.0,
+    "brut": -7.4881632000000025,
+    "date": "2026-08-30",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "2-5",
+    "adversaire": "Manchester United",
+    "entrant": false,
+    "points": -14.900695951680005,
+    "statut": "flop_severe",
+    "lignes": {
+     "Penalty concede": -23.8788,
+     "But contre son camp": -19.899,
+     "Tir contre": 11.9394,
+     "Degagement": 3.9798,
+     "Duel au sol gagne": 2.98485,
+     "Ballon touche": 2.5072740000000002,
+     "Duel gagne": 2.38788,
+     "Recuperation": 1.9899,
+     "Passe reussie": 1.9018604563199997,
+     "Duels defensifs (taux vs reference)": 1.8092170799999996,
+     "Duel perdu": -1.7909099999999998,
+     "Faute commise": -1.59192,
+     "Faute subie": 1.59192,
+     "Degagement de la tete": 0.99495,
+     "Duel aerien gagne": 0.11318551200000009,
+     "xA (par unite)": 0.059697
+    }
+   },
+   "attendu": {
+    "nom": "Jacob Greaves",
+    "poste": "Defenseur central",
+    "minutes": 90.0,
+    "date": "2026-08-30",
+    "score_brut": -14.9,
+    "note_sur_10": 1.0,
+    "p10_du_poste": 7.8,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 73,
+     "PRO": 59,
+     "DEF": 96,
+     "DRI": 86,
+     "CON": 81
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Dean Henderson",
+    "club": "Crystal Palace",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "brut": -13.019512000000004,
+    "date": "2026-08-28",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "1-4",
+    "adversaire": "Manchester City",
+    "entrant": false,
+    "points": -14.895623679200003,
+    "statut": "sous_mediane",
+    "lignes": {
+     "But evite vs xGOT (par unite)": -26.314299999999996,
+     "Sortie aerienne": 3.66112,
+     "Arret": 3.66112,
+     "Arret plongeant": 2.74584,
+     "Arret dans la surface": 2.0593799999999995,
+     "But encaisse": -1.83056,
+     "Degagement du poing": 0.91528,
+     "Passe reussie": 0.2785746208,
+     "Long ballon reussi": -0.0720783
+    }
+   },
+   "attendu": {
+    "nom": "Dean Henderson",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "date": "2026-08-28",
+    "score_brut": -14.9,
+    "note_sur_10": 4.1,
+    "p10_du_poste": -16.06,
+    "attributs": {
+     "ARR": 94,
+     "EVI": 43,
+     "SOR": 93,
+     "REL": 70,
+     "BUT": 41,
+     "PRO": 70
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Luismi Cruz",
+    "club": "Deportivo de La Coruña",
+    "poste": "Ailier",
+    "minutes": 73.0,
+    "brut": -6.513416,
+    "date": "2026-08-30",
+    "ligue": "LaLiga",
+    "phase": "Phase reguliere",
+    "coef": 0.778,
+    "score": "3-1",
+    "adversaire": "Valencia",
+    "entrant": false,
+    "points": -14.777638220800002,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -8.0525066368,
+     "Dribble par l'adversaire": -7.943068800000002,
+     "Faute commise": -5.648404480000001,
+     "Duel perdu": -3.7067654400000007,
+     "Duel gagne": 2.6476896,
+     "Passe dans le dernier tiers": 2.6476896,
+     "Ballon touche": 1.6239162880000002,
+     "Occasion creee": 1.4121011200000002,
+     "Recuperation": 1.3238448,
+     "Faute subie": 0.7060505600000001,
+     "xA (par unite)": 0.211815168
+    }
+   },
+   "attendu": {
+    "nom": "Luismi Cruz",
+    "poste": "Ailier",
+    "minutes": 73.0,
+    "date": "2026-08-30",
+    "score_brut": -14.78,
+    "note_sur_10": 2.5,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 84,
+     "PRO": 65,
+     "DEF": 41,
+     "DRI": 84,
+     "CON": 48
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Einar Galilea",
+    "club": "Málaga",
+    "poste": "Defenseur central",
+    "minutes": 74.0,
+    "brut": -7.3614285312000005,
+    "date": "2026-08-30",
+    "ligue": "LaLiga",
+    "phase": "Phase reguliere",
+    "coef": 0.778,
+    "score": "0-4",
+    "adversaire": "Real Madrid",
+    "entrant": false,
+    "points": -14.64850663423488,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -19.139991647040002,
+     "Dribble par l'adversaire": -9.2888532,
+     "Interception": 3.71554128,
+     "Tir contre": 2.3222133,
+     "Duel perdu": -1.85777064,
+     "Duel aerien gagne": 1.577494976112,
+     "Degagement de la tete": 1.5481422,
+     "Degagement": 1.23851376,
+     "Ballon touche": 1.23851376,
+     "Passe reussie": 1.1645893506931202,
+     "Duel gagne": 0.92888532,
+     "Duel au sol gagne": 0.7740711,
+     "Faute subie": 0.61925688,
+     "Passe dans le dernier tiers": 0.46444266,
+     "xA (par unite)": 0.046444266
+    }
+   },
+   "attendu": {
+    "nom": "Einar Galilea",
+    "poste": "Defenseur central",
+    "minutes": 74.0,
+    "date": "2026-08-30",
+    "score_brut": -14.65,
+    "note_sur_10": 1.0,
+    "p10_du_poste": 7.8,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 71,
+     "PRO": 57,
+     "DEF": 42,
+     "DRI": 76,
+     "CON": 54
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Julio Díaz",
+    "club": "Sevilla",
+    "poste": "Ailier",
+    "minutes": 55.0,
+    "brut": -6.208128800000001,
+    "date": "2026-08-29",
+    "ligue": "LaLiga",
+    "phase": "Phase reguliere",
+    "coef": 0.778,
+    "score": "1-3",
+    "adversaire": "Atlético Madrid",
+    "entrant": false,
+    "points": -14.085002621440003,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -10.678308669440002,
+     "Dribble par l'adversaire": -7.943068800000002,
+     "Duel perdu": -3.7067654400000007,
+     "Grosse occasion creee": 3.5302528000000004,
+     "Occasion creee": 2.8242022400000004,
+     "Duel gagne": 2.11815168,
+     "Faute commise": -1.4121011200000002,
+     "xA (par unite)": 1.112029632,
+     "Ballon touche": 0.9531682560000002,
+     "Ballon perdu au contact": -0.8825632000000001
+    }
+   },
+   "attendu": {
+    "nom": "Julio Díaz",
+    "poste": "Ailier",
+    "minutes": 55.0,
+    "date": "2026-08-29",
+    "score_brut": -14.09,
+    "note_sur_10": 2.7,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 93,
+     "PRO": 41,
+     "DEF": 41,
+     "DRI": 79,
+     "CON": 44
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Diego Mascardi",
+    "club": "Torino",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "brut": -12.2856859296,
+    "date": "2026-08-29",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "1-2",
+    "adversaire": "Sassuolo",
+    "entrant": false,
+    "points": -14.056053272055358,
+    "statut": "flop",
+    "lignes": {
+     "But evite vs xGOT (par unite)": -25.016890599999996,
+     "Arret": 3.8487523999999995,
+     "Long ballon reussi": 2.4866789256399997,
+     "Arret plongeant": 2.3092514399999997,
+     "Arret dans la surface": 2.3092514399999997,
+     "Passe reussie": 0.7766536023046399,
+     "But encaisse": -0.76975048
+    }
+   },
+   "attendu": {
+    "nom": "Diego Mascardi",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": -14.06,
+    "note_sur_10": 4.1,
+    "p10_du_poste": -16.06,
+    "attributs": {
+     "ARR": 94,
+     "EVI": 44,
+     "SOR": 40,
+     "REL": 91,
+     "BUT": 46,
+     "PRO": 91
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Mark Flekken",
+    "club": "Bayer 04 Leverkusen",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "brut": -12.1769371808,
+    "date": "2026-08-29",
+    "ligue": "Bundesliga",
+    "phase": "Phase reguliere",
+    "coef": 0.731,
+    "score": "2-3",
+    "adversaire": "Elversberg",
+    "entrant": false,
+    "points": -13.931633828553279,
+    "statut": "sous_mediane",
+    "lignes": {
+     "But evite vs xGOT (par unite)": -17.14491055,
+     "Arret": 2.00720904,
+     "Arret dans la surface": 1.5054067799999997,
+     "But encaisse": -1.00360452,
+     "Long ballon reussi": 0.4800574953999998,
+     "Passe reussie": 0.22420792604672
+    }
+   },
+   "attendu": {
+    "nom": "Mark Flekken",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": -13.93,
+    "note_sur_10": 4.2,
+    "p10_du_poste": -16.06,
+    "attributs": {
+     "ARR": 86,
+     "EVI": 46,
+     "SOR": 40,
+     "REL": 73,
+     "BUT": 43,
+     "PRO": 73
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Jeyland Mitchell",
+    "club": "Strasbourg",
+    "poste": "Defenseur central",
+    "minutes": 90.0,
+    "brut": -6.937720691199997,
+    "date": "2026-08-29",
+    "ligue": "Ligue 1",
+    "phase": "Phase reguliere",
+    "coef": 0.689,
+    "score": "2-1",
+    "adversaire": "Lens",
+    "entrant": false,
+    "points": -13.805370403418875,
+    "statut": "flop_severe",
+    "lignes": {
+     "Penalty concede": -16.4524932,
+     "Duels defensifs (taux vs reference)": -8.47522766376,
+     "Duel aerien gagne": 4.269092935536,
+     "Dribble par l'adversaire": -4.1131233,
+     "Passe dans le dernier tiers": 4.1131233,
+     "Grosse occasion manquee": -2.7420821999999996,
+     "Degagement": 2.7420821999999996,
+     "Degagement de la tete": 2.7420821999999996,
+     "Ballon touche": 2.083982472,
+     "Duel perdu": -2.05656165,
+     "Duel gagne": 1.6452493199999998,
+     "Interception": 1.6452493199999998,
+     "Passe reussie": 1.6349654149171198,
+     "Surperformance de finition (G - xG)": -1.3161994559999999,
+     "Faute commise": -1.09683288,
+     "xG hors penalty (par unite)": 0.8774663039999999,
+     "Recuperation": 0.6855205499999999,
+     "Tir non cadre": -0.20565616499999997,
+     "xA (par unite)": 0.123393699,
+     "Long ballon reussi": 0.09059839588799988
+    }
+   },
+   "attendu": {
+    "nom": "Jeyland Mitchell",
+    "poste": "Defenseur central",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": -13.81,
+    "note_sur_10": 1.0,
+    "p10_du_poste": 7.8,
+    "attributs": {
+     "FIN": 41,
+     "CRE": 76,
+     "PRO": 84,
+     "DEF": 54,
+     "DRI": 77,
+     "CON": 58
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Maximilian Wöber",
+    "club": "FC Schalke 04",
+    "poste": "Defenseur central",
+    "minutes": 28.0,
+    "brut": -6.806566810773333,
+    "date": "2026-08-30",
+    "ligue": "Bundesliga",
+    "phase": "Phase reguliere",
+    "coef": 0.731,
+    "score": "0-3",
+    "adversaire": "Augsburg",
+    "entrant": true,
+    "points": -13.544387296757856,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Erreur menant a un but": -11.53996074,
+     "Duel perdu": -1.3847952888,
+     "Duel aerien gagne": -1.11023654287392,
+     "Degagement": 0.9231968592,
+     "Faute commise": -0.9231968592,
+     "Dribble reussi": -0.8743597453483201,
+     "Degagement de la tete": 0.576998037,
+     "Ballon touche": 0.43851850811999993,
+     "Passe reussie": 0.349448475144384
+    }
+   },
+   "attendu": {
+    "nom": "Maximilian Wöber",
+    "poste": "Defenseur central",
+    "minutes": 28.0,
+    "date": "2026-08-30",
+    "score_brut": -13.54,
+    "note_sur_10": 2.6,
+    "p10_du_poste": 7.8,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 44,
+     "DEF": 57,
+     "DRI": 45,
+     "CON": 52
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Willem Geubbels",
+    "club": "Lecce",
+    "poste": "Buteur",
+    "minutes": 54.0,
+    "brut": -6.995373411199999,
+    "date": "2026-08-31",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "0-4",
+    "adversaire": "Roma",
+    "entrant": false,
+    "points": -13.3226886616304,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -4.10031232,
+     "Surperformance de finition (G - xG)": -3.6518406600000004,
+     "Grosse occasion manquee": -3.203369,
+     "Duel perdu": -2.8830321,
+     "xG hors penalty (par unite)": 2.43456044,
+     "Dribble par l'adversaire": -2.40252675,
+     "Tir cadre": 2.08218985,
+     "Duel aerien gagne": 1.82630473428,
+     "Dribble reussi": -1.6990669176000004,
+     "Ballon perdu au contact": -1.6016845,
+     "Faute commise": -1.2813476000000001,
+     "Ballon touche": 0.67270749,
+     "Duel gagne": 0.48050534999999994,
+     "Passe reussie": 0.24447599668960002,
+     "Tir non cadre": -0.24025267499999997
+    }
+   },
+   "attendu": {
+    "nom": "Willem Geubbels",
+    "poste": "Buteur",
+    "minutes": 54.0,
+    "date": "2026-08-31",
+    "score_brut": -13.32,
+    "note_sur_10": 2.2,
+    "p10_du_poste": -3.41,
+    "attributs": {
+     "FIN": 41,
+     "CRE": 49,
+     "PRO": 43,
+     "DEF": 47,
+     "DRI": 44,
+     "CON": 43
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Abderrahman Rebbach",
+    "club": "Alavés",
+    "poste": "Lateral",
+    "minutes": 71.0,
+    "brut": -5.8977702848,
+    "date": "2026-08-28",
+    "ligue": "LaLiga",
+    "phase": "Phase reguliere",
+    "coef": 0.778,
+    "score": "1-0",
+    "adversaire": "Villarreal",
+    "entrant": false,
+    "points": -12.61120219998784,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -10.607097022400001,
+     "Dribble par l'adversaire": -7.486188300000001,
+     "Duel perdu": -3.99263376,
+     "Duel au sol gagne": 2.4953961000000002,
+     "Duel gagne": 1.99631688,
+     "Interception": 1.99631688,
+     "Duel aerien gagne": 1.808929268864,
+     "Centre reussi": -1.6655937168800004,
+     "Recuperation": 1.6635974000000002,
+     "Ballon touche": 1.4972376600000001,
+     "Faute commise": -1.3308779200000003,
+     "Passe dans le dernier tiers": 0.99815844,
+     "Long ballon reussi": -0.85741809996,
+     "Degagement": 0.6654389600000001,
+     "Passe reussie": 0.41183751058816004,
+     "Dribble reussi": -0.25453040220000045,
+     "xA (par unite)": 0.049907922
+    }
+   },
+   "attendu": {
+    "nom": "Abderrahman Rebbach",
+    "poste": "Lateral",
+    "minutes": 71.0,
+    "date": "2026-08-28",
+    "score_brut": -12.61,
+    "note_sur_10": 1.8,
+    "p10_du_poste": 0.89,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 41,
+     "PRO": 46,
+     "DEF": 44,
+     "DRI": 77,
+     "CON": 46
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Yéhvann Diouf",
+    "club": "Nice",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "brut": -10.92910108328008,
+    "date": "2026-08-30",
+    "ligue": "Ligue 1",
+    "phase": "Phase reguliere",
+    "coef": 0.689,
+    "score": "0-3",
+    "adversaire": "Paris FC",
+    "entrant": false,
+    "points": -12.503984549380739,
+    "statut": "sous_mediane",
+    "lignes": {
+     "But evite vs xGOT (par unite)": -16.090798141173856,
+     "Passe reussie": 1.3545484119731195,
+     "Sortie dans le dos": 1.26125584,
+     "But encaisse": -0.94594188,
+     "Long ballon reussi": 0.8133523598199998,
+     "Arret": 0.63062792,
+     "Arret dans la surface": 0.4729709399999999
+    }
+   },
+   "attendu": {
+    "nom": "Yéhvann Diouf",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "date": "2026-08-30",
+    "score_brut": -12.5,
+    "note_sur_10": 4.3,
+    "p10_du_poste": -16.06,
+    "attributs": {
+     "ARR": 71,
+     "EVI": 47,
+     "SOR": 74,
+     "REL": 84,
+     "BUT": 44,
+     "PRO": 84
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Brenden Aaronson",
+    "club": "Leeds United",
+    "poste": "Ailier",
+    "minutes": 45.0,
+    "brut": -5.497199999999999,
+    "date": "2026-08-30",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "1-1",
+    "adversaire": "Brentford",
+    "entrant": false,
+    "points": -12.47204736,
+    "statut": "flop",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -8.025199360000002,
+     "Dribble par l'adversaire": -6.8064,
+     "Duel perdu": -3.4032,
+     "Duel gagne": 1.36128,
+     "Passe dans le dernier tiers": 1.36128,
+     "Degagement": 0.9075200000000001,
+     "Faute subie": 0.9075200000000001,
+     "Ballon touche": 0.5898880000000001,
+     "Recuperation": 0.5672,
+     "xA (par unite)": 0.068064
+    }
+   },
+   "attendu": {
+    "nom": "Brenden Aaronson",
+    "poste": "Ailier",
+    "minutes": 45.0,
+    "date": "2026-08-30",
+    "score_brut": -12.47,
+    "note_sur_10": 3.3,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 74,
+     "PRO": 54,
+     "DEF": 43,
+     "DRI": 80,
+     "CON": 45
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Michaël Cuisance",
+    "club": "Lens",
+    "poste": "Milieu defensif",
+    "minutes": 72.0,
+    "brut": -6.146836883199999,
+    "date": "2026-08-29",
+    "ligue": "Ligue 1",
+    "phase": "Phase reguliere",
+    "coef": 0.689,
+    "score": "1-2",
+    "adversaire": "Strasbourg",
+    "entrant": false,
+    "points": -12.428904177830397,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -8.094247979999999,
+     "Dribble par l'adversaire": -6.269210999999999,
+     "Grosse occasion manquee": -2.7863159999999993,
+     "Faute commise": -2.2290528,
+     "Duel perdu": -2.0897369999999995,
+     "Tir cadre": 1.8111053999999998,
+     "Surperformance de finition (G - xG)": -1.7553790799999995,
+     "Recuperation": 1.7414474999999998,
+     "Passe dans le dernier tiers": 1.6717895999999997,
+     "Duel au sol gagne": 1.3931579999999997,
+     "xG hors penalty (par unite)": 1.1702527199999997,
+     "Duel gagne": 0.8358947999999998,
+     "Degagement de la tete": 0.6965789999999998,
+     "Ballon touche": 0.6965789999999998,
+     "Degagement": 0.5572632,
+     "Passe reussie": 0.49369507224959996,
+     "Long ballon reussi": -0.3145193500799999,
+     "xA (par unite)": 0.04179473999999999
+    }
+   },
+   "attendu": {
+    "nom": "Michaël Cuisance",
+    "poste": "Milieu defensif",
+    "minutes": 72.0,
+    "date": "2026-08-29",
+    "score_brut": -12.43,
+    "note_sur_10": 1.6,
+    "p10_du_poste": 1.89,
+    "attributs": {
+     "FIN": 42,
+     "CRE": 70,
+     "PRO": 59,
+     "DEF": 43,
+     "DRI": 72,
+     "CON": 50
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Nikola Vlasic",
+    "club": "Torino",
+    "poste": "Ailier",
+    "minutes": 90.0,
+    "brut": -5.4705368,
+    "date": "2026-08-29",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "1-2",
+    "adversaire": "Sassuolo",
+    "entrant": false,
+    "points": -12.41155389184,
+    "statut": "flop",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -9.587623907840001,
+     "Dribble par l'adversaire": -5.724182399999999,
+     "Grosse occasion creee": 3.8161216000000002,
+     "Grosse occasion manquee": -3.8161216000000002,
+     "Duel perdu": -3.43450944,
+     "Faute commise": -3.0528972800000007,
+     "Tir contre": 2.8620911999999996,
+     "Surperformance de finition (G - xG)": -2.8620911999999996,
+     "Tir cadre": 2.48047904,
+     "Ballon touche": 2.022544448,
+     "xG hors penalty (par unite)": 1.9080608000000001,
+     "Occasion creee": 1.5264486400000004,
+     "Duel gagne": 1.14483648,
+     "Ballon perdu au contact": -0.9540304000000001,
+     "Passe dans le dernier tiers": 0.57241824,
+     "Recuperation": 0.47701520000000003,
+     "xA (par unite)": 0.4006927680000001,
+     "Tir contre par un defenseur": -0.19080608000000004
+    }
+   },
+   "attendu": {
+    "nom": "Nikola Vlasic",
+    "poste": "Ailier",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": -12.41,
+    "note_sur_10": 2.9,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 41,
+     "CRE": 92,
+     "PRO": 46,
+     "DEF": 42,
+     "DRI": 74,
+     "CON": 47
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Abdou-Salam Konate",
+    "club": "Parma",
+    "poste": "Milieu relayeur",
+    "minutes": 10.0,
+    "brut": -5.673420716479999,
+    "date": "2026-08-29",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "0-2",
+    "adversaire": "Juventus",
+    "entrant": true,
+    "points": -12.365787793639807,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Erreur menant a un but": -13.442319733333335,
+     "Faute commise": -2.1507711573333337,
+     "Duels defensifs (taux vs reference)": 1.6593199478826668,
+     "Duel perdu": -0.8065391839999999,
+     "Duel au sol gagne": 0.6721159866666666,
+     "Long ballon reussi": 0.6343161835765333,
+     "Duel gagne": 0.40326959199999995,
+     "Ballon touche": 0.3763849525333333,
+     "Passe reussie": 0.2884356183676587
+    }
+   },
+   "attendu": {
+    "nom": "Abdou-Salam Konate",
+    "poste": "Milieu relayeur",
+    "minutes": 10.0,
+    "date": "2026-08-29",
+    "score_brut": -12.37,
+    "note_sur_10": 4.4,
+    "p10_du_poste": -0.45,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 49,
+     "DEF": 70,
+     "DRI": 70,
+     "CON": 55
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Gonzalo García",
+    "club": "Fulham",
+    "poste": "Buteur",
+    "minutes": 90.0,
+    "brut": -6.1737312,
+    "date": "2026-08-30",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "0-1",
+    "adversaire": "Sunderland",
+    "entrant": false,
+    "points": -11.7578710704,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -9.751040000000001,
+     "Dribble par l'adversaire": -5.7135,
+     "Duel perdu": -5.14215,
+     "Dribble reussi": 4.1320032,
+     "Grosse occasion manquee": -3.809,
+     "Duel aerien gagne": 3.7741095599999994,
+     "Surperformance de finition (G - xG)": -3.0852900000000005,
+     "Faute commise": -3.0472,
+     "Tir contre": 2.85675,
+     "Duel gagne": 2.2854,
+     "xG hors penalty (par unite)": 2.0568600000000004,
+     "Ballon touche": 1.2188800000000002,
+     "Passe dans le dernier tiers": 1.1427,
+     "Ballon perdu au contact": -0.95225,
+     "Recuperation": 0.95225,
+     "Duel au sol gagne": 0.95225,
+     "Degagement": 0.7618,
+     "Tir contre par un defenseur": -0.5713500000000001,
+     "Passe reussie": 0.43763276959999997,
+     "Centre reussi": -0.3138616,
+     "xA (par unite)": 0.057135
+    }
+   },
+   "attendu": {
+    "nom": "Gonzalo García",
+    "poste": "Buteur",
+    "minutes": 90.0,
+    "date": "2026-08-30",
+    "score_brut": -11.76,
+    "note_sur_10": 2.3,
+    "p10_du_poste": -3.41,
+    "attributs": {
+     "FIN": 40,
+     "CRE": 47,
+     "PRO": 56,
+     "DEF": 45,
+     "DRI": 93,
+     "CON": 42
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Przemyslaw Frankowski",
+    "club": "Rennes",
+    "poste": "Lateral",
+    "minutes": 90.0,
+    "brut": -5.4383883424,
+    "date": "2026-08-30",
+    "ligue": "Ligue 1",
+    "phase": "Phase reguliere",
+    "coef": 0.689,
+    "score": "3-2",
+    "adversaire": "Le Mans",
+    "entrant": false,
+    "points": -11.628905792553919,
+    "statut": "flop_severe",
+    "lignes": {
+     "Penalty concede": -17.679464399999997,
+     "Duels defensifs (taux vs reference)": -8.47199934048,
+     "Grosse occasion creee": 5.8931548,
+     "Dribble par l'adversaire": -4.419866099999999,
+     "Occasion creee": 3.5358928800000005,
+     "Faute commise": -3.5358928800000005,
+     "Passe dans le dernier tiers": 3.5358928799999996,
+     "Ballon touche": 2.858180078,
+     "Recuperation": 2.578255225,
+     "Duel perdu": -2.2099330499999996,
+     "Passe reussie": 1.85875759820608,
+     "Interception": 1.7679464399999998,
+     "xA (par unite)": 1.458555813,
+     "Ballon perdu au contact": -0.73664435,
+     "Duel au sol gagne": 0.73664435,
+     "Centre reussi": 0.7352299928479998,
+     "Surperformance de finition (G - xG)": -0.6187812540000001,
+     "Duel aerien gagne": -0.607937849168,
+     "Faute subie": 0.58931548,
+     "Long ballon reussi": 0.5439381880399999,
+     "Duel gagne": 0.44198660999999995,
+     "xG hors penalty (par unite)": 0.41252083600000006,
+     "Tir contre par un defenseur": -0.29465774
+    }
+   },
+   "attendu": {
+    "nom": "Przemyslaw Frankowski",
+    "poste": "Lateral",
+    "minutes": 90.0,
+    "date": "2026-08-30",
+    "score_brut": -11.63,
+    "note_sur_10": 2.0,
+    "p10_du_poste": 0.89,
+    "attributs": {
+     "FIN": 45,
+     "CRE": 95,
+     "PRO": 85,
+     "DEF": 43,
+     "DRI": 73,
+     "CON": 57
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Philipp Sander",
+    "club": "Borussia Mönchengladbach",
+    "poste": "Milieu relayeur",
+    "minutes": 90.0,
+    "brut": -4.977536896000001,
+    "date": "2026-08-29",
+    "ligue": "Bundesliga",
+    "phase": "Phase reguliere",
+    "coef": 0.731,
+    "score": "0-3",
+    "adversaire": "RB Leipzig",
+    "entrant": false,
+    "points": -10.849039418521603,
+    "statut": "flop_severe",
+    "lignes": {
+     "Erreur menant a un but": -15.932876,
+     "Dribble par l'adversaire": -7.1697942,
+     "Duels defensifs (taux vs reference)": -5.352171705920003,
+     "Faute commise": -3.8238902400000008,
+     "Duel perdu": -3.8238902400000003,
+     "Passe dans le dernier tiers": 3.8238902400000003,
+     "Recuperation": 3.5848971,
+     "Grosse occasion creee": 3.1865752,
+     "Duel au sol gagne": 3.1865752,
+     "Long ballon reussi": 3.0073622107520004,
+     "Ballon touche": 2.70858892,
+     "Passe reussie": 2.3721885492864003,
+     "Dribble reussi": -1.9719801967680004,
+     "Duel gagne": 1.9119451200000002,
+     "Degagement de la tete": 1.5932876,
+     "Occasion creee": 1.27463008,
+     "Degagement": 1.27463008,
+     "xA (par unite)": 0.6691807920000001,
+     "Surperformance de finition (G - xG)": -0.6691807920000001,
+     "Centre reussi": -0.667141383872,
+     "Tir non cadre": -0.47798628000000004,
+     "xG hors penalty (par unite)": 0.4461205280000001
+    }
+   },
+   "attendu": {
+    "nom": "Philipp Sander",
+    "poste": "Milieu relayeur",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": -10.85,
+    "note_sur_10": 2.4,
+    "p10_du_poste": -0.45,
+    "attributs": {
+     "FIN": 44,
+     "CRE": 91,
+     "PRO": 93,
+     "DEF": 47,
+     "DRI": 51,
+     "CON": 51
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Marc Aguado",
+    "club": "Elche",
+    "poste": "Milieu defensif",
+    "minutes": 45.0,
+    "brut": -5.3161399744,
+    "date": "2026-08-28",
+    "ligue": "LaLiga",
+    "phase": "Phase reguliere",
+    "coef": 0.778,
+    "score": "2-3",
+    "adversaire": "Racing Santander",
+    "entrant": false,
+    "points": -10.7492350282368,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -8.689892784,
+     "Dribble par l'adversaire": -4.719348,
+     "Duel perdu": -1.4158043999999996,
+     "Ballon touche": 0.8494826400000001,
+     "Recuperation": 0.786558,
+     "Duel au sol gagne": 0.786558,
+     "Passe reussie": 0.7472225490432,
+     "Duel aerien gagne": -0.66712703328,
+     "Faute subie": 0.6292464,
+     "Duel gagne": 0.47193479999999993,
+     "Passe dans le dernier tiers": 0.47193479999999993
+    }
+   },
+   "attendu": {
+    "nom": "Marc Aguado",
+    "poste": "Milieu defensif",
+    "minutes": 45.0,
+    "date": "2026-08-28",
+    "score_brut": -10.75,
+    "note_sur_10": 2.4,
+    "p10_du_poste": 1.89,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 53,
+     "DEF": 43,
+     "DRI": 74,
+     "CON": 54
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Nicolò Fagioli",
+    "club": "Fiorentina",
+    "poste": "Milieu relayeur",
+    "minutes": 28.0,
+    "brut": -4.7296737594773335,
+    "date": "2026-08-29",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "0-3",
+    "adversaire": "Frosinone",
+    "entrant": true,
+    "points": -10.308796926156797,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -8.043551736520534,
+     "Dribble par l'adversaire": -4.362643768,
+     "Interception": 3.4901150143999997,
+     "Duel perdu": -1.7450575071999999,
+     "Passe dans le dernier tiers": 1.3087931304,
+     "Occasion creee": 1.1633716714666669,
+     "Faute commise": -1.1633716714666669,
+     "Dribble reussi": -0.89992615646304,
+     "Ballon touche": 0.6980230028800001,
+     "Long ballon reussi": -0.6634708642374401,
+     "Centre reussi": -0.6089087328456534,
+     "Surperformance de finition (G - xG)": -0.52351725216,
+     "Recuperation": 0.36355364733333334,
+     "xG hors penalty (par unite)": 0.34901150144000004,
+     "Passe reussie": 0.34332494070987096,
+     "Tir contre par un defenseur": -0.14542145893333336,
+     "xA (par unite)": 0.13087931304
+    }
+   },
+   "attendu": {
+    "nom": "Nicolò Fagioli",
+    "poste": "Milieu relayeur",
+    "minutes": 28.0,
+    "date": "2026-08-29",
+    "score_brut": -10.31,
+    "note_sur_10": 3.6,
+    "p10_du_poste": -0.45,
+    "attributs": {
+     "FIN": 46,
+     "CRE": 79,
+     "PRO": 50,
+     "DEF": 44,
+     "DRI": 45,
+     "CON": 52
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Noa Boissé",
+    "club": "Le Mans",
+    "poste": "Defenseur central",
+    "minutes": 90.0,
+    "brut": -5.059356764799999,
+    "date": "2026-08-30",
+    "ligue": "Ligue 1",
+    "phase": "Phase reguliere",
+    "coef": 0.689,
+    "score": "2-3",
+    "adversaire": "Rennes",
+    "entrant": false,
+    "points": -10.067614026275518,
+    "statut": "flop_severe",
+    "lignes": {
+     "Penalty concede": -16.4524932,
+     "Interception": 3.2904986399999996,
+     "Duels defensifs (taux vs reference)": -2.99106326376,
+     "Degagement": 2.7420821999999996,
+     "Faute commise": -2.19366576,
+     "Dribble par l'adversaire": -2.05656165,
+     "Degagement de la tete": 2.05656165,
+     "Duel aerien gagne": 1.397036039256,
+     "Ballon touche": 0.904887126,
+     "Duel perdu": -0.8226246599999999,
+     "Duel gagne": 0.8226246599999999,
+     "Passe dans le dernier tiers": 0.8226246599999999,
+     "Recuperation": 0.6855205499999999,
+     "Duel au sol gagne": 0.6855205499999999,
+     "Long ballon reussi": 0.6131295799199998,
+     "Passe reussie": 0.4283088523084799
+    }
+   },
+   "attendu": {
+    "nom": "Noa Boissé",
+    "poste": "Defenseur central",
+    "minutes": 90.0,
+    "date": "2026-08-30",
+    "score_brut": -10.07,
+    "note_sur_10": 1.2,
+    "p10_du_poste": 7.8,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 59,
+     "DEF": 75,
+     "DRI": 72,
+     "CON": 71
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Sascha Britschgi",
+    "club": "Parma",
+    "poste": "Lateral",
+    "minutes": 84.0,
+    "brut": -4.3970251936,
+    "date": "2026-08-29",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "0-2",
+    "adversaire": "Juventus",
+    "entrant": false,
+    "points": -9.402158971474881,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -8.31826412368,
+     "Dribble par l'adversaire": -5.394930899999999,
+     "Duel perdu": -3.77645163,
+     "Dribble reussi": -3.0783475715399997,
+     "Degagement de la tete": 1.7983103,
+     "Duel au sol gagne": 1.7983103,
+     "Duel gagne": 1.61847927,
+     "Degagement": 1.4386482400000002,
+     "Ballon touche": 1.2588172100000001,
+     "Duel aerien gagne": 1.2133559256159998,
+     "Passe dans le dernier tiers": 1.07898618,
+     "Ballon perdu au contact": -0.89915515,
+     "Recuperation": 0.89915515,
+     "Faute subie": 0.7193241200000001,
+     "Passe reussie": 0.4966041086691199,
+     "Long ballon reussi": -0.30894970954,
+     "xA (par unite)": 0.053949309
+    }
+   },
+   "attendu": {
+    "nom": "Sascha Britschgi",
+    "poste": "Lateral",
+    "minutes": 84.0,
+    "date": "2026-08-29",
+    "score_brut": -9.4,
+    "note_sur_10": 2.4,
+    "p10_du_poste": 0.89,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 73,
+     "PRO": 53,
+     "DEF": 47,
+     "DRI": 46,
+     "CON": 44
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Emersonn",
+    "club": "Ipswich Town",
+    "poste": "Buteur",
+    "minutes": 45.0,
+    "brut": -4.892409600000001,
+    "date": "2026-08-30",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "2-5",
+    "adversaire": "Manchester United",
+    "entrant": false,
+    "points": -9.317594083200001,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -4.875520000000001,
+     "Duel perdu": -4.5708,
+     "Grosse occasion creee": 3.809,
+     "Duel aerien gagne": -3.4258146000000003,
+     "Dribble par l'adversaire": -2.85675,
+     "Occasion creee": 1.5236,
+     "Faute commise": -1.5236,
+     "Ballon perdu au contact": -0.95225,
+     "Duel au sol gagne": 0.95225,
+     "Degagement": 0.7618,
+     "Faute subie": 0.7618,
+     "Duel gagne": 0.57135,
+     "Passe dans le dernier tiers": 0.57135,
+     "Long ballon reussi": -0.45448988000000007,
+     "Ballon touche": 0.3809,
+     "Passe reussie": 0.009580396800000002
+    }
+   },
+   "attendu": {
+    "nom": "Emersonn",
+    "poste": "Buteur",
+    "minutes": 45.0,
+    "date": "2026-08-30",
+    "score_brut": -9.32,
+    "note_sur_10": 3.2,
+    "p10_du_poste": -3.41,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 92,
+     "PRO": 43,
+     "DEF": 44,
+     "DRI": 75,
+     "CON": 42
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Ángel Recio",
+    "club": "Málaga",
+    "poste": "Defenseur central",
+    "minutes": 90.0,
+    "brut": 4.102001888,
+    "date": "2026-08-30",
+    "ligue": "LaLiga",
+    "phase": "Phase reguliere",
+    "coef": 0.778,
+    "score": "0-4",
+    "adversaire": "Real Madrid",
+    "entrant": false,
+    "points": 8.1625735569312,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -6.754854047040002,
+     "Dribble par l'adversaire": -4.6444266,
+     "Tir contre": 4.6444266,
+     "Degagement": 3.715541280000001,
+     "Passe dans le dernier tiers": 2.7866559599999996,
+     "Duel perdu": -2.3222133,
+     "Duel au sol gagne": 2.3222133,
+     "Duel aerien gagne": -2.234154971664,
+     "Recuperation": 1.93517775,
+     "Interception": 1.85777064,
+     "Ballon touche": 1.6410307320000002,
+     "Long ballon reussi": 1.481014754208,
+     "Duel gagne": 1.3933279799999998,
+     "Passe reussie": 0.9012912334272,
+     "Degagement de la tete": 0.7740711,
+     "Faute subie": 0.61925688,
+     "xA (par unite)": 0.046444266
+    }
+   },
+   "attendu": {
+    "nom": "Ángel Recio",
+    "poste": "Defenseur central",
+    "minutes": 90.0,
+    "date": "2026-08-30",
+    "score_brut": 8.16,
+    "note_sur_10": 4.0,
+    "p10_du_poste": 7.8,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 71,
+     "PRO": 81,
+     "DEF": 72,
+     "DRI": 78,
+     "CON": 54
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Bright Ede",
+    "club": "Deportivo de La Coruña",
+    "poste": "Defenseur central",
+    "minutes": 90.0,
+    "brut": 3.9481172223999996,
+    "date": "2026-08-30",
+    "ligue": "LaLiga",
+    "phase": "Phase reguliere",
+    "coef": 0.778,
+    "score": "3-1",
+    "adversaire": "Valencia",
+    "entrant": false,
+    "points": 7.856358460853759,
+    "statut": "flop_severe",
+    "lignes": {
+     "Erreur menant a un but": -15.481422,
+     "Degagement": 4.95405504,
+     "Duels defensifs (taux vs reference)": 2.815141776479999,
+     "Passe dans le dernier tiers": 2.7866559599999996,
+     "Degagement de la tete": 2.3222133,
+     "Tir contre": 2.3222133,
+     "Ballon touche": 2.198361924,
+     "Interception": 1.85777064,
+     "Passe reussie": 1.6848443947737601,
+     "Duel au sol gagne": 1.5481422,
+     "Duel gagne": 1.3933279799999998,
+     "Dribble reussi": -1.172996382096,
+     "Duel perdu": -0.92888532,
+     "Duel aerien gagne": 0.8327766522240001,
+     "Recuperation": 0.7740711,
+     "Long ballon reussi": -0.09635637052800003,
+     "xA (par unite)": 0.046444266
+    }
+   },
+   "attendu": {
+    "nom": "Bright Ede",
+    "poste": "Defenseur central",
+    "minutes": 90.0,
+    "date": "2026-08-30",
+    "score_brut": 7.86,
+    "note_sur_10": 4.0,
+    "p10_du_poste": 7.8,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 71,
+     "PRO": 77,
+     "DEF": 93,
+     "DRI": 70,
+     "CON": 88
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Jay Idzes",
+    "club": "Sassuolo",
+    "poste": "Defenseur central",
+    "minutes": 90.0,
+    "brut": 3.8758151071999998,
+    "date": "2026-08-29",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "2-1",
+    "adversaire": "Torino",
+    "entrant": false,
+    "points": 7.712484481817279,
+    "statut": "flop_severe",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -5.17247203572,
+     "Tir contre": 5.020517699999999,
+     "Passe dans le dernier tiers": 3.51436239,
+     "Degagement": 3.3470117999999998,
+     "Dribble par l'adversaire": -2.5102588499999996,
+     "Duel perdu": -2.0082070799999996,
+     "Ballon touche": 1.7404461359999999,
+     "Degagement de la tete": 1.6735058999999999,
+     "Duel aerien gagne": -1.6100465562719999,
+     "Passe reussie": 1.5281438387212798,
+     "Faute commise": -1.3388047200000002,
+     "Recuperation": 1.2551294249999998,
+     "Duel au sol gagne": 0.8367529499999999,
+     "Faute subie": 0.6694023600000001,
+     "Duel gagne": 0.5020517699999999,
+     "Long ballon reussi": 0.21474427708799992,
+     "xA (par unite)": 0.050205177
+    }
+   },
+   "attendu": {
+    "nom": "Jay Idzes",
+    "poste": "Defenseur central",
+    "minutes": 90.0,
+    "date": "2026-08-29",
+    "score_brut": 7.71,
+    "note_sur_10": 4.0,
+    "p10_du_poste": 7.8,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 72,
+     "PRO": 82,
+     "DEF": 72,
+     "DRI": 74,
+     "CON": 56
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Tiago Gabriel",
+    "club": "Lecce",
+    "poste": "Defenseur central",
+    "minutes": 45.0,
+    "brut": 3.8336251647999986,
+    "date": "2026-08-31",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "0-4",
+    "adversaire": "Roma",
+    "entrant": false,
+    "points": 7.6285307154355175,
+    "statut": "flop_severe",
+    "lignes": {
+     "Interception": 4.016414159999999,
+     "Dribble par l'adversaire": -2.5102588499999996,
+     "Duels defensifs (taux vs reference)": -2.1293689071600017,
+     "Degagement": 2.00820708,
+     "Duel aerien gagne": 1.705235571864,
+     "Duel au sol gagne": 1.6735058999999999,
+     "Duel gagne": 1.5061553099999998,
+     "Degagement de la tete": 0.8367529499999999,
+     "Ballon touche": 0.635932242,
+     "Duel perdu": -0.5020517699999999,
+     "Passe reussie": 0.38800702873152
+    }
+   },
+   "attendu": {
+    "nom": "Tiago Gabriel",
+    "poste": "Defenseur central",
+    "minutes": 45.0,
+    "date": "2026-08-31",
+    "score_brut": 7.63,
+    "note_sur_10": 4.2,
+    "p10_du_poste": 7.8,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 44,
+     "DEF": 79,
+     "DRI": 76,
+     "CON": 71
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Rafel Bauzà",
+    "club": "Espanyol",
+    "poste": "Milieu defensif",
+    "minutes": 20.0,
+    "brut": 0.9875865610666663,
+    "date": "2026-08-29",
+    "ligue": "LaLiga",
+    "phase": "Phase reguliere",
+    "coef": 0.778,
+    "score": "1-2",
+    "adversaire": "Real Sociedad",
+    "entrant": true,
+    "points": 1.996900026476799,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Faute commise": -1.9296889599999998,
+     "Duel perdu": -1.4472667199999998,
+     "Passe dans le dernier tiers": 1.0854500399999996,
+     "Centre reussi": 1.044154696256,
+     "Degagement": 0.9648444799999999,
+     "Long ballon reussi": 0.5993613909759998,
+     "Faute subie": 0.48242223999999995,
+     "Ballon touche": 0.385937792,
+     "Duel gagne": 0.36181667999999995,
+     "Duel aerien gagne": 0.27469122345599983,
+     "Passe reussie": 0.10281382778879997,
+     "xA (par unite)": 0.07236333599999999
+    }
+   },
+   "attendu": {
+    "nom": "Rafel Bauzà",
+    "poste": "Milieu defensif",
+    "minutes": 20.0,
+    "date": "2026-08-29",
+    "score_brut": 2.0,
+    "note_sur_10": 4.9,
+    "p10_du_poste": 1.89,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 80,
+     "PRO": 58,
+     "DEF": 56,
+     "DRI": 72,
+     "CON": 52
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Marius Bülter",
+    "club": "1. FC Köln",
+    "poste": "Milieu defensif",
+    "minutes": 1.0,
+    "brut": 0.8678857266559998,
+    "date": "2026-08-29",
+    "ligue": "Bundesliga",
+    "phase": "Phase reguliere",
+    "coef": 0.731,
+    "score": "3-2",
+    "adversaire": "Hoffenheim",
+    "entrant": true,
+    "points": 1.7548649392984315,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Duel aerien gagne": 1.1185095830927996,
+     "Duel gagne": 0.3118753019999999,
+     "Passe dans le dernier tiers": 0.3118753019999999,
+     "Ballon touche": 0.041583373599999994,
+     "Passe reussie": -0.028978621394367993
+    }
+   },
+   "attendu": {
+    "nom": "Marius Bülter",
+    "poste": "Milieu defensif",
+    "minutes": 1.0,
+    "date": "2026-08-29",
+    "score_brut": 1.75,
+    "note_sur_10": 5.7,
+    "p10_du_poste": 1.89,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 44,
+     "DEF": 71,
+     "DRI": 70,
+     "CON": 70
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Johaneko Louisjean",
+    "club": "Athletic Club",
+    "poste": "Lateral",
+    "minutes": 4.0,
+    "brut": 0.645701261824,
+    "date": "2026-08-30",
+    "ligue": "LaLiga",
+    "phase": "Phase reguliere",
+    "coef": 0.778,
+    "score": "2-0",
+    "adversaire": "Celta Vigo",
+    "entrant": true,
+    "points": 1.3807030081582592,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Degagement de la tete": 0.5933497393333333,
+     "Degagement": 0.4746797914666667,
+     "Recuperation": 0.2966748696666667,
+     "Ballon touche": 0.047467979146666665,
+     "Passe reussie": -0.031469371455074134
+    }
+   },
+   "attendu": {
+    "nom": "Johaneko Louisjean",
+    "poste": "Lateral",
+    "minutes": 4.0,
+    "date": "2026-08-30",
+    "score_brut": 1.38,
+    "note_sur_10": 5.5,
+    "p10_du_poste": 0.89,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 41,
+     "DEF": 72,
+     "DRI": 51,
+     "CON": 70
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Manuel Lazzari",
+    "club": "Lazio",
+    "poste": "Lateral",
+    "minutes": 10.0,
+    "brut": 0.6233743178666666,
+    "date": "2026-08-30",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "1-0",
+    "adversaire": "Genoa",
+    "entrant": true,
+    "points": 1.3329613038942933,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Interception": 1.5825130639999998,
+     "Faute commise": -1.0550087093333333,
+     "Duel perdu": -0.7912565319999999,
+     "Degagement de la tete": 0.6593804433333333,
+     "Recuperation": 0.6593804433333333,
+     "Duel aerien gagne": -0.5441734922741335,
+     "Degagement": 0.5275043546666667,
+     "Ballon touche": 0.26375217733333334,
+     "Passe reussie": 0.03086955483509335
+    }
+   },
+   "attendu": {
+    "nom": "Manuel Lazzari",
+    "poste": "Lateral",
+    "minutes": 10.0,
+    "date": "2026-08-30",
+    "score_brut": 1.33,
+    "note_sur_10": 5.2,
+    "p10_du_poste": 0.89,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 42,
+     "DEF": 72,
+     "DRI": 51,
+     "CON": 55
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Daniel James",
+    "club": "Leeds United",
+    "poste": "Lateral",
+    "minutes": 22.0,
+    "brut": 0.4440244906666666,
+    "date": "2026-08-30",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "1-1",
+    "adversaire": "Brentford",
+    "entrant": true,
+    "points": 0.9494575683925333,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Surperformance de finition (G - xG)": -2.3812108800000003,
+     "Dribble reussi": 1.6341059664000002,
+     "xG hors penalty (par unite)": 1.5874739199999999,
+     "Duel perdu": -1.4882567999999998,
+     "Long ballon reussi": 0.8734413797333335,
+     "Recuperation": 0.8268093333333334,
+     "Duel au sol gagne": 0.8268093333333334,
+     "Duel aerien gagne": -0.6823492066133334,
+     "Centre reussi": -0.6622412036266668,
+     "Ballon touche": 0.5291579733333334,
+     "Tir non cadre": -0.4960856,
+     "Duel gagne": 0.4960856,
+     "Tir contre par un defenseur": -0.3307237333333334,
+     "Passe reussie": 0.16683292583253334,
+     "xA (par unite)": 0.049608559999999996
+    }
+   },
+   "attendu": {
+    "nom": "Daniel James",
+    "poste": "Lateral",
+    "minutes": 22.0,
+    "date": "2026-08-30",
+    "score_brut": 0.95,
+    "note_sur_10": 4.8,
+    "p10_du_poste": 0.89,
+    "attributs": {
+     "FIN": 42,
+     "CRE": 43,
+     "PRO": 51,
+     "DEF": 71,
+     "DRI": 79,
+     "CON": 52
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Mikael Egill Ellertsson",
+    "club": "Genoa",
+    "poste": "Lateral",
+    "minutes": 90.0,
+    "brut": 0.40545888319999934,
+    "date": "2026-08-30",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "0-1",
+    "adversaire": "Lazio",
+    "entrant": false,
+    "points": 0.8669927299465586,
+    "statut": "flop_severe",
+    "lignes": {
+     "Grosse occasion manquee": -3.5966206,
+     "Dribble par l'adversaire": -2.6974654499999997,
+     "Duel au sol gagne": 2.6974654499999997,
+     "Centre reussi": 1.9777097355280002,
+     "Duel perdu": -1.61847927,
+     "Duel gagne": 1.61847927,
+     "Occasion creee": 1.4386482400000002,
+     "Faute commise": -1.4386482400000002,
+     "Ballon touche": 1.4026820340000001,
+     "Duels defensifs (taux vs reference)": -1.1250229236800007,
+     "Passe dans le dernier tiers": 1.07898618,
+     "Duel aerien gagne": -0.7420547621920002,
+     "Faute subie": 0.7193241200000001,
+     "Passe reussie": 0.54056344429056,
+     "Recuperation": 0.449577575,
+     "xA (par unite)": 0.161847927
+    }
+   },
+   "attendu": {
+    "nom": "Mikael Egill Ellertsson",
+    "poste": "Lateral",
+    "minutes": 90.0,
+    "date": "2026-08-30",
+    "score_brut": 0.87,
+    "note_sur_10": 4.0,
+    "p10_du_poste": 0.89,
+    "attributs": {
+     "FIN": 41,
+     "CRE": 89,
+     "PRO": 57,
+     "DEF": 52,
+     "DRI": 80,
+     "CON": 56
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Noussair Mazraoui",
+    "club": "Manchester United",
+    "poste": "Lateral",
+    "minutes": 17.0,
+    "brut": 0.3169452693333333,
+    "date": "2026-08-30",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "5-2",
+    "adversaire": "Ipswich Town",
+    "entrant": true,
+    "points": 0.6777240694154666,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Passe dans le dernier tiers": 1.4561822999999998,
+     "Duel aerien gagne": -1.3352868094933334,
+     "Duel perdu": -0.9707881999999999,
+     "Passe reussie": 0.7833458255754666,
+     "Ballon touche": 0.7442709533333334
+    }
+   },
+   "attendu": {
+    "nom": "Noussair Mazraoui",
+    "poste": "Lateral",
+    "minutes": 17.0,
+    "date": "2026-08-30",
+    "score_brut": 0.68,
+    "note_sur_10": 4.9,
+    "p10_du_poste": 0.89,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 62,
+     "DEF": 55,
+     "DRI": 51,
+     "CON": 56
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Rico Henry",
+    "club": "Brentford",
+    "poste": "Lateral",
+    "minutes": 2.0,
+    "brut": 0.2215269973333333,
+    "date": "2026-08-30",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "1-1",
+    "adversaire": "Leeds United",
+    "entrant": true,
+    "points": 0.4736911783978666,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Passe dans le dernier tiers": 0.4533196,
+     "Ballon touche": 0.06044261333333334,
+     "Passe reussie": -0.04007103493546667
+    }
+   },
+   "attendu": {
+    "nom": "Rico Henry",
+    "poste": "Lateral",
+    "minutes": 2.0,
+    "date": "2026-08-30",
+    "score_brut": 0.47,
+    "note_sur_10": 5.6,
+    "p10_du_poste": 0.89,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 44,
+     "DEF": 58,
+     "DRI": 51,
+     "CON": 70
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Kenneth Taylor",
+    "club": "Lazio",
+    "poste": "Milieu relayeur",
+    "minutes": 90.0,
+    "brut": 0.0045360176000004415,
+    "date": "2026-08-30",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "1-0",
+    "adversaire": "Genoa",
+    "entrant": false,
+    "points": 0.009886703960960964,
+    "statut": "flop",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -12.94568712064,
+     "Dribble par l'adversaire": -8.248696200000001,
+     "Passe dans le dernier tiers": 3.8493915600000004,
+     "Dribble reussi": 3.8148570185760002,
+     "Duel perdu": -3.29947848,
+     "Occasion creee": 2.9328697600000004,
+     "Duel au sol gagne": 2.7495654,
+     "Ballon touche": 2.456278424,
+     "Duel gagne": 2.1996523199999998,
+     "Interception": 2.1996523199999998,
+     "Duel aerien gagne": 2.0178143948800003,
+     "Passe reussie": 1.84828279127296,
+     "Ballon perdu au contact": -1.8330436,
+     "Recuperation": 1.8330436,
+     "Faute commise": -1.4664348800000002,
+     "Long ballon reussi": 0.8936454158719999,
+     "Faute subie": 0.7332174400000001,
+     "xA (par unite)": 0.27495654
+    }
+   },
+   "attendu": {
+    "nom": "Kenneth Taylor",
+    "poste": "Milieu relayeur",
+    "minutes": 90.0,
+    "date": "2026-08-30",
+    "score_brut": 0.01,
+    "note_sur_10": 4.1,
+    "p10_du_poste": -0.45,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 88,
+     "PRO": 87,
+     "DEF": 42,
+     "DRI": 93,
+     "CON": 46
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Joey Veerman",
+    "club": "Borussia Dortmund",
+    "poste": "Milieu defensif",
+    "minutes": 16.0,
+    "brut": -0.013905499157333297,
+    "date": "2026-08-29",
+    "ligue": "Bundesliga",
+    "phase": "Phase reguliere",
+    "coef": 0.731,
+    "score": "2-0",
+    "adversaire": "Hamburger SV",
+    "entrant": true,
+    "points": -0.028116919296127925,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Surperformance de finition (G - xG)": -0.5344744511999999,
+     "xG hors penalty (par unite)": 0.35631630079999993,
+     "Tir non cadre": -0.16702326599999998,
+     "Passe reussie": 0.16117611550387198,
+     "Ballon touche": 0.1558883816
+    }
+   },
+   "attendu": {
+    "nom": "Joey Veerman",
+    "poste": "Milieu defensif",
+    "minutes": 16.0,
+    "date": "2026-08-29",
+    "score_brut": -0.03,
+    "note_sur_10": 4.8,
+    "p10_du_poste": 1.89,
+    "attributs": {
+     "FIN": 46,
+     "CRE": 49,
+     "PRO": 43,
+     "DEF": 58,
+     "DRI": 51,
+     "CON": 72
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Andrej Kramaric",
+    "club": "TSG 1899 Hoffenheim",
+    "poste": "Ailier",
+    "minutes": 3.0,
+    "brut": -0.031140599999999997,
+    "date": "2026-08-29",
+    "ligue": "Bundesliga",
+    "phase": "Phase reguliere",
+    "coef": 0.731,
+    "score": "2-3",
+    "adversaire": "1. FC Köln",
+    "entrant": true,
+    "points": -0.07065179328,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Surperformance de finition (G - xG)": -0.14130358655999997,
+     "Tir contre par un defenseur": -0.1177529888,
+     "xG hors penalty (par unite)": 0.09420239103999999,
+     "Ballon touche": 0.09420239103999999
+    }
+   },
+   "attendu": {
+    "nom": "Andrej Kramaric",
+    "poste": "Ailier",
+    "minutes": 3.0,
+    "date": "2026-08-29",
+    "score_brut": -0.07,
+    "note_sur_10": 5.7,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 41,
+     "DEF": 58,
+     "DRI": 51,
+     "CON": 71
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Marcus Thuram",
+    "club": "Internazionale",
+    "poste": "Buteur",
+    "minutes": 25.0,
+    "brut": -0.039311973119999837,
+    "date": "2026-08-30",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "1-0",
+    "adversaire": "Cagliari",
+    "entrant": true,
+    "points": -0.0748696528070397,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Surperformance de finition (G - xG)": -3.7639585749999998,
+     "Grosse occasion manquee": -2.5093057166666664,
+     "xG hors penalty (par unite)": 2.5093057166666664,
+     "Duel aerien gagne": 2.4098368380579998,
+     "Degagement": 1.0037222866666669,
+     "Duel perdu": -0.7527917149999999,
+     "Duel gagne": 0.7527917149999999,
+     "Ballon perdu au contact": -0.6273264291666666,
+     "Degagement de la tete": 0.6273264291666666,
+     "Tir non cadre": -0.37639585749999993,
+     "Ballon touche": 0.37639585749999993,
+     "Passe reussie": 0.25043674030162666,
+     "xA (par unite)": 0.15055834299999998,
+     "Tir contre par un defenseur": -0.12546528583333336
+    }
+   },
+   "attendu": {
+    "nom": "Marcus Thuram",
+    "poste": "Buteur",
+    "minutes": 25.0,
+    "date": "2026-08-30",
+    "score_brut": -0.07,
+    "note_sur_10": 5.1,
+    "p10_du_poste": -3.41,
+    "attributs": {
+     "FIN": 41,
+     "CRE": 77,
+     "PRO": 43,
+     "DEF": 76,
+     "DRI": 72,
+     "CON": 52
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Brennan Johnson",
+    "club": "Everton",
+    "poste": "Ailier",
+    "minutes": 28.0,
+    "brut": -0.03363733333333315,
+    "date": "2026-08-29",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "1-1",
+    "adversaire": "AFC Bournemouth",
+    "entrant": true,
+    "points": -0.07631638186666626,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": 2.6775530581333338,
+     "Duel perdu": -1.6199232,
+     "Faute commise": -1.4399317333333335,
+     "Ballon perdu au contact": -0.8999573333333334,
+     "Duel gagne": 0.5399744,
+     "Recuperation": 0.4499786666666667,
+     "Ballon touche": 0.21598976
+    }
+   },
+   "attendu": {
+    "nom": "Brennan Johnson",
+    "poste": "Ailier",
+    "minutes": 28.0,
+    "date": "2026-08-29",
+    "score_brut": -0.08,
+    "note_sur_10": 5.2,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 41,
+     "DEF": 72,
+     "DRI": 71,
+     "CON": 47
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Justin Bijlow",
+    "club": "Genoa",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "brut": -0.10922858290695969,
+    "date": "2026-08-30",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "0-1",
+    "adversaire": "Lazio",
+    "entrant": false,
+    "points": -0.12496842170385257,
+    "statut": "sous_mediane",
+    "lignes": {
+     "But evite vs xGOT (par unite)": -9.304952605646413,
+     "Passe reussie": 1.55849224384256,
+     "Sortie dans le dos": 1.53950096,
+     "Degagement du poing": 1.53950096,
+     "Long ballon reussi": 1.2514218428599995,
+     "Arret plongeant": 1.1546257199999999,
+     "Arret": 0.76975048,
+     "Duel aerien gagne": 0.6931603072399999,
+     "Arret dans la surface": 0.5773128599999999,
+     "Duel au sol gagne": 0.48109404999999994,
+     "But encaisse": -0.38487524
+    }
+   },
+   "attendu": {
+    "nom": "Justin Bijlow",
+    "poste": "Gardien",
+    "minutes": 90.0,
+    "date": "2026-08-30",
+    "score_brut": -0.12,
+    "note_sur_10": 5.1,
+    "p10_du_poste": -16.06,
+    "attributs": {
+     "ARR": 74,
+     "EVI": 50,
+     "SOR": 87,
+     "REL": 89,
+     "BUT": 50,
+     "PRO": 89
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Jofre Carreras",
+    "club": "Espanyol",
+    "poste": "Ailier",
+    "minutes": 7.0,
+    "brut": -0.056275333333333254,
+    "date": "2026-08-29",
+    "ligue": "LaLiga",
+    "phase": "Phase reguliere",
+    "coef": 0.778,
+    "score": "1-2",
+    "adversaire": "Real Sociedad",
+    "entrant": true,
+    "points": -0.1276774762666665,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Ballon perdu au contact": -0.6383873813333334,
+     "Faute subie": 0.5107099050666667,
+     "Duel perdu": -0.3830324288,
+     "Duel gagne": 0.3830324288,
+     "Surperformance de finition (G - xG)": -0.22981945727999997,
+     "Ballon touche": 0.20428396202666668,
+     "xG hors penalty (par unite)": 0.15321297152,
+     "Tir contre par un defenseur": -0.12767747626666667
+    }
+   },
+   "attendu": {
+    "nom": "Jofre Carreras",
+    "poste": "Ailier",
+    "minutes": 7.0,
+    "date": "2026-08-29",
+    "score_brut": -0.13,
+    "note_sur_10": 5.6,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 41,
+     "DEF": 58,
+     "DRI": 73,
+     "CON": 53
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Gorka Guruzeta",
+    "club": "Athletic Club",
+    "poste": "Buteur",
+    "minutes": 25.0,
+    "brut": -0.06732044373333369,
+    "date": "2026-08-30",
+    "ligue": "LaLiga",
+    "phase": "Phase reguliere",
+    "coef": 0.778,
+    "score": "2-0",
+    "adversaire": "Celta Vigo",
+    "entrant": true,
+    "points": -0.12821178509013403,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Faute commise": -2.785597880000001,
+     "Grosse occasion creee": 2.3213315666666667,
+     "Duel perdu": -1.39279894,
+     "Occasion creee": 0.9285326266666668,
+     "xA (par unite)": 0.7660394170000001,
+     "Passe dans le dernier tiers": 0.69639947,
+     "Dribble reussi": -0.6156171314800002,
+     "Long ballon reussi": -0.2769812825346667,
+     "Ballon touche": 0.18570652533333334,
+     "Passe reussie": 0.044773843257866645
+    }
+   },
+   "attendu": {
+    "nom": "Gorka Guruzeta",
+    "poste": "Buteur",
+    "minutes": 25.0,
+    "date": "2026-08-30",
+    "score_brut": -0.13,
+    "note_sur_10": 5.1,
+    "p10_du_poste": -3.41,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 90,
+     "PRO": 44,
+     "DEF": 52,
+     "DRI": 46,
+     "CON": 51
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Curtis Jones",
+    "club": "Internazionale",
+    "poste": "Milieu relayeur",
+    "minutes": 25.0,
+    "brut": -0.09592939386666698,
+    "date": "2026-08-30",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "1-0",
+    "adversaire": "Cagliari",
+    "entrant": true,
+    "points": -0.20908770687178735,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Duels defensifs (taux vs reference)": -2.1986258155840006,
+     "Dribble par l'adversaire": -2.15382623,
+     "Ballon perdu au contact": -1.4358841533333333,
+     "Duel au sol gagne": 1.4358841533333333,
+     "Duel perdu": -1.292295738,
+     "Passe dans le dernier tiers": 1.292295738,
+     "Recuperation": 1.076913115,
+     "Duel gagne": 0.8615304919999999,
+     "Ballon touche": 0.8040951258666668,
+     "Degagement": 0.5743536613333334,
+     "Faute subie": 0.5743536613333334,
+     "Passe reussie": 0.45314206464554674,
+     "Surperformance de finition (G - xG)": -0.1723060984,
+     "Tir contre par un defenseur": -0.14358841533333336,
+     "xG hors penalty (par unite)": 0.11487073226666665
+    }
+   },
+   "attendu": {
+    "nom": "Curtis Jones",
+    "poste": "Milieu relayeur",
+    "minutes": 25.0,
+    "date": "2026-08-30",
+    "score_brut": -0.21,
+    "note_sur_10": 4.7,
+    "p10_du_poste": -0.45,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 49,
+     "PRO": 58,
+     "DEF": 55,
+     "DRI": 76,
+     "CON": 48
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Gustav Isaksen",
+    "club": "Lazio",
+    "poste": "Ailier",
+    "minutes": 27.0,
+    "brut": -0.10630240000000013,
+    "date": "2026-08-30",
+    "ligue": "Serie A",
+    "phase": "Phase reguliere",
+    "coef": 0.841,
+    "score": "1-0",
+    "adversaire": "Genoa",
+    "entrant": true,
+    "points": -0.24117888512000032,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Duel perdu": -1.8088416383999997,
+     "Occasion creee": 1.2058944256000002,
+     "Faute commise": -1.2058944256000002,
+     "Recuperation": 1.1305260239999997,
+     "Passe dans le dernier tiers": 0.9044208191999998,
+     "Ballon perdu au contact": -0.753684016,
+     "Ballon touche": 0.42206304896,
+     "Tir contre par un defenseur": -0.15073680320000002,
+     "Surperformance de finition (G - xG)": -0.09044208192,
+     "xG hors penalty (par unite)": 0.06029472127999999,
+     "xA (par unite)": 0.04522104096
+    }
+   },
+   "attendu": {
+    "nom": "Gustav Isaksen",
+    "poste": "Ailier",
+    "minutes": 27.0,
+    "date": "2026-08-30",
+    "score_brut": -0.24,
+    "note_sur_10": 5.2,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 48,
+     "CRE": 81,
+     "PRO": 49,
+     "DEF": 58,
+     "DRI": 51,
+     "CON": 47
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Romaine Mundle",
+    "club": "Sunderland",
+    "poste": "Milieu offensif",
+    "minutes": 1.0,
+    "brut": -0.17933762133333317,
+    "date": "2026-08-30",
+    "ligue": "Premier League",
+    "phase": "Phase reguliere",
+    "coef": 1.0,
+    "score": "1-0",
+    "adversaire": "Fulham",
+    "entrant": true,
+    "points": -0.32967634929706635,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Grosse occasion manquee": -2.585875333333333,
+     "Tir contre": 1.9394064999999998,
+     "Tir cadre": 1.6808189666666666,
+     "Surperformance de finition (G - xG)": -1.31879642,
+     "xG hors penalty (par unite)": 0.8791976133333333,
+     "Dribble reussi": -0.74845575648,
+     "Duel perdu": -0.3878813,
+     "Ballon touche": 0.18101127333333333,
+     "Passe reussie": 0.03089810718293333
+    }
+   },
+   "attendu": {
+    "nom": "Romaine Mundle",
+    "poste": "Milieu offensif",
+    "minutes": 1.0,
+    "date": "2026-08-30",
+    "score_brut": -0.33,
+    "note_sur_10": 5.8,
+    "p10_du_poste": -1.33,
+    "attributs": {
+     "FIN": 42,
+     "CRE": 49,
+     "PRO": 42,
+     "DEF": 73,
+     "DRI": 46,
+     "CON": 56
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Ewan Hatfout",
+    "club": "Le Mans",
+    "poste": "Gardien",
+    "minutes": 9.0,
+    "brut": -0.30751432031165504,
+    "date": "2026-08-30",
+    "ligue": "Ligue 1",
+    "phase": "Phase reguliere",
+    "coef": 0.689,
+    "score": "2-3",
+    "adversaire": "Rennes",
+    "entrant": true,
+    "points": -0.3518271338685645,
+    "statut": "sous_mediane",
+    "lignes": {
+     "But evite vs xGOT (par unite)": -1.4095539171668299,
+     "Sortie dans le dos": 0.9207167632,
+     "Duel au sol gagne": 0.2877239884999999,
+     "But encaisse": -0.2301791908,
+     "Long ballon reussi": 0.10312027747839993,
+     "Passe reussie": -0.0236550550801344
+    }
+   },
+   "attendu": {
+    "nom": "Ewan Hatfout",
+    "poste": "Gardien",
+    "minutes": 9.0,
+    "date": "2026-08-30",
+    "score_brut": -0.35,
+    "note_sur_10": 5.7,
+    "p10_du_poste": -16.06,
+    "attributs": {
+     "ARR": 40,
+     "EVI": 56,
+     "SOR": 72,
+     "REL": 70,
+     "BUT": 53,
+     "PRO": 70
+    }
+   }
+  },
+  {
+   "moteur": {
+    "nom": "Mama Baldé",
+    "club": "Brest",
+    "poste": "Ailier",
+    "minutes": 23.0,
+    "brut": -0.1551857666666667,
+    "date": "2026-08-29",
+    "ligue": "Ligue 1",
+    "phase": "Phase reguliere",
+    "coef": 0.689,
+    "score": "2-2",
+    "adversaire": "Toulouse",
+    "entrant": true,
+    "points": -0.3520854674133334,
+    "statut": "sous_mediane",
+    "lignes": {
+     "Surperformance de finition (G - xG)": -1.1655243059199998,
+     "Faute commise": -0.9712702549333333,
+     "xG hors penalty (par unite)": 0.7770162039466666,
+     "Duel perdu": -0.7284526911999999,
+     "Duel gagne": 0.7284526911999999,
+     "Recuperation": 0.6070439093333333,
+     "Faute subie": 0.48563512746666665,
+     "Ballon touche": 0.3399445892266667,
+     "Tir contre par un defenseur": -0.24281756373333332,
+     "Tir non cadre": -0.18211317279999997
+    }
+   },
+   "attendu": {
+    "nom": "Mama Baldé",
+    "poste": "Ailier",
+    "minutes": 23.0,
+    "date": "2026-08-29",
+    "score_brut": -0.35,
+    "note_sur_10": 5.2,
+    "p10_du_poste": -6.54,
+    "attributs": {
+     "FIN": 43,
+     "CRE": 49,
+     "PRO": 41,
+     "DEF": 57,
+     "DRI": 74,
+     "CON": 55
+    }
+   }
+  }
+ ]
+}

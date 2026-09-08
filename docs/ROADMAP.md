@@ -19,18 +19,19 @@ the most visible piece and the last one to start.
 
 `jeu/importer.py` cuts the season into gameweeks and rates every
 performance into the game base; `jeu/backtest.py` replays J18–J34 with
-scripted managers after seeding cards on J1–J17. Results and settings in
-`docs/BACKTEST.md`: informed beats naive by 8 % in points and 45 % in
-value, random is far behind, the oracle keeps a 19 % margin.
+scripted managers after seeding cards on J1–J17; `jeu/cartes.py` renders
+match and season cards. Results and settings in `docs/BACKTEST.md`: on
+the global league, informed beats naive by 30 % in points and 44 % in
+value, random is far behind, the oracle keeps a 9 % margin. Decided: the
+perimeter is global and the Champions League weighting stays in the note.
 
 Left open from this phase:
-- the Champions League weighting inside the note (the PSG effect), to be
-  decided before season one; the backtest can price each option;
-- the note curve below p10, unverified against the visual pipeline;
 - `SCORE_REFERENCE` for payouts, to be reset once real managers' scores
   are observed;
-- the first real card images (`carte_design.carte` fed from the game
-  base) — needs the fonts and portraits, which are not in the repo.
+- the top of the OVR scale: with a half-season seed, four cards hit 99 in
+  spring; re-check with a full previous season;
+- portraits: fetched by `donnees/portraits.py` on a machine that can
+  reach images.fotmob.com (the remote session cannot).
 
 ## Phase 2 — the weekly pipeline (2 weeks)
 

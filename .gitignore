@@ -11,8 +11,7 @@ __pycache__/
 *.db.zst
 *.db.gz
 cache/
-moteur/images/
-moteur/*.ttf
+moteur/images/joueurs/
 moteur/topsflops.json
 moteur/bareme_manuel.json
 moteur/postes_manuel.json

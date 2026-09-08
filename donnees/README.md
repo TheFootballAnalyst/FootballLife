@@ -6,10 +6,28 @@ Trois choses ne sont pas dans Git, par taille ou par droits :
 |------|--------|--------------|
 | `fotmob.db` (une base par saison) | 300–550 Mo | `moteur/fotmob.db` |
 | `cache/matches/*.json` (feuilles de match) | plusieurs centaines de Mo | `moteur/cache/matches/` |
-| polices, portraits, écussons | quelques Mo | `moteur/*.ttf`, `moteur/images/` |
+| portraits des joueurs | 69 Mo, 3 400 fichiers | `moteur/images/joueurs/{player_id}.png` |
 
 Tout cela est ignoré par `.gitignore`. Le moteur les lit à côté de lui
-(`DB_PATH`, `CACHE_MATCHES` dans `topsflops.py`).
+(`DB_PATH`, `CACHE_MATCHES` dans `topsflops.py`). Les polices et les
+écussons des clubs (7 Mo) sont, eux, dans le dépôt.
+
+## Portraits
+
+Ils ne se transfèrent pas, ils se retéléchargent : l'adresse se déduit de
+l'identifiant FotMob du joueur.
+
+```
+python3 donnees/portraits.py                 # tous les joueurs de jeu/jeu_2526.sqlite
+python3 donnees/portraits.py --fotmob moteur/fotmob.db
+python3 donnees/portraits.py --ids 1077894 30893
+```
+
+Seuls les fichiers manquants sont récupérés ; relancer après chaque
+journée ramène les nouveaux venus. Les identifiants sans portrait sont
+notés dans `moteur/images/joueurs/absents.txt` pour ne pas être
+redemandés. À lancer depuis une machine qui atteint `images.fotmob.com`
+(la session distante de Claude Code ne le peut pas).
 
 ## Pourquoi pas dans Git
 

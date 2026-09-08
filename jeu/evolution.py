@@ -46,7 +46,7 @@ PRIX_BASE_OVR = 60           # OVR 60 costs 1 credit
 PRIX_DOUBLE_TOUS_LES = 8     # +8 OVR = price x2  (99 ~ 29.5 credits)
 
 # Budget
-BUDGET_INITIAL = 40.0        # ~60 % of the perimeter's best 15 (backtest)
+BUDGET_INITIAL = 60.0        # ~60 % of the global perimeter's best 15 (backtest)
 TAILLE_EFFECTIF = 15         # 11 + 4 bench
 SCORE_REFERENCE = 60.0       # a gameweek at 11 x 5.5 (or 66 at 11 x 6)
 TAUX_GAIN = 0.05             # credits per point above the reference
