@@ -45,6 +45,11 @@ PRIX_PLANCHER = 0.5
 PRIX_BASE_OVR = 60           # OVR 60 costs 1 credit
 PRIX_DOUBLE_TOUS_LES = 8     # +8 OVR = price x2  (99 ~ 29.5 credits)
 
+# Demand: a card's price is its OVR price x (1 + DEMANDE x share of the
+# managers who own it).  Backtested at 1.0 (docs/BACKTEST.md): keeps the
+# game global and the informed manager ahead.
+DEMANDE = 1.0
+
 # Budget
 BUDGET_INITIAL = 60.0        # ~60 % of the global perimeter's best 15 (backtest)
 TAILLE_EFFECTIF = 15         # 11 + 4 bench
@@ -106,6 +111,13 @@ def prix(ovr: float) -> float:
     """Price in credits, exponential in OVR, one decimal."""
     p = 2.0 ** ((ovr - PRIX_BASE_OVR) / PRIX_DOUBLE_TOUS_LES)
     return round(max(PRIX_PLANCHER, p), 1)
+
+
+def prix_demande(ovr: float, part: float, k: float | None = None) -> float:
+    """Price with the demand multiplier: `part` is the share (0..1) of
+    managers owning the card, `k` the season's DEMANDE."""
+    k = DEMANDE if k is None else k
+    return round(prix(ovr) * (1.0 + k * max(0.0, part)), 1)
 
 
 def gain_semaine(score: float) -> float:

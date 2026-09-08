@@ -120,6 +120,29 @@ def test_dry_run_writes_nothing():
     assert jeu.execute("SELECT calculee FROM journee WHERE numero=1 AND saison='2025/26'").fetchone()[0] == 0
 
 
+def test_demand_raises_the_price_of_owned_cards():
+    jeu = base()
+    P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
+    equipe_et_compo(jeu)
+    # a second team owning player 1 too, a third owning nobody: share(1) = 2/3
+    jeu.execute("INSERT INTO utilisateur(pseudo, cree_le) VALUES ('lui', 'x')")
+    jeu.execute("INSERT INTO utilisateur(pseudo, cree_le) VALUES ('elle', 'x')")
+    jeu.execute("INSERT INTO equipe(utilisateur_id, ligue_jeu_id, nom, budget) VALUES (2, 1, 'B', 60)")
+    jeu.execute("INSERT INTO equipe(utilisateur_id, ligue_jeu_id, nom, budget) VALUES (3, 1, 'C', 60)")
+    for eid in (1, 2):
+        jeu.execute("INSERT INTO effectif VALUES (?, 1, 1.0, 'x')", (eid,))
+    jeu.execute("INSERT INTO effectif VALUES (1, 2, 1.0, 'x')")
+    prestations_j1(jeu, {i: (6.0, 90) for i in range(1, 12)})
+    P.calculer(jeu, None, "2025/26", 1, importer=False)
+    ovr1, prix1, part1 = jeu.execute("SELECT ovr, prix, part FROM carte WHERE player_id=1").fetchone()
+    ovr3, prix3, part3 = jeu.execute("SELECT ovr, prix, part FROM carte WHERE player_id=3").fetchone()
+    assert abs(part1 - 2 / 3) < 1e-9 and part3 == 0
+    assert prix1 == E.prix_demande(ovr1, 2 / 3) and prix1 > E.prix(ovr1)
+    assert prix3 == E.prix(ovr3)
+    h = jeu.execute("SELECT prix, part FROM carte_historique ch JOIN journee j ON j.journee_id = ch.journee_id WHERE ch.player_id=1 AND j.numero=1").fetchone()
+    assert h == (prix1, part1)
+
+
 def test_gameweek_needs_previous_state():
     jeu = base()
     P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))

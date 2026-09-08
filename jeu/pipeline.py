@@ -17,6 +17,10 @@ One command turns a finished gameweek into frozen results:
               equipe.budget and the points to equipe.points_total
   4. close    journee.calculee = 1
 
+Prices carry the demand multiplier (evolution.prix_demande): the share of
+the season's teams owning a card is read from `effectif` at closing time
+and applied to the new OVR price, so a card everybody holds costs more.
+
 Idempotent: a gameweek is always recomputed from the card state written for
 the PREVIOUS gameweek (the seed is stored as gameweek 0), and a resultat
 that already exists is replaced with its previous payout taken back first.
@@ -62,11 +66,26 @@ def fixer_parametre(jeu, saison, cle, valeur):
 
 
 def appliquer_echelle(jeu, saison):
-    """Load the season's OVR scale into evolution's module constants."""
+    """Load the season's OVR scale and economy into evolution's constants."""
     ech = parametre(jeu, saison, "echelle")
     if ech:
         E.NOTE_OVR_BAS, E.NOTE_OVR_HAUT = ech["bas"], ech["haut"]
+    eco = parametre(jeu, saison, "economie") or {}
+    if "demande" in eco:
+        E.DEMANDE = eco["demande"]
     return ech
+
+
+def parts_detention(jeu, saison):
+    """{player_id: share of the season's teams owning the card}."""
+    n = jeu.execute("""SELECT COUNT(*) FROM equipe e JOIN ligue_jeu l ON l.ligue_jeu_id = e.ligue_jeu_id
+                       WHERE l.saison = ?""", (saison,)).fetchone()[0]
+    if not n:
+        return {}
+    return {pid: c / n for pid, c in jeu.execute("""
+        SELECT f.player_id, COUNT(*) FROM effectif f
+        JOIN equipe e ON e.equipe_id = f.equipe_id JOIN ligue_jeu l ON l.ligue_jeu_id = e.ligue_jeu_id
+        WHERE l.saison = ? GROUP BY f.player_id""", (saison,))}
 
 
 # --------------------------------------------------------------------------
@@ -136,7 +155,8 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
                                              "journees": list(journees_source) if journees_source else None})
     fixer_parametre(jeu, saison, "economie", {"budget": E.BUDGET_INITIAL, "alpha": E.ALPHA_EMA,
                                               "prior": E.PRIOR_NOTE, "k": E.K_RETRECISSEMENT,
-                                              "prix_double": E.PRIX_DOUBLE_TOUS_LES})
+                                              "prix_double": E.PRIX_DOUBLE_TOUS_LES,
+                                              "demande": E.DEMANDE})
     j0 = journee_id(jeu, saison, numero_etat)
     jeu.execute("DELETE FROM carte_historique WHERE journee_id=?", (j0,))
     jeu.execute("DELETE FROM carte WHERE saison=?", (saison,))
@@ -223,6 +243,8 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
     resume["equipes"] = len(resultats)
     resume["scores"] = [(r["equipe_id"], r["score"]) for r in resultats]
     resume["cartes_bougees"] = sum(1 for pid in apres if abs(apres[pid] - avant[pid]) > 1e-9)
+    parts = parts_detention(jeu, saison)
+    resume["demande"] = E.DEMANDE
     if dry_run:
         return resume
 
@@ -232,12 +254,14 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
     now = maintenant()
     for pid, n in apres.items():
         ovr = E.ovr_depuis_note(n)
-        jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix) VALUES (?,?,?,?,?)",
-                    (pid, jid, n, ovr, E.prix(ovr)))
-        if pid in prestas:
-            jeu.execute("""UPDATE carte SET note_ovr=?, ovr=?, prix=?, matchs=matchs+?, minutes=minutes+?, maj=?
-                           WHERE player_id=? AND saison=?""",
-                        (n, ovr, E.prix(ovr), len(prestas[pid]), sum(p.minutes for p in prestas[pid]), now, pid, saison))
+        part = parts.get(pid, 0.0)
+        px = E.prix_demande(ovr, part)
+        jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix, part) VALUES (?,?,?,?,?,?)",
+                    (pid, jid, n, ovr, px, part))
+        joue = prestas.get(pid, [])
+        jeu.execute("""UPDATE carte SET note_ovr=?, ovr=?, prix=?, part=?, matchs=matchs+?, minutes=minutes+?, maj=?
+                       WHERE player_id=? AND saison=?""",
+                    (n, ovr, px, part, len(joue), sum(p.minutes for p in joue), now, pid, saison))
     for r in resultats:
         ancien = jeu.execute("SELECT score, gain FROM resultat WHERE equipe_id=? AND journee_id=?",
                              (r["equipe_id"], jid)).fetchone()

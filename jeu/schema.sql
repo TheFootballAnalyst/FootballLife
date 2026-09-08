@@ -95,7 +95,8 @@ CREATE TABLE IF NOT EXISTS carte (
     saison           TEXT NOT NULL,
     note_ovr         REAL NOT NULL,
     ovr              INTEGER NOT NULL,
-    prix             REAL NOT NULL,
+    prix             REAL NOT NULL,                 -- with the demand multiplier
+    part             REAL NOT NULL DEFAULT 0,       -- share of managers owning the card
     attributs        TEXT,                          -- JSON, season-to-date
     matchs           INTEGER NOT NULL DEFAULT 0,
     minutes          REAL NOT NULL DEFAULT 0,
@@ -110,7 +111,8 @@ CREATE TABLE IF NOT EXISTS carte_historique (
     journee_id       INTEGER NOT NULL REFERENCES journee(journee_id),
     note_ovr         REAL NOT NULL,
     ovr              INTEGER NOT NULL,
-    prix             REAL NOT NULL,
+    prix             REAL NOT NULL,                 -- with the demand multiplier
+    part             REAL NOT NULL DEFAULT 0,
     PRIMARY KEY (player_id, journee_id)
 );
 

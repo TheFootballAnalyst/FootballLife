@@ -84,9 +84,21 @@ def journees_depuis_rounds(fot: sqlite3.Connection, ligue_id: int,
 # Import
 # --------------------------------------------------------------------------
 
+MIGRATIONS = {                       # columns added after the first bases were written
+    "carte": [("part", "REAL NOT NULL DEFAULT 0")],
+    "carte_historique": [("part", "REAL NOT NULL DEFAULT 0")],
+}
+
+
 def ouvrir_jeu(chemin: pathlib.Path) -> sqlite3.Connection:
     jeu = sqlite3.connect(chemin)
     jeu.executescript(SCHEMA.read_text(encoding="utf-8"))
+    for table, cols in MIGRATIONS.items():
+        existantes = {r[1] for r in jeu.execute(f"PRAGMA table_info({table})")}
+        for nom, typ in cols:
+            if nom not in existantes:
+                jeu.execute(f"ALTER TABLE {table} ADD COLUMN {nom} {typ}")
+    jeu.commit()
     return jeu
 
 
