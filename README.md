@@ -39,6 +39,7 @@ jeu/        the game layer: pure functions + schema, all tested
   tests/         incl. the reference performances in tests/donnees/
 donnees/    league logos; scripts to fetch the FotMob base and the portraits
 docs/
+  GUIDE_DEBUTANT.md  step-by-step, from installing Python to the first cards (French)
   CONTEXTE.md    the original project brief (French)
   REPONSES.md    answers on families, attribute floor, UCL bonus (French)
   GAME_DESIGN.md decisions: perimeter, cadence, valuation, rules
