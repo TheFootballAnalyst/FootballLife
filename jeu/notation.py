@@ -9,10 +9,11 @@ and a set of scoring lines by label.  The game needs two derived things:
 2. six **attributes on 40-99** (finishing, creation, progression, defence,
    dribbling, retention; goalkeepers have their own six) shown on the card.
 
-Both are pure functions of the engine output plus the two calibration files
+Both are pure functions of the engine output plus three calibration files
 shipped with the engine (`seuils_flops_postes_2526.json`,
-`echelles_attributs.json`).  Nothing here touches the points table or the
-percentiles: they are calibrated on 42 000 performances and are read-only.
+`echelles_attributs.json`, `familles_lignes.json`).  Nothing here touches
+the points table or the percentiles: they are calibrated on 42 000
+performances and are read-only.
 
 Spec (from docs/CONTEXTE.md, section 2 "La note sur 10"):
   - anchors per position on the *neutral* raw score (brut / coef):
@@ -32,6 +33,7 @@ from dataclasses import dataclass
 MOTEUR = pathlib.Path(__file__).resolve().parent.parent / "moteur"
 SEUILS_PATH = MOTEUR / "seuils_flops_postes_2526.json"
 ECHELLES_PATH = MOTEUR / "echelles_attributs.json"
+FAMILLES_PATH = MOTEUR / "familles_lignes.json"
 
 NOTE_MIN, NOTE_MAX = 1.0, 10.0
 NOTE_PIVOT = 6.0             # median performance
@@ -57,83 +59,37 @@ AXES_GARDIEN = ("ARR", "EVI", "SOR", "REL", "BUT", "PRO")
 ATTRIBUT_MIN, ATTRIBUT_MAX = 40, 99
 
 # --------------------------------------------------------------------------
-# Line label -> card family.  The labels are the ones the engine writes in
-# `prestation["lignes"]` (see bareme_stats.POINTS / FRACTIONS and the extra
-# lines credited in topsflops.calculer).
+# Line label -> card families.  Loaded from moteur/familles_lignes.json, the
+# exact table that produced echelles_attributs.json (docs/REPONSES.md §1):
+# eleven families, 41 labels, strict string equality on the engine's
+# accent-free labels.  A label may belong to two families ("Passe reussie"
+# and "Long ballon reussi" count in PRO and in REL) — that is deliberate.
 #
-# TO CONFIRM against the ranking pipeline that produced echelles_attributs.json:
-# the percentiles were computed on family sums, so this grouping must match
-# the one used there or the 40-99 scale drifts.  It is kept as data on
-# purpose so it can be corrected without touching any logic.
+# Labels the engine can write but that are in no family (red card, own
+# goal, penalties conceded/won/missed/saved, last-man tackle, goal-line
+# clearance, diving save, clean sheet, errors leading to a goal) count in
+# the note, not in any attribute.  Do not add them here: the percentiles
+# were measured without them.
 # --------------------------------------------------------------------------
-FAMILLE_LIGNE = {
-    # FIN — finishing
-    "But": "FIN",
-    "xG hors penalty (par unite)": "FIN",
-    "Tir cadre": "FIN",
-    "Poteau ou barre": "FIN",
-    "Tir non cadre": "FIN",
-    "Tir contre par un defenseur": "FIN",
-    "Grosse occasion manquee": "FIN",
-    "Penalty manque": "FIN",
-    "Surperformance de finition (G - xG)": "FIN",
-    # CRE — creation
-    "Passe decisive": "CRE",
-    "xA (par unite)": "CRE",
-    "Grosse occasion creee": "CRE",
-    "Occasion creee": "CRE",
-    "Centre reussi": "CRE",
-    # PRO — progression
-    "Passe dans le dernier tiers": "PRO",
-    "Long ballon reussi": "PRO",
-    # DEF — defence
-    "Sauvetage sur la ligne": "DEF",
-    "Tacle du dernier defenseur": "DEF",
-    "Tir contre": "DEF",
-    "Interception": "DEF",
-    "Degagement": "DEF",
-    "Degagement de la tete": "DEF",
-    "Duel gagne": "DEF",
-    "Duel perdu": "DEF",
-    "Recuperation": "DEF",
-    "Dribble par l'adversaire": "DEF",
-    "Faute commise": "DEF",
-    "Penalty concede": "DEF",
-    "Erreur menant a un but": "DEF",
-    "Duel aerien gagne": "DEF",
-    "Duel au sol gagne": "DEF",
-    "Duels defensifs (taux vs reference)": "DEF",
-    "Clean sheet": "DEF",
-    # DRI — dribbling
-    "Dribble reussi": "DRI",
-    "Penalty obtenu": "DRI",
-    "Faute subie": "DRI",
-    # CON — retention / ball security
-    "Passe reussie": "CON",
-    "Ballon touche": "CON",
-    "Ballon perdu au contact": "CON",
-    "But contre son camp": "CON",
-    # Goalkeeper families
-    "Arret": "ARR",
-    "Arret plongeant": "ARR",
-    "Arret dans la surface": "ARR",
-    "Penalty arrete": "ARR",
-    "But evite vs xGOT (par unite)": "EVI",
-    "Sortie aerienne": "SOR",
-    "Sortie dans le dos": "SOR",
-    "Degagement du poing": "SOR",
-    "But encaisse": "BUT",
-}
-# Lines that a goalkeeper's `lignes` may carry but that belong to REL/PRO on
-# their card rather than the outfield family of the same label.
-FAMILLE_LIGNE_GARDIEN = {
-    "Passe reussie": "REL",
-    "Long ballon reussi": "REL",
-    "Passe dans le dernier tiers": "PRO",
-    "Clean sheet": "BUT",
-}
-# Lines deliberately left out of every family (they are not a skill).
-LIGNES_HORS_FAMILLE = {"Carton rouge"}
+_FAMILLES: dict[str, list[str]] | None = None
+
+
+def charger_familles(chemin: pathlib.Path = FAMILLES_PATH) -> dict[str, list[str]]:
+    """{famille: [libelles]} as shipped with the engine."""
+    global _FAMILLES
+    if _FAMILLES is None:
+        _FAMILLES = json.loads(chemin.read_text(encoding="utf-8"))
+    return _FAMILLES
+
+
+def familles_du_libelle(familles: dict[str, list[str]] | None = None) -> dict[str, list[str]]:
+    """Inverse table: {libelle: [familles]} — a label can map to several."""
+    familles = familles or charger_familles()
+    inv: dict[str, list[str]] = {}
+    for fam, libs in familles.items():
+        for lib in libs:
+            inv.setdefault(lib, []).append(fam)
+    return inv
 
 
 @dataclass(frozen=True)
@@ -180,10 +136,10 @@ def charger_echelles(chemin: pathlib.Path = ECHELLES_PATH) -> dict:
 def brut_neutre(brut: float, coef: float) -> float:
     """Raw score with the competition/round coefficient removed.
 
-    The percentile thresholds were measured on brut / coef, so a goal in a
-    Champions League final and the same goal in Ligue 1 land on the same
-    note.  Rewarding the competition is a *game* decision (see scoring.py),
-    not a rating one.
+    The percentile thresholds were measured on brut / coef, so the note
+    compares performances of the same quality across competitions.  The
+    competition and opponent weighting still lives in the engine's points;
+    the game does not add a second layer on top (docs/REPONSES.md §3).
     """
     return brut / coef if coef else brut
 
@@ -240,34 +196,50 @@ def note_prestation(p: dict, seuils: dict[str, Seuils] | None = None) -> float |
 # --------------------------------------------------------------------------
 
 def sommes_par_famille(lignes: dict[str, float], coef: float,
-                       gardien: bool) -> dict[str, float]:
-    """Group the engine's scoring lines into card families (neutral of coef)."""
+                       familles: dict[str, list[str]] | None = None) -> dict[str, float]:
+    """Sum the engine's scoring lines per card family, neutral of coef.
+
+    Every family of the table is summed, outfield and goalkeeper alike; the
+    caller picks the six axes it displays.  A label in two families is added
+    to both.
+    """
+    inv = familles_du_libelle(familles)
     out: dict[str, float] = {}
     for lib, v in lignes.items():
-        if any(lib.startswith(h) for h in LIGNES_HORS_FAMILLE):
-            continue
-        fam = None
-        if gardien:
-            fam = FAMILLE_LIGNE_GARDIEN.get(lib)
-        if fam is None:
-            fam = FAMILLE_LIGNE.get(lib)
-        if fam is None:
-            continue
-        out[fam] = out.get(fam, 0.0) + brut_neutre(v, coef)
+        for fam in inv.get(lib, ()):
+            out[fam] = out.get(fam, 0.0) + brut_neutre(v, coef)
     return out
 
 
-def attribut(valeur: float, echelle: list[float]) -> int:
-    """Map a family sum to 40-99 via its 201-point percentile scale.
+SEUIL_PLANCHER = 0.05        # a family is "mostly zero" past this share of 0s
+EPSILON_ZERO = 0.001
 
-    Rank is the *lowest* index among ties (bisect_left): on a family where
-    half the field sits at exactly 0 — a full-back who never shoots — the
-    player stays low rather than being lifted to the middle of the plateau.
+
+def rang_percentile(valeur: float, echelle: list[float]) -> float:
+    """Percentile rank 0..1 of a family sum on its 201-point scale, WITH the
+    floor for families that are mostly zeros (docs/REPONSES.md §2).
+
+    On a family where most performances are exactly 0 — finishing for a
+    full-back — the plain rank of any positive value jumps straight past the
+    zero plateau: one shot on target reads as 92.  The floor re-maps the
+    scale so that the plateau ends at 0.50 and the positive values share
+    the upper half; zeros and negatives are squeezed into the lower 0.30.
+    One shot on target then reads as 70.
     """
-    n = len(echelle) - 1
-    i = bisect.bisect_left(echelle, valeur)
-    pct = max(0, min(n, i)) / n
-    return ATTRIBUT_MIN + round((ATTRIBUT_MAX - ATTRIBUT_MIN) * pct)
+    n = max(len(echelle) - 1, 1)
+    rang = bisect.bisect_left(echelle, valeur) / n
+    seuil = bisect.bisect_right(echelle, EPSILON_ZERO) / n
+    if seuil > SEUIL_PLANCHER and rang > seuil:
+        rang = 0.50 + 0.50 * (rang - seuil) / max(1 - seuil, 0.01)
+    elif seuil > SEUIL_PLANCHER:
+        rang = 0.50 * rang / max(seuil, 0.01) * 0.6
+    return max(0.0, min(1.0, rang))
+
+
+def attribut(valeur: float, echelle: list[float]) -> int:
+    """Map a family sum to 40-99 via its percentile scale (floor included)."""
+    return int(round(ATTRIBUT_MIN + (ATTRIBUT_MAX - ATTRIBUT_MIN)
+                     * rang_percentile(valeur, echelle)))
 
 
 def attributs(lignes: dict[str, float], coef: float, poste: str,
@@ -275,9 +247,11 @@ def attributs(lignes: dict[str, float], coef: float, poste: str,
     """Six attributes on 40-99 for a performance (outfield or goalkeeper)."""
     echelles = echelles or charger_echelles()
     gardien = poste == "Gardien"
+    # Two scales only, `champ` and `gardien`, never one per position: a
+    # full-back's finishing is measured against every outfield player.
     table = echelles["gardien" if gardien else "champ"]
     axes = AXES_GARDIEN if gardien else AXES_CHAMP
-    sommes = sommes_par_famille(lignes, coef, gardien)
+    sommes = sommes_par_famille(lignes, coef)
     return {ax: attribut(sommes.get(ax, 0.0), table[ax]) for ax in axes}
 
 

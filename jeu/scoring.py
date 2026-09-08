@@ -6,9 +6,10 @@ in the backtest (docs/ROADMAP.md, phase 1) and in the live game.
 Rules (all constants below are game-design knobs, see docs/GAME_DESIGN.md):
   - a gameweek groups every match played in a date window (league round +
     the midweek European fixtures that follow it);
-  - a player's points for the gameweek = sum over their matches of
-        note x multiplicateur_competition(match)
-    a player who did not play scores 0;
+  - a player's points for the gameweek = sum of their notes over the
+    matches of the window; a player who did not play scores 0.  No extra
+    competition bonus: the engine already weights the competition, the
+    round and the opponent inside the raw score (docs/REPONSES.md §3);
   - the team score = sum over the 11 starters, with a captain bonus, and an
     automatic substitution from the bench for any starter who did not play
     (bench order matters, formation must stay legal).
@@ -17,13 +18,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-# Competition multiplier applied to the note.  The note itself is neutral
-# (see notation.brut_neutre); rewarding big nights is a game choice.
-MULTIPLICATEUR_COMPETITION = {
-    "Champions League": 1.25,
-    "UEFA Super Cup": 1.10,
-}
-MULTIPLICATEUR_DEFAUT = 1.0
 BONUS_CAPITAINE = 1.5
 TAILLE_ONZE = 11
 TAILLE_BANC = 4
@@ -73,13 +67,9 @@ class Composition:
     formation: str = "4-3-3"
 
 
-def multiplicateur(competition: str) -> float:
-    return MULTIPLICATEUR_COMPETITION.get(competition, MULTIPLICATEUR_DEFAUT)
-
-
 def points_joueur(prestas: list[Prestation]) -> float:
     """Gameweek points of one player from all their rated appearances."""
-    return round(sum(p.note * multiplicateur(p.competition) for p in prestas), 2)
+    return round(sum(p.note for p in prestas), 2)
 
 
 def a_joue(prestas: list[Prestation]) -> bool:

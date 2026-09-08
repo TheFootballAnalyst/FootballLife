@@ -12,8 +12,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS competition (
     competition_id   INTEGER PRIMARY KEY,           -- FotMob primary league id
     nom              TEXT NOT NULL,                 -- "Ligue 1", "Champions League"
-    saison           TEXT NOT NULL,                 -- "2026/27"
-    multiplicateur   REAL NOT NULL DEFAULT 1.0      -- game bonus (scoring.py)
+    saison           TEXT NOT NULL                  -- "2026/27"
 );
 
 CREATE TABLE IF NOT EXISTS club (

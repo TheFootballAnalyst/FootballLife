@@ -1,0 +1,23 @@
+{
+ "source": "saison 2025/26, taux median par poste (>= 20 duels) | recalibrage prod 14/08 en cours",
+ "duels_defensifs": {
+  "Defenseur central": 0.7727,
+  "Milieu defensif": 0.6905,
+  "Buteur": 0.64,
+  "Milieu relayeur": 0.6914,
+  "Milieu offensif": 0.6353,
+  "Lateral": 0.7188,
+  "Ailier": 0.6281
+ },
+ "coefs_match": {
+  "Defenseur central": 1.9899,
+  "Milieu defensif": 2.022,
+  "Milieu relayeur": 2.1796,
+  "Ailier": 2.2688,
+  "Buteur": 1.9045,
+  "Lateral": 2.1383,
+  "Gardien": 1.1441,
+  "Milieu offensif": 1.8383
+ },
+ "calibrage": "p98 par match 25/26, titulaires >= 45 min"
+}

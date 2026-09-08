@@ -14,8 +14,9 @@ The engine's base is never written by the game, and the game never
 recomputes stats. The bridge is `topsflops.calculer(conn, du, au, ...)`,
 which returns one dict per `(match_id, player_id)` with `brut`, `coef`,
 `points`, `minutes`, `poste`, `lignes`. `jeu/notation.py` turns that into
-a note and six attributes; both are frozen into `prestation` so a later
-recalibration of the engine never rewrites history.
+a note and six attributes (family table: `moteur/familles_lignes.json`);
+both are frozen into `prestation` so a later recalibration of the engine
+never rewrites history.
 
 ## Keys
 
@@ -32,7 +33,7 @@ search boxes only.
 
 | table | one row per | notes |
 |-------|-------------|-------|
-| `competition` | competition × season | carries the game multiplier |
+| `competition` | competition × season | |
 | `club` | club | kit colour for the card |
 | `joueur` | player | majority position for the season |
 | `journee` | gameweek | date window + lock time |

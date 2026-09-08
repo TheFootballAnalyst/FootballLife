@@ -15,8 +15,8 @@ The game is a way to play with it.
    captain. Lineups lock at the first kick-off.
 3. After the matches, each card gets its note out of 10 per match. Your
    team score is the sum over the eleven (auto-subs from the bench for
-   anyone who did not play, ×1.5 for the captain, ×1.25 in the Champions
-   League).
+   anyone who did not play, ×1.5 for the captain; the Champions League
+   already weighs more inside the note).
 4. Every card's rating (OVR 40–99) moves with its notes, and its price
    follows. Buy low before a card climbs and you own something worth more
    than you paid. Weekly results pay out a few credits on top.
@@ -28,7 +28,7 @@ Spotting under-priced players is the skill the game rewards.
 ```
 moteur/     the rating engine — a library, do not rewrite (see moteur/LISEZMOI.md)
 jeu/        the game layer: pure functions + schema, all tested
-  notation.py    engine output -> note out of 10 and six card attributes
+  notation.py    engine output -> note out of 10 and six card attributes (with floor)
   scoring.py     lineup + performances -> team score for a gameweek
   evolution.py   card OVR, price, manager budget over time
   schema.sql     the game database
@@ -36,6 +36,7 @@ jeu/        the game layer: pure functions + schema, all tested
 donnees/    league logos for the cards
 docs/
   CONTEXTE.md    the original project brief (French)
+  REPONSES.md    answers on families, attribute floor, UCL bonus (French)
   GAME_DESIGN.md decisions: perimeter, cadence, valuation, rules
   DATA_MODEL.md  the two databases and the weekly write path
   ROADMAP.md     phases, in order of risk: economy, pipeline, UI, hosting
@@ -48,9 +49,10 @@ pip install -r requirements.txt
 python3 -m pytest jeu/tests
 ```
 
-The engine itself needs a FotMob base (`fotmob.db`), the match cache and
-the fonts/portraits, none of which are in the repository (see
-`.gitignore`). The game layer's tests run without them.
+The engine itself needs a FotMob base (`fotmob.db`, one per season,
+300–550 MB), the match cache and the fonts/portraits, none of which are in
+the repository (see `.gitignore` and `donnees/README.md`). The game layer's
+tests run without them.
 
 ## Where things stand
 

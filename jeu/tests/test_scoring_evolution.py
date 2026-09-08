@@ -25,14 +25,14 @@ def test_full_team_of_sixes_scores_66():
     assert r["entres"] == []
 
 
-def test_captain_bonus_and_ucl_multiplier():
+def test_captain_bonus_and_two_matches_in_the_window():
     prestas = tous_jouent(6.0)
     prestas[10] = [presta(10, 8.0), presta(10, 8.0, comp="Champions League", mid=2)]
     compo = Composition(titulaires=list(range(1, 12)), banc=[12, 13, 14, 15], capitaine=10)
     r = score_equipe(compo, prestas, POSTE)
-    # striker: (8 + 8 x 1.25) x 1.5 = 27 ; others 10 x 6 = 60
-    assert r["detail"][10] == 27.0
-    assert r["score"] == 87.0
+    # striker: (8 + 8) x 1.5 = 24, no extra UCL bonus ; others 10 x 6 = 60
+    assert r["detail"][10] == 24.0
+    assert r["score"] == 84.0
 
 
 def test_auto_sub_keeps_formation_legal():

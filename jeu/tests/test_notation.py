@@ -57,8 +57,37 @@ def test_attribute_scale_bounds():
     ech = N.charger_echelles()["champ"]["FIN"]
     assert N.attribut(-999, ech) == 40
     assert N.attribut(999, ech) == 99
-    # A player who never shot (0) stays on the low side of the zero plateau.
-    assert N.attribut(0.0, ech) < 65
+
+
+def test_floor_on_mostly_zero_families():
+    """One shot on target must not read as elite finishing (REPONSES.md §2)."""
+    ech = N.charger_echelles()["champ"]["FIN"]
+    un_tir_cadre = 1.3            # "Tir cadre" line, coef 1
+    assert 65 <= N.attribut(un_tir_cadre, ech) <= 75
+    # Zero stays in the lower band, well under the plateau's top.
+    assert N.attribut(0.0, ech) < 60
+    # Reference values from the delivered code: floor active on FIN.
+    assert N.rang_percentile(0.0, ech) < 0.30
+
+
+def test_families_table_matches_engine_labels():
+    """Every label of familles_lignes.json must be one the engine can write,
+    and the two shared labels must sit in both PRO and REL."""
+    import sys, pathlib
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "moteur"))
+    import bareme_stats as B
+    moteur = {lib for table in B.POINTS.values() for lib, _ in table.values()}
+    moteur |= {v[0] for v in B.FRACTIONS.values()}
+    moteur |= {"Surperformance de finition (G - xG)", "Clean sheet",
+               "Duels defensifs (taux vs reference)"}
+    fam = N.charger_familles()
+    assert len(fam) == 11
+    assert sum(len(v) for v in fam.values()) == 41
+    inconnus = {l for libs in fam.values() for l in libs} - moteur
+    assert not inconnus, inconnus
+    inv = N.familles_du_libelle()
+    assert sorted(inv["Passe reussie"]) == ["PRO", "REL"]
+    assert sorted(inv["Long ballon reussi"]) == ["PRO", "REL"]
 
 
 def test_attributes_have_six_axes_for_both_kinds():
@@ -68,20 +97,7 @@ def test_attributes_have_six_axes_for_both_kinds():
     assert champ["FIN"] > champ["DEF"]
     gk = N.attributs({"Arret": 3.0, "Passe reussie": 1.0}, 1.0, "Gardien")
     assert set(gk) == set(N.AXES_GARDIEN)
-    assert gk["REL"] > 40
-
-
-def test_every_engine_line_has_a_family():
-    """Every label the engine can write must be routed to a card family."""
-    import sys, pathlib
-    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "moteur"))
-    import bareme_stats as B
-    libelles = {lib for table in B.POINTS.values() for lib, _ in table.values()}
-    libelles |= {v[0] for v in B.FRACTIONS.values()}
-    libelles |= {"Surperformance de finition (G - xG)", "Clean sheet",
-                 "Duels defensifs (taux vs reference)"}
-    manquants = {l for l in libelles if l not in N.FAMILLE_LIGNE}
-    assert not manquants, manquants
+    assert gk["REL"] > 40 and gk["PRO"] > 40   # shared label feeds both
 
 
 def test_prestation_helpers_accept_topsflops_rows():

@@ -41,7 +41,7 @@ scores twice.
 
 This matches how the engine already works (`topsflops.py --du --au`) and
 how the audience follows football. Slower cadences (fortnightly) lose the
-Tuesday-night moments the UCL multiplier is meant to reward.
+Tuesday-night moments that the engine's competition weighting rewards.
 
 ### 3. Valuation — from last season's notes, cautious on thin samples
 
@@ -88,15 +88,24 @@ is to hold cards that climb.
 | Formations | 4-3-3, 4-4-2, 4-2-3-1, 3-5-2, 3-4-3, 5-3-2, 4-5-1 | `scoring.FORMATIONS` |
 | Position families | GK 1, DEF 3–5, MID 2–5, FWD 1–3 | `scoring.LIMITES_FAMILLE` |
 | Captain | points × 1.5 | `scoring.BONUS_CAPITAINE` |
-| Champions League | note × 1.25 | `scoring.MULTIPLICATEUR_COMPETITION` |
+| Champions League | no game-side bonus | see below |
 | Did not play | 0 points, auto-sub from bench in order | `scoring.remplacements` |
 | Note precision | one decimal | `notation.note_sur_10` |
 
-**Note and competition.** The note out of 10 is neutral: the percentile
-thresholds were measured on `brut / coef`, so a 7.0 in Ligue 1 and a 7.0 in
-the Champions League describe the same quality of performance. The UCL
-bonus is applied by the *game* (`scoring.multiplicateur`), not by the
-rating. This keeps the card honest and the game tunable independently.
+**Note and competition.** The engine already weights every action by the
+competition, the round and the opponent inside the raw score, so a Champions
+League night is worth more *in the note itself*. A first draft added a 1.25
+game-side multiplier on top; that counted the premium twice and was removed
+(`REPONSES.md` §3). The percentile thresholds are measured on `brut / coef`
+so the note stays comparable across competitions; the engine's weighting is
+the only one.
+
+**Price scale and the note's range.** The note is compressed: median 6,
+p90 8. The price doubles every 8 points of **OVR**, not of note. OVR maps
+note 4 → 40 and note 9 → 99, so 8 OVR is about 0.7 of a note: a median
+player (6.0, OVR 64) costs 1.4 credits and a p90 regular (8.0, OVR 87)
+costs 10.4. That is the spread the backtest will tune, on the real
+distribution of season means (roughly 5 to 8).
 
 ## Deliberately left out of v1
 

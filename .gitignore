@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Data that is not source: FotMob bases, caches, portraits, club logos, fonts
+*.db
+*.db-journal
+*.db.zst
+*.db.gz
+cache/
+moteur/images/
+moteur/*.ttf
+moteur/topsflops.json
+moteur/bareme_manuel.json
+moteur/postes_manuel.json
+moteur/coefs_championnats.json
+moteur/*.xlsx
+moteur/bareme_stats_events.json
+jeu/*.sqlite
+out/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
