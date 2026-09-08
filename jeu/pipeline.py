@@ -17,9 +17,13 @@ One command turns a finished gameweek into frozen results:
               equipe.budget and the points to equipe.points_total
   4. close    journee.calculee = 1
 
-Prices carry the demand multiplier (evolution.prix_demande): the share of
-the season's teams owning a card is read from `effectif` at closing time
-and applied to the new OVR price, so a card everybody holds costs more.
+Prices are in M€: a card starts the season at the player's market value
+known at the seed date (valeur_marche, from the match sheets; estimated
+from the OVR for the few players without one) and moves with its OVR
+(evolution.prix_carte).  They carry the demand multiplier
+(evolution.prix_demande): the share of the season's teams owning a card is
+read from `effectif` at closing time and applied to the new price, so a
+card everybody holds costs more.
 
 Idempotent: a gameweek is always recomputed from the card state written for
 the PREVIOUS gameweek (the seed is stored as gameweek 0), and a resultat
@@ -156,20 +160,35 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
     fixer_parametre(jeu, saison, "economie", {"budget": E.BUDGET_INITIAL, "alpha": E.ALPHA_EMA,
                                               "prior": E.PRIOR_NOTE, "k": E.K_RETRECISSEMENT,
                                               "prix_double": E.PRIX_DOUBLE_TOUS_LES,
-                                              "demande": E.DEMANDE})
+                                              "plancher": E.PRIX_PLANCHER, "demande": E.DEMANDE,
+                                              "gain_taux": E.TAUX_GAIN, "gain_max": E.GAIN_MAX_SEMAINE})
+    # market values known at the seed date (no look-ahead when a season is replayed)
+    limite = None
+    if journees_source:
+        row = jeu.execute("SELECT au FROM journee WHERE saison=? AND numero=?", (source, journees_source[1])).fetchone()
+        limite = row[0] if row else None
+    valeurs = I.valeurs_a_date(jeu, limite)
+    notes = {pid: E.note_initiale(hist.get(pid, [])) for pid in joueurs}
+    ovrs = {pid: E.ovr_depuis_note(n) for pid, n in notes.items()}
+    ajust = E.ajuster_valeur([(ovrs[pid], valeurs[pid]) for pid in joueurs if pid in valeurs])
+    fixer_parametre(jeu, saison, "valeur_marche", {"a": ajust[0], "b": ajust[1], "limite": limite,
+                                                   "connues": sum(1 for pid in joueurs if pid in valeurs),
+                                                   "estimees": sum(1 for pid in joueurs if pid not in valeurs)})
     j0 = journee_id(jeu, saison, numero_etat)
     jeu.execute("DELETE FROM carte_historique WHERE journee_id=?", (j0,))
     jeu.execute("DELETE FROM carte WHERE saison=?", (saison,))
     n = 0
     for pid, (poste, tid) in joueurs.items():
         h = hist.get(pid, [])
-        note = E.note_initiale(h)
-        ovr = E.ovr_depuis_note(note)
-        jeu.execute("""INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, attributs, matchs, minutes, maj)
-                       VALUES (?,?,?,?,?,?,?,?,?)""",
-                    (pid, saison, note, ovr, E.prix(ovr), None, len(h), sum(m for _, m in h), maintenant()))
+        note, ovr = notes[pid], ovrs[pid]
+        base = valeurs.get(pid) or E.valeur_estimee(ovr, ajust)
+        px = E.prix_carte(base, ovr, ovr)
+        jeu.execute("""INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, valeur_base, ovr_base,
+                                         attributs, matchs, minutes, maj)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                    (pid, saison, note, ovr, px, base, ovr, None, len(h), sum(m for _, m in h), maintenant()))
         jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix) VALUES (?,?,?,?,?)",
-                    (pid, j0, note, ovr, E.prix(ovr)))
+                    (pid, j0, note, ovr, px))
         n += 1
     jeu.commit()
     return n, (bas, haut)
@@ -252,10 +271,13 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
     jeu.execute("BEGIN")
     jeu.execute("DELETE FROM carte_historique WHERE journee_id=?", (jid,))
     now = maintenant()
+    bases = {pid: (vb, ob) for pid, vb, ob in jeu.execute(
+        "SELECT player_id, valeur_base, ovr_base FROM carte WHERE saison=?", (saison,))}
     for pid, n in apres.items():
         ovr = E.ovr_depuis_note(n)
         part = parts.get(pid, 0.0)
-        px = E.prix_demande(ovr, part)
+        vb, ob = bases.get(pid, (1.0, ovr))
+        px = E.prix_demande(vb, ob, ovr, part)
         jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix, part) VALUES (?,?,?,?,?,?)",
                     (pid, jid, n, ovr, px, part))
         joue = prestas.get(pid, [])
@@ -289,7 +311,8 @@ def charger_prestations(jeu, saison, numero, doc):
     doc = {"saison", "journee", "du", "au", "matchs": {match_id: {...}},
            "clubs": {team_id: {nom, couleur}}, "joueurs": {player_id: {nom, poste}},
            "prestations": [{match_id, player_id, team_id, poste, minutes, entrant,
-                            brut, coef, points, note, statut, lignes, attributs}]}
+                            brut, coef, points, note, statut, lignes, attributs}],
+           "valeurs": [[player_id, date, M€], ...]}      # market values of the sheets
     """
     if doc.get("saison") != saison or int(doc.get("journee", -1)) != numero:
         raise SystemExit(f"le fichier est pour {doc.get('saison')} J{doc.get('journee')}, pas {saison} J{numero}")
@@ -317,6 +340,7 @@ def charger_prestations(jeu, saison, numero, doc):
                      json.dumps(p.get("lignes", {}), ensure_ascii=False), json.dumps(p.get("attributs", {}))))
         n += 1
     jeu.commit()
+    I.ecrire_valeurs(jeu, [(int(pid), d, float(v)) for pid, d, v in doc.get("valeurs", [])])
     return n
 
 

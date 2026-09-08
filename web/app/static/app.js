@@ -10,6 +10,11 @@ const POSTE_COURT = {"Gardien":"Gardien","Defenseur central":"Défenseur central
 const ATTR_NOMS = {FIN:"Finition",CRE:"Création",PRO:"Progression",DEF:"Défense",DRI:"Dribble",CON:"Conservation",ARR:"Arrêts",EVI:"Buts évités",SOR:"Sorties",REL:"Relance",BUT:"Imbattabilité"};
 const AXES = {champ:["FIN","CRE","PRO","DEF","DRI","CON"], gardien:["ARR","EVI","SOR","REL","BUT","PRO"]};
 const f1 = x => (Math.round((+x || 0) * 10) / 10).toFixed(1);
+// money: every amount is in M€ (0.1 = 100 k€)
+const fM = (x, signe = false) => { const v = +x || 0, a = Math.abs(v), s = v < 0 ? "−" : signe && v > 0 ? "+" : "";
+  if (a < 1) return s + Math.round(a * 1000) + " k€";
+  if (a < 10) return s + a.toFixed(2).replace(".", ",") + " M€";
+  return s + (Math.round(a * 10) / 10).toFixed(1).replace(".", ",") + " M€"; };
 
 // ---- état local (miroir de ce que le serveur a renvoyé) ----
 const G = {moi: null, saison: null, cartes: [], idx: new Map(), equipe: null, compo: null, ecran: "connexion"};
@@ -56,8 +61,8 @@ function majStatut() {
   const j = G.saison?.courante;
   $("#marque-sous").textContent = "saison " + (G.saison?.saison || "");
   $("#st-j").textContent = j ? "J" + j.numero + (j.verrouillee ? " 🔒" : "") : "Fin";
-  $("#st-cash").textContent = f1(G.equipe?.budget);
-  $("#st-val").textContent = f1(patrimoine());
+  $("#st-cash").textContent = fM(G.equipe?.budget);
+  $("#st-val").textContent = fM(patrimoine());
   $("#st-pts").textContent = f1(G.equipe?.points);
   $("#st-rang").textContent = G.equipe ? `${G.equipe.rang}/${G.saison.equipes}` : "—";
 }
@@ -101,22 +106,25 @@ $("#btn-deconnexion").addEventListener("click", async () => { await api("/deconn
 
 // ---- marché ----
 let marcheLimite = 60;
+let marcheVue = "cartes";
+try { marcheVue = localStorage.getItem("fl_vue") || "cartes"; } catch (e) {}
+document.querySelectorAll(".vue button").forEach(b => b.addEventListener("click", () => { marcheVue = b.dataset.vue; try { localStorage.setItem("fl_vue", marcheVue); } catch (e) {} rendreMarche(); }));
 function peutAcheter(id) {
   const c = carte(id);
   if (G.equipe.effectif[id]) return "déjà dans l'effectif";
   if (!G.equipe.marche_ouvert) return "marché fermé";
   if (idsEffectif().length >= TAILLE) return `effectif complet (${TAILLE})`;
   if (nbFam(c.fam) >= QUOTA[c.fam]) return `déjà ${QUOTA[c.fam]} ${PLURIEL[c.fam]}`;
-  if (c.prix > G.equipe.budget + 1e-9) return "pas assez de crédits";
+  if (c.prix > G.equipe.budget + 1e-9) return "budget insuffisant";
   return null;
 }
 async function acheter(id) {
   const why = peutAcheter(id); if (why) { toast(why); return; }
-  try { const r = await api("/equipe/acheter", {player_id: id}); toast(`${carte(id).nom} recruté pour ${f1(r.prix)}`); await rafraichir(false); rendreMarche(); }
+  try { const r = await api("/equipe/acheter", {player_id: id}); toast(`${carte(id).nom} recruté pour ${fM(r.prix)}`); await rafraichir(false); rendreMarche(); }
   catch (e) { toast(e.message); }
 }
 async function vendre(id) {
-  try { const r = await api("/equipe/vendre", {player_id: id}); toast(`${carte(id).nom} vendu ${f1(r.prix)}`); await rafraichir(false); rendreMarche(); if (G.ecran === "equipe") rendreEquipe(); }
+  try { const r = await api("/equipe/vendre", {player_id: id}); toast(`${carte(id).nom} vendu ${fM(r.prix)}`); await rafraichir(false); rendreMarche(); if (G.ecran === "equipe") rendreEquipe(); }
   catch (e) { toast(e.message); }
 }
 function rendreMarche() {
@@ -136,9 +144,36 @@ function rendreMarche() {
   rows.sort((a, b) => cle(a) - cle(b) || a.nom.localeCompare(b.nom));
   $("#marche-compteur").textContent = `${rows.length} cartes`;
   $("#marche-effectif").textContent = `${idsEffectif().length} / ${TAILLE} · ${FAMS.map(f => nbFam(f) + "/" + QUOTA[f]).join(" · ")}`;
-  const L = $("#marche-liste"); L.replaceChildren();
-  for (const c of rows.slice(0, marcheLimite)) L.append(ligneCarte(c));
+  document.querySelectorAll(".vue button").forEach(b => { if (b.dataset.vue === marcheVue) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  const L = $("#marche-liste"); L.replaceChildren(); L.className = marcheVue === "cartes" ? "cartes-grille" : "liste";
+  for (const c of rows.slice(0, marcheLimite)) L.append(marcheVue === "cartes" ? carteMarche(c) : ligneCarte(c));
   $("#marche-plus").hidden = rows.length <= marcheLimite;
+}
+function boutonAchatVente(c, mien) {
+  const why = mien ? null : peutAcheter(c.id);
+  return mien ? el("button", {class: "vente", disabled: !G.equipe.marche_ouvert, onclick: e => { e.stopPropagation(); vendre(c.id); }}, "Vendre")
+              : el("button", {class: "achat" + (why ? "" : " primaire"), title: why || "", onclick: e => { e.stopPropagation(); acheter(c.id); }}, "Acheter");
+}
+// the card itself: club colour, OVR, position, portrait, name, form, price
+function carteMarche(c) {
+  const mien = !!G.equipe.effectif[c.id];
+  const k = el("div", {class: "cartej" + (mien ? " mienne" : ""), tabindex: "0", role: "button", onclick: () => ouvrirFiche(c.id), onkeydown: e => { if (e.key === "Enter") ouvrirFiche(c.id); }});
+  k.style.setProperty("--clubc", c.couleur);
+  const delta = mien ? c.prix - G.equipe.effectif[c.id] : 0;
+  k.append(
+    el("div", {class: "cj-haut"},
+      el("div", {class: "cj-ovr anton" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)),
+      el("div", {class: "cj-pos"}, el("span", {class: "fam " + c.fam}, c.fam === "GK" ? "GB" : c.fam === "DEF" ? "DÉF" : c.fam === "MID" ? "MIL" : "ATT")),
+      vignette(c.id),
+      el("img", {class: "cj-logo", src: `/images/logos/${c.team_id}.png`, alt: "", loading: "lazy", onerror: e => e.target.remove()})),
+    el("div", {class: "cj-corps"},
+      el("div", {class: "nom", title: c.nom}, c.nom),
+      el("div", {class: "sous"}, `${c.club} · ${POSTE_COURT[c.poste] || c.poste}`),
+      el("div", {class: "cj-milieu"}, barresForme(c), c.part > 0 ? el("span", {class: "part"}, Math.round(c.part * 100) + " %") : null),
+      el("div", {class: "cj-pied"}, el("span", {class: "prix num"}, fM(c.prix)),
+        mien && Math.abs(delta) >= 0.005 ? el("span", {class: "delta " + (delta > 0 ? "plus" : "moins")}, fM(delta, true)) : null),
+      boutonAchatVente(c, mien)));
+  return k;
 }
 function ligneCarte(c) {
   const mien = !!G.equipe.effectif[c.id];
@@ -149,11 +184,8 @@ function ligneCarte(c) {
     el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, `${c.club} · ${POSTE_COURT[c.poste] || c.poste}${c.part > 0 ? " · " + Math.round(c.part * 100) + " % des équipes" : ""}`)),
     barresForme(c),
     el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)),
-    el("div", {class: "prix num"}, f1(c.prix), mien && Math.abs(delta) >= 0.05 ? el("div", {class: "delta " + (delta > 0 ? "plus" : "moins")}, (delta > 0 ? "+" : "") + f1(delta)) : null));
-  const why = mien ? null : peutAcheter(c.id);
-  const b = mien ? el("button", {disabled: !G.equipe.marche_ouvert, onclick: e => { e.stopPropagation(); vendre(c.id); }}, "Vendre")
-                 : el("button", {class: why ? "" : "primaire", title: why || "", onclick: e => { e.stopPropagation(); acheter(c.id); }}, "Acheter");
-  l.append(b);
+    el("div", {class: "prix num"}, fM(c.prix), mien && Math.abs(delta) >= 0.005 ? el("div", {class: "delta " + (delta > 0 ? "plus" : "moins")}, fM(delta, true)) : null));
+  l.append(boutonAchatVente(c, mien));
   return l;
 }
 
@@ -247,7 +279,7 @@ async function rendreJournee() {
       el("div", {class: "gros num"}, f1(det.score)),
       el("div", {class: "recap"},
         el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Rang de la journée"), el("b", {class: "num"}, `${det.rang}/${det.participants}`)),
-        el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Gain"), el("b", {class: "num"}, "+" + f1(det.gain))),
+        el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Gain"), el("b", {class: "num"}, fM(det.gain, true))),
         el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Entrés du banc"), el("b", {class: "num"}, String(det.onze.filter(p => !(G.equipe.composition?.titulaires || []).includes(p)).length)))));
     if (det.detail.refusee) P.append(el("div", {class: "avert"}, "Composition refusée : " + det.detail.refusee));
     const t = el("table"); t.append(el("thead", {}, el("tr", {}, el("th", {}, "Joueur"), el("th", {}, "Matchs (note · min)"), el("th", {class: "num"}, "Points"))));
@@ -270,13 +302,13 @@ async function rendreJournee() {
       : el("span", {}, "Verrouillage au premier coup d'envoi : ", el("b", {}, new Date(j.cloture).toLocaleString("fr-FR")), ". ", G.equipe.composition ? "Composition envoyée." : "Pas de composition envoyée : va sur Équipe.")));
   } else P.append(el("p", {class: "info"}, "Saison terminée."));
   const tb = $("#histo tbody"); tb.replaceChildren();
-  for (const r of res) tb.append(el("tr", {}, el("td", {}, "J" + r.journee), el("td", {class: "num"}, f1(r.score)), el("td", {class: "num"}, "+" + f1(r.gain)), el("td", {class: "num"}, String(r.rang))));
+  for (const r of res) tb.append(el("tr", {}, el("td", {}, "J" + r.journee), el("td", {class: "num"}, f1(r.score)), el("td", {class: "num"}, fM(r.gain, true)), el("td", {class: "num"}, String(r.rang))));
 }
 
 // ---- classement et ligues ----
 async function rendreClassement() {
   const cl = await api("/classement"); const tb = $("#classement tbody"); tb.replaceChildren();
-  for (const r of cl) tb.append(el("tr", {class: r.equipe_id === G.equipe.equipe_id ? "moi" : ""}, el("td", {}, String(r.rang)), el("td", {}, r.equipe), el("td", {}, r.pseudo), el("td", {class: "num"}, f1(r.points)), el("td", {class: "num"}, r.derniere == null ? "—" : f1(r.derniere)), el("td", {class: "num"}, f1(r.patrimoine))));
+  for (const r of cl) tb.append(el("tr", {class: r.equipe_id === G.equipe.equipe_id ? "moi" : ""}, el("td", {}, String(r.rang)), el("td", {}, r.equipe), el("td", {}, r.pseudo), el("td", {class: "num"}, f1(r.points)), el("td", {class: "num"}, r.derniere == null ? "—" : f1(r.derniere)), el("td", {class: "num"}, fM(r.patrimoine))));
   const L = $("#ligues"); L.replaceChildren();
   for (const l of await api("/ligues")) {
     const box = el("div", {class: "ligue"}, el("div", {class: "tete"}, el("h3", {class: "anton"}, l.nom), el("span", {class: "compteur"}, "code ", el("span", {class: "code"}, l.code))));
@@ -338,24 +370,28 @@ async function ouvrirFiche(id) {
   const cote = el("div", {class: "fiche-cote"});
   cote.append(el("div", {class: "etiq"}, `${d.club} · ${d.ligue}`), el("h3", {class: "anton"}, d.nom),
     el("div", {class: "compteur"}, `${POSTE_COURT[d.poste] || d.poste} · ${d.matchs} matchs, ${d.minutes} min · ${Math.round(d.part * 100)} % des équipes`),
-    el("div", {style: "display:flex;gap:14px;align-items:baseline;margin-top:6px"}, el("div", {class: "ovr num" + (d.ovr >= 80 ? " haut" : ""), style: "font-size:40px"}, String(d.ovr)), el("div", {class: "prix num", style: "font-size:22px"}, f1(d.prix) + " cr.")));
+    el("div", {style: "display:flex;gap:14px;align-items:baseline;margin-top:6px"}, el("div", {class: "ovr num" + (d.ovr >= 80 ? " haut" : ""), style: "font-size:40px"}, String(d.ovr)), el("div", {class: "prix num", style: "font-size:22px"}, fM(d.prix))));
+  const dep = d.valeur_base != null ? `${fM(d.valeur_base)} à OVR ${d.ovr_base}` : "—";
+  cote.append(el("div", {class: "compteur", style: "margin-top:6px"}, `Départ de saison : ${dep}`),
+    el("div", {class: "compteur"}, d.valeur_marche != null ? `Valeur marchande réelle (FotMob) : ${fM(d.valeur_marche)}` : "Valeur marchande réelle inconnue : prix estimé d'après l'OVR"),
+    el("div", {class: "compteur"}, "Le prix double tous les +8 OVR depuis le départ, et monte avec la part des équipes qui possèdent la carte."));
   box.append(el("div", {class: "fiche-haut"}, img, cote));
   const axes = d.fam === "GK" ? AXES.gardien : AXES.champ; const A = el("div", {class: "attrs"});
   for (const ax of axes) { const val = d.attributs[ax] ?? 40; A.append(el("div", {class: "attr"}, el("span", {}, ATTR_NOMS[ax]), el("div", {class: "jauge"}, el("i", {class: val >= 80 ? "haut" : "", style: `width:${(val - 40) / 59 * 100}%`})), el("b", {class: "num"}, String(val)))); }
   box.append(el("div", {class: "etiq"}, "Attributs de la saison"), A);
   box.append(el("div", {class: "etiq"}, "Dernières prestations"), el("div", {class: "notes"}, ...(d.prestations.length ? d.prestations.slice(0, 8).map(p => el("span", {class: "note " + (p.note >= 7 ? "b" : p.note < 5 ? "m" : ""), title: `J${p.numero} · ${p.competition}`}, `${f1(p.note)} · ${Math.round(p.minutes)}'`)) : [el("span", {class: "compteur"}, "aucun match noté cette saison")])));
-  if (d.historique.length > 1) box.append(el("div", {class: "etiq", style: "margin-top:10px"}, "Prix par journée"), sparkline(d.historique.map(h => h.prix)));
+  if (d.historique.length > 1) box.append(el("div", {class: "etiq", style: "margin-top:10px"}, "Prix par journée"), sparkline(d.historique.map(h => h.prix), fM));
   const acts = el("div", {class: "actions"});
-  if (G.equipe.effectif[id]) { const dl = d.prix - G.equipe.effectif[id]; acts.append(el("span", {class: "compteur", style: "margin-right:auto"}, `acheté ${f1(G.equipe.effectif[id])} · ${dl >= 0 ? "+" : ""}${f1(dl)}`), el("button", {disabled: !G.equipe.marche_ouvert, onclick: () => { dlg.close(); vendre(id); }}, "Vendre " + f1(d.prix))); }
-  else { const why = peutAcheter(id); acts.append(why ? el("span", {class: "compteur", style: "margin-right:auto"}, why) : null, el("button", {class: why ? "" : "primaire", disabled: !!why, onclick: () => { dlg.close(); acheter(id); }}, "Acheter " + f1(d.prix))); }
+  if (G.equipe.effectif[id]) { const dl = d.prix - G.equipe.effectif[id]; acts.append(el("span", {class: "compteur", style: "margin-right:auto"}, `acheté ${fM(G.equipe.effectif[id])} · ${fM(dl, true)}`), el("button", {class: "vente", disabled: !G.equipe.marche_ouvert, onclick: () => { dlg.close(); vendre(id); }}, "Vendre " + fM(d.prix))); }
+  else { const why = peutAcheter(id); acts.append(why ? el("span", {class: "compteur", style: "margin-right:auto"}, why) : null, el("button", {class: "achat" + (why ? "" : " primaire"), disabled: !!why, onclick: () => { dlg.close(); acheter(id); }}, "Acheter " + fM(d.prix))); }
   acts.append(el("button", {class: "discret", onclick: () => dlg.close()}, "Fermer"));
   box.append(acts); dlg.append(box); dlg.showModal();
 }
-function sparkline(vals) {
+function sparkline(vals, fmt = f1) {
   const W = 480, H = 60, lo = Math.min(...vals), hi = Math.max(...vals), pad = 6;
   const x = k => pad + k * (W - 2 * pad) / Math.max(1, vals.length - 1), y = v => hi === lo ? H / 2 : H - pad - (v - lo) * (H - 2 * pad) / (hi - lo);
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("class", "spark");
-  svg.innerHTML = `<polyline points="${vals.map((v, k) => `${x(k).toFixed(1)},${y(v).toFixed(1)}`).join(" ")}" fill="none" stroke="var(--or)" stroke-width="2"/><circle cx="${x(vals.length - 1).toFixed(1)}" cy="${y(vals[vals.length - 1]).toFixed(1)}" r="3.5" fill="var(--or)"/><text x="${pad}" y="${H - 1}" font-size="10" fill="var(--sourd)" font-family="Barlow Condensed">${f1(vals[0])}</text><text x="${W - pad}" y="10" text-anchor="end" font-size="10" fill="var(--sourd)" font-family="Barlow Condensed">${f1(vals[vals.length - 1])}</text>`;
+  svg.innerHTML = `<polyline points="${vals.map((v, k) => `${x(k).toFixed(1)},${y(v).toFixed(1)}`).join(" ")}" fill="none" stroke="var(--or)" stroke-width="2"/><circle cx="${x(vals.length - 1).toFixed(1)}" cy="${y(vals[vals.length - 1]).toFixed(1)}" r="3.5" fill="var(--or)"/><text x="${pad}" y="${H - 1}" font-size="10" fill="var(--sourd)" font-family="Barlow Condensed">${fmt(vals[0])}</text><text x="${W - pad}" y="10" text-anchor="end" font-size="10" fill="var(--sourd)" font-family="Barlow Condensed">${fmt(vals[vals.length - 1])}</text>`;
   return svg;
 }
 

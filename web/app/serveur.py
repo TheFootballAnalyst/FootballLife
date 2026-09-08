@@ -258,18 +258,25 @@ def cartes_toutes(jeu):
             WHERE j.saison = ? AND j.calculee = 1 AND j.numero >= 1 AND p.note IS NOT NULL
             ORDER BY m.date_utc""", (SAISON,)):
         notes.setdefault(pid, []).append([note, int(minutes)])
+    # real market value as known at the last computed gameweek (a replayed
+    # season must not show what the value became later)
+    dj = derniere_journee_calculee(jeu)
+    limite = dj["au"] if dj else "9999-12-31"
+    valeurs = dict(jeu.execute("SELECT player_id, valeur FROM valeur_marche WHERE date <= ? ORDER BY date", (limite,)))
     out = []
     for r in jeu.execute("""
             SELECT c.player_id, c.ovr, c.prix, c.part, c.note_ovr, c.matchs, c.minutes,
+                   c.valeur_base, c.ovr_base,
                    j.nom, j.poste, j.team_id, cl.nom AS club, cl.couleur
             FROM carte c JOIN joueur j ON j.player_id = c.player_id
             LEFT JOIN club cl ON cl.team_id = j.team_id WHERE c.saison = ?""", (SAISON,)):
         out.append({
             "id": r["player_id"], "nom": r["nom"], "poste": r["poste"],
             "fam": S.FAMILLE_POSTE.get(r["poste"], "MID"),
-            "club": r["club"] or "", "couleur": r["couleur"] or "#14161E",
+            "club": r["club"] or "", "couleur": r["couleur"] or "#14161E", "team_id": r["team_id"],
             "ligue": ligues.get(ligue_club.get(r["team_id"], (0,))[0], ""),
             "ovr": r["ovr"], "prix": r["prix"], "part": round(r["part"], 3),
+            "valeur_base": r["valeur_base"], "ovr_base": r["ovr_base"], "valeur_marche": valeurs.get(r["player_id"]),
             "matchs": r["matchs"], "minutes": int(r["minutes"] or 0),
             "notes": notes.get(r["player_id"], [])[-6:],
         })
@@ -371,7 +378,7 @@ def acheter(t: Transfert, u=Depends(exiger), jeu=Depends(bd)):
     if n_fam >= QUOTA[fam]:
         raise HTTPException(409, f"Déjà {QUOTA[fam]} à ce poste")
     if c["prix"] > e["budget"] + 1e-9:
-        raise HTTPException(409, "Pas assez de crédits")
+        raise HTTPException(409, "Budget insuffisant")
     jeu.execute("INSERT INTO effectif VALUES (?,?,?,?)", (e["equipe_id"], t.player_id, c["prix"], P.maintenant()))
     jeu.execute("UPDATE equipe SET budget = ROUND(budget - ?, 2) WHERE equipe_id=?", (c["prix"], e["equipe_id"]))
     j = journee_courante(jeu)

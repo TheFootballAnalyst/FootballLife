@@ -45,6 +45,13 @@ def main():
         dst.unlink()
     shutil.copy(src, dst)
     jeu = I.ouvrir_jeu(dst)
+    # a game base written before market values existed: read them from the cached sheets
+    if jeu.execute("SELECT COUNT(*) FROM valeur_marche").fetchone()[0] == 0:
+        mids = [r[0] for r in jeu.execute("SELECT match_id FROM match")]
+        print(f"Lecture des valeurs marchandes dans les feuilles de match ({len(mids)} matchs)...")
+        n = I.importer_valeurs(jeu, mids)
+        if n == 0:
+            print("Aucune valeur trouvée : le dossier moteur/cache/matches est-il rempli ? Les prix seront estimés d'après l'OVR.")
     amorce = BT.parse_plage(a.amorce)
     for t in ("resultat", "composition", "effectif", "transfert", "ligue_privee_membre", "ligue_privee",
               "equipe", "ligue_jeu", "utilisateur", "carte_historique", "carte"):

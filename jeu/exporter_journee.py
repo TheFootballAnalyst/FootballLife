@@ -50,6 +50,7 @@ def exporter(fot, jeu, saison, numero):
                                        coef=p["coef"], points=p["points"], note=N.note_prestation(p),
                                        statut=T._statut_final(p, statuts), lignes=p["lignes"],
                                        attributs=N.attributs_prestation(p)))
+    doc["valeurs"] = [list(v) for v in I.lire_valeurs(list(matchs))]
     return doc
 
 

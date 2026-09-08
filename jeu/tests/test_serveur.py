@@ -28,6 +28,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(SV, "SAISON", "2025/26")
     SV._CACHE["cle"] = None
     j = SV.ouvrir()
+    j.execute("DELETE FROM valeur_marche WHERE date > '2025-01-07'")     # keep the seed-time values only
     P.amorcer(j, "2025/26", "2024/25", ligues=(53,))
     # open the market: lock far in the future
     j.execute("UPDATE journee SET cloture='2099-01-01T00:00:00Z' WHERE saison='2025/26' AND numero=1")

@@ -76,10 +76,37 @@ aux deux périmètres.
 | échelle OVR | calibrée sur le périmètre : p2 des moyennes → 40, p99,5 → 99 (global 25/26 : 4,90 → 7,69 ; Ligue 1 seule : 4,84 → 7,21) | les moyennes de saison sont resserrées, et chaque périmètre a sa distribution |
 | prior / K | 5,5 / 10 matchs pleins | un inconnu est bon marché |
 | EMA | α = 0,08, pondéré par minutes/60 | à 0,12 les prix bougeaient d'une bande par match |
-| prix | ×2 tous les 8 OVR, plancher 0,5 | pente 6 rend les hausses trop lucratives |
-| budget | **60** | le meilleur 15 global coûte 104 ; à 100 le naïf recolle sur le forme (+8 % seulement), à 60 l'écart est de 30 % |
+| prix | départ = valeur marchande réelle (FotMob) à la date d'amorce, puis ×2 tous les 8 OVR gagnés, plancher 0,1 M€ | pente 6 rend les hausses trop lucratives |
+| budget | **100 M€** | l'ordre informé > naïf > hasard tient de 60 à 250 M€ (tableau ci-dessous) ; 100 est un budget de club lisible |
 
-## Résultats, ligue globale (J18–J34, budget 60)
+## Résultats en euros, ligue globale (J18–J34, budget 100 M€, demande 1,0)
+
+Prix de départ = valeur marchande connue à la fin de J17 (pas de regard
+sur l'avenir), 72 cartes sur 2 371 estimées d'après l'OVR.
+
+| manager | points | patrimoine final (départ 100 M€) |
+|---|---|---|
+| oracle | 1 626 | 292 |
+| **forme** | **1 489** | **202** |
+| naïf | 1 235 | 135 |
+| hasard (moyenne de 5) | 690 | 114 |
+
+Sensibilité au budget (points) :
+
+| budget | naïf | forme | oracle | hasard (moy.) |
+|---|---|---|---|---|
+| 60 M€ | 1 277 | 1 446 | 1 563 | 677 |
+| 100 M€ | 1 235 | 1 489 | 1 626 | 690 |
+| 150 M€ | 1 217 | 1 449 | 1 692 | 676 |
+| 250 M€ | 1 426 | 1 545 | 1 763 | 724 |
+
+Le naïf (achète par OVR) souffre plus qu'en crédits : les stars coûtent
+leur vrai prix, il lui reste moins pour le reste de l'effectif. Le forme
+(achète la production récente) garde 20 % d'avance, et le hasard est à
+moitié. Les cartes les plus détenues par la foule finissent chères (van
+Dijk : 62 % des équipes, 10 → 35 M€), ce qui est l'effet recherché.
+
+## Résultats en crédits (historique : J18–J34, budget 60)
 
 | manager | points | valeur finale (départ 60) |
 |---|---|---|

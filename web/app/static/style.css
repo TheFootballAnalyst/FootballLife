@@ -55,9 +55,15 @@ section[hidden]{display:none}
 .tete{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 .tete .droite{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 
-/* --- lignes de cartes (marché, effectif) --- */
+/* --- boutons d'achat et de vente : même largeur partout --- */
+button.achat,button.vente{min-width:96px;padding:7px 12px;font-weight:700;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:13px}
+button.vente{border-color:color-mix(in srgb,var(--rouge) 50%,var(--ligne));color:var(--rouge)}
+button.vente:hover:not(:disabled){background:color-mix(in srgb,var(--rouge) 12%,var(--surface))}
+
+/* --- lignes de cartes (marché en liste, banc) --- */
 .liste{display:flex;flex-direction:column;gap:6px}
-.ligne{display:grid;grid-template-columns:44px 1fr auto auto auto;gap:10px;align-items:center;padding:6px 8px;border:1px solid var(--ligne);border-radius:8px;background:var(--surface);border-left:4px solid var(--clubc,#777)}
+.ligne{display:grid;grid-template-columns:44px 1fr auto auto auto 100px;gap:10px;align-items:center;padding:6px 8px;border:1px solid var(--ligne);border-radius:8px;background:var(--surface);border-left:4px solid var(--clubc,#777)}
+.ligne button.achat,.ligne button.vente{width:100px}
 .ligne:hover{background:var(--surface2)}
 .vign{width:44px;height:44px;border-radius:6px;background:var(--surface2);overflow:hidden;display:flex;align-items:flex-end;justify-content:center;flex:none}
 .vign img{height:44px;width:auto;display:block}
@@ -77,6 +83,33 @@ section[hidden]{display:none}
 .filtres{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .filtres input[type=search]{min-width:200px;flex:1}
 .compteur{color:var(--sourd);font-size:13px}
+
+/* --- le marché en cartes --- */
+.vue{display:flex;gap:2px;margin-left:auto;background:var(--surface2);border-radius:6px;padding:2px}
+.vue button{border-color:transparent;background:transparent;padding:4px 10px;font-size:13px;font-weight:600}
+.vue button[aria-current="page"]{background:var(--surface);border-color:var(--ligne)}
+.cartes-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(164px,1fr));gap:12px}
+.cartej{background:var(--surface);border:1px solid var(--ligne);border-radius:12px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(16,22,43,.06);transition:transform .12s,box-shadow .12s}
+.cartej:hover{transform:translateY(-2px);box-shadow:var(--ombre)}
+.cartej.mienne{border-color:var(--or)}
+.cj-haut{position:relative;height:126px;background:linear-gradient(160deg,color-mix(in srgb,var(--clubc,#555) 85%,#000) 0%,var(--clubc,#555) 55%,color-mix(in srgb,var(--clubc,#555) 70%,#fff) 100%);display:flex;align-items:flex-end;justify-content:center}
+.cj-haut::after{content:"";position:absolute;inset:auto 0 0 0;height:40px;background:linear-gradient(to top,rgba(0,0,0,.35),transparent);pointer-events:none}
+.cj-haut .vign{width:auto;height:112px;background:transparent;border-radius:0;position:relative;z-index:1;filter:drop-shadow(0 4px 6px rgba(0,0,0,.45))}
+.cj-haut .vign img{height:112px}
+.cj-haut .vign .init{font-size:40px;line-height:112px;color:rgba(255,255,255,.7)}
+.cj-ovr{position:absolute;left:10px;top:6px;z-index:2;font-size:38px;line-height:1;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+.cj-ovr.haut{color:var(--or2)}
+.cj-pos{position:absolute;left:10px;top:48px;z-index:2;display:flex;flex-direction:column;gap:2px;align-items:flex-start;font-family:"Barlow Condensed",sans-serif;font-size:11px;color:#fff;text-transform:uppercase;letter-spacing:.06em;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.cj-logo{position:absolute;right:8px;top:8px;z-index:2;width:30px;height:30px;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+.cj-corps{padding:8px 10px 10px;display:flex;flex-direction:column;gap:4px}
+.cj-corps .nom{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:17px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cj-corps .sous{color:var(--sourd);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cj-milieu{display:flex;align-items:flex-end;justify-content:space-between;min-height:18px}
+.cj-milieu .part{font-family:"Barlow Condensed",sans-serif;font-size:12px;color:var(--sourd)}
+.cj-pied{display:flex;align-items:baseline;justify-content:space-between;gap:6px;margin-top:2px}
+.cj-pied .prix{font-size:19px;min-width:0;text-align:left}
+.cj-corps button{width:100%;margin-top:4px}
+@media (max-width:480px){.cartes-grille{grid-template-columns:repeat(2,1fr);gap:8px}}
 
 /* --- terrain --- */
 .terrain{position:relative;background:

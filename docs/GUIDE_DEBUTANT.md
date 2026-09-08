@@ -179,8 +179,9 @@ Ouvre-le avec le Bloc-notes (clic droit → Ouvrir avec) :
 
 | ligne | rôle |
 |---|---|
-| `BUDGET_INITIAL = 60.0` | crédits de départ |
-| `PRIX_DOUBLE_TOUS_LES = 8` | le prix double tous les 8 OVR |
+| `BUDGET_INITIAL = 100.0` | budget de départ, en millions d'euros |
+| `PRIX_DOUBLE_TOUS_LES = 8` | le prix (parti de la valeur marchande réelle) double tous les 8 OVR gagnés |
+| `GAIN_MAX_SEMAINE = 5.0` | gain maximal par journée, en M€ |
 | `ALPHA_EMA = 0.08` | vitesse à laquelle une carte bouge après un match |
 | `PRIOR_NOTE = 5.5` | note supposée d'un inconnu |
 | `K_RETRECISSEMENT = 10.0` | poids de cette supposition, en matchs pleins |

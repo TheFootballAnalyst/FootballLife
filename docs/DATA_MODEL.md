@@ -35,7 +35,8 @@ search boxes only.
 |-------|-------------|-------|
 | `competition` | competition × season | |
 | `club` | club | kit colour for the card, from the cached match sheets (`importer_couleurs`) |
-| `joueur` | player | majority position for the season |
+| `joueur` | player | majority position for the season, latest market value (M€) |
+| `valeur_marche` | player × sheet date | market value printed on the FotMob match sheet (Transfermarkt's figure), M€; the seed reads the value known at its date |
 | `journee` | gameweek | date window + lock time; gameweek 0 holds the seed state |
 | `parametre` | season × key | OVR scale and economy constants frozen at seed time |
 | `match` | match | assigned to a gameweek |
@@ -45,7 +46,7 @@ search boxes only.
 
 | table | one row per | notes |
 |-------|-------------|-------|
-| `carte` | player × season | current `note_ovr`, `ovr`, `prix` |
+| `carte` | player × season | current `note_ovr`, `ovr`, `prix` (M€); `valeur_base`/`ovr_base` anchor the price at the seed |
 | `carte_historique` | player × gameweek | price chart, "card evolves" screen |
 
 ### Managers

@@ -12,11 +12,18 @@ Three quantities:
            (shrunk towards a cautious prior when the sample is thin — an
            unknown player is *cheap*, which is what rewards scouting) and
            then follows each new note with an exponential moving average.
-  PRIX     the card's price in credits, an exponential function of OVR so
-           that stars cost many times a solid regular.  Recomputed after
-           every gameweek: buying low before the OVR climbs is the skill.
-  BUDGET   what a manager can spend.  It grows with results: a share of the
-           points scored above a baseline is paid out every gameweek.
+  PRIX     the card's price in millions of euros.  It starts the season at
+           the player's real market value (FotMob's figure, Transfermarkt
+           style, read from the match sheets) and then follows the OVR:
+           +PRIX_DOUBLE_TOUS_LES OVR points doubles it, the same drop halves
+           it.  A card everybody owns costs more (demand).  Buying a player
+           before his OVR climbs is the skill.
+  BUDGET   what a manager can spend, in millions of euros.  It grows with
+           results: a share of the points scored above a baseline is paid
+           out every gameweek.
+
+Every amount of money in the game is in millions of euros (M€): 0.1 is
+100 k€, 152.5 is Haaland.
 """
 from __future__ import annotations
 
@@ -40,22 +47,21 @@ K_RETRECISSEMENT = 10.0      # in full matches (90 min); the prior weighs
 ALPHA_EMA = 0.08             # a note moves the OVR-note by 8 % of the gap
 MINUTES_POIDS_PLEIN = 60.0   # a short cameo moves the rating less
 
-# Price
-PRIX_PLANCHER = 0.5
-PRIX_BASE_OVR = 60           # OVR 60 costs 1 credit
-PRIX_DOUBLE_TOUS_LES = 8     # +8 OVR = price x2  (99 ~ 29.5 credits)
+# Price (M€)
+PRIX_PLANCHER = 0.1          # 100 k€: a card is never free
+PRIX_DOUBLE_TOUS_LES = 8     # +8 OVR since the season start = price x2
 
 # Demand: a card's price is its OVR price x (1 + DEMANDE x share of the
 # managers who own it).  Backtested at 1.0 (docs/BACKTEST.md): keeps the
 # game global and the informed manager ahead.
 DEMANDE = 1.0
 
-# Budget
-BUDGET_INITIAL = 60.0        # ~60 % of the global perimeter's best 15 (backtest)
+# Budget (M€)
+BUDGET_INITIAL = 100.0       # a club's transfer budget for 15 cards
 TAILLE_EFFECTIF = 15         # 11 + 4 bench
 SCORE_REFERENCE = 60.0       # a gameweek at 11 x 5.5 (or 66 at 11 x 6)
-TAUX_GAIN = 0.05             # credits per point above the reference
-GAIN_MAX_SEMAINE = 3.0
+TAUX_GAIN = 0.1              # M€ per point above the reference
+GAIN_MAX_SEMAINE = 5.0       # 5 % of the initial budget at most per gameweek
 
 
 def calibrer_echelle(moyennes: list[float]) -> tuple[float, float]:
@@ -107,41 +113,43 @@ def note_ema(note_courante: float, note_match: float, minutes: float) -> float:
     return note_courante + ALPHA_EMA * w * (note_match - note_courante)
 
 
-def prix(ovr: float) -> float:
-    """Price in credits, exponential in OVR, one decimal."""
-    p = 2.0 ** ((ovr - PRIX_BASE_OVR) / PRIX_DOUBLE_TOUS_LES)
-    return round(max(PRIX_PLANCHER, p), 1)
+def prix_carte(valeur_base: float, ovr_base: float, ovr: float) -> float:
+    """Price in M€ of a card whose season started at `valeur_base` M€ with
+    OVR `ovr_base`, now at `ovr`.  Two decimals (10 k€)."""
+    p = valeur_base * 2.0 ** ((ovr - ovr_base) / PRIX_DOUBLE_TOUS_LES)
+    return round(max(PRIX_PLANCHER, p), 2)
 
 
-def prix_demande(ovr: float, part: float, k: float | None = None) -> float:
+def prix_demande(valeur_base: float, ovr_base: float, ovr: float, part: float,
+                 k: float | None = None) -> float:
     """Price with the demand multiplier: `part` is the share (0..1) of
     managers owning the card, `k` the season's DEMANDE."""
     k = DEMANDE if k is None else k
-    return round(prix(ovr) * (1.0 + k * max(0.0, part)), 1)
+    return round(prix_carte(valeur_base, ovr_base, ovr) * (1.0 + k * max(0.0, part)), 2)
+
+
+def ajuster_valeur(couples: list[tuple[float, float]]) -> tuple[float, float]:
+    """Least-squares fit of log2(market value) on OVR over the seeded
+    population: (a, b) such that value ~ 2 ** (a + b * ovr).  Used to price
+    the few cards FotMob gives no market value for."""
+    pts = [(o, math.log2(v)) for o, v in couples if v and v > 0]
+    n = len(pts)
+    if n < 20:
+        return (math.log2(1.0) - 0.125 * 60, 0.125)      # 1 M€ at OVR 60, x2 per 8
+    mx = sum(o for o, _ in pts) / n
+    my = sum(y for _, y in pts) / n
+    sxx = sum((o - mx) ** 2 for o, _ in pts)
+    sxy = sum((o - mx) * (y - my) for o, y in pts)
+    b = sxy / sxx if sxx else 0.0
+    return (my - b * mx, b)
+
+
+def valeur_estimee(ovr: float, ajust: tuple[float, float]) -> float:
+    a, b = ajust
+    return round(max(PRIX_PLANCHER, 2.0 ** (a + b * ovr)), 2)
 
 
 def gain_semaine(score: float) -> float:
     """Credits earned by a manager for one gameweek score."""
     g = max(0.0, score - SCORE_REFERENCE) * TAUX_GAIN
     return round(min(GAIN_MAX_SEMAINE, g), 2)
-
-
-def valeur_effectif(ovrs: list[float]) -> float:
-    return round(sum(prix(o) for o in ovrs), 1)
-
-
-def plus_value(ovr_achat: float, ovr_actuel: float) -> float:
-    """Credits gained (or lost) by holding a card whose OVR moved."""
-    return round(prix(ovr_actuel) - prix(ovr_achat), 1)
-
-
-def ovr_prix_table() -> list[tuple[int, float]]:
-    """Reference table, handy for docs and for sanity-checking a budget."""
-    return [(o, prix(o)) for o in range(OVR_MIN, OVR_MAX + 1)]
-
-
-def budget_moyen_par_carte(budget: float = BUDGET_INITIAL,
-                           taille: int = TAILLE_EFFECTIF) -> float:
-    """OVR a manager can afford on average if they spread the budget evenly."""
-    par_carte = budget / taille
-    return PRIX_BASE_OVR + PRIX_DOUBLE_TOUS_LES * math.log2(max(par_carte, PRIX_PLANCHER))

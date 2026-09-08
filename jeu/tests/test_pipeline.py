@@ -22,7 +22,12 @@ def base():
     jeu.execute("INSERT INTO club(team_id, nom) VALUES (1, 'A')")
     jeu.execute("INSERT INTO club(team_id, nom) VALUES (2, 'B')")
     for i, poste in enumerate(POSTES, 1):
-        jeu.execute("INSERT INTO joueur VALUES (?, ?, ?, 1, ?)", (i, f"J{i}", f"j{i}", poste))
+        jeu.execute("INSERT INTO joueur(player_id, nom, nom_normalise, team_id, poste) VALUES (?, ?, ?, 1, ?)",
+                    (i, f"J{i}", f"j{i}", poste))
+    # market values: players 1-10 have one (i M€ on the seed date), 11-15 are estimated
+    for i in range(1, 11):
+        jeu.execute("INSERT INTO valeur_marche VALUES (?, '2025-01-01', ?)", (i, float(i)))
+    jeu.execute("INSERT INTO valeur_marche VALUES (1, '2025-08-20', 99.0)")      # after the seed: ignored
     # source season with one gameweek of performances: everyone 6.0 x 90 min
     jeu.execute("INSERT INTO journee(saison, numero, du, au, cloture, calculee) VALUES ('2024/25', 1, '2025-01-01', '2025-01-07', '2025-01-01T20:00:00Z', 1)")
     js = jeu.execute("SELECT journee_id FROM journee WHERE saison='2024/25'").fetchone()[0]
@@ -134,11 +139,11 @@ def test_demand_raises_the_price_of_owned_cards():
     jeu.execute("INSERT INTO effectif VALUES (1, 2, 1.0, 'x')")
     prestations_j1(jeu, {i: (6.0, 90) for i in range(1, 12)})
     P.calculer(jeu, None, "2025/26", 1, importer=False)
-    ovr1, prix1, part1 = jeu.execute("SELECT ovr, prix, part FROM carte WHERE player_id=1").fetchone()
-    ovr3, prix3, part3 = jeu.execute("SELECT ovr, prix, part FROM carte WHERE player_id=3").fetchone()
+    ovr1, prix1, part1, vb1, ob1 = jeu.execute("SELECT ovr, prix, part, valeur_base, ovr_base FROM carte WHERE player_id=1").fetchone()
+    ovr3, prix3, part3, vb3, ob3 = jeu.execute("SELECT ovr, prix, part, valeur_base, ovr_base FROM carte WHERE player_id=3").fetchone()
     assert abs(part1 - 2 / 3) < 1e-9 and part3 == 0
-    assert prix1 == E.prix_demande(ovr1, 2 / 3) and prix1 > E.prix(ovr1)
-    assert prix3 == E.prix(ovr3)
+    assert prix1 == E.prix_demande(vb1, ob1, ovr1, 2 / 3) and prix1 > E.prix_carte(vb1, ob1, ovr1)
+    assert prix3 == E.prix_carte(vb3, ob3, ovr3)
     h = jeu.execute("SELECT prix, part FROM carte_historique ch JOIN journee j ON j.journee_id = ch.journee_id WHERE ch.player_id=1 AND j.numero=1").fetchone()
     assert h == (prix1, part1)
 
@@ -149,3 +154,21 @@ def test_gameweek_needs_previous_state():
     jeu.execute("INSERT INTO journee(saison, numero, du, au, cloture, calculee) VALUES ('2025/26', 2, '2025-08-22', '2025-08-28', '2025-08-22T18:45:00Z', 0)")
     with pytest.raises(SystemExit):
         P.calculer(jeu, None, "2025/26", 2, importer=False)
+
+
+def test_seed_prices_start_at_the_market_value_known_at_seed_time():
+    jeu = base()
+    P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
+    rows = {pid: (vb, ob, ovr, prix) for pid, vb, ob, ovr, prix in
+            jeu.execute("SELECT player_id, valeur_base, ovr_base, ovr, prix FROM carte")}
+    assert rows[5][0] == 5.0 and rows[5][3] == 5.0 and rows[5][1] == rows[5][2]
+    # the seed only knows the value on or before its last day: a later one is ignored
+    limite = jeu.execute("SELECT au FROM journee WHERE saison='2024/25' AND numero=1").fetchone()[0]
+    assert limite == "2025-01-07"
+    P.amorcer(jeu, "2025/26", "2024/25", journees_source=(1, 1), ligues=(53,))
+    assert jeu.execute("SELECT valeur_base FROM carte WHERE player_id=1").fetchone()[0] == 1.0
+    # players without a value are priced from the OVR fit, never below the floor
+    vb11 = jeu.execute("SELECT valeur_base FROM carte WHERE player_id=11").fetchone()[0]
+    assert vb11 >= E.PRIX_PLANCHER
+    prm = P.parametre(jeu, "2025/26", "valeur_marche")
+    assert prm["connues"] == 10 and prm["estimees"] == 5

@@ -90,7 +90,7 @@ def main():
     for p in effectif:
         jeu.execute("INSERT INTO effectif VALUES (1, ?, ?, ?)", (p, cartes[p].prix, P.maintenant()))
     jeu.commit()
-    print(f"témoin : 15 cartes pour {cout:.1f} crédits, il reste {E.BUDGET_INITIAL - cout:.1f}")
+    print(f"témoin : 15 cartes pour {cout:.1f} M€, il reste {E.BUDGET_INITIAL - cout:.1f} M€")
 
     postes = {pid: c.poste for pid, c in cartes.items()}
     ecarts = 0; total_pipeline = total_memoire = 0.0

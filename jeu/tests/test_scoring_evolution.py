@@ -70,7 +70,6 @@ def test_unknown_player_is_cheap_and_regular_is_not():
     inconnu = E.ovr_initial([(8.0, 90)])                # one great match
     regulier = E.ovr_initial([(7.0, 90)] * 30)          # a full season at 7
     assert inconnu < regulier
-    assert E.prix(inconnu) < E.prix(regulier) / 2
 
 
 def test_ema_moves_slowly_and_less_for_cameos():
@@ -79,23 +78,32 @@ def test_ema_moves_slowly_and_less_for_cameos():
     assert 6.0 < court < plein < 6.5
 
 
-def test_price_doubles_every_8_ovr_and_has_floor():
-    assert E.prix(60) == 1.0
-    assert E.prix(68) == 2.0
-    assert E.prix(92) == 16.0
-    assert E.prix(40) == E.PRIX_PLANCHER
+def test_price_starts_at_market_value_and_doubles_every_8_ovr():
+    assert E.prix_carte(10.0, 70, 70) == 10.0
+    assert E.prix_carte(10.0, 70, 78) == 20.0
+    assert E.prix_carte(10.0, 70, 54) == 2.5
+    assert E.prix_carte(0.3, 60, 40) == E.PRIX_PLANCHER
+    assert E.prix_demande(10.0, 70, 70, 0.5) == 10.0 * (1 + E.DEMANDE * 0.5)
+    assert E.prix_demande(10.0, 70, 70, 0.0) == 10.0
+
+
+def test_missing_market_value_is_estimated_from_the_ovr_fit():
+    couples = [(o, 2.0 ** ((o - 60) / 8)) for o in range(45, 95)]       # 1 M€ at 60, x2 per 8
+    a, b = E.ajuster_valeur(couples)
+    assert abs(b - 0.125) < 1e-6
+    assert abs(E.valeur_estimee(68, (a, b)) - 2.0) < 1e-6
+    assert E.valeur_estimee(10, (a, b)) == E.PRIX_PLANCHER
 
 
 def test_weekly_gain_is_bounded():
     assert E.gain_semaine(50) == 0.0
-    assert E.gain_semaine(80) == 1.0
+    assert E.gain_semaine(80) == 2.0
     assert E.gain_semaine(500) == E.GAIN_MAX_SEMAINE
 
 
-def test_initial_budget_buys_a_solid_but_not_star_squad():
-    # Spread evenly, 60 credits over 15 cards lands at OVR 76: solid
-    # regulars, no room for a squad of stars (docs/BACKTEST.md).
-    assert 73 < E.budget_moyen_par_carte() < 79
+def test_initial_budget_is_a_club_budget_in_millions():
+    # 100 M€ for 15 cards: one star at most, the rest found cheap (docs/BACKTEST.md)
+    assert E.BUDGET_INITIAL == 100.0 and E.GAIN_MAX_SEMAINE <= 0.05 * E.BUDGET_INITIAL
 
 
 def test_scale_calibrates_on_the_perimeter():

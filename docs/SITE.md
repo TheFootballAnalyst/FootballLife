@@ -10,7 +10,7 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 | écran | ce qu'on y fait |
 |---|---|
 | Connexion | créer un compte (pseudo, mot de passe, nom d'équipe) ; le premier compte est administrateur |
-| Marché | toutes les cartes, filtres, fiche joueur, achat et vente au prix public ; fermé pendant une journée verrouillée |
+| Marché | toutes les cartes (vue cartes ou liste), filtres, fiche joueur, achat et vente au prix public en M€ ; fermé pendant une journée verrouillée |
 | Équipe | formation, onze sur le terrain, capitaine, ordre du banc, **Envoyer la composition** avant le premier coup d'envoi |
 | Journée | le résultat de la dernière journée (détail par joueur, entrants du banc, rang), l'état de la journée en cours, l'historique |
 | Classement | mondial, plus les ligues privées : créer une ligue donne un code, le partager suffit |

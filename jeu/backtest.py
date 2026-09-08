@@ -93,6 +93,17 @@ def charger(jeu: sqlite3.Connection, ligue_id: int):
                if tid in clubs and poste in S.FAMILLE_POSTE}
     journees = {num: jid for jid, num in jeu.execute(
         "SELECT journee_id, numero FROM journee ORDER BY numero")}
+    fins = dict(jeu.execute("SELECT numero, au FROM journee"))
+    for pid in joueurs:
+        joueurs[pid]["valeurs"] = []
+    try:
+        for pid, date, v in jeu.execute("SELECT player_id, date, valeur FROM valeur_marche ORDER BY date"):
+            if pid in joueurs:
+                joueurs[pid]["valeurs"].append((date, v))
+    except sqlite3.OperationalError:          # base written before market values existed
+        pass
+    for j in joueurs.values():
+        j["fin"] = fins                       # {numero: last day}, for amorcer's seed date
     prestas: dict[int, dict[int, list[S.Prestation]]] = defaultdict(lambda: defaultdict(list))
     for num, jid in journees.items():
         for pid, mid, cid, note, minutes in jeu.execute("""
@@ -114,18 +125,20 @@ def parse_plage(txt: str) -> list[int]:
 # --------------------------------------------------------------------------
 
 class Carte:
-    __slots__ = ("pid", "poste", "fam", "note_ovr", "ovr", "prix", "notes", "demande")
+    __slots__ = ("pid", "poste", "fam", "note_ovr", "ovr", "prix", "notes", "demande", "valeur_base", "ovr_base")
 
-    def __init__(self, pid, poste, note_ovr):
+    def __init__(self, pid, poste, note_ovr, valeur_base=None):
         self.pid, self.poste, self.fam = pid, poste, S.FAMILLE_POSTE[poste]
         self.notes: list[tuple[float, float]] = []
         self.demande = 0.0                     # price multiplier from the crowd, 0 = none
+        self.ovr_base = E.ovr_depuis_note(note_ovr)
+        self.valeur_base = valeur_base if valeur_base else 1.0
         self.fixer(note_ovr)
 
     def fixer(self, note_ovr):
         self.note_ovr = note_ovr
         self.ovr = E.ovr_depuis_note(note_ovr)
-        self.prix = round(E.prix(self.ovr) * (1.0 + self.demande), 1)
+        self.prix = round(E.prix_carte(self.valeur_base, self.ovr_base, self.ovr) * (1.0 + self.demande), 2)
 
     def jouer(self, prestas: list[S.Prestation]):
         n = self.note_ovr
@@ -168,9 +181,19 @@ def amorcer(joueurs, prestas, amorce: list[int]) -> dict[int, Carte]:
         if sum(m for _, m in h) >= MINUTES_REGULIER:
             moyennes.append(sum(n * m / 90 for n, m in h) / w)
     E.calibrer_echelle(moyennes)
+    # market value known at the end of the seed (no look-ahead), OVR fit for the rest
+    limite = next(iter(joueurs.values()))["fin"].get(amorce[-1], "9999-12-31") if joueurs else "9999-12-31"
+    valeurs = {}
+    for pid, j in joueurs.items():
+        v = [x for d, x in j.get("valeurs", []) if d <= limite]
+        if v:
+            valeurs[pid] = v[-1]
+    notes = {pid: E.note_initiale(hists[pid]) for pid in joueurs}
+    ajust = E.ajuster_valeur([(E.ovr_depuis_note(notes[pid]), valeurs[pid]) for pid in valeurs])
     cartes = {}
     for pid, j in joueurs.items():
-        c = Carte(pid, j["poste"], E.note_initiale(hists[pid]))
+        base = valeurs.get(pid) or E.valeur_estimee(E.ovr_depuis_note(notes[pid]), ajust)
+        c = Carte(pid, j["poste"], notes[pid], base)
         c.notes = hists[pid]
         cartes[pid] = c
     return cartes
@@ -455,7 +478,7 @@ def jouer(jeu_path, ligue_id, amorce, a_jouer, sortie: pathlib.Path,
     # ---- the four questions
     prix_final = [c.prix for c in cartes.values()]
     plancher = sum(1 for c in cartes.values()
-                   if c.prix <= E.PRIX_PLANCHER and sum(m for _, m in c.notes) >= MINUTES_REGULIER)
+                   if c.prix <= E.PRIX_PLANCHER + 1e-9 and sum(m for _, m in c.notes) >= MINUTES_REGULIER)
     plafond = sum(1 for c in cartes.values() if c.ovr >= 97)
     medianes = [statistics.median(l.values()) for l in scores_par_j]
     ecarts = [max(l.values()) - min(l.values()) for l in scores_par_j]
@@ -475,7 +498,7 @@ def jouer(jeu_path, ligue_id, amorce, a_jouer, sortie: pathlib.Path,
         "score_median_par_journee": [round(x, 1) for x in medianes],
         "ecart_haut_bas_par_journee": [round(x, 1) for x in ecarts],
         "cartes_au_plancher": plancher, "cartes_ovr_97_plus": plafond,
-        "prix_quantiles": {q: round(statistics.quantiles(prix_final, n=100)[q - 1], 1)
+        "prix_quantiles": {q: round(statistics.quantiles(prix_final, n=100)[q - 1], 2)
                            for q in (10, 25, 50, 75, 90, 99)},
         "ovr_quantiles": {q: statistics.quantiles([c.ovr for c in cartes.values()], n=100)[q - 1]
                           for q in (10, 25, 50, 75, 90, 99)},

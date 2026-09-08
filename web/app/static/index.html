@@ -13,7 +13,7 @@
     <div class="marque"><h1 class="anton">FOOTBALL<span>LIFE</span></h1><small id="marque-sous">saison</small></div>
     <div class="statut" id="statut" hidden>
       <div><span>Journée</span><b id="st-j" class="num">—</b></div>
-      <div><span>Crédits</span><b id="st-cash" class="num">—</b></div>
+      <div><span>Budget</span><b id="st-cash" class="num">—</b></div>
       <div><span>Patrimoine</span><b id="st-val" class="num">—</b></div>
       <div><span>Points</span><b id="st-pts" class="num">—</b></div>
       <div><span>Rang</span><b id="st-rang" class="num">—</b></div>
@@ -32,7 +32,7 @@
 <main>
   <section id="ecran-connexion" class="accueil">
     <h2 class="anton" style="font-size:40px">Un jeu où les points viennent des vrais matchs</h2>
-    <p>Chaque carte est un joueur des cinq grands championnats. Sa note à chaque journée est celle du barème, calculée sur le match réellement joué. Un seul marché mondial, des prix qui montent quand tout le monde veut la même carte.</p>
+    <p>Chaque carte est un joueur des cinq grands championnats. Sa note à chaque journée est celle du barème, calculée sur le match réellement joué. Un seul marché mondial : chaque carte démarre à la valeur marchande réelle du joueur, puis son prix suit ses performances et monte quand tout le monde veut la même.</p>
     <div class="pan" style="max-width:420px">
       <div class="onglets"><button data-mode="connexion" aria-current="page">Connexion</button><button data-mode="inscription">Créer un compte</button></div>
       <form id="form-auth">
@@ -44,7 +44,7 @@
       </form>
     </div>
     <ol>
-      <li><b>Recrute 15 cartes</b> avec ton budget : 2 gardiens, 5 défenseurs, 5 milieux, 3 attaquants au plus.</li>
+      <li><b>Recrute 15 cartes</b> avec 100 M€ : 2 gardiens, 5 défenseurs, 5 milieux, 3 attaquants au plus. Une star ou deux, le reste à dénicher.</li>
       <li><b>Aligne ton onze</b> avant le premier coup d'envoi, choisis un capitaine (×1,5) et l'ordre du banc.</li>
       <li><b>Les matchs se jouent</b>, le barème note, ton score est la somme des notes. Les cartes évoluent, les prix suivent.</li>
     </ol>
@@ -61,6 +61,7 @@
       <select id="f-tri"><option value="ovr">Tri : OVR</option><option value="prix">Tri : prix</option><option value="forme">Tri : forme récente</option><option value="part">Tri : popularité</option><option value="nom">Tri : nom</option></select>
       <label class="case"><input type="checkbox" id="f-abord"> abordables</label>
       <label class="case"><input type="checkbox" id="f-miens"> mon effectif</label>
+      <div class="vue" role="group" aria-label="Affichage"><button data-vue="cartes" aria-current="page" title="Cartes">▦ Cartes</button><button data-vue="liste" title="Liste">☰ Liste</button></div>
     </div>
     <div class="liste" id="marche-liste"></div>
     <div style="text-align:center;margin-top:10px"><button id="marche-plus">Afficher plus</button></div>

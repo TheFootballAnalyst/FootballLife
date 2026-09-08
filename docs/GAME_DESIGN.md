@@ -13,7 +13,7 @@ at their current price, and before each gameweek submits a formation, a
 starting eleven, a bench order and a captain. After the matches, every card
 that played receives the engine's note out of 10 for each match; the team
 score is the sum over the eleven. The score ranks the manager for the week
-and pays out credits. Meanwhile every card's rating (OVR) moves with its
+and pays out a few million euros. Meanwhile every card's rating (OVR) moves with its
 notes, and its price follows its OVR. A manager who bought a cheap card
 before its OVR rose owns something worth more than they paid. That gap,
 plus weekly payouts, is what a manager builds a better team with.
@@ -59,7 +59,7 @@ weighting lives inside the note). So `evolution.calibrer_echelle` maps the
 **Start of season.** A card's rating-note is the minutes-weighted mean of
 its notes last season, **shrunk towards a prior of 5.5** with the weight of
 ten full matches (`evolution.note_initiale`). A newcomer with no data
-starts at the prior, well under the median, price under 1 credit. The
+starts at the prior, well under the median. The
 prior sits *below* the median on purpose: the game is meant to reward
 knowledge of low-cost players, so the unknowns must be cheap enough that
 being right about them pays.
@@ -70,24 +70,38 @@ backtest showed prices jumping a full band on one match; at 8 % a run of
 five good matches is needed to move a card visibly, which is the horizon
 a manager can anticipate.
 
-**Price.** `prix = 2 ^ ((OVR − 60) / 8)`, floor 0.5 credits:
+**Price — in euros, from the real market value.** Every amount in the
+game is money: a card's price starts the season at the player's **real
+market value** (FotMob prints Transfermarkt's figure on every match sheet;
+`importer.lire_valeurs` reads it, `valeur_marche` keeps the history) and
+then follows its OVR:
 
-| OVR | 52 | 60 | 68 | 76 | 84 | 92 | 99 |
-|-----|----|----|----|----|----|----|----|
-| credits | 0.5 | 1 | 2 | 4 | 8 | 16 | 29.5 |
+    prix = valeur_base × 2 ^ ((OVR − OVR_base) / 8) × (1 + demande)
 
-Exponential so that the top of the market is scarce. A steeper slope
-(doubling every 6) made risers too lucrative in the backtest (an informed
-manager's value ×4 in half a season).
++8 OVR since the season start doubles the price, −8 halves it, floor
+100 k€. Haaland starts at 152 M€ and stays there unless he plays better
+or worse than last season; a 54-OVR full-back at 400 k€ who strings five
+good matches together doubles. Age, contract and hype are in the market
+value, form is in the OVR, popularity is in `demande` (the share of teams
+owning the card, see "how the market gets scarce"). The 3 % of cards
+FotMob gives no value for are priced from a log-linear fit of value on OVR
+over the seeded population (`evolution.ajuster_valeur`).
 
-**Budget.** Starts at **60** for 15 cards, spread evenly that buys an
-OVR-76 squad. The global perimeter's best fifteen cost 104: at 100
-credits the naive manager nearly matches the informed one (+8 %), at 60
-the informed one is 30 % ahead, so scarcity is what makes knowledge
-count. Each gameweek pays `0.05 × (score − 60)`
-credits, capped at 3 (`evolution.gain_semaine`). Payouts are small on
-purpose; the main way to grow is to hold cards that climb. See
-`BACKTEST.md` for the full run.
+Two consequences that are the point of the game: a 34-year-old Van Dijk
+at OVR 87 costs 10 M€ (his market value) — a bargain for one season that
+demand then pushes up; a 19-year-old at 130 M€ with OVR 65 is a bad buy
+for points. The market value is what the world thinks the player is worth
+to a club; the OVR is what he does on the pitch this season. The gap is
+where knowledge pays.
+
+**Budget.** Starts at **100 M€** for 15 cards. The median card costs
+6 M€, the 90th percentile 50 M€: one star or two, the rest to find cheap.
+The backtest (`BACKTEST.md`) puts the informed manager 20 % ahead of the
+naive one and the naive one 80 % ahead of random, at any budget from 60 to
+250 M€ — the ordering does not depend on the figure, 100 is a round club
+budget. Each gameweek pays `0.1 M€ × (score − 60)`, capped at 5 M€
+(`evolution.gain_semaine`). Payouts are small on purpose; the main way to
+grow is to hold cards that climb.
 
 ## Rules fixed in code (proposals)
 

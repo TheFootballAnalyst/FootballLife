@@ -27,9 +27,20 @@ CREATE TABLE IF NOT EXISTS joueur (
     nom              TEXT NOT NULL,
     nom_normalise    TEXT NOT NULL,                 -- accents stripped, lower
     team_id          INTEGER REFERENCES club(team_id),
-    poste            TEXT NOT NULL                  -- engine position (majority)
+    poste            TEXT NOT NULL,                 -- engine position (majority)
+    valeur_marche    REAL                           -- M€, latest known (FotMob match sheets)
 );
 CREATE INDEX IF NOT EXISTS ix_joueur_nom ON joueur(nom_normalise);
+
+-- Market value history: FotMob prints a Transfermarkt-style value for every
+-- player on every match sheet; one row per player per sheet date, in M€.
+-- The seed reads the value known at the seed date (no look-ahead).
+CREATE TABLE IF NOT EXISTS valeur_marche (
+    player_id        INTEGER NOT NULL REFERENCES joueur(player_id),
+    date             TEXT NOT NULL,                 -- ISO date of the match
+    valeur           REAL NOT NULL,                 -- M€
+    PRIMARY KEY (player_id, date)
+);
 
 -- A gameweek is the game's unit of time: a date window that groups a league
 -- round and the European midweek that follows.  Lineups lock at `cloture`.
@@ -89,13 +100,17 @@ CREATE TABLE IF NOT EXISTS parametre (
 
 -- ------------------------------------------------------------------ cards
 -- The card is the player's game-side state.  One row per player per season;
--- `note_ovr` is the EMA of evolution.py, `ovr` and `prix` derive from it.
+-- `note_ovr` is the EMA of evolution.py, `ovr` derives from it and `prix`
+-- (M€) from the OVR move since the seed: valeur_base x 2^((ovr-ovr_base)/8),
+-- times the demand multiplier.
 CREATE TABLE IF NOT EXISTS carte (
     player_id        INTEGER NOT NULL REFERENCES joueur(player_id),
     saison           TEXT NOT NULL,
     note_ovr         REAL NOT NULL,
     ovr              INTEGER NOT NULL,
-    prix             REAL NOT NULL,                 -- with the demand multiplier
+    prix             REAL NOT NULL,                 -- M€, with the demand multiplier
+    valeur_base      REAL NOT NULL DEFAULT 1,       -- M€ at the seed (market value)
+    ovr_base         INTEGER NOT NULL DEFAULT 60,   -- OVR at the seed
     part             REAL NOT NULL DEFAULT 0,       -- share of managers owning the card
     attributs        TEXT,                          -- JSON, season-to-date
     matchs           INTEGER NOT NULL DEFAULT 0,
@@ -111,7 +126,7 @@ CREATE TABLE IF NOT EXISTS carte_historique (
     journee_id       INTEGER NOT NULL REFERENCES journee(journee_id),
     note_ovr         REAL NOT NULL,
     ovr              INTEGER NOT NULL,
-    prix             REAL NOT NULL,                 -- with the demand multiplier
+    prix             REAL NOT NULL,                 -- M€, with the demand multiplier
     part             REAL NOT NULL DEFAULT 0,
     PRIMARY KEY (player_id, journee_id)
 );
@@ -162,7 +177,7 @@ CREATE TABLE IF NOT EXISTS equipe (
     utilisateur_id   INTEGER NOT NULL REFERENCES utilisateur(utilisateur_id),
     ligue_jeu_id     INTEGER NOT NULL REFERENCES ligue_jeu(ligue_jeu_id),
     nom              TEXT NOT NULL,
-    budget           REAL NOT NULL,                 -- credits not tied up in cards
+    budget           REAL NOT NULL,                 -- M€ not tied up in cards
     points_total     REAL NOT NULL DEFAULT 0,
     UNIQUE (utilisateur_id, ligue_jeu_id)
 );
@@ -206,7 +221,7 @@ CREATE TABLE IF NOT EXISTS resultat (
     score            REAL NOT NULL,
     onze             TEXT NOT NULL,                 -- JSON, after auto-subs
     detail           TEXT NOT NULL,                 -- JSON {player_id: points}
-    gain             REAL NOT NULL,                 -- credits earned (evolution.gain_semaine)
+    gain             REAL NOT NULL,                 -- M€ earned (evolution.gain_semaine)
     rang             INTEGER,                       -- rank in the game league that week
     PRIMARY KEY (equipe_id, journee_id)
 );

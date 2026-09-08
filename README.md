@@ -18,8 +18,10 @@ The game is a way to play with it.
    anyone who did not play, ×1.5 for the captain; the Champions League
    already weighs more inside the note).
 4. Every card's rating (OVR 40–99) moves with its notes, and its price
-   follows. Buy low before a card climbs and you own something worth more
-   than you paid. Weekly results pay out a few credits on top.
+   follows: a card starts the season at the player's real market value
+   (in euros) and doubles every +8 OVR. You have 100 M€. Buy low before a
+   card climbs and you own something worth more than you paid. Weekly
+   results pay out a few million on top.
 
 Spotting under-priced players is the skill the game rewards.
 

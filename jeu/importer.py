@@ -85,7 +85,9 @@ def journees_depuis_rounds(fot: sqlite3.Connection, ligue_id: int,
 # --------------------------------------------------------------------------
 
 MIGRATIONS = {                       # columns added after the first bases were written
-    "carte": [("part", "REAL NOT NULL DEFAULT 0")],
+    "joueur": [("valeur_marche", "REAL")],
+    "carte": [("part", "REAL NOT NULL DEFAULT 0"), ("valeur_base", "REAL NOT NULL DEFAULT 1"),
+              ("ovr_base", "INTEGER NOT NULL DEFAULT 60")],
     "carte_historique": [("part", "REAL NOT NULL DEFAULT 0")],
     "utilisateur": [("mdp_hash", "TEXT"), ("mdp_sel", "TEXT"), ("est_admin", "INTEGER NOT NULL DEFAULT 0")],
 }
@@ -153,7 +155,67 @@ def importer_journee(fot: sqlite3.Connection, jeu: sqlite3.Connection,
                      json.dumps(attrs)))
         n += 1
     jeu.commit()
+    importer_valeurs(jeu, list(matchs))
     return n
+
+
+def lire_valeurs(match_ids, cache: pathlib.Path | None = None) -> list[tuple[int, str, float]]:
+    """[(player_id, ISO date, M€)] from the cached sheets of `match_ids`.
+
+    FotMob's lineup carries `marketValue` (euros) for every player on the
+    sheet; it is Transfermarkt's figure, refreshed a few times a season.
+    """
+    cache = pathlib.Path(cache or T.CACHE_MATCHES)
+    out = []
+    for mid in match_ids:
+        f = cache / f"{mid}.json"
+        if not f.exists():
+            continue
+        try:
+            d = json.loads(f.read_text(encoding="utf-8"))
+            date = (d["general"].get("matchTimeUTCDate") or "")[:10]
+            lineup = d["content"]["lineup"]
+        except (KeyError, TypeError, json.JSONDecodeError, OSError):
+            continue
+        if not date:
+            continue
+        for cote in ("homeTeam", "awayTeam"):
+            eq = lineup.get(cote) or {}
+            for grp in ("starters", "subs"):
+                for pj in eq.get(grp) or []:
+                    mv, pid = pj.get("marketValue"), pj.get("id")
+                    if pid and mv:
+                        out.append((int(pid), date, round(float(mv) / 1e6, 2)))
+    return out
+
+
+def ecrire_valeurs(jeu: sqlite3.Connection, valeurs) -> int:
+    """valeur_marche rows (players known to the game only) + joueur.valeur_marche."""
+    connus = {r[0] for r in jeu.execute("SELECT player_id FROM joueur")}
+    n = 0
+    for pid, date, v in valeurs:
+        if pid in connus:
+            jeu.execute("INSERT OR REPLACE INTO valeur_marche(player_id, date, valeur) VALUES (?,?,?)", (pid, date, v))
+            n += 1
+    jeu.execute("""UPDATE joueur SET valeur_marche = (SELECT valeur FROM valeur_marche v WHERE v.player_id = joueur.player_id
+                                                   ORDER BY date DESC LIMIT 1)""")
+    jeu.commit()
+    return n
+
+
+def importer_valeurs(jeu: sqlite3.Connection, match_ids, cache: pathlib.Path | None = None) -> int:
+    """Market values of the cached sheets of `match_ids` into the game base."""
+    return ecrire_valeurs(jeu, lire_valeurs(match_ids, cache))
+
+
+def valeurs_a_date(jeu: sqlite3.Connection, limite: str | None = None) -> dict[int, float]:
+    """{player_id: M€}: the latest market value known on or before `limite`
+    (ISO date; None = the latest known at all)."""
+    out: dict[int, float] = {}
+    for pid, v in jeu.execute("""SELECT player_id, valeur FROM valeur_marche WHERE date <= ?
+                                 ORDER BY date""", (limite or "9999-12-31",)):
+        out[pid] = v
+    return out
 
 
 def majorite_postes_et_clubs(jeu: sqlite3.Connection) -> None:
@@ -226,10 +288,17 @@ def main():
     ap.add_argument("--journees", default=None, help="e.g. 1-5 to import a subset")
     ap.add_argument("--couleurs-seulement", action="store_true",
                     help="only refresh club colours from the cache")
+    ap.add_argument("--valeurs-seulement", action="store_true",
+                    help="only (re)read the market values from the cached match sheets")
     a = ap.parse_args()
     if a.couleurs_seulement:
         jeu = ouvrir_jeu(pathlib.Path(a.jeu))
         print(f"{importer_couleurs(jeu)} couleurs de club -> {a.jeu}")
+        return
+    if a.valeurs_seulement:
+        jeu = ouvrir_jeu(pathlib.Path(a.jeu))
+        mids = [r[0] for r in jeu.execute("SELECT match_id FROM match")]
+        print(f"{importer_valeurs(jeu, mids)} valeurs marchandes -> {a.jeu}")
         return
 
     fot = sqlite3.connect(a.fotmob)
