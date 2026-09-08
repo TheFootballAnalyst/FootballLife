@@ -303,10 +303,33 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
         jeu.execute("UPDATE equipe SET budget=budget+?, points_total=points_total+? WHERE equipe_id=?",
                     (r["gain"], r["score"], r["equipe_id"]))
     jeu.execute("UPDATE journee SET calculee=1 WHERE journee_id=?", (jid,))
+    reconduire_compositions(jeu, saison, numero)
     jeu.commit()
     # the current-card table must reflect the LAST computed gameweek: if an
     # earlier one was recomputed, later states are stale until re-run
     return resume
+
+
+def reconduire_compositions(jeu, saison, numero):
+    """Carry every composition of gameweek `numero` over to `numero + 1` for
+    the teams that have none there yet: a manager who forgets to resubmit
+    keeps their eleven, like in any fantasy game.  Sold players are already
+    out of the composition (the sale removes them)."""
+    suivante = jeu.execute("SELECT journee_id FROM journee WHERE saison=? AND numero=?", (saison, numero + 1)).fetchone()
+    if not suivante:
+        return 0
+    jid, jid2 = journee_id(jeu, saison, numero), suivante[0]
+    n = 0
+    for eid, formation, tit, banc, cap, soumise in jeu.execute(
+            "SELECT equipe_id, formation, titulaires, banc, capitaine, soumise_le FROM composition WHERE journee_id=?", (jid,)):
+        if jeu.execute("SELECT 1 FROM composition WHERE equipe_id=? AND journee_id=?", (eid, jid2)).fetchone():
+            continue
+        # keeps its original submission time: the lineup has stood since then,
+        # so a late close never turns it into a "submitted after the lock"
+        jeu.execute("INSERT INTO composition(equipe_id, journee_id, formation, titulaires, banc, capitaine, soumise_le) VALUES (?,?,?,?,?,?,?)",
+                    (eid, jid2, formation, tit, banc, cap, soumise))
+        n += 1
+    return n
 
 
 def charger_prestations(jeu, saison, numero, doc):

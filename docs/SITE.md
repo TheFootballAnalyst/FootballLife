@@ -105,6 +105,11 @@ session ; ceux sous `/api/admin` demandent un compte administrateur
   réinitialiser en base.
 - Pas de notifications.
 
+À la clôture d'une journée, la composition de chaque équipe est
+reconduite telle quelle sur la journée suivante (`pipeline.reconduire_compositions`) :
+un manager qui oublie de la renvoyer garde son onze, et peut la modifier
+jusqu'au verrouillage.
+
 ## Design
 
 Une seule ambiance, la nuit de stade : fond bleu nuit, surfaces en verre

@@ -178,6 +178,23 @@ def test_seed_prices_start_at_the_market_value_known_at_seed_time():
     assert prm["connues"] == 10 and prm["estimees"] == 5
 
 
+def test_composition_carries_over_to_the_next_gameweek():
+    jeu = base()
+    jeu.execute("INSERT INTO journee(saison, numero, du, au, cloture, calculee) VALUES ('2025/26', 2, '2025-08-22', '2025-08-28', '2025-08-22T18:45:00Z', 0)")
+    equipe_et_compo(jeu)
+    P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
+    prestations_j1(jeu, {i: (7.0, 90) for i in range(1, 12)})
+    P.calculer(jeu, None, "2025/26", 1, importer=False)
+    j2 = P.journee_id(jeu, "2025/26", 2)
+    row = jeu.execute("SELECT formation, titulaires, capitaine FROM composition WHERE equipe_id=1 AND journee_id=?", (j2,)).fetchone()
+    assert row is not None and row[0] == "4-3-3" and json.loads(row[1]) == list(range(1, 12)) and row[2] == 10
+    # closing again does not overwrite what the manager may have changed since
+    jeu.execute("UPDATE composition SET capitaine=9 WHERE equipe_id=1 AND journee_id=?", (j2,))
+    jeu.commit()
+    P.calculer(jeu, None, "2025/26", 1, importer=False)
+    assert jeu.execute("SELECT capitaine FROM composition WHERE equipe_id=1 AND journee_id=?", (j2,)).fetchone()[0] == 9
+
+
 def test_ovr_is_bounded_around_the_season_start():
     jeu = base()
     equipe_et_compo(jeu)

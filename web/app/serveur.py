@@ -484,8 +484,10 @@ def resultat_journee(numero: int, u=Depends(exiger), jeu=Depends(bd)):
             SELECT p.note, p.minutes, cp.nom AS competition FROM prestation p JOIN match m ON m.match_id=p.match_id
             JOIN competition cp ON cp.competition_id = m.competition_id
             WHERE p.player_id=? AND m.journee_id=? AND p.note IS NOT NULL""", (pid, jid))]
+    compo = jeu.execute("SELECT titulaires FROM composition WHERE equipe_id=? AND journee_id=?", (e["equipe_id"], jid)).fetchone()
     return {"journee": numero, "score": r["score"], "gain": r["gain"], "rang": r["rang"],
-            "onze": json.loads(r["onze"]), "detail": detail, "prestations": prestas,
+            "onze": json.loads(r["onze"]), "titulaires": json.loads(compo["titulaires"]) if compo else [],
+            "detail": detail, "prestations": prestas,
             "participants": jeu.execute("SELECT COUNT(*) FROM resultat WHERE journee_id=?", (jid,)).fetchone()[0]}
 
 
