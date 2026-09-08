@@ -36,7 +36,8 @@ search boxes only.
 | `competition` | competition × season | |
 | `club` | club | kit colour for the card, from the cached match sheets (`importer_couleurs`) |
 | `joueur` | player | majority position for the season |
-| `journee` | gameweek | date window + lock time |
+| `journee` | gameweek | date window + lock time; gameweek 0 holds the seed state |
+| `parametre` | season × key | OVR scale and economy constants frozen at seed time |
 | `match` | match | assigned to a gameweek |
 | `prestation` | rated appearance | engine output + note + attributes, frozen |
 
@@ -59,21 +60,28 @@ search boxes only.
 | `composition` | lineup × gameweek | immutable after lock |
 | `resultat` | scored lineup × gameweek | frozen output of `score_equipe` |
 
-`jeu/importer.py` is the offline version of steps 2 and 4 below, run over
-a whole season; `jeu/backtest.py` reads the result.
+`jeu/importer.py` is the offline version of the import step, run over a
+whole season; `jeu/backtest.py` reads the result. `jeu/pipeline.py` is
+the live path below.
 
-## The weekly write path
+## The weekly write path (`jeu/pipeline.py calculer`)
 
 ```
-1. cloture      composition rows become immutable (journee.cloture passed)
-2. import       topsflops.calculer(du, au) -> prestation (+ match, joueur, club upserts)
-3. score        for each composition: scoring.score_equipe -> resultat
-4. evolve       for each card that played: evolution.note_ema -> carte, carte_historique
-5. pay          resultat.gain -> equipe.budget ; journee.calculee = 1
+1. import       topsflops.calculer(du, au) -> prestation (+ match, joueur, club upserts)
+2. evolve       from carte_historique of gameweek N-1: evolution.note_ema
+                -> carte_historique of gameweek N, copied into carte
+3. score        for each composition submitted before journee.cloture:
+                scoring.score_equipe -> resultat (rank included)
+4. pay          resultat.gain -> equipe.budget, score -> equipe.points_total
+5. close        journee.calculee = 1
 ```
 
-Steps 2–5 are one transaction per gameweek and idempotent: re-running
-replaces the same rows with the same values.
+Steps 2–5 are one transaction and idempotent: the card state is always
+derived from the previous gameweek's history, and a resultat that
+already exists has its previous payout taken back before being replaced.
+A composition submitted after the lock is recorded with a zero score and
+the reason. Recomputing an earlier gameweek makes the later ones stale:
+run them again in order.
 
 ## What is JSON on purpose
 

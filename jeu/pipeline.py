@@ -1,0 +1,301 @@
+"""pipeline.py — the weekly write path on the live game base (phase 2).
+
+    python3 -m jeu.pipeline journees  --saison 2026/27 --ligue 53
+    python3 -m jeu.pipeline amorcer   --saison 2026/27 --source 2025/26
+    python3 -m jeu.pipeline calculer  --saison 2026/27 --journee 3 [--dry-run]
+    python3 -m jeu.pipeline etat      --saison 2026/27
+
+One command turns a finished gameweek into frozen results:
+
+  1. import   the engine rates every performance of the window
+              (importer.importer_journee) -> prestation
+  2. evolve   every card that played moves (evolution.note_ema); the state
+              after this gameweek is written to carte_historique and copied
+              to carte
+  3. score    every composition submitted before the lock is scored
+              (scoring.score_equipe) -> resultat; the payout goes to
+              equipe.budget and the points to equipe.points_total
+  4. close    journee.calculee = 1
+
+Idempotent: a gameweek is always recomputed from the card state written for
+the PREVIOUS gameweek (the seed is stored as gameweek 0), and a resultat
+that already exists is replaced with its previous payout taken back first.
+Running it twice changes nothing; running it after a recalibration of a
+constant rewrites that gameweek and the ones after it must be run again.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import pathlib
+import sqlite3
+import sys
+from datetime import datetime, timezone
+
+RACINE = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(RACINE))
+
+from jeu import evolution as E  # noqa: E402
+from jeu import importer as I  # noqa: E402
+from jeu import scoring as S  # noqa: E402
+
+TOP5 = (47, 87, 55, 54, 53)
+MINUTES_REGULIER = 450
+
+
+def maintenant() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+# --------------------------------------------------------------------------
+# Parameters per season (the OVR scale is calibrated on the seed)
+# --------------------------------------------------------------------------
+
+def parametre(jeu, saison, cle, defaut=None):
+    row = jeu.execute("SELECT valeur FROM parametre WHERE saison=? AND cle=?", (saison, cle)).fetchone()
+    return json.loads(row[0]) if row else defaut
+
+
+def fixer_parametre(jeu, saison, cle, valeur):
+    jeu.execute("INSERT OR REPLACE INTO parametre(saison, cle, valeur) VALUES (?,?,?)",
+                (saison, cle, json.dumps(valeur)))
+
+
+def appliquer_echelle(jeu, saison):
+    """Load the season's OVR scale into evolution's module constants."""
+    ech = parametre(jeu, saison, "echelle")
+    if ech:
+        E.NOTE_OVR_BAS, E.NOTE_OVR_HAUT = ech["bas"], ech["haut"]
+    return ech
+
+
+# --------------------------------------------------------------------------
+# Gameweeks of the live season
+# --------------------------------------------------------------------------
+
+def creer_journees(jeu, fot, saison, ligue_id=53):
+    """Create (or refresh) the gameweeks of `saison` from the reference
+    league's rounds in the FotMob base.  Gameweek 0 is the seed."""
+    js = I.journees_depuis_rounds(fot, ligue_id)
+    jeu.execute("""INSERT OR IGNORE INTO journee(saison, numero, du, au, cloture, calculee)
+                   VALUES (?, 0, ?, ?, ?, 0)""", (saison, js[0]["du"] if js else "1900-01-01",
+                                                   js[0]["du"] if js else "1900-01-01",
+                                                   js[0]["cloture"] if js else "1900-01-01T00:00:00Z"))
+    for j in js:
+        jeu.execute("""INSERT INTO journee(saison, numero, du, au, cloture, calculee)
+                       VALUES (?,?,?,?,?,0)
+                       ON CONFLICT(saison, numero) DO UPDATE SET du=excluded.du, au=excluded.au,
+                       cloture=CASE WHEN calculee=1 THEN cloture ELSE excluded.cloture END""",
+                    (saison, j["numero"], j["du"], j["au"], j["cloture"]))
+    jeu.commit()
+    return len(js)
+
+
+def journee_id(jeu, saison, numero):
+    row = jeu.execute("SELECT journee_id FROM journee WHERE saison=? AND numero=?", (saison, numero)).fetchone()
+    if not row:
+        raise SystemExit(f"journée {numero} de {saison} inconnue : lancer `journees` d'abord")
+    return row[0]
+
+
+# --------------------------------------------------------------------------
+# Seed: cards of a season from another season's performances
+# --------------------------------------------------------------------------
+
+def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=0):
+    """Create the season's cards from the performances of `source`
+    (optionally restricted to a range of its gameweeks).  Calibrates the
+    OVR scale on the source's regulars and stores it as a parameter.
+    The state is written as gameweek `numero_etat` of `saison` (0 for a
+    real season start; the last seeding gameweek when a season is split
+    in two for a replay)."""
+    cond, args = "", [source]
+    if journees_source:
+        lo, hi = journees_source
+        cond, args = "AND j.numero BETWEEN ? AND ?", [source, lo, hi]
+    marks = ",".join("?" * len(ligues))
+    clubs = {r[0] for r in jeu.execute(f"""
+        SELECT DISTINCT home_team_id FROM match WHERE competition_id IN ({marks})
+        UNION SELECT DISTINCT away_team_id FROM match WHERE competition_id IN ({marks})""", ligues * 2)}
+    hist = {}
+    for pid, note, minutes in jeu.execute(f"""
+            SELECT p.player_id, p.note, p.minutes FROM prestation p
+            JOIN match m ON m.match_id = p.match_id JOIN journee j ON j.journee_id = m.journee_id
+            WHERE j.saison = ? AND p.note IS NOT NULL {cond}""", args):
+        hist.setdefault(pid, []).append((note, minutes))
+    joueurs = {pid: (poste, tid) for pid, poste, tid in jeu.execute("SELECT player_id, poste, team_id FROM joueur")
+               if tid in clubs and poste in S.FAMILLE_POSTE}
+    moyennes = []
+    for pid in joueurs:
+        h = hist.get(pid, [])
+        if sum(m for _, m in h) >= MINUTES_REGULIER:
+            w = sum(m / 90 for _, m in h)
+            moyennes.append(sum(n * m / 90 for n, m in h) / w)
+    bas, haut = E.calibrer_echelle(moyennes)
+    fixer_parametre(jeu, saison, "echelle", {"bas": bas, "haut": haut, "source": source,
+                                             "journees": list(journees_source) if journees_source else None})
+    fixer_parametre(jeu, saison, "economie", {"budget": E.BUDGET_INITIAL, "alpha": E.ALPHA_EMA,
+                                              "prior": E.PRIOR_NOTE, "k": E.K_RETRECISSEMENT,
+                                              "prix_double": E.PRIX_DOUBLE_TOUS_LES})
+    j0 = journee_id(jeu, saison, numero_etat)
+    jeu.execute("DELETE FROM carte_historique WHERE journee_id=?", (j0,))
+    jeu.execute("DELETE FROM carte WHERE saison=?", (saison,))
+    n = 0
+    for pid, (poste, tid) in joueurs.items():
+        h = hist.get(pid, [])
+        note = E.note_initiale(h)
+        ovr = E.ovr_depuis_note(note)
+        jeu.execute("""INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, attributs, matchs, minutes, maj)
+                       VALUES (?,?,?,?,?,?,?,?,?)""",
+                    (pid, saison, note, ovr, E.prix(ovr), None, len(h), sum(m for _, m in h), maintenant()))
+        jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix) VALUES (?,?,?,?,?)",
+                    (pid, j0, note, ovr, E.prix(ovr)))
+        n += 1
+    jeu.commit()
+    return n, (bas, haut)
+
+
+# --------------------------------------------------------------------------
+# The weekly computation
+# --------------------------------------------------------------------------
+
+def etat_cartes(jeu, saison, numero):
+    """{player_id: note_ovr} as written after gameweek `numero`."""
+    jid = journee_id(jeu, saison, numero)
+    return dict(jeu.execute("SELECT player_id, note_ovr FROM carte_historique WHERE journee_id=?", (jid,)))
+
+
+def prestations_journee(jeu, jid):
+    """{player_id: [Prestation]} of the gameweek, from the game base."""
+    out: dict[int, list[S.Prestation]] = {}
+    for pid, mid, cid, note, minutes in jeu.execute("""
+            SELECT p.player_id, p.match_id, m.competition_id, p.note, p.minutes
+            FROM prestation p JOIN match m ON m.match_id = p.match_id
+            WHERE m.journee_id = ? AND p.note IS NOT NULL""", (jid,)):
+        out.setdefault(pid, []).append(S.Prestation(pid, mid, str(cid), note, minutes))
+    return out
+
+
+def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
+    """Close gameweek `numero` of `saison`.  Returns a summary dict."""
+    if numero < 1:
+        raise SystemExit("la journée 0 est l'amorce, elle ne se calcule pas")
+    appliquer_echelle(jeu, saison)
+    jid = journee_id(jeu, saison, numero)
+    num, du, au, cloture = jeu.execute("SELECT numero, du, au, cloture FROM journee WHERE journee_id=?", (jid,)).fetchone()
+    resume = {"saison": saison, "journee": numero, "du": du, "au": au}
+
+    # 1. import
+    if importer and fot is not None:
+        resume["prestations"] = I.importer_journee(fot, jeu, saison, dict(numero=numero, du=du, au=au, cloture=cloture))
+    prestas = prestations_journee(jeu, jid)
+
+    # 2. evolve, from the state after the previous gameweek
+    avant = etat_cartes(jeu, saison, numero - 1)
+    if not avant:
+        raise SystemExit(f"pas d'état de cartes après la journée {numero - 1} : la calculer d'abord (ou amorcer)")
+    apres = {}
+    for pid, n in avant.items():
+        for p in prestas.get(pid, []):
+            n = E.note_ema(n, p.note, p.minutes)
+        apres[pid] = n
+    postes = dict(jeu.execute("SELECT player_id, poste FROM joueur"))
+
+    # 3. score every composition submitted before the lock
+    resultats = []
+    for eid, formation, tit, banc, cap, soumise in jeu.execute("""
+            SELECT equipe_id, formation, titulaires, banc, capitaine, soumise_le
+            FROM composition WHERE journee_id=?""", (jid,)):
+        if soumise > cloture:
+            resultats.append(dict(equipe_id=eid, refusee="soumise après la clôture", score=0.0, gain=0.0))
+            continue
+        compo = S.Composition(titulaires=json.loads(tit), banc=json.loads(banc), capitaine=cap, formation=formation)
+        try:
+            r = S.score_equipe(compo, prestas, postes)
+        except (ValueError, KeyError) as e:
+            resultats.append(dict(equipe_id=eid, refusee=str(e), score=0.0, gain=0.0))
+            continue
+        resultats.append(dict(equipe_id=eid, score=r["score"], gain=E.gain_semaine(r["score"]),
+                              onze=r["onze"], detail=r["detail"], entres=r["entres"]))
+    resultats.sort(key=lambda r: -r["score"])
+    for rang, r in enumerate(resultats, 1):
+        r["rang"] = rang
+    resume["equipes"] = len(resultats)
+    resume["scores"] = [(r["equipe_id"], r["score"]) for r in resultats]
+    resume["cartes_bougees"] = sum(1 for pid in apres if abs(apres[pid] - avant[pid]) > 1e-9)
+    if dry_run:
+        return resume
+
+    # write, in one transaction
+    jeu.execute("BEGIN")
+    jeu.execute("DELETE FROM carte_historique WHERE journee_id=?", (jid,))
+    now = maintenant()
+    for pid, n in apres.items():
+        ovr = E.ovr_depuis_note(n)
+        jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix) VALUES (?,?,?,?,?)",
+                    (pid, jid, n, ovr, E.prix(ovr)))
+        if pid in prestas:
+            jeu.execute("""UPDATE carte SET note_ovr=?, ovr=?, prix=?, matchs=matchs+?, minutes=minutes+?, maj=?
+                           WHERE player_id=? AND saison=?""",
+                        (n, ovr, E.prix(ovr), len(prestas[pid]), sum(p.minutes for p in prestas[pid]), now, pid, saison))
+    for r in resultats:
+        ancien = jeu.execute("SELECT score, gain FROM resultat WHERE equipe_id=? AND journee_id=?",
+                             (r["equipe_id"], jid)).fetchone()
+        if ancien:
+            jeu.execute("UPDATE equipe SET budget=budget-?, points_total=points_total-? WHERE equipe_id=?",
+                        (ancien[1], ancien[0], r["equipe_id"]))
+        jeu.execute("""INSERT OR REPLACE INTO resultat(equipe_id, journee_id, score, onze, detail, gain, rang)
+                       VALUES (?,?,?,?,?,?,?)""",
+                    (r["equipe_id"], jid, r["score"], json.dumps(r.get("onze", [])),
+                     json.dumps({str(k): v for k, v in r.get("detail", {}).items()} | ({"refusee": r["refusee"]} if "refusee" in r else {})),
+                     r["gain"], r["rang"]))
+        jeu.execute("UPDATE equipe SET budget=budget+?, points_total=points_total+? WHERE equipe_id=?",
+                    (r["gain"], r["score"], r["equipe_id"]))
+    jeu.execute("UPDATE journee SET calculee=1 WHERE journee_id=?", (jid,))
+    jeu.commit()
+    # the current-card table must reflect the LAST computed gameweek: if an
+    # earlier one was recomputed, later states are stale until re-run
+    return resume
+
+
+def etat(jeu, saison):
+    rows = jeu.execute("SELECT numero, du, au, calculee FROM journee WHERE saison=? ORDER BY numero", (saison,)).fetchall()
+    ech = parametre(jeu, saison, "echelle")
+    n_cartes = jeu.execute("SELECT COUNT(*) FROM carte WHERE saison=?", (saison,)).fetchone()[0]
+    return dict(saison=saison, echelle=ech, cartes=n_cartes,
+                journees=[dict(numero=n, du=du, au=au, calculee=bool(c)) for n, du, au, c in rows])
+
+
+# --------------------------------------------------------------------------
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("commande", choices=["journees", "amorcer", "calculer", "etat"])
+    ap.add_argument("--jeu", default=str(RACINE / "jeu" / "jeu_2526.sqlite"))
+    ap.add_argument("--fotmob", default=str(RACINE / "moteur" / "fotmob.db"))
+    ap.add_argument("--saison", required=True)
+    ap.add_argument("--ligue", type=int, default=53)
+    ap.add_argument("--source", help="amorcer: season whose performances seed the cards")
+    ap.add_argument("--journees-source", help="amorcer: e.g. 1-17")
+    ap.add_argument("--journee", type=int)
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--sans-import", action="store_true", help="calculer: performances already in the base")
+    a = ap.parse_args()
+    jeu = I.ouvrir_jeu(pathlib.Path(a.jeu))
+    if a.commande == "journees":
+        fot = sqlite3.connect(a.fotmob)
+        print(f"{creer_journees(jeu, fot, a.saison, a.ligue)} journées de {a.saison}")
+    elif a.commande == "amorcer":
+        js = tuple(int(x) for x in a.journees_source.split("-")) if a.journees_source else None
+        n, (bas, haut) = amorcer(jeu, a.saison, a.source, js)
+        print(f"{n} cartes amorcées pour {a.saison} depuis {a.source} ; échelle {bas} -> {haut}")
+    elif a.commande == "calculer":
+        fot = None if a.sans_import else sqlite3.connect(a.fotmob)
+        r = calculer(jeu, fot, a.saison, a.journee, dry_run=a.dry_run, importer=not a.sans_import)
+        print(json.dumps(r, ensure_ascii=False))
+    else:
+        print(json.dumps(etat(jeu, a.saison), ensure_ascii=False, indent=1))
+
+
+if __name__ == "__main__":
+    main()

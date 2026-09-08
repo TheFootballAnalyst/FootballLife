@@ -120,6 +120,51 @@ competition and round coefficients are kept as they are (option a in
 European runs is part of the game. The global perimeter is what keeps
 that from collapsing onto one club.
 
+## After playing the prototype — the market must change
+
+The owner's reactions to the browser prototype (docs/PROTOTYPE.md), and
+what follows from them. These are the decisions for season one; the
+backtest and the prototype will be updated to match before phase 3.
+
+**1. The market is too easy.** In the prototype every manager can buy any
+card: with 60 credits you own several of the very best from the first
+day. The pricing is right (the backtest showed the informed manager
+winning), but unlimited supply is the flaw. Decision: **each card has one
+owner per game league**. Once Dembélé is signed in a league, nobody else
+in that league can sign him until his contract ends or his owner sells.
+That alone makes the market a game: the best cards are gone in the first
+hour, and knowledge of the second tier is what the season is played on.
+
+**2. Online only.** No solo mode. A game league is a group of managers on
+one shared market; the prototype's solo replay stays as a training ground
+but is not the product. Consequences: a season start is a **draft**
+(managers pick in turn, snake order, until everyone has 15), so nobody
+gets everything by clicking first; the shared clock is the gameweek.
+
+**3. Contracts.** A signed card carries a **contract length in gameweeks**
+(chosen at signing among a few options, longer costs more per gameweek,
+to be tuned). During the contract the card cannot be taken; when it ends
+the card returns to the market unless renewed before the last gameweek.
+
+**4. Transfers between managers.** A manager can **make an offer** for a
+card another manager owns: credits, or credits plus a card. The owner
+accepts or declines before the next lock. The market price stays the
+reference; the deal can sit anywhere above it.
+
+**5. Negotiation at contract end.** A card whose contract is ending is
+**open to offers from every manager** during the last gameweek; the
+current owner has a right of first refusal at the best offer. "The most
+convincing wins" is, in v1, the highest bid; a non-monetary pitch
+(playing time promised, role) is a season-two idea.
+
+What this changes in the code: `effectif` gains a contract (start, end,
+weekly cost) and becomes unique per (game league, player); a `offre`
+table for transfer offers and end-of-contract bids; the draft as a
+sequence of picks stored per game league; and the backtest needs several
+managers competing for the same cards to re-tune prices under scarcity.
+Phase 2 (the weekly pipeline) is unaffected by any of this: it scores
+whatever compositions exist.
+
 ## Deliberately left out of v1
 
 - **Manager selection and manager traits.** Mentioned as a maybe. Adds a
@@ -127,11 +172,11 @@ that from collapsing onto one club.
 - **Injuries and form as separate mechanics.** The notes already carry
   form; injuries show up as "did not play". Anything more is simulation,
   which `CONTEXTE.md` rules out.
-- **Player-to-player trading.** Prices are set by OVR, managers buy from
-  and sell to the market. Peer trading needs anti-collusion rules; later.
-- **Ownership limits / scarcity.** In v1 every manager can own any card.
-  If the backtest shows everyone converging on the same 15, add a
-  per-league ownership cap.
+- **Free-text negotiation.** Offers are numbers in v1 (see above);
+  pitches and promises come after a season of watching real offers.
+- **Anti-collusion on transfers.** Two friends trading a star for 0.5
+  credits is possible in v1; a floor at the market price is the obvious
+  first rule if it happens.
 
 ## What the backtest must answer
 

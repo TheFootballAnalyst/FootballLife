@@ -78,6 +78,15 @@ CREATE TABLE IF NOT EXISTS prestation (
 );
 CREATE INDEX IF NOT EXISTS ix_prestation_joueur ON prestation(player_id);
 
+-- Per-season parameters frozen at seed time (OVR scale, economy constants),
+-- so a later change of a constant never silently rewrites a running season.
+CREATE TABLE IF NOT EXISTS parametre (
+    saison           TEXT NOT NULL,
+    cle              TEXT NOT NULL,
+    valeur           TEXT NOT NULL,                 -- JSON
+    PRIMARY KEY (saison, cle)
+);
+
 -- ------------------------------------------------------------------ cards
 -- The card is the player's game-side state.  One row per player per season;
 -- `note_ovr` is the EMA of evolution.py, `ovr` and `prix` derive from it.

@@ -33,21 +33,41 @@ Left open from this phase:
 - portraits: fetched by `donnees/portraits.py` on a machine that can
   reach images.fotmob.com (the remote session cannot).
 
-## Phase 2 — the weekly pipeline (2 weeks)
+## Phase 2 — the weekly pipeline (done)
 
-Goal: one command turns a finished gameweek into frozen results.
+`jeu/pipeline.py`: `journees` cuts the live season into gameweeks from
+the FotMob base, `amorcer` seeds a season's cards from another season
+(and freezes the OVR scale and the economy constants in `parametre`),
+`calculer --journee N` imports the window's performances, moves every
+card, scores every composition submitted before the lock, pays out and
+closes the gameweek; `--dry-run` shows what would change. Idempotent:
+a gameweek is always recomputed from the card state after the previous
+one, so running it twice changes nothing. Five tests in
+`jeu/tests/test_pipeline.py`.
 
-1. `jeu/cloture.py` — lock lineups at first kick-off.
-2. `jeu/calcul.py` — after the last match: import performances, score
-   every submitted lineup, apply auto-subs, update cards, write
-   `resultat` and `carte_historique`.
-3. Idempotent: running it twice on the same gameweek changes nothing.
-4. A `--dry-run` that prints what would change.
+Exit check passed: `jeu/rejouer.py` pushes 2025/26 J18–J34 through the
+live path with a witness manager and gets exactly the backtest's naive
+score, 1 391.5, with zero difference on any gameweek or card.
 
-Deliverable: the whole of 2025/26 replayed through the *live* code path,
-results identical to the backtest.
+Not in this phase, by choice: the weekly *trigger* (a cron that runs
+`calculer` after the last match of the window) belongs with hosting,
+phase 4.
+
+## Phase 2b — the market, second design (new)
+
+From the prototype's feedback (`GAME_DESIGN.md`, "After playing the
+prototype"): one owner per card per league, a draft at season start,
+contracts, offers between managers, bids at contract end. Data model
+changes (`effectif` with contract, `offre`, draft picks), then the
+backtest re-run with several managers competing for the same cards to
+re-tune prices under scarcity. This comes before the interface, because
+the interface's main screens (draft, offers) depend on it.
 
 ## Phase 3 — the interface (4–6 weeks)
+
+The browser prototype (`web/`, docs/PROTOTYPE.md) is the sketch of the
+market, lineup and gameweek screens; the real interface adds accounts,
+the draft, offers and the live calendar.
 
 Goal: a manager can do everything the game needs from a browser.
 

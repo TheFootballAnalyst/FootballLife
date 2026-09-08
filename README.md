@@ -33,6 +33,8 @@ jeu/        the game layer: pure functions + schema, all tested
   scoring.py     lineup + performances -> team score for a gameweek
   evolution.py   card OVR, price, manager budget over time
   importer.py    fotmob.db -> game base (gameweeks, rated performances, club colours)
+  pipeline.py    the live weekly path: gameweeks, seed, close a gameweek (idempotent)
+  rejouer.py     phase 2 exit check: a season through the live path = the backtest
   backtest.py    replay a season with scripted managers
   cartes.py      render match and season cards from the game base
   schema.sql     the game database
@@ -74,10 +76,11 @@ python3 -m jeu.cartes --journee 34 --n 8             # -> out/cartes/*.png
 
 ## Where things stand
 
-Phases 0 and 1 of `docs/ROADMAP.md` are done: engine under Git, game
+Phases 0, 1 and 2 of `docs/ROADMAP.md` are done: engine under Git, game
 rules as code matching the production pipeline exactly (105 reference
 performances), the 2025/26 season imported and replayed, the economy
-tuned so that an informed manager beats a naive one by 30 %
-(`docs/BACKTEST.md`), first cards rendered. The perimeter is decided:
-one global league, five leagues plus Champions League. Next is phase 2,
-the weekly pipeline.
+tuned (`docs/BACKTEST.md`), cards rendered, a browser prototype to play
+with (`docs/PROTOTYPE.md`), and the live weekly pipeline verified
+against the backtest to the decimal. The perimeter is one global league.
+Next: the market's second design, with one owner per card, a draft and
+contracts (`docs/GAME_DESIGN.md`), then the interface.
