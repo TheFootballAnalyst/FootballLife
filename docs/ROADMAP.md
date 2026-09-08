@@ -53,15 +53,16 @@ Not in this phase, by choice: the weekly *trigger* (a cron that runs
 `calculer` after the last match of the window) belongs with hosting,
 phase 4.
 
-## Phase 2b — the market, second design (new)
+## Phase 2b — demand pricing (decided, small)
 
-From the prototype's feedback (`GAME_DESIGN.md`, "After playing the
-prototype"): one owner per card per league, a draft at season start,
-contracts, offers between managers, bids at contract end. Data model
-changes (`effectif` with contract, `offre`, draft picks), then the
-backtest re-run with several managers competing for the same cards to
-re-tune prices under scarcity. This comes before the interface, because
-the interface's main screens (draft, offers) depend on it.
+From the prototype's feedback and the "global game" constraint
+(`GAME_DESIGN.md`, "how the market gets scarce"): a card's price follows
+the share of managers who own it. Backtested (`jeu/backtest.py
+--demande`), decided. To do: the weekly pipeline computes each card's
+ownership share from `effectif` and applies the multiplier when it
+reprices; `parametre` gains `demande`. Private draft leagues (exclusivity
+inside a league of ten) are an optional later format, not a prerequisite
+for the interface.
 
 ## Phase 3 — the interface (4–6 weeks)
 

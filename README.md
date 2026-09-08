@@ -82,5 +82,5 @@ performances), the 2025/26 season imported and replayed, the economy
 tuned (`docs/BACKTEST.md`), cards rendered, a browser prototype to play
 with (`docs/PROTOTYPE.md`), and the live weekly pipeline verified
 against the backtest to the decimal. The perimeter is one global league.
-Next: the market's second design, with one owner per card, a draft and
-contracts (`docs/GAME_DESIGN.md`), then the interface.
+Prices will follow demand (decided from the backtest, see
+`docs/GAME_DESIGN.md`); next is the interface.

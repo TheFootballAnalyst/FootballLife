@@ -22,7 +22,27 @@ cards maximising  value − λ × prix  under the family quotas, sweeping λ so
 that the budget is spent as fully as possible.  Only the value differs.
 
 Every gameweek: score each lineup (scoring.score_equipe), pay out
-(evolution.gain_semaine), update every card (evolution.note_ema), reprice.
+(evolution.gain_semaine), charge wages if --salaires > 0 (a share of the
+squad's market value per gameweek), update every card
+(evolution.note_ema), reprice.
+
+Demand pricing (--demande k, --population N): a crowd of N simulated
+managers (naive by OVR with noise, plus a random share) builds its squads
+first; a card's price is then multiplied by (1 + k x share of the crowd
+owning it).  The crowd's favourites get expensive, the informed manager's
+cheap producers do not.  This is the one scarcity mechanism that keeps the
+game global: no ownership limit, unlimited managers.
+
+Two market modes:
+  --mode marche   (default) unlimited supply: every manager can own any
+                  card, as in the browser prototype
+  --mode draft    a league of --managers managers sharing ONE pool: a
+                  snake draft at the start (one pick per turn, at market
+                  price, within budget), then a card has one owner in the
+                  league until sold; the informed manager trades with free
+                  agents only.  Unlimited leagues can run in parallel, so
+                  this scales to a global game; the question it answers
+                  is whether knowledge still wins inside a league.
 
 Writes to --sortie:
   cartes.csv       one row per card per gameweek: note_ovr, ovr, prix
@@ -94,17 +114,18 @@ def parse_plage(txt: str) -> list[int]:
 # --------------------------------------------------------------------------
 
 class Carte:
-    __slots__ = ("pid", "poste", "fam", "note_ovr", "ovr", "prix", "notes")
+    __slots__ = ("pid", "poste", "fam", "note_ovr", "ovr", "prix", "notes", "demande")
 
     def __init__(self, pid, poste, note_ovr):
         self.pid, self.poste, self.fam = pid, poste, S.FAMILLE_POSTE[poste]
         self.notes: list[tuple[float, float]] = []
+        self.demande = 0.0                     # price multiplier from the crowd, 0 = none
         self.fixer(note_ovr)
 
     def fixer(self, note_ovr):
         self.note_ovr = note_ovr
         self.ovr = E.ovr_depuis_note(note_ovr)
-        self.prix = E.prix(self.ovr)
+        self.prix = round(E.prix(self.ovr) * (1.0 + self.demande), 1)
 
     def jouer(self, prestas: list[S.Prestation]):
         n = self.note_ovr
@@ -251,10 +272,44 @@ class Manager:
             self.achats[pid] = cartes[pid].prix
             self.cash -= cartes[pid].prix
 
-    def ajuster(self, cartes):
+    def drafter(self, cartes, pris: set, futur=None):
+        """One draft pick: the best available card by this manager's value,
+        within the family quotas and a budget kept for the remaining picks.
+        A single pick may take up to 2.5 x the even share of what is left,
+        so an early pick can be a star but not two."""
+        val = self.valeur(futur)
+        restants = E.TAILLE_EFFECTIF - len(self.effectif)
+        if restants <= 0:
+            return None
+        quotas = {f: QUOTA_EFFECTIF[f] - sum(1 for p in self.effectif if cartes[p].fam == f) for f in QUOTA_EFFECTIF}
+        plafond = max(E.PRIX_PLANCHER, (self.cash - (restants - 1) * E.PRIX_PLANCHER) * min(1.0, 2.5 / restants))
+        cands = [c for c in cartes.values() if c.pid not in pris and quotas[c.fam] > 0 and c.prix <= plafond]
+        if not cands:
+            cands = [c for c in cartes.values() if c.pid not in pris and quotas[c.fam] > 0 and c.prix <= self.cash]
+        if not cands:
+            return None
+        if self.strategie == "hasard":
+            c = self.rng.choice(cands)
+        else:
+            c = max(cands, key=lambda c: (val(c), -c.prix))
+        self.effectif.append(c.pid)
+        self.achats[c.pid] = c.prix
+        self.cash -= c.prix
+        return c.pid
+
+    def payer_salaires(self, cartes, taux):
+        """Wages: a share of the squad's market value, every gameweek."""
+        if taux <= 0:
+            return 0.0
+        s = round(taux * sum(cartes[p].prix for p in self.effectif), 2)
+        self.cash = round(self.cash - s, 2)
+        return s
+
+    def ajuster(self, cartes, pris=None):
         """forme only: each gameweek, sell the least productive card of a
         family for the most productive one it can then afford, if the gain
-        is clear (> 1 point per gameweek)."""
+        is clear (> 1 point per gameweek).  In draft mode only free agents
+        (not in `pris`) can be bought."""
         if self.strategie != "forme":
             return
         val = self.valeur()
@@ -265,7 +320,8 @@ class Manager:
             pire = min(miens, key=lambda pid: val(cartes[pid]))
             dispo = self.cash + cartes[pire].prix
             cands = [c for c in cartes.values()
-                     if c.fam == fam and c.pid not in self.effectif and c.prix <= dispo]
+                     if c.fam == fam and c.pid not in self.effectif and c.prix <= dispo
+                     and (pris is None or c.pid not in pris)]
             if not cands:
                 continue
             best = max(cands, key=val)
@@ -274,6 +330,9 @@ class Manager:
                 self.effectif.remove(pire)
                 self.effectif.append(best.pid)
                 self.achats[best.pid] = best.prix
+                if pris is not None:
+                    pris.discard(pire)
+                    pris.add(best.pid)
 
     def composer(self, cartes):
         val = self.valeur() if self.strategie == "forme" else (lambda c: float(c.ovr))
@@ -287,21 +346,73 @@ class Manager:
 # Run
 # --------------------------------------------------------------------------
 
-def jouer(jeu_path, ligue_id, amorce, a_jouer, sortie: pathlib.Path):
+def foule(cartes, n, graine, bruit=6.0, part_hasard=0.3):
+    """Ownership share of each card in a crowd of `n` managers: 70 % buy by
+    OVR seen through noise (each has their own opinion, sd `bruit` OVR
+    points), 30 % at random.  Returns {pid: share}."""
+    rng = random.Random(graine)
+    compte = {pid: 0 for pid in cartes}
+    for k in range(n):
+        if rng.random() < part_hasard:
+            eff = choisir_effectif(cartes, E.BUDGET_INITIAL, lambda c: 0.0, random.Random(graine * 1000 + k))
+        else:
+            avis = {pid: c.ovr + rng.gauss(0, bruit) for pid, c in cartes.items()}
+            eff = choisir_effectif(cartes, E.BUDGET_INITIAL, lambda c: avis[c.pid])
+        for pid in eff:
+            compte[pid] += 1
+    return {pid: v / n for pid, v in compte.items()}
+
+
+def appliquer_demande(cartes, parts, k):
+    for pid, c in cartes.items():
+        c.demande = k * parts.get(pid, 0.0)
+        c.fixer(c.note_ovr)
+
+
+def jouer(jeu_path, ligue_id, amorce, a_jouer, sortie: pathlib.Path,
+          mode="marche", n_managers=10, salaires=0.0, graine=0, demande=0.0, population=200):
     jeu = sqlite3.connect(jeu_path)
     joueurs, prestas, _ = charger(jeu, ligue_id)
     cartes = amorcer(joueurs, prestas, amorce)
     postes = {pid: c.poste for pid, c in cartes.items()}
     futur = {pid: sum(p.note for num in a_jouer for p in prestas[num].get(pid, []))
              for pid in cartes}
+    parts = {}
+    if demande > 0:
+        parts = foule(cartes, population, graine)
+        appliquer_demande(cartes, parts, demande)
 
     prestas["_tous"] = list(cartes)          # ids, for Manager.observer
-    managers = [Manager("naif", "naif"), Manager("forme", "forme"),
-                Manager("oracle", "oracle")] + [Manager(f"hasard{i}", "hasard", seed=i) for i in range(5)]
+    if mode == "draft":
+        # a league: forme, oracle, three naive, the rest random; snake order shuffled
+        base = [Manager("forme", "forme"), Manager("oracle", "oracle")] + \
+               [Manager(f"naif{i}", "naif") for i in range(3)]
+        managers = base[:n_managers] + [Manager(f"hasard{i}", "hasard", seed=graine * 100 + i)
+                                        for i in range(max(0, n_managers - len(base)))]
+        rng = random.Random(graine)
+        ordre = managers[:]
+        rng.shuffle(ordre)
+    else:
+        managers = [Manager("naif", "naif"), Manager("forme", "forme"),
+                    Manager("oracle", "oracle")] + [Manager(f"hasard{i}", "hasard", seed=i) for i in range(5)]
     passees = list(amorce)
+    pris: set | None = None
     for m in managers:
         m.observer(prestas, passees)
-        m.recruter(cartes, futur)
+    if mode == "draft":
+        pris = set()
+        tour = 0
+        while any(len(m.effectif) < E.TAILLE_EFFECTIF for m in managers):
+            for m in (ordre if tour % 2 == 0 else ordre[::-1]):
+                pid = m.drafter(cartes, pris, futur)
+                if pid is not None:
+                    pris.add(pid)
+            tour += 1
+            if tour > 40:
+                break
+    else:
+        for m in managers:
+            m.recruter(cartes, futur)
 
     sortie.mkdir(parents=True, exist_ok=True)
     fc = open(sortie / "cartes.csv", "w", newline="", encoding="utf-8")
@@ -309,7 +420,7 @@ def jouer(jeu_path, ligue_id, amorce, a_jouer, sortie: pathlib.Path):
     wc.writerow(["journee", "player_id", "nom", "poste", "note_ovr", "ovr", "prix", "matchs"])
     fm = open(sortie / "managers.csv", "w", newline="", encoding="utf-8")
     wm = csv.writer(fm)
-    wm.writerow(["journee", "manager", "score", "gain", "cash", "valeur", "entres"])
+    wm.writerow(["journee", "manager", "score", "gain", "salaires", "cash", "valeur", "entres"])
 
     def ecrire_cartes(num):
         for pid, c in cartes.items():
@@ -323,14 +434,15 @@ def jouer(jeu_path, ligue_id, amorce, a_jouer, sortie: pathlib.Path):
         ligne = {}
         for m in managers:
             m.observer(prestas, passees)
-            m.ajuster(cartes)
+            m.ajuster(cartes, pris)
             compo = m.composer(cartes)
             r = S.score_equipe(compo, semaine, postes)
             g = E.gain_semaine(r["score"])
+            sal = m.payer_salaires(cartes, salaires)
             m.cash += g
             m.points += r["score"]
             ligne[m.nom] = r["score"]
-            wm.writerow([num, m.nom, r["score"], g, round(m.cash, 1), m.patrimoine(cartes), len(r["entres"])])
+            wm.writerow([num, m.nom, r["score"], g, sal, round(m.cash, 1), m.patrimoine(cartes), len(r["entres"])])
         scores_par_j.append(ligne)
         for pid, c in cartes.items():
             if pid in semaine:
@@ -347,7 +459,11 @@ def jouer(jeu_path, ligue_id, amorce, a_jouer, sortie: pathlib.Path):
     plafond = sum(1 for c in cartes.values() if c.ovr >= 97)
     medianes = [statistics.median(l.values()) for l in scores_par_j]
     ecarts = [max(l.values()) - min(l.values()) for l in scores_par_j]
+    top = sorted(parts.items(), key=lambda kv: -kv[1])[:8] if parts else []
     resume = {
+        "mode": mode, "managers_par_ligue": len(managers), "salaires": salaires,
+        "demande": demande, "population": population if demande > 0 else 0,
+        "plus_detenus": [(joueurs[pid]["nom"], round(part, 2), cartes[pid].prix) for pid, part in top],
         "echelle_ovr": {"note_40": E.NOTE_OVR_BAS, "note_99": E.NOTE_OVR_HAUT,
                         "budget": E.BUDGET_INITIAL, "prix_double_tous_les": E.PRIX_DOUBLE_TOUS_LES,
                         "alpha_ema": E.ALPHA_EMA, "k_retrecissement": E.K_RETRECISSEMENT,
@@ -376,8 +492,18 @@ def main():
     ap.add_argument("--amorce", default="1-17")
     ap.add_argument("--jouer", default="18-34")
     ap.add_argument("--sortie", default=str(RACINE / "out"))
+    ap.add_argument("--mode", choices=["marche", "draft"], default="marche")
+    ap.add_argument("--managers", type=int, default=10, help="draft: managers per league")
+    ap.add_argument("--salaires", type=float, default=0.0,
+                    help="share of squad value charged every gameweek, e.g. 0.02")
+    ap.add_argument("--graine", type=int, default=0)
+    ap.add_argument("--demande", type=float, default=0.0,
+                    help="price multiplier at 100 %% crowd ownership, e.g. 1.0 = price doubles")
+    ap.add_argument("--population", type=int, default=200, help="crowd size for demand pricing")
     a = ap.parse_args()
-    r = jouer(a.jeu, a.ligue, parse_plage(a.amorce), parse_plage(a.jouer), pathlib.Path(a.sortie))
+    r = jouer(a.jeu, a.ligue, parse_plage(a.amorce), parse_plage(a.jouer), pathlib.Path(a.sortie),
+              mode=a.mode, n_managers=a.managers, salaires=a.salaires, graine=a.graine,
+              demande=a.demande, population=a.population)
     print(json.dumps(r, indent=1, ensure_ascii=False))
 
 

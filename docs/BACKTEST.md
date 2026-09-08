@@ -129,6 +129,32 @@ européen reste le moteur des plus-values, mais il n'y a plus un seul club
 tel quel, la C1 est le sommet et anticiper les parcours européens fait
 partie du jeu.
 
+## Trois façons de créer de la rareté (après le prototype)
+
+Le prototype a montré qu'avec une offre illimitée on s'offre plusieurs
+stars dès le premier jour. Trois mécaniques ont été ajoutées au backtest
+et comparées sur la même saison (ligue globale, J18–J34) :
+
+| mécanique | commande | naïf | forme | oracle | hasard | verdict |
+|---|---|---|---|---|---|---|
+| référence, offre illimitée | `--mode marche` | 1 392 | 1 810 | 1 980 | 732 | l'ordre voulu, mais les stars sont à tout le monde |
+| salaires 2 % de la valeur de l'effectif par journée | `--salaires 0.02` | 1 392 | 1 669 | 1 980 | 732 | ne change pas les points, assèche surtout celui qui échange ; patrimoine de l'informé 206 → 112 |
+| ligue de 10 à draft, un propriétaire par carte **dans la ligue** | `--mode draft --managers 10` | 1 294–1 553 | 1 514–1 534 | 1 896–1 922 | 561–1 017 | l'informé ne bat plus le naïf que d'un cheveu, parfois pas : les producteurs sont tous pris, il ne peut échanger qu'avec les agents libres |
+| prix qui montent avec la demande d'une foule de 200 managers | `--demande 1.0` | 1 331 | 1 772 | 1 975 | 732 | l'ordre tient, les favoris de la foule doublent de prix (Rice 29, Kimmich 34), le naïf ne peut plus s'offrir le meilleur 15 (patrimoine 143 → 86) |
+
+À `--demande 2.0` et `4.0` l'ordre tient encore (forme 1 718 puis
+1 622 contre naïf 1 469 puis 1 314). La part de détention maximale d'une
+carte dans la foule simulée est de 18 %, parce que chaque manager a son
+propre avis ; dans un vrai jeu elle sera plus concentrée et l'effet plus
+fort à coefficient égal.
+
+**Lecture.** Les salaires sont à écarter. La draft en ligue de 10 est un
+bon format social mais elle passe l'avantage au tirage au sort de l'ordre
+de draft et bride l'informé. Les prix à la demande sont la seule
+mécanique qui reste mondiale, sans limite de managers, et qui garde
+l'ordre hasard < naïf < informé < oracle : c'est celle retenue
+(`GAME_DESIGN.md`).
+
 ## Limites du protocole
 
 - L'amorce sur une demi-saison sous-estime les échantillons : avec une
