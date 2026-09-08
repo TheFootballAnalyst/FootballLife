@@ -202,6 +202,20 @@ def importer_couleurs(jeu: sqlite3.Connection, cache: pathlib.Path = MOTEUR / "c
     return n
 
 
+def main_import(fotmob: pathlib.Path, jeu_path: pathlib.Path, saison="2025/26", ligue=53) -> int:
+    """Import a whole season (every gameweek) into the game base."""
+    fot = sqlite3.connect(fotmob)
+    jeu = ouvrir_jeu(pathlib.Path(jeu_path))
+    total = 0
+    for j in journees_depuis_rounds(fot, ligue):
+        n = importer_journee(fot, jeu, saison, j)
+        total += n
+        print(f"J{j['numero']:>2}  {j['du']} -> {j['au']}  {n:>5} prestations")
+    majorite_postes_et_clubs(jeu)
+    importer_couleurs(jeu)
+    return total
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--fotmob", default=str(MOTEUR / "fotmob.db"))

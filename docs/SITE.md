@@ -28,6 +28,8 @@ carte), recalculé à chaque clôture.
 ```
 py -m pip install fastapi "uvicorn[standard]" python-multipart
 py web/app/demo.py                                   # -> jeu/demo.sqlite (saison 25/26 à partir de J18)
+                                                     # construit d'abord jeu/jeu_2526.sqlite depuis
+                                                     # moteur/fotmob_2526.db s'il n'existe pas (1 min 30)
 set FL_JEU=jeu/demo.sqlite                           # Windows ; sur Mac/Linux : export FL_JEU=jeu/demo.sqlite
 set FL_SECRET=une-longue-phrase-secrete
 py -m uvicorn web.app.serveur:app --port 8000

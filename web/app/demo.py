@@ -30,8 +30,17 @@ def main():
     ap.add_argument("--sortie", default=str(RACINE / "jeu" / "demo.sqlite"))
     ap.add_argument("--saison", default="2025/26")
     ap.add_argument("--amorce", default="1-17")
+    ap.add_argument("--fotmob", default=str(RACINE / "moteur" / "fotmob_2526.db"),
+                    help="FotMob base used to build the game base if --source is missing")
     a = ap.parse_args()
     src, dst = pathlib.Path(a.source), pathlib.Path(a.sortie)
+    if not src.exists():
+        fot = pathlib.Path(a.fotmob)
+        if not fot.exists():
+            sys.exit(f"La base du jeu {src} n'existe pas, et la base FotMob {fot} non plus.\n"
+                     f"Récupère la release data-2025-26 (docs/GUIDE_DEBUTANT.md, étape 6), puis relance.")
+        print(f"La base du jeu {src} n'existe pas : import de la saison depuis {fot} (environ 1 min 30)...")
+        I.main_import(fot, src, a.saison)
     if dst.exists():
         dst.unlink()
     shutil.copy(src, dst)
