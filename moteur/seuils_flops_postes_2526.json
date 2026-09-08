@@ -1,0 +1,72 @@
+{
+ "reference": "saison 2025/26 — brut/coef, titulaires >= 45 min, bareme 28/08 (corrections rangees dans leur famille, taux anti-dribble 3.0, tirs manques en Finition, penalty obtenu dedoublonne, coefficients de championnat mesures)",
+ "n_prestations": 42323,
+ "seuil_flop": "p25",
+ "seuil_flop_severe": "p10",
+ "postes": {
+  "Ailier": {
+   "n": 6638,
+   "p10": -6.54,
+   "p25": 1.47,
+   "mediane": 9.6,
+   "p75": 24.45,
+   "p90": 44.89
+  },
+  "Buteur": {
+   "n": 4785,
+   "p10": -3.41,
+   "p25": 2.55,
+   "mediane": 11.62,
+   "p75": 29.68,
+   "p90": 48.7
+  },
+  "Defenseur central": {
+   "n": 9162,
+   "p10": 7.8,
+   "p25": 16.42,
+   "mediane": 26.99,
+   "p75": 39.94,
+   "p90": 56.55
+  },
+  "Gardien": {
+   "n": 3881,
+   "p10": -16.06,
+   "p25": -2.64,
+   "mediane": 14.74,
+   "p75": 32.39,
+   "p90": 51.92
+  },
+  "Lateral": {
+   "n": 7743,
+   "p10": 0.89,
+   "p25": 9.76,
+   "mediane": 19.69,
+   "p75": 32.59,
+   "p90": 49.1
+  },
+  "Milieu defensif": {
+   "n": 3866,
+   "p10": 1.89,
+   "p25": 10.04,
+   "mediane": 19.78,
+   "p75": 32.06,
+   "p90": 49.98
+  },
+  "Milieu offensif": {
+   "n": 1503,
+   "p10": -1.33,
+   "p25": 6.19,
+   "mediane": 15.9,
+   "p75": 30.34,
+   "p90": 48.68
+  },
+  "Milieu relayeur": {
+   "n": 4745,
+   "p10": -0.45,
+   "p25": 8.19,
+   "mediane": 18.46,
+   "p75": 32.87,
+   "p90": 50.19
+  }
+ }
+}

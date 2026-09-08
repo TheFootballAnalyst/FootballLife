@@ -1,0 +1,91 @@
+{
+  "mode": "par90",
+  "seuil": [
+    2300,
+    900
+  ],
+  "coefs": {
+    "Gardien": 6.1269,
+    "Defenseur central": 0.4957,
+    "Lateral": 0.536,
+    "Milieu defensif": 0.5172,
+    "Milieu relayeur": 0.6725,
+    "Milieu offensif": 0.9972,
+    "Ailier droit": 0.5055,
+    "Ailier gauche": 0.8035,
+    "Buteur": 0.4001
+  },
+  "references": {
+    "Gardien": {
+      "accurate_passes": 0.6844,
+      "aerials_won": 0.9745,
+      "dribbles_succeeded": 0.9462,
+      "ground_duels_won": 0.7961,
+      "long_balls_accurate": 0.3815
+    },
+    "Milieu defensif": {
+      "accurate_crosses": 0.2714,
+      "accurate_passes": 0.8711,
+      "aerials_won": 0.5301,
+      "dribbles_succeeded": 0.5454,
+      "ground_duels_won": 0.5419,
+      "long_balls_accurate": 0.5644
+    },
+    "Buteur": {
+      "accurate_crosses": 0.206,
+      "accurate_passes": 0.7339,
+      "aerials_won": 0.4497,
+      "dribbles_succeeded": 0.442,
+      "ground_duels_won": 0.4201,
+      "long_balls_accurate": 0.5966
+    },
+    "Lateral": {
+      "accurate_crosses": 0.2503,
+      "accurate_passes": 0.8287,
+      "aerials_won": 0.5158,
+      "dribbles_succeeded": 0.4755,
+      "ground_duels_won": 0.5363,
+      "long_balls_accurate": 0.4295
+    },
+    "Ailier droit": {
+      "accurate_crosses": 0.2371,
+      "accurate_passes": 0.8086,
+      "aerials_won": 0.3779,
+      "dribbles_succeeded": 0.4604,
+      "ground_duels_won": 0.465,
+      "long_balls_accurate": 0.5287
+    },
+    "Defenseur central": {
+      "accurate_passes": 0.8858,
+      "aerials_won": 0.6013,
+      "dribbles_succeeded": 0.6314,
+      "ground_duels_won": 0.5754,
+      "long_balls_accurate": 0.4764,
+      "accurate_crosses": 0.2313
+    },
+    "Ailier gauche": {
+      "accurate_crosses": 0.2304,
+      "accurate_passes": 0.8115,
+      "aerials_won": 0.3872,
+      "dribbles_succeeded": 0.4565,
+      "ground_duels_won": 0.4629,
+      "long_balls_accurate": 0.5555
+    },
+    "Milieu offensif": {
+      "accurate_crosses": 0.2556,
+      "accurate_passes": 0.8344,
+      "aerials_won": 0.4126,
+      "dribbles_succeeded": 0.4824,
+      "ground_duels_won": 0.4719,
+      "long_balls_accurate": 0.606
+    },
+    "Milieu relayeur": {
+      "accurate_crosses": 0.2617,
+      "accurate_passes": 0.8592,
+      "aerials_won": 0.499,
+      "dribbles_succeeded": 0.5157,
+      "ground_duels_won": 0.5198,
+      "long_balls_accurate": 0.5703
+    }
+  }
+}

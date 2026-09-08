@@ -1,0 +1,181 @@
+-- schema.sql — the GAME database (SQLite first, Postgres-compatible types).
+--
+-- Deliberately separate from fotmob.db, which stays the engine's read-only
+-- source.  The game only stores what the engine derives (one row per rated
+-- performance) plus everything about managers.  Player, club and match ids
+-- are the FotMob ids, so the two bases join without any name matching —
+-- the homonym/accent traps of docs/CONTEXTE.md section 5 never apply here.
+
+PRAGMA foreign_keys = ON;
+
+-- ---------------------------------------------------------------- football
+CREATE TABLE IF NOT EXISTS competition (
+    competition_id   INTEGER PRIMARY KEY,           -- FotMob primary league id
+    nom              TEXT NOT NULL,                 -- "Ligue 1", "Champions League"
+    saison           TEXT NOT NULL,                 -- "2026/27"
+    multiplicateur   REAL NOT NULL DEFAULT 1.0      -- game bonus (scoring.py)
+);
+
+CREATE TABLE IF NOT EXISTS club (
+    team_id          INTEGER PRIMARY KEY,           -- FotMob team id
+    nom              TEXT NOT NULL,
+    couleur          TEXT NOT NULL DEFAULT '#14161E', -- kit colour for the card
+    competition_id   INTEGER REFERENCES competition(competition_id)
+);
+
+CREATE TABLE IF NOT EXISTS joueur (
+    player_id        INTEGER PRIMARY KEY,           -- FotMob player id
+    nom              TEXT NOT NULL,
+    nom_normalise    TEXT NOT NULL,                 -- accents stripped, lower
+    team_id          INTEGER REFERENCES club(team_id),
+    poste            TEXT NOT NULL                  -- engine position (majority)
+);
+CREATE INDEX IF NOT EXISTS ix_joueur_nom ON joueur(nom_normalise);
+
+-- A gameweek is the game's unit of time: a date window that groups a league
+-- round and the European midweek that follows.  Lineups lock at `cloture`.
+CREATE TABLE IF NOT EXISTS journee (
+    journee_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    saison           TEXT NOT NULL,
+    numero           INTEGER NOT NULL,
+    du               TEXT NOT NULL,                 -- ISO date, inclusive
+    au               TEXT NOT NULL,                 -- ISO date, inclusive
+    cloture          TEXT NOT NULL,                 -- ISO datetime, first kick-off
+    calculee         INTEGER NOT NULL DEFAULT 0,    -- 1 once scores are final
+    UNIQUE (saison, numero)
+);
+
+CREATE TABLE IF NOT EXISTS match (
+    match_id         INTEGER PRIMARY KEY,           -- FotMob match id
+    journee_id       INTEGER REFERENCES journee(journee_id),
+    competition_id   INTEGER REFERENCES competition(competition_id),
+    date_utc         TEXT NOT NULL,
+    phase            TEXT,                          -- engine classer_phase()
+    home_team_id     INTEGER REFERENCES club(team_id),
+    away_team_id     INTEGER REFERENCES club(team_id),
+    home_score       INTEGER,
+    away_score       INTEGER
+);
+CREATE INDEX IF NOT EXISTS ix_match_journee ON match(journee_id);
+
+-- One rated appearance = what topsflops.calculer() returns, plus the two
+-- derived values (note, attributes) frozen at computation time.  Keeping
+-- them frozen means a later recalibration never rewrites history.
+CREATE TABLE IF NOT EXISTS prestation (
+    match_id         INTEGER NOT NULL REFERENCES match(match_id),
+    player_id        INTEGER NOT NULL REFERENCES joueur(player_id),
+    team_id          INTEGER REFERENCES club(team_id),
+    poste            TEXT NOT NULL,                 -- position held THAT match
+    minutes          REAL NOT NULL,
+    entrant          INTEGER NOT NULL DEFAULT 0,
+    brut             REAL NOT NULL,                 -- engine raw (with coef)
+    coef             REAL NOT NULL,                 -- competition x round (x opponent)
+    points           REAL NOT NULL,                 -- engine points (brut x coef_poste)
+    note             REAL,                          -- notation.note_sur_10
+    statut           TEXT,                          -- ok / sous_mediane / flop / flop_severe
+    lignes           TEXT NOT NULL,                 -- JSON {label: points}
+    attributs        TEXT,                          -- JSON {FIN: 71, ...}
+    PRIMARY KEY (match_id, player_id)
+);
+CREATE INDEX IF NOT EXISTS ix_prestation_joueur ON prestation(player_id);
+
+-- ------------------------------------------------------------------ cards
+-- The card is the player's game-side state.  One row per player per season;
+-- `note_ovr` is the EMA of evolution.py, `ovr` and `prix` derive from it.
+CREATE TABLE IF NOT EXISTS carte (
+    player_id        INTEGER NOT NULL REFERENCES joueur(player_id),
+    saison           TEXT NOT NULL,
+    note_ovr         REAL NOT NULL,
+    ovr              INTEGER NOT NULL,
+    prix             REAL NOT NULL,
+    attributs        TEXT,                          -- JSON, season-to-date
+    matchs           INTEGER NOT NULL DEFAULT 0,
+    minutes          REAL NOT NULL DEFAULT 0,
+    maj              TEXT NOT NULL,                 -- ISO datetime of last update
+    PRIMARY KEY (player_id, saison)
+);
+
+-- Full history of a card's value: this is what the "card evolves" screen
+-- and the price charts read.
+CREATE TABLE IF NOT EXISTS carte_historique (
+    player_id        INTEGER NOT NULL REFERENCES joueur(player_id),
+    journee_id       INTEGER NOT NULL REFERENCES journee(journee_id),
+    note_ovr         REAL NOT NULL,
+    ovr              INTEGER NOT NULL,
+    prix             REAL NOT NULL,
+    PRIMARY KEY (player_id, journee_id)
+);
+
+-- --------------------------------------------------------------- managers
+CREATE TABLE IF NOT EXISTS utilisateur (
+    utilisateur_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    pseudo           TEXT NOT NULL UNIQUE,
+    email            TEXT UNIQUE,
+    cree_le          TEXT NOT NULL
+);
+
+-- A "league" in the game sense: a group of managers competing over one
+-- season on one football perimeter (Ligue 1 only, or top 5 + UCL).
+CREATE TABLE IF NOT EXISTS ligue_jeu (
+    ligue_jeu_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom              TEXT NOT NULL,
+    saison           TEXT NOT NULL,
+    perimetre        TEXT NOT NULL,                 -- JSON list of competition ids
+    budget_initial   REAL NOT NULL DEFAULT 100.0,
+    taille_effectif  INTEGER NOT NULL DEFAULT 15,
+    cree_le          TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS equipe (
+    equipe_id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    utilisateur_id   INTEGER NOT NULL REFERENCES utilisateur(utilisateur_id),
+    ligue_jeu_id     INTEGER NOT NULL REFERENCES ligue_jeu(ligue_jeu_id),
+    nom              TEXT NOT NULL,
+    budget           REAL NOT NULL,                 -- credits not tied up in cards
+    points_total     REAL NOT NULL DEFAULT 0,
+    UNIQUE (utilisateur_id, ligue_jeu_id)
+);
+
+-- Cards currently owned.  `prix_achat` is what the manager paid: the gap
+-- to the current price is their scouting reward (evolution.plus_value).
+CREATE TABLE IF NOT EXISTS effectif (
+    equipe_id        INTEGER NOT NULL REFERENCES equipe(equipe_id),
+    player_id        INTEGER NOT NULL REFERENCES joueur(player_id),
+    prix_achat       REAL NOT NULL,
+    achete_le        TEXT NOT NULL,
+    PRIMARY KEY (equipe_id, player_id)
+);
+
+CREATE TABLE IF NOT EXISTS transfert (
+    transfert_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    equipe_id        INTEGER NOT NULL REFERENCES equipe(equipe_id),
+    player_id        INTEGER NOT NULL REFERENCES joueur(player_id),
+    sens             TEXT NOT NULL CHECK (sens IN ('achat', 'vente')),
+    prix             REAL NOT NULL,
+    journee_id       INTEGER REFERENCES journee(journee_id),
+    date             TEXT NOT NULL
+);
+
+-- The lineup submitted for a gameweek.  Immutable after `journee.cloture`.
+CREATE TABLE IF NOT EXISTS composition (
+    equipe_id        INTEGER NOT NULL REFERENCES equipe(equipe_id),
+    journee_id       INTEGER NOT NULL REFERENCES journee(journee_id),
+    formation        TEXT NOT NULL,
+    titulaires       TEXT NOT NULL,                 -- JSON list of 11 player ids
+    banc             TEXT NOT NULL,                 -- JSON ordered list
+    capitaine        INTEGER REFERENCES joueur(player_id),
+    soumise_le       TEXT NOT NULL,
+    PRIMARY KEY (equipe_id, journee_id)
+);
+
+-- Result of scoring.score_equipe() for that lineup, frozen.
+CREATE TABLE IF NOT EXISTS resultat (
+    equipe_id        INTEGER NOT NULL REFERENCES equipe(equipe_id),
+    journee_id       INTEGER NOT NULL REFERENCES journee(journee_id),
+    score            REAL NOT NULL,
+    onze             TEXT NOT NULL,                 -- JSON, after auto-subs
+    detail           TEXT NOT NULL,                 -- JSON {player_id: points}
+    gain             REAL NOT NULL,                 -- credits earned (evolution.gain_semaine)
+    rang             INTEGER,                       -- rank in the game league that week
+    PRIMARY KEY (equipe_id, journee_id)
+);
