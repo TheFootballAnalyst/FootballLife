@@ -40,8 +40,11 @@ jeu/        the game layer: pure functions + schema, all tested
   schema.sql     the game database
   tests/         incl. the reference performances in tests/donnees/
 donnees/    league logos; scripts to fetch the FotMob base and the portraits
-web/        the playable browser prototype (template + build scripts), see docs/PROTOTYPE.md
+web/app/    the site: FastAPI server, single-page front-end, demo base builder (docs/SITE.md)
+web/        the earlier solo browser prototype (template + build scripts), see docs/PROTOTYPE.md
+Dockerfile  the site in one container
 docs/
+  SITE.md        the site: screens, rules, running it, the weekly admin routine, hosting (French)
   PROTOTYPE.md   the prototype's URL, screens, how to rebuild it (French)
   GUIDE_DEBUTANT.md  step-by-step, from installing Python to the first cards (French)
   CONTEXTE.md    the original project brief (French)
@@ -82,5 +85,7 @@ performances), the 2025/26 season imported and replayed, the economy
 tuned (`docs/BACKTEST.md`), cards rendered, a browser prototype to play
 with (`docs/PROTOTYPE.md`), and the live weekly pipeline verified
 against the backtest to the decimal. The perimeter is one global league.
-Prices will follow demand (decided from the backtest, see
-`docs/GAME_DESIGN.md`); next is the interface.
+Phase 3 is built: the site (`docs/SITE.md`) with accounts, a world
+market with demand pricing, lineups, gameweeks closed by the admin from
+rated performances exported locally, world and private standings.
+Next: hosting (phase 4) and the first live season.

@@ -19,6 +19,7 @@ moteur/coefs_championnats.json
 moteur/*.xlsx
 moteur/bareme_stats_events.json
 jeu/*.sqlite
+donnees_serveur/
 out/
 web/*.build.html
 

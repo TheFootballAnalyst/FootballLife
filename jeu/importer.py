@@ -87,11 +87,12 @@ def journees_depuis_rounds(fot: sqlite3.Connection, ligue_id: int,
 MIGRATIONS = {                       # columns added after the first bases were written
     "carte": [("part", "REAL NOT NULL DEFAULT 0")],
     "carte_historique": [("part", "REAL NOT NULL DEFAULT 0")],
+    "utilisateur": [("mdp_hash", "TEXT"), ("mdp_sel", "TEXT"), ("est_admin", "INTEGER NOT NULL DEFAULT 0")],
 }
 
 
 def ouvrir_jeu(chemin: pathlib.Path) -> sqlite3.Connection:
-    jeu = sqlite3.connect(chemin)
+    jeu = sqlite3.connect(chemin, check_same_thread=False)
     jeu.executescript(SCHEMA.read_text(encoding="utf-8"))
     for table, cols in MIGRATIONS.items():
         existantes = {r[1] for r in jeu.execute(f"PRAGMA table_info({table})")}

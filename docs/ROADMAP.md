@@ -64,11 +64,16 @@ reprices; `parametre` gains `demande`. Private draft leagues (exclusivity
 inside a league of ten) are an optional later format, not a prerequisite
 for the interface.
 
-## Phase 3 — the interface (4–6 weeks)
+## Phase 3 — the interface (done)
 
-The browser prototype (`web/`, docs/PROTOTYPE.md) is the sketch of the
-market, lineup and gameweek screens; the real interface adds accounts,
-the draft, offers and the live calendar.
+`web/app/`: FastAPI + SQLite + one HTML page. Accounts, the world market
+(demand pricing recomputed at each close), lineup on a pitch, gameweek
+results, world and private standings, an Admin screen that locks or
+reopens a gameweek, loads the rated performances exported locally by
+`jeu/exporter_journee.py` and closes the gameweek through
+`jeu/pipeline.py`. Six API tests (34 in total). `web/app/demo.py` builds
+a demo base on 2025/26 from J18 so several people can play before the
+live season. See `docs/SITE.md`.
 
 Goal: a manager can do everything the game needs from a browser.
 
@@ -89,14 +94,16 @@ Screens, in the order they unblock play:
    history, attributes.
 5. Standings — game league table, weekly and season.
 
-## Phase 4 — accounts and hosting (1–2 weeks)
+## Phase 4 — hosting (next)
 
-- Auth: email + magic link is enough for a first season; no passwords
-  to store.
-- Hosting: one small VM or a PaaS (Fly.io, Railway). The weekly pipeline
-  is a cron job on the same box. Card PNGs are generated once per
-  gameweek and served as static files.
-- Backups of the game database after every gameweek.
+- Accounts are pseudo + password (done in phase 3; magic links need an
+  email provider, later).
+- Hosting: the `Dockerfile` on a PaaS with a persistent volume (Fly.io,
+  Railway, Render) or a small VPS. The weekly close is done by the admin
+  from the site; the engine runs on the owner's machine, which exports
+  one JSON per gameweek.
+- Backups: copy `/data/jeu.sqlite` after every close.
+- Card PNGs (`jeu/cartes.py`) as shareable images: later.
 
 ## Phase 5 — first live season
 

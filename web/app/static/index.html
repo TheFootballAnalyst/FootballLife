@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FootballLife</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="barre">
+    <div class="marque"><h1 class="anton">FOOTBALL<span>LIFE</span></h1><small id="marque-sous">saison</small></div>
+    <div class="statut" id="statut" hidden>
+      <div><span>Journée</span><b id="st-j" class="num">—</b></div>
+      <div><span>Crédits</span><b id="st-cash" class="num">—</b></div>
+      <div><span>Patrimoine</span><b id="st-val" class="num">—</b></div>
+      <div><span>Points</span><b id="st-pts" class="num">—</b></div>
+      <div><span>Rang</span><b id="st-rang" class="num">—</b></div>
+    </div>
+    <nav id="nav" hidden>
+      <button data-ecran="marche">Marché</button>
+      <button data-ecran="equipe">Équipe</button>
+      <button data-ecran="journee">Journée</button>
+      <button data-ecran="classement">Classement</button>
+      <button data-ecran="admin" id="nav-admin" hidden>Admin</button>
+      <button class="discret" id="btn-deconnexion" title="Se déconnecter">↩</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section id="ecran-connexion" class="accueil">
+    <h2 class="anton" style="font-size:40px">Un jeu où les points viennent des vrais matchs</h2>
+    <p>Chaque carte est un joueur des cinq grands championnats. Sa note à chaque journée est celle du barème, calculée sur le match réellement joué. Un seul marché mondial, des prix qui montent quand tout le monde veut la même carte.</p>
+    <div class="pan" style="max-width:420px">
+      <div class="onglets"><button data-mode="connexion" aria-current="page">Connexion</button><button data-mode="inscription">Créer un compte</button></div>
+      <form id="form-auth">
+        <label>Pseudo<input name="pseudo" autocomplete="username" required minlength="2" maxlength="24"></label>
+        <label>Mot de passe<input name="mot_de_passe" type="password" autocomplete="current-password" required minlength="6"></label>
+        <label id="champ-equipe" hidden>Nom de l'équipe<input name="equipe" maxlength="40" placeholder="facultatif"></label>
+        <div class="erreur" id="auth-erreur"></div>
+        <button class="primaire" type="submit" id="auth-bouton">Se connecter</button>
+      </form>
+    </div>
+    <ol>
+      <li><b>Recrute 15 cartes</b> avec ton budget : 2 gardiens, 5 défenseurs, 5 milieux, 3 attaquants au plus.</li>
+      <li><b>Aligne ton onze</b> avant le premier coup d'envoi, choisis un capitaine (×1,5) et l'ordre du banc.</li>
+      <li><b>Les matchs se jouent</b>, le barème note, ton score est la somme des notes. Les cartes évoluent, les prix suivent.</li>
+    </ol>
+  </section>
+
+  <section id="ecran-marche" hidden>
+    <div class="tete"><h2 class="anton">Marché</h2><span class="compteur" id="marche-compteur"></span>
+      <div class="droite"><span class="etiq">Effectif</span><b id="marche-effectif" class="num">0 / 15</b></div></div>
+    <div id="marche-ferme" class="avert" hidden>Marché fermé : la journée est en cours. Les transferts rouvrent une fois la journée calculée.</div>
+    <div class="filtres">
+      <input type="search" id="f-nom" placeholder="Nom de joueur ou de club">
+      <select id="f-fam"><option value="">Tous les postes</option><option value="GK">Gardiens</option><option value="DEF">Défenseurs</option><option value="MID">Milieux</option><option value="FWD">Attaquants</option></select>
+      <select id="f-ligue"><option value="">Toutes les ligues</option><option>Premier League</option><option>LaLiga</option><option>Serie A</option><option>Bundesliga</option><option>Ligue 1</option></select>
+      <select id="f-tri"><option value="ovr">Tri : OVR</option><option value="prix">Tri : prix</option><option value="forme">Tri : forme récente</option><option value="part">Tri : popularité</option><option value="nom">Tri : nom</option></select>
+      <label class="case"><input type="checkbox" id="f-abord"> abordables</label>
+      <label class="case"><input type="checkbox" id="f-miens"> mon effectif</label>
+    </div>
+    <div class="liste" id="marche-liste"></div>
+    <div style="text-align:center;margin-top:10px"><button id="marche-plus">Afficher plus</button></div>
+  </section>
+
+  <section id="ecran-equipe" hidden>
+    <div class="grille2">
+      <div>
+        <div class="tete"><h2 class="anton">Composition</h2>
+          <div class="droite">
+            <select id="formation"></select>
+            <button id="btn-auto">Meilleur onze automatique</button>
+            <button class="primaire" id="btn-envoyer">Envoyer la composition</button>
+          </div></div>
+        <div id="avert-compo"></div>
+        <div class="terrain" id="terrain"></div>
+        <p class="info" id="compo-etat"></p>
+      </div>
+      <div class="pan">
+        <h2 class="anton">Banc</h2>
+        <p class="compteur">Ordre d'entrée : le premier qui a joué remplace un titulaire absent.</p>
+        <div class="banc" id="banc"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ecran-journee" hidden>
+    <div class="grille2">
+      <div class="pan" id="journee-pan"></div>
+      <div class="pan">
+        <h2 class="anton">Mes journées</h2>
+        <div class="tableau"><table id="histo"><thead><tr><th>J</th><th class="num">Score</th><th class="num">Gain</th><th class="num">Rang</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ecran-classement" hidden>
+    <div class="grille2">
+      <div class="pan">
+        <h2 class="anton">Classement mondial</h2>
+        <div class="tableau"><table id="classement"><thead><tr><th>#</th><th>Équipe</th><th>Manager</th><th class="num">Points</th><th class="num">Dernière J</th><th class="num">Patrimoine</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="pan">
+        <h2 class="anton">Ligues privées</h2>
+        <p class="compteur">Un classement entre amis, sur le même marché.</p>
+        <div class="rangee"><input id="ligue-nom" placeholder="Nom de la ligue" maxlength="40"><button id="btn-creer-ligue">Créer</button></div>
+        <div class="rangee"><input id="ligue-code" placeholder="Code d'invitation" maxlength="8"><button id="btn-rejoindre-ligue">Rejoindre</button></div>
+        <div id="ligues"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ecran-admin" hidden>
+    <div class="pan">
+      <h2 class="anton">Administration de la saison</h2>
+      <div id="admin-etat"></div>
+    </div>
+  </section>
+</main>
+
+<dialog id="fiche"></dialog>
+<div class="toast" id="toast"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

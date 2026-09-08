@@ -121,7 +121,28 @@ CREATE TABLE IF NOT EXISTS utilisateur (
     utilisateur_id   INTEGER PRIMARY KEY AUTOINCREMENT,
     pseudo           TEXT NOT NULL UNIQUE,
     email            TEXT UNIQUE,
+    cree_le          TEXT NOT NULL,
+    mdp_hash         TEXT,                          -- PBKDF2, see web/app/serveur.py
+    mdp_sel          TEXT,
+    est_admin        INTEGER NOT NULL DEFAULT 0
+);
+
+-- Private leagues: a ranking among friends on the global market (no
+-- exclusivity, same cards, same prices).  A team can be in many.
+CREATE TABLE IF NOT EXISTS ligue_privee (
+    ligue_privee_id  INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom              TEXT NOT NULL,
+    code             TEXT NOT NULL UNIQUE,          -- invitation code
+    saison           TEXT NOT NULL,
+    cree_par         INTEGER REFERENCES equipe(equipe_id),
     cree_le          TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ligue_privee_membre (
+    ligue_privee_id  INTEGER NOT NULL REFERENCES ligue_privee(ligue_privee_id),
+    equipe_id        INTEGER NOT NULL REFERENCES equipe(equipe_id),
+    rejoint_le       TEXT NOT NULL,
+    PRIMARY KEY (ligue_privee_id, equipe_id)
 );
 
 -- A "league" in the game sense: a group of managers competing over one

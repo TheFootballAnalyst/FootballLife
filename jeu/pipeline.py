@@ -282,6 +282,44 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
     return resume
 
 
+def charger_prestations(jeu, saison, numero, doc):
+    """Write the rated performances of a gameweek from a document produced by
+    jeu/exporter_journee.py (so the server never needs the FotMob base).
+
+    doc = {"saison", "journee", "du", "au", "matchs": {match_id: {...}},
+           "clubs": {team_id: {nom, couleur}}, "joueurs": {player_id: {nom, poste}},
+           "prestations": [{match_id, player_id, team_id, poste, minutes, entrant,
+                            brut, coef, points, note, statut, lignes, attributs}]}
+    """
+    if doc.get("saison") != saison or int(doc.get("journee", -1)) != numero:
+        raise SystemExit(f"le fichier est pour {doc.get('saison')} J{doc.get('journee')}, pas {saison} J{numero}")
+    jid = journee_id(jeu, saison, numero)
+    for tid, c in doc.get("clubs", {}).items():
+        jeu.execute("INSERT OR IGNORE INTO club(team_id, nom) VALUES (?,?)", (int(tid), c["nom"]))
+        if c.get("couleur"):
+            jeu.execute("UPDATE club SET couleur=? WHERE team_id=?", (c["couleur"], int(tid)))
+    for mid, m in doc.get("matchs", {}).items():
+        jeu.execute("INSERT OR IGNORE INTO competition(competition_id, nom, saison) VALUES (?,?,?)",
+                    (m["competition_id"], m["competition"], saison))
+        jeu.execute("""INSERT OR REPLACE INTO match(match_id, journee_id, competition_id, date_utc, phase,
+                       home_team_id, away_team_id, home_score, away_score) VALUES (?,?,?,?,?,?,?,?,?)""",
+                    (int(mid), jid, m["competition_id"], m["date_utc"], m.get("phase"),
+                     m["home_team_id"], m["away_team_id"], m.get("home_score"), m.get("away_score")))
+    for pid, j in doc.get("joueurs", {}).items():
+        jeu.execute("INSERT OR IGNORE INTO joueur(player_id, nom, nom_normalise, team_id, poste) VALUES (?,?,?,?,?)",
+                    (int(pid), j["nom"], I.sans_accents(j["nom"]), j.get("team_id"), j["poste"]))
+    n = 0
+    for p in doc.get("prestations", []):
+        jeu.execute("""INSERT OR REPLACE INTO prestation(match_id, player_id, team_id, poste, minutes, entrant,
+                       brut, coef, points, note, statut, lignes, attributs) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (p["match_id"], p["player_id"], p.get("team_id"), p["poste"], p["minutes"], int(p.get("entrant", 0)),
+                     p["brut"], p["coef"], p["points"], p.get("note"), p.get("statut"),
+                     json.dumps(p.get("lignes", {}), ensure_ascii=False), json.dumps(p.get("attributs", {}))))
+        n += 1
+    jeu.commit()
+    return n
+
+
 def etat(jeu, saison):
     rows = jeu.execute("SELECT numero, du, au, calculee FROM journee WHERE saison=? ORDER BY numero", (saison,)).fetchall()
     ech = parametre(jeu, saison, "echelle")
