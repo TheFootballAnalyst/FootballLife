@@ -317,7 +317,7 @@ def charger_prestations(jeu, saison, numero, doc):
            "clubs": {team_id: {nom, couleur}}, "joueurs": {player_id: {nom, poste}},
            "prestations": [{match_id, player_id, team_id, poste, minutes, entrant,
                             brut, coef, points, note, statut, lignes, attributs}],
-           "valeurs": [[player_id, date, M€], ...]}      # market values of the sheets
+           "valeurs": [[player_id, date, M€, age, shirt, country], ...]}   # from the sheets
     """
     if doc.get("saison") != saison or int(doc.get("journee", -1)) != numero:
         raise SystemExit(f"le fichier est pour {doc.get('saison')} J{doc.get('journee')}, pas {saison} J{numero}")
@@ -345,7 +345,7 @@ def charger_prestations(jeu, saison, numero, doc):
                      json.dumps(p.get("lignes", {}), ensure_ascii=False), json.dumps(p.get("attributs", {}))))
         n += 1
     jeu.commit()
-    I.ecrire_valeurs(jeu, [(int(pid), d, float(v)) for pid, d, v in doc.get("valeurs", [])])
+    I.ecrire_valeurs(jeu, [tuple(v) for v in doc.get("valeurs", [])])
     return n
 
 

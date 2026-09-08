@@ -16,6 +16,12 @@ const fM = (x, signe = false) => { const v = +x || 0, a = Math.abs(v), s = v < 0
   if (a < 10) return s + a.toFixed(2).replace(".", ",") + " M€";
   return s + (Math.round(a * 10) / 10).toFixed(1).replace(".", ",") + " M€"; };
 
+// ISO-3 (FotMob) -> ISO-2, for the flag emoji on the card
+const ISO2 = {FRA:"FR",ENG:"GB",SCO:"GB",WAL:"GB",NIR:"GB",IRL:"IE",ESP:"ES",ITA:"IT",GER:"DE",POR:"PT",NED:"NL",BEL:"BE",SUI:"CH",AUT:"AT",DEN:"DK",SWE:"SE",NOR:"NO",FIN:"FI",ISL:"IS",POL:"PL",CZE:"CZ",SVK:"SK",HUN:"HU",ROU:"RO",BUL:"BG",SRB:"RS",CRO:"HR",SVN:"SI",BIH:"BA",MNE:"ME",MKD:"MK",ALB:"AL",KOS:"XK",GRE:"GR",TUR:"TR",UKR:"UA",RUS:"RU",BLR:"BY",GEO:"GE",ARM:"AM",AZE:"AZ",KAZ:"KZ",ISR:"IL",CYP:"CY",MLT:"MT",LUX:"LU",LTU:"LT",LVA:"LV",EST:"EE",MDA:"MD",BRA:"BR",ARG:"AR",URU:"UY",PAR:"PY",CHI:"CL",COL:"CO",PER:"PE",ECU:"EC",VEN:"VE",BOL:"BO",MEX:"MX",USA:"US",CAN:"CA",JAM:"JM",CRC:"CR",HON:"HN",PAN:"PA",GUA:"GT",SLV:"SV",HAI:"HT",CUB:"CU",DOM:"DO",TRI:"TT",CUW:"CW",SUR:"SR",MAR:"MA",ALG:"DZ",TUN:"TN",EGY:"EG",SEN:"SN",CIV:"CI",CMR:"CM",NGA:"NG",GHA:"GH",MLI:"ML",GUI:"GN",BFA:"BF",COD:"CD",CGO:"CG",GAB:"GA",ANG:"AO",MOZ:"MZ",ZAM:"ZM",ZIM:"ZW",RSA:"ZA",KEN:"KE",UGA:"UG",TAN:"TZ",ETH:"ET",SUD:"SD",TOG:"TG",BEN:"BJ",NIG:"NE",GAM:"GM",SLE:"SL",LBR:"LR",CPV:"CV",GNB:"GW",EQG:"GQ",CTA:"CF",CHA:"TD",MTN:"MR",LBY:"LY",COM:"KM",MAD:"MG",BDI:"BI",RWA:"RW",JPN:"JP",KOR:"KR",CHN:"CN",AUS:"AU",NZL:"NZ",IRN:"IR",IRQ:"IQ",KSA:"SA",QAT:"QA",UAE:"AE",UZB:"UZ",IND:"IN",THA:"TH",VIE:"VN",PHI:"PH",IDN:"ID",MAS:"MY",SYR:"SY",JOR:"JO",LBN:"LB",PLE:"PS"};
+const drapeau = code => { const c = ISO2[code] || (code && code.length === 2 ? code : null); if (!c) return ""; return String.fromCodePoint(...[...c.toUpperCase()].map(ch => 0x1F1E6 + ch.charCodeAt(0) - 65)); };
+const ageTxt = c => c.age ? `${c.age} ans` : "";
+const FAM_COURT = {GK: "GB", DEF: "DÉF", MID: "MIL", FWD: "ATT"};
+
 // ---- état local (miroir de ce que le serveur a renvoyé) ----
 const G = {moi: null, saison: null, cartes: [], idx: new Map(), equipe: null, compo: null, ecran: "connexion"};
 let TAILLE = 15, FORMATIONS = {"4-3-3": [1,4,3,3]}, LIMITES = {GK: [1,1], DEF: [3,5], MID: [2,5], FWD: [1,3]};
@@ -77,9 +83,14 @@ async function montrer(ecran) {
     await ({marche: rendreMarche, equipe: rendreEquipe, journee: rendreJournee, classement: rendreClassement, admin: rendreAdmin}[ecran] || (async () => {}))();
   } catch (e) { if (e.status === 401) { connecte(null); } else toast(e.message); }
 }
+async function vitrine() {
+  const V = $("#vitrine"); if (!V || V.childElementCount) return;
+  try { for (const c of await api("/vitrine")) V.append(carteMarche(c, {vitrine: true})); } catch (e) {}
+}
 function connecte(moi) {
   G.moi = moi;
   const on = !!(moi && moi.connecte);
+  if (!on) vitrine();
   $("#statut").hidden = !on; $("#nav").hidden = !on; $("#nav-admin").hidden = !(on && moi.admin);
   if (!on) { for (const s of document.querySelectorAll("main > section")) s.hidden = s.id !== "ecran-connexion"; G.ecran = "connexion"; }
 }
@@ -109,6 +120,7 @@ let marcheLimite = 60;
 let marcheVue = "cartes";
 try { marcheVue = localStorage.getItem("fl_vue") || "cartes"; } catch (e) {}
 document.querySelectorAll(".vue button").forEach(b => b.addEventListener("click", () => { marcheVue = b.dataset.vue; try { localStorage.setItem("fl_vue", marcheVue); } catch (e) {} rendreMarche(); }));
+document.querySelectorAll("#pills-fam button").forEach(b => b.addEventListener("click", () => { $("#f-fam").value = b.dataset.fam; document.querySelectorAll("#pills-fam button").forEach(x => x === b ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current")); marcheLimite = 60; rendreMarche(); }));
 function peutAcheter(id) {
   const c = carte(id);
   if (G.equipe.effectif[id]) return "déjà dans l'effectif";
@@ -140,10 +152,11 @@ function rendreMarche() {
     if (abord && c.prix > G.equipe.budget) return false; if (miens && !G.equipe.effectif[c.id]) return false;
     if (q && !norm(c.nom).includes(q) && !norm(c.club).includes(q)) return false; return true;
   });
-  const cle = {ovr: c => -c.ovr, prix: c => -c.prix, forme: c => -formeMoy(c), part: c => -c.part, nom: c => 0}[tri];
+  const cle = {ovr: c => -c.ovr, prix: c => -c.prix, rapport: c => -(c.ovr - 40) / Math.max(c.prix, 0.1), forme: c => -formeMoy(c), age: c => c.age || 99, part: c => -c.part, nom: c => 0}[tri];
   rows.sort((a, b) => cle(a) - cle(b) || a.nom.localeCompare(b.nom));
   $("#marche-compteur").textContent = `${rows.length} cartes`;
-  $("#marche-effectif").textContent = `${idsEffectif().length} / ${TAILLE} · ${FAMS.map(f => nbFam(f) + "/" + QUOTA[f]).join(" · ")}`;
+  const ME = $("#marche-effectif"); ME.replaceChildren(el("span", {class: "etiq"}, "Effectif"), el("b", {class: "num"}, `${idsEffectif().length} / ${TAILLE}`),
+    ...FAMS.map(f => el("span", {class: "quota" + (nbFam(f) >= QUOTA[f] ? " plein" : "")}, `${FAM_COURT[f]} `, el("b", {}, `${nbFam(f)}/${QUOTA[f]}`))));
   document.querySelectorAll(".vue button").forEach(b => { if (b.dataset.vue === marcheVue) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   const L = $("#marche-liste"); L.replaceChildren(); L.className = marcheVue === "cartes" ? "cartes-grille" : "liste";
   for (const c of rows.slice(0, marcheLimite)) L.append(marcheVue === "cartes" ? carteMarche(c) : ligneCarte(c));
@@ -154,26 +167,37 @@ function boutonAchatVente(c, mien) {
   return mien ? el("button", {class: "vente", disabled: !G.equipe.marche_ouvert, onclick: e => { e.stopPropagation(); vendre(c.id); }}, "Vendre")
               : el("button", {class: "achat" + (why ? "" : " primaire"), title: why || "", onclick: e => { e.stopPropagation(); acheter(c.id); }}, "Acheter");
 }
-// the card itself: club colour, OVR, position, portrait, name, form, price
-function carteMarche(c) {
-  const mien = !!G.equipe.effectif[c.id];
-  const k = el("div", {class: "cartej" + (mien ? " mienne" : ""), tabindex: "0", role: "button", onclick: () => ouvrirFiche(c.id), onkeydown: e => { if (e.key === "Enter") ouvrirFiche(c.id); }});
+// the card itself: an escutcheon (clip-path) in the club colour — OVR, position, age,
+// flag, shirt number, portrait, then name, club, form, price and the button
+function carteMarche(c, opts = {}) {
+  const mien = !opts.vitrine && !!G.equipe?.effectif[c.id];
+  const k = el("div", {class: "cartej" + (mien ? " mienne" : ""), tabindex: opts.vitrine ? null : "0", role: opts.vitrine ? null : "button",
+    onclick: opts.vitrine ? null : () => ouvrirFiche(c.id), onkeydown: opts.vitrine ? null : e => { if (e.key === "Enter") ouvrirFiche(c.id); }});
   k.style.setProperty("--clubc", c.couleur);
   const delta = mien ? c.prix - G.equipe.effectif[c.id] : 0;
-  k.append(
-    el("div", {class: "cj-haut"},
-      el("div", {class: "cj-ovr anton" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)),
-      el("div", {class: "cj-pos"}, el("span", {class: "fam " + c.fam}, c.fam === "GK" ? "GB" : c.fam === "DEF" ? "DÉF" : c.fam === "MID" ? "MIL" : "ATT")),
-      vignette(c.id),
-      el("img", {class: "cj-logo", src: `/images/logos/${c.team_id}.png`, alt: "", loading: "lazy", onerror: e => e.target.remove()})),
-    el("div", {class: "cj-corps"},
-      el("div", {class: "nom", title: c.nom}, c.nom),
-      el("div", {class: "sous"}, `${c.club} · ${POSTE_COURT[c.poste] || c.poste}`),
-      el("div", {class: "cj-milieu"}, barresForme(c), c.part > 0 ? el("span", {class: "part"}, Math.round(c.part * 100) + " %") : null),
-      el("div", {class: "cj-pied"}, el("span", {class: "prix num"}, fM(c.prix)),
-        mien && Math.abs(delta) >= 0.005 ? el("span", {class: "delta " + (delta > 0 ? "plus" : "moins")}, fM(delta, true)) : null),
-      boutonAchatVente(c, mien)));
+  const haut = el("div", {class: "cj-haut"},
+    el("div", {class: "cj-ovr anton" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)),
+    el("div", {class: "cj-pos"}, el("span", {class: "fam " + c.fam}, FAM_COURT[c.fam])),
+    c.age ? el("div", {class: "cj-age"}, ageTxt(c)) : null,
+    el("img", {class: "cj-logo", src: `/images/logos/${c.team_id}.png`, alt: "", loading: "lazy", onerror: e => e.target.remove()}),
+    c.pays ? el("div", {class: "cj-drapeau", title: c.pays}, drapeau(c.pays)) : null,
+    c.numero ? el("div", {class: "cj-num"}, "#" + c.numero) : null,
+    vignetteDe(c));
+  const corps = el("div", {class: "cj-corps"},
+    el("div", {class: "nom", title: c.nom}, c.nom),
+    el("div", {class: "sous"}, `${c.club} · ${POSTE_COURT[c.poste] || c.poste}`),
+    el("div", {class: "cj-milieu"}, barresForme(c), c.part > 0 ? el("span", {class: "part"}, Math.round(c.part * 100) + " %") : null),
+    el("div", {class: "cj-pied"}, el("span", {class: "prix num"}, fM(c.prix)),
+      mien && Math.abs(delta) >= 0.005 ? el("span", {class: "delta " + (delta > 0 ? "plus" : "moins")}, fM(delta, true)) : null),
+    opts.vitrine ? null : boutonAchatVente(c, mien));
+  k.append(el("div", {class: "crest-bord"}, el("div", {class: "crest-corps"}, haut, corps)));
   return k;
+}
+function vignetteDe(c) {
+  const v = el("div", {class: "vign"});
+  const img = el("img", {src: `/images/joueurs/${c.id}.png`, alt: "", loading: "lazy"});
+  img.addEventListener("error", () => { img.remove(); v.append(el("span", {class: "init"}, (c.nom || "?").split(" ").slice(0, 2).map(w => w[0]).join(""))); });
+  v.append(img); return v;
 }
 function ligneCarte(c) {
   const mien = !!G.equipe.effectif[c.id];
@@ -181,7 +205,7 @@ function ligneCarte(c) {
   l.style.setProperty("--clubc", c.couleur);
   const delta = mien ? c.prix - G.equipe.effectif[c.id] : 0;
   l.append(vignette(c.id),
-    el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, `${c.club} · ${POSTE_COURT[c.poste] || c.poste}${c.part > 0 ? " · " + Math.round(c.part * 100) + " % des équipes" : ""}`)),
+    el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, `${c.club} · ${POSTE_COURT[c.poste] || c.poste}${c.age ? " · " + c.age + " ans" : ""}${c.part > 0 ? " · " + Math.round(c.part * 100) + " % des équipes" : ""}`)),
     barresForme(c),
     el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)),
     el("div", {class: "prix num"}, fM(c.prix), mien && Math.abs(delta) >= 0.005 ? el("div", {class: "delta " + (delta > 0 ? "plus" : "moins")}, fM(delta, true)) : null));
@@ -235,9 +259,12 @@ function rendreEquipe(recalc = true) {
 }
 function slotEl(s, fam) {
   const i = C.slots[s];
-  if (i === null) return el("div", {class: "slot vide", tabindex: "0", onclick: () => { const cands = C.banc.filter(x => carte(x).fam === fam).sort((a, b) => ovr(b) - ovr(a)); if (!cands.length) { toast(`Aucun ${NOM_FAM[fam].toLowerCase()} sur le banc`); return; } C.banc = C.banc.filter(x => x !== cands[0]); C.slots[s] = cands[0]; rendreEquipe(false); }}, el("div", {class: "n"}, NOM_FAM[fam]), el("div", {class: "o"}, "+"));
-  const c = carte(i); const d = el("div", {class: "slot", tabindex: "0", onclick: () => menuSlot(s)});
-  d.append(vignette(i), el("div", {class: "n"}, c.nom.split(" ").slice(-1)[0]), el("div", {class: "o num"}, String(c.ovr)));
+  if (i === null) return el("div", {class: "slot vide", tabindex: "0", onclick: () => { const cands = C.banc.filter(x => carte(x).fam === fam).sort((a, b) => ovr(b) - ovr(a)); if (!cands.length) { toast(`Aucun ${NOM_FAM[fam].toLowerCase()} sur le banc`); return; } C.banc = C.banc.filter(x => x !== cands[0]); C.slots[s] = cands[0]; rendreEquipe(false); }}, el("div", {class: "mini"}, el("div", {}, el("div", {class: "o"}, "+"), el("div", {class: "n"}, NOM_FAM[fam]))));
+  const c = carte(i); const d = el("div", {class: "slot", tabindex: "0", onclick: () => menuSlot(s), onkeydown: e => { if (e.key === "Enter") menuSlot(s); }});
+  d.style.setProperty("--clubc", c.couleur);
+  d.append(el("div", {class: "mini"}, el("div", {},
+    el("div", {class: "mh"}, el("div", {class: "o num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)), vignette(i)),
+    el("div", {class: "n"}, c.nom.split(" ").slice(-1)[0]))));
   if (C.cap === i) d.append(el("div", {class: "cap"}, "C"));
   return d;
 }
@@ -308,7 +335,7 @@ async function rendreJournee() {
 // ---- classement et ligues ----
 async function rendreClassement() {
   const cl = await api("/classement"); const tb = $("#classement tbody"); tb.replaceChildren();
-  for (const r of cl) tb.append(el("tr", {class: r.equipe_id === G.equipe.equipe_id ? "moi" : ""}, el("td", {}, String(r.rang)), el("td", {}, r.equipe), el("td", {}, r.pseudo), el("td", {class: "num"}, f1(r.points)), el("td", {class: "num"}, r.derniere == null ? "—" : f1(r.derniere)), el("td", {class: "num"}, fM(r.patrimoine))));
+  for (const r of cl) tb.append(el("tr", {class: r.equipe_id === G.equipe.equipe_id ? "moi" : ""}, el("td", {class: r.rang <= 3 ? "podium p" + r.rang : ""}, String(r.rang)), el("td", {}, r.equipe), el("td", {}, r.pseudo), el("td", {class: "num"}, f1(r.points)), el("td", {class: "num"}, r.derniere == null ? "—" : f1(r.derniere)), el("td", {class: "num"}, fM(r.patrimoine))));
   const L = $("#ligues"); L.replaceChildren();
   for (const l of await api("/ligues")) {
     const box = el("div", {class: "ligue"}, el("div", {class: "tete"}, el("h3", {class: "anton"}, l.nom), el("span", {class: "compteur"}, "code ", el("span", {class: "code"}, l.code))));
@@ -369,7 +396,8 @@ async function ouvrirFiche(id) {
   img.addEventListener("error", () => img.remove());
   const cote = el("div", {class: "fiche-cote"});
   cote.append(el("div", {class: "etiq"}, `${d.club} · ${d.ligue}`), el("h3", {class: "anton"}, d.nom),
-    el("div", {class: "compteur"}, `${POSTE_COURT[d.poste] || d.poste} · ${d.matchs} matchs, ${d.minutes} min · ${Math.round(d.part * 100)} % des équipes`),
+    el("div", {class: "fiche-ligne"}, el("span", {class: "fam " + d.fam}, FAM_COURT[d.fam]), el("span", {}, POSTE_COURT[d.poste] || d.poste), d.age ? el("span", {}, `· ${d.age} ans`) : null, d.pays ? el("span", {title: d.pays}, `· ${drapeau(d.pays)} ${d.pays}`) : null, d.numero ? el("span", {}, `· n° ${d.numero}`) : null),
+    el("div", {class: "compteur"}, `${d.matchs} matchs, ${d.minutes} min cette saison · ${Math.round(d.part * 100)} % des équipes`),
     el("div", {style: "display:flex;gap:14px;align-items:baseline;margin-top:6px"}, el("div", {class: "ovr num" + (d.ovr >= 80 ? " haut" : ""), style: "font-size:40px"}, String(d.ovr)), el("div", {class: "prix num", style: "font-size:22px"}, fM(d.prix))));
   const dep = d.valeur_base != null ? `${fM(d.valeur_base)} à OVR ${d.ovr_base}` : "—";
   cote.append(el("div", {class: "compteur", style: "margin-top:6px"}, `Départ de saison : ${dep}`),

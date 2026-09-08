@@ -28,7 +28,10 @@ CREATE TABLE IF NOT EXISTS joueur (
     nom_normalise    TEXT NOT NULL,                 -- accents stripped, lower
     team_id          INTEGER REFERENCES club(team_id),
     poste            TEXT NOT NULL,                 -- engine position (majority)
-    valeur_marche    REAL                           -- M€, latest known (FotMob match sheets)
+    valeur_marche    REAL,                          -- M€, latest known (FotMob match sheets)
+    age              INTEGER,                       -- from the latest match sheet
+    numero           TEXT,                          -- shirt number
+    pays             TEXT                           -- ISO-3 country code
 );
 CREATE INDEX IF NOT EXISTS ix_joueur_nom ON joueur(nom_normalise);
 

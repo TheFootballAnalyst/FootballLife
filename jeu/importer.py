@@ -85,7 +85,7 @@ def journees_depuis_rounds(fot: sqlite3.Connection, ligue_id: int,
 # --------------------------------------------------------------------------
 
 MIGRATIONS = {                       # columns added after the first bases were written
-    "joueur": [("valeur_marche", "REAL")],
+    "joueur": [("valeur_marche", "REAL"), ("age", "INTEGER"), ("numero", "TEXT"), ("pays", "TEXT")],
     "carte": [("part", "REAL NOT NULL DEFAULT 0"), ("valeur_base", "REAL NOT NULL DEFAULT 1"),
               ("ovr_base", "INTEGER NOT NULL DEFAULT 60"), ("poids", "REAL NOT NULL DEFAULT 0")],
     "carte_historique": [("part", "REAL NOT NULL DEFAULT 0"), ("poids", "REAL NOT NULL DEFAULT 0")],
@@ -159,11 +159,13 @@ def importer_journee(fot: sqlite3.Connection, jeu: sqlite3.Connection,
     return n
 
 
-def lire_valeurs(match_ids, cache: pathlib.Path | None = None) -> list[tuple[int, str, float]]:
-    """[(player_id, ISO date, M€)] from the cached sheets of `match_ids`.
+def lire_valeurs(match_ids, cache: pathlib.Path | None = None) -> list[tuple]:
+    """[(player_id, ISO date, M€, age, shirt number, country code)] from the
+    cached sheets of `match_ids`.
 
     FotMob's lineup carries `marketValue` (euros) for every player on the
     sheet; it is Transfermarkt's figure, refreshed a few times a season.
+    The sheet also gives the player's age, shirt number and nationality.
     """
     cache = pathlib.Path(cache or T.CACHE_MATCHES)
     out = []
@@ -185,7 +187,8 @@ def lire_valeurs(match_ids, cache: pathlib.Path | None = None) -> list[tuple[int
                 for pj in eq.get(grp) or []:
                     mv, pid = pj.get("marketValue"), pj.get("id")
                     if pid and mv:
-                        out.append((int(pid), date, round(float(mv) / 1e6, 2)))
+                        out.append((int(pid), date, round(float(mv) / 1e6, 2), pj.get("age"),
+                                    str(pj.get("shirtNumber") or "") or None, pj.get("countryCode")))
     return out
 
 
@@ -193,10 +196,17 @@ def ecrire_valeurs(jeu: sqlite3.Connection, valeurs) -> int:
     """valeur_marche rows (players known to the game only) + joueur.valeur_marche."""
     connus = {r[0] for r in jeu.execute("SELECT player_id FROM joueur")}
     n = 0
-    for pid, date, v in valeurs:
+    derniers: dict[int, tuple] = {}
+    for ligne in valeurs:
+        pid, date, v = ligne[0], ligne[1], ligne[2]
         if pid in connus:
             jeu.execute("INSERT OR REPLACE INTO valeur_marche(player_id, date, valeur) VALUES (?,?,?)", (pid, date, v))
             n += 1
+            if len(ligne) >= 6 and (pid not in derniers or date >= derniers[pid][0]):
+                derniers[pid] = (date, ligne[3], ligne[4], ligne[5])
+    for pid, (_, age, numero, pays) in derniers.items():
+        jeu.execute("UPDATE joueur SET age=COALESCE(?, age), numero=COALESCE(?, numero), pays=COALESCE(?, pays) WHERE player_id=?",
+                    (age, numero, pays, pid))
     jeu.execute("""UPDATE joueur SET valeur_marche = (SELECT valeur FROM valeur_marche v WHERE v.player_id = joueur.player_id
                                                    ORDER BY date DESC LIMIT 1)""")
     jeu.commit()

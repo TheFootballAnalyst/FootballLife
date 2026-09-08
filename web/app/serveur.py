@@ -266,7 +266,7 @@ def cartes_toutes(jeu):
     out = []
     for r in jeu.execute("""
             SELECT c.player_id, c.ovr, c.prix, c.part, c.note_ovr, c.matchs, c.minutes,
-                   c.valeur_base, c.ovr_base,
+                   c.valeur_base, c.ovr_base, j.age, j.numero, j.pays,
                    j.nom, j.poste, j.team_id, cl.nom AS club, cl.couleur
             FROM carte c JOIN joueur j ON j.player_id = c.player_id
             LEFT JOIN club cl ON cl.team_id = j.team_id WHERE c.saison = ?""", (SAISON,)):
@@ -277,6 +277,7 @@ def cartes_toutes(jeu):
             "ligue": ligues.get(ligue_club.get(r["team_id"], (0,))[0], ""),
             "ovr": r["ovr"], "prix": r["prix"], "part": round(r["part"], 3),
             "valeur_base": r["valeur_base"], "ovr_base": r["ovr_base"], "valeur_marche": valeurs.get(r["player_id"]),
+            "age": r["age"], "numero": r["numero"], "pays": r["pays"],
             "matchs": r["matchs"], "minutes": int(r["minutes"] or 0),
             "notes": notes.get(r["player_id"], [])[-6:],
         })
@@ -287,6 +288,21 @@ def cartes_toutes(jeu):
 @app.get("/api/cartes")
 def cartes(jeu=Depends(bd)):
     return cartes_toutes(jeu)
+
+
+@app.get("/api/vitrine")
+def vitrine(jeu=Depends(bd)):
+    """A few star cards for the landing page (no account needed): the best
+    OVR of each family, portrait available."""
+    out, vus = [], set()
+    for c in sorted(cartes_toutes(jeu), key=lambda c: -c["ovr"]):
+        if c["fam"] in vus or not (IMAGES / "joueurs" / f"{c['id']}.png").exists():
+            continue
+        vus.add(c["fam"])
+        out.append({k: c[k] for k in ("id", "nom", "club", "couleur", "team_id", "ovr", "poste", "fam", "age", "pays", "prix")})
+        if len(out) == 4:
+            break
+    return out
 
 
 @app.get("/api/cartes/{pid}")
@@ -646,6 +662,14 @@ def image_carte(pid: int, jeu=Depends(bd)):
     if f is None:
         raise HTTPException(404, "Carte indisponible")
     return FileResponse(f, headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/images/ligues/{nom}.png")
+def logo_ligue(nom: str):
+    f = IMAGES / "ligues" / f"{nom}.png"
+    if not f.exists() or "/" in nom or ".." in nom:
+        raise HTTPException(404)
+    return FileResponse(f, headers={"Cache-Control": "public, max-age=604800"})
 
 
 @app.get("/images/logos/{tid}.png")

@@ -10,7 +10,7 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 | écran | ce qu'on y fait |
 |---|---|
 | Connexion | créer un compte (pseudo, mot de passe, nom d'équipe) ; le premier compte est administrateur |
-| Marché | toutes les cartes (vue cartes ou liste), filtres, fiche joueur, achat et vente au prix public en M€ ; fermé pendant une journée verrouillée |
+| Marché | toutes les cartes (écussons ou liste), filtres par poste, ligue, tri (OVR, prix, OVR par M€, forme, âge, popularité), fiche joueur, achat et vente au prix public en M€ ; fermé pendant une journée verrouillée |
 | Équipe | formation, onze sur le terrain, capitaine, ordre du banc, **Envoyer la composition** avant le premier coup d'envoi |
 | Journée | le résultat de la dernière journée (détail par joueur, entrants du banc, rang), l'état de la journée en cours, l'historique |
 | Classement | mondial, plus les ligues privées : créer une ligue donne un code, le partager suffit |
@@ -104,3 +104,22 @@ session ; ceux sous `/api/admin` demandent un compte administrateur
 - Pas de récupération de mot de passe : l'administrateur peut le
   réinitialiser en base.
 - Pas de notifications.
+
+## Design
+
+Une seule ambiance, la nuit de stade : fond bleu nuit, surfaces en verre
+sombre, or pour ce qui compte (budget, OVR élevés, capitaine), la couleur
+du club sur chaque carte. Tout est dans `web/app/static/style.css`, sans
+framework.
+
+La carte du marché est un **écusson** (`clip-path`, variable `--clip`) :
+bord biseauté en dégradé, haut aux couleurs du club avec l'OVR, le poste,
+l'âge, le drapeau, le numéro et le portrait, bas sombre avec le nom, le
+club, la forme récente (six dernières notes), le prix et le bouton. Une
+carte possédée a le bord doré. Sur le terrain, les onze sont des
+mini-écussons ; la fiche montre la carte dessinée par `jeu/cartes.py`.
+
+Âge, numéro et nationalité viennent des feuilles de match FotMob, comme
+la valeur marchande (`importer.lire_valeurs`). La page d'accueil montre
+quatre cartes vitrine (`/api/vitrine`, sans compte). Sur mobile la
+navigation passe en barre du bas et le marché en deux colonnes.

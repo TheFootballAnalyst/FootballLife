@@ -7,6 +7,7 @@ import sqlite3
 import pytest
 
 from jeu import evolution as E
+from jeu import importer as I
 from jeu import pipeline as P
 
 SCHEMA = pathlib.Path(__file__).resolve().parents[1] / "schema.sql"
@@ -159,6 +160,8 @@ def test_gameweek_needs_previous_state():
 
 def test_seed_prices_start_at_the_market_value_known_at_seed_time():
     jeu = base()
+    I.ecrire_valeurs(jeu, [(1, "2025-01-02", 1.0, 27, "9", "FRA")])
+    assert jeu.execute("SELECT age, numero, pays FROM joueur WHERE player_id=1").fetchone() == (27, "9", "FRA")
     P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
     rows = {pid: (vb, ob, ovr, prix) for pid, vb, ob, ovr, prix in
             jeu.execute("SELECT player_id, valeur_base, ovr_base, ovr, prix FROM carte")}
