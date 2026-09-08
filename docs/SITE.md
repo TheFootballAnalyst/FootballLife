@@ -27,7 +27,7 @@ carte), recalculé à chaque clôture.
 
 ```
 py -m pip install fastapi "uvicorn[standard]" python-multipart
-py web/app/demo.py                                   # -> jeu/demo.sqlite (saison 25/26 à partir de J18)
+py web/app/demo.py                                   # -> jeu/demo.sqlite (saison 25/26 à partir de J26)
                                                      # construit d'abord jeu/jeu_2526.sqlite depuis
                                                      # moteur/fotmob_2526.db s'il n'existe pas (1 min 30)
 py web/app/lancer.py                                 # sert http://localhost:8000 sur la base de démo
@@ -40,7 +40,7 @@ de cartes il voit et quelle journée est ouverte. Pour une autre base :
 fenêtre reste occupée tant que le site tourne ; `Ctrl+C` l'arrête.
 
 Puis http://localhost:8000. Le premier compte créé est administrateur. En
-démo, les prestations des journées 18 à 34 sont déjà en base : sur
+démo, les prestations des journées 26 à 34 sont déjà en base : sur
 l'écran Admin, « Clôturer la journée » suffit à faire avancer la saison.
 Les portraits sont lus dans `moteur/images/joueurs/` (release
 `data-2025-26` ou `donnees/portraits.py`) ; sans ce dossier, le marché

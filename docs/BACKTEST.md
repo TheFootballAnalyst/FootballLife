@@ -75,9 +75,30 @@ aux deux périmètres.
 |---|---|---|
 | échelle OVR | calibrée sur le périmètre : p2 des moyennes → 40, p99,5 → 99 (global 25/26 : 4,90 → 7,69 ; Ligue 1 seule : 4,84 → 7,21) | les moyennes de saison sont resserrées, et chaque périmètre a sa distribution |
 | prior / K | 5,5 / 10 matchs pleins | un inconnu est bon marché |
-| EMA | α = 0,08, pondéré par minutes/60 | à 0,12 les prix bougeaient d'une bande par match |
+| évolution | moyenne glissante : la note de départ garde une inertie de 0,5 × matchs pleins de la saison passée + K, chaque match ajoute son poids en minutes/90 ; OVR affiché borné à ±10 du départ | l'EMA à 8 % faisait ×14 sur Dembélé en une demi-saison (tableau ci-dessous) |
 | prix | départ = valeur marchande réelle (FotMob) à la date d'amorce, puis ×2 tous les 8 OVR gagnés, plancher 0,1 M€ | pente 6 rend les hausses trop lucratives |
 | budget | **100 M€** | l'ordre informé > naïf > hasard tient de 60 à 250 M€ (tableau ci-dessous) ; 100 est un budget de club lisible |
+
+## Choix du mécanisme d'évolution (J18–J34, mêmes cartes, mêmes managers)
+
+Six mécanismes rejoués sur la même amorce. Le « swing » est l'écart
+max-min d'OVR sur la demi-saison pour les joueurs à 600 min et plus ; ρ
+est la corrélation de rang entre l'OVR à J26 et la production J27–J34.
+
+| mécanisme | forme | patrimoine forme | swing médian | p90 | > 15 | ρ | Dembélé J17 → J34 |
+|---|---|---|---|---|---|---|---|
+| EMA 8 % (ancien) | 1 489 | 202 | 9 | 16 | 12 % | 0,26 | 64 → 95, 98 → 1 435 M€ |
+| EMA 4 % | 1 409 | 180 | 5 | 10 | 1 % | 0,27 | 64 → 84 |
+| EMA 8 % bornée ±10 | 1 462 | 165 | 9 | 12 | 1 % | 0,26 | 64 → 74 |
+| moyenne glissante | 1 428 | 180 | 5 | 9 | 1 % | 0,26 | 64 → 85 |
+| carte fixe | 1 454 | 145 | 0 | 0 | 0 | 0,24 | 64 → 64 |
+| **moyenne glissante bornée ±10 (retenu)** | **1 460** | **174** | **4** | **9** | **0 %** | — | 64 → 74, 98 → 233 M€ |
+
+Les points des managers ne dépendent pas du mécanisme (naïf 1 235,
+oracle 1 620 partout) et l'OVR qui bouge ne prédit pas mieux l'avenir
+qu'une carte fixe : l'évolution est un jeu économique, pas de
+l'information. Le mécanisme retenu garde une plus-value réelle (forme
+174 contre 145 pour une carte fixe) sans les excès de l'EMA.
 
 ## Résultats en euros, ligue globale (J18–J34, budget 100 M€, demande 1,0)
 
@@ -86,10 +107,10 @@ sur l'avenir), 72 cartes sur 2 371 estimées d'après l'OVR.
 
 | manager | points | patrimoine final (départ 100 M€) |
 |---|---|---|
-| oracle | 1 626 | 292 |
-| **forme** | **1 489** | **202** |
-| naïf | 1 235 | 135 |
-| hasard (moyenne de 5) | 690 | 114 |
+| oracle | 1 617 | 220 |
+| **forme** | **1 460** | **174** |
+| naïf | 1 233 | 133 |
+| hasard (moyenne de 5) | 682 | 112 |
 
 Sensibilité au budget (points) :
 

@@ -72,10 +72,23 @@ def test_unknown_player_is_cheap_and_regular_is_not():
     assert inconnu < regulier
 
 
-def test_ema_moves_slowly_and_less_for_cameos():
-    plein = E.note_ema(6.0, 9.0, 90)
-    court = E.note_ema(6.0, 9.0, 15)
-    assert 6.0 < court < plein < 6.5
+def test_running_mean_moves_slowly_and_less_for_cameos():
+    n0, w0 = E.note_initiale_ponderee([(6.0, 90)] * 30)        # a full season at 6
+    plein, wp = E.note_maj(n0, w0, 9.0, 90)
+    court, wc = E.note_maj(n0, w0, 9.0, 15)
+    assert n0 < court < plein < n0 + 0.2 and wp == w0 + 1 and abs(wc - (w0 + 15 / 90)) < 1e-9
+    # each new match weighs less than the previous one
+    n1, w1 = E.note_maj(n0, w0, 9.0, 90)
+    n2, w2 = E.note_maj(n1, w1, 9.0, 90)
+    assert n2 - n1 < n1 - n0
+    assert E.note_maj(6.0, 5.0, 9.0, 0) == (6.0, 5.0)
+
+
+def test_displayed_ovr_is_bounded():
+    assert E.ovr_borne(9.5, 60) == 60 + E.BORNE_OVR
+    assert E.ovr_borne(1.0, 60) == 60 - E.BORNE_OVR
+    assert E.ovr_borne(E.note_depuis_ovr(64), 60) == 64
+    assert E.ovr_borne(9.5, 95) == E.OVR_MAX
 
 
 def test_price_starts_at_market_value_and_doubles_every_8_ovr():

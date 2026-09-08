@@ -92,8 +92,9 @@ def test_gameweek_scores_pays_and_is_idempotent():
     # cards: player 1 moved, player 10 did not
     n1 = jeu.execute("SELECT note_ovr FROM carte WHERE player_id=1").fetchone()[0]
     n10 = jeu.execute("SELECT note_ovr FROM carte WHERE player_id=10").fetchone()[0]
-    n0 = E.note_initiale([(6.0, 90)])
-    assert abs(n1 - E.note_ema(n0, 7.0, 90)) < 1e-9 and abs(n10 - n0) < 1e-9
+    n0, w0 = E.note_initiale_ponderee([(6.0, 90)])
+    assert abs(n1 - E.note_maj(n0, w0, 7.0, 90)[0]) < 1e-9 and abs(n10 - n0) < 1e-9
+    assert abs(jeu.execute("SELECT poids FROM carte WHERE player_id=1").fetchone()[0] - (w0 + 1)) < 1e-9
     assert jeu.execute("SELECT calculee FROM journee WHERE numero=1 AND saison='2025/26'").fetchone()[0] == 1
     # run again: nothing changes
     P.calculer(jeu, None, "2025/26", 1, importer=False)
@@ -172,3 +173,16 @@ def test_seed_prices_start_at_the_market_value_known_at_seed_time():
     assert vb11 >= E.PRIX_PLANCHER
     prm = P.parametre(jeu, "2025/26", "valeur_marche")
     assert prm["connues"] == 10 and prm["estimees"] == 5
+
+
+def test_ovr_is_bounded_around_the_season_start():
+    jeu = base()
+    equipe_et_compo(jeu)
+    P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
+    ob = jeu.execute("SELECT ovr_base FROM carte WHERE player_id=1").fetchone()[0]
+    prestations_j1(jeu, {1: (10.0, 90)} | {i: (1.0, 90) for i in range(2, 12)})
+    P.calculer(jeu, None, "2025/26", 1, importer=False)
+    # the running mean moved, the displayed OVR by at most BORNE_OVR
+    o1 = jeu.execute("SELECT ovr FROM carte WHERE player_id=1").fetchone()[0]
+    o2 = jeu.execute("SELECT ovr FROM carte WHERE player_id=2").fetchone()[0]
+    assert o1 <= ob + E.BORNE_OVR and o2 >= ob - E.BORNE_OVR

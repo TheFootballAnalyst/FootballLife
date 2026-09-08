@@ -64,11 +64,24 @@ prior sits *below* the median on purpose: the game is meant to reward
 knowledge of low-cost players, so the unknowns must be cheap enough that
 being right about them pays.
 
-**In season.** After every match the rating-note moves by 8 % of the gap
-to the new note, scaled by minutes (`evolution.note_ema`). At 12 % the
-backtest showed prices jumping a full band on one match; at 8 % a run of
-five good matches is needed to move a card visibly, which is the horizon
-a manager can anticipate.
+**In season.** The rating-note is a running mean that folds every new
+match in (`evolution.note_maj`): the season-start note keeps an inertia
+of half of last season's full-match equivalents plus the prior's ten, so a
+new match weighs about 1/25 at the start of the season and 1/45 at the
+end. One night never remakes a card. On top of that the displayed OVR is
+**bounded to ±10 around the season start** (`evolution.ovr_borne`): a
+star's bad month cannot cost twenty points, a rookie's hot streak earns
+at most ten, and a card's price moves at most ×2.4 or ÷2.4 in a season.
+
+Why so calm: the replay showed that an evolving OVR predicts the next
+eight gameweeks no better than a fixed one (rank correlation 0.26 against
+0.24), and that manager points are identical whatever the mechanism. Card
+evolution is not information, it is the economy. The earlier exponential
+moving average (8 % of the gap per match) sent Dembélé from 64 to 95 and
+98 M€ to 1 435 M€ in half a season, and cost Andrich 21 points: that was
+the volatility of a form indicator, not of a card. Form is shown on the
+card (the last notes) and left out of the price on purpose: buying a
+player in form before his OVR, hence his price, catches up is the edge.
 
 **Price — in euros, from the real market value.** Every amount in the
 game is money: a card's price starts the season at the player's **real

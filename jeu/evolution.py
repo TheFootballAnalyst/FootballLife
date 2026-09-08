@@ -7,11 +7,16 @@ season can be replayed offline with different constants.
 
 Three quantities:
 
-  OVR      the card's overall rating on 40-99, a slow-moving average of the
-           player's notes.  It starts the season from last season's notes
-           (shrunk towards a cautious prior when the sample is thin — an
-           unknown player is *cheap*, which is what rewards scouting) and
-           then follows each new note with an exponential moving average.
+  OVR      the card's overall rating on 40-99: the player's quality over
+           a season.  It starts from last season's notes (shrunk towards a
+           cautious prior when the sample is thin — an unknown player is
+           *cheap*, which is what rewards scouting) and then becomes a
+           running mean that takes this season's matches in; each new match
+           weighs less as the season fills, so one night never remakes a
+           card.  The displayed OVR is bounded to ±BORNE_OVR around the
+           season start: a bad month cannot cost a star twenty points.
+           Recent form is shown on the card, not priced in — the gap
+           between form and OVR is what an attentive manager exploits.
   PRIX     the card's price in millions of euros.  It starts the season at
            the player's real market value (FotMob's figure, Transfermarkt
            style, read from the match sheets) and then follows the OVR:
@@ -43,9 +48,12 @@ PRIOR_NOTE = 5.5             # below median: an unproven player is cheap
 K_RETRECISSEMENT = 10.0      # in full matches (90 min); the prior weighs
                              # as much as 10 full matches
 
-# In season: exponential moving average of the notes.
-ALPHA_EMA = 0.08             # a note moves the OVR-note by 8 % of the gap
-MINUTES_POIDS_PLEIN = 60.0   # a short cameo moves the rating less
+# In season: running shrunk mean.  Last season's matches weigh
+# POIDS_SAISON_PASSEE each (in full-match equivalents), this season's 1, the
+# prior K.  A new match therefore weighs 1 / (K + weight so far): with a
+# full season behind, about 1/25 at the start and 1/45 at the end.
+POIDS_SAISON_PASSEE = 0.5
+BORNE_OVR = 10               # displayed OVR stays within +-10 of the season start
 
 # Price (M€)
 PRIX_PLANCHER = 0.1          # 100 k€: a card is never free
@@ -107,10 +115,37 @@ def ovr_initial(notes_minutes: list[tuple[float, float]]) -> int:
     return ovr_depuis_note(note_initiale(notes_minutes))
 
 
-def note_ema(note_courante: float, note_match: float, minutes: float) -> float:
-    """Update the rating-note with one new match note."""
-    w = min(1.0, minutes / MINUTES_POIDS_PLEIN) if minutes > 0 else 0.0
-    return note_courante + ALPHA_EMA * w * (note_match - note_courante)
+def poids_initial(notes_minutes: list[tuple[float, float]]) -> float:
+    """Weight last season's sample keeps in the running mean: its full-match
+    equivalents x POIDS_SAISON_PASSEE.  The season-start note itself is the
+    plain shrunk mean (best estimate); only its inertia is discounted, so
+    this season's matches take over faster than they were accumulated."""
+    return POIDS_SAISON_PASSEE * sum(m / 90.0 for _, m in notes_minutes)
+
+
+def note_initiale_ponderee(notes_minutes: list[tuple[float, float]]) -> tuple[float, float]:
+    """(note, poids) of a card at the season start."""
+    return note_initiale(notes_minutes), poids_initial(notes_minutes)
+
+
+def note_maj(note_courante: float, poids: float, note_match: float, minutes: float) -> tuple[float, float]:
+    """Fold one match into the running mean: returns the new (note, poids).
+
+    The state (note, poids) is the shrunk mean of everything seen so far
+    with total weight `poids`; the prior K is part of the denominator.
+    """
+    w = max(0.0, minutes) / 90.0
+    if w <= 0:
+        return note_courante, poids
+    d = poids + K_RETRECISSEMENT
+    return (note_courante * d + note_match * w) / (d + w), poids + w
+
+
+def ovr_borne(note: float, ovr_base: int) -> int:
+    """Displayed OVR: the note mapped to 40-99, clamped to +-BORNE_OVR
+    around the season-start OVR."""
+    o = ovr_depuis_note(note)
+    return max(OVR_MIN, min(OVR_MAX, max(ovr_base - BORNE_OVR, min(ovr_base + BORNE_OVR, o))))
 
 
 def prix_carte(valeur_base: float, ovr_base: float, ovr: float) -> float:

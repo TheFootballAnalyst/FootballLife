@@ -24,7 +24,7 @@ that the budget is spent as fully as possible.  Only the value differs.
 Every gameweek: score each lineup (scoring.score_equipe), pay out
 (evolution.gain_semaine), charge wages if --salaires > 0 (a share of the
 squad's market value per gameweek), update every card
-(evolution.note_ema), reprice.
+(evolution.note_maj, bounded by evolution.ovr_borne), reprice.
 
 Demand pricing (--demande k, --population N): a crowd of N simulated
 managers (naive by OVR with noise, plus a random share) builds its squads
@@ -125,26 +125,28 @@ def parse_plage(txt: str) -> list[int]:
 # --------------------------------------------------------------------------
 
 class Carte:
-    __slots__ = ("pid", "poste", "fam", "note_ovr", "ovr", "prix", "notes", "demande", "valeur_base", "ovr_base")
+    __slots__ = ("pid", "poste", "fam", "note_ovr", "poids", "ovr", "prix", "notes", "demande", "valeur_base", "ovr_base")
 
-    def __init__(self, pid, poste, note_ovr, valeur_base=None):
+    def __init__(self, pid, poste, note_ovr, valeur_base=None, poids=0.0):
         self.pid, self.poste, self.fam = pid, poste, S.FAMILLE_POSTE[poste]
         self.notes: list[tuple[float, float]] = []
         self.demande = 0.0                     # price multiplier from the crowd, 0 = none
         self.ovr_base = E.ovr_depuis_note(note_ovr)
         self.valeur_base = valeur_base if valeur_base else 1.0
+        self.poids = poids
         self.fixer(note_ovr)
 
     def fixer(self, note_ovr):
         self.note_ovr = note_ovr
-        self.ovr = E.ovr_depuis_note(note_ovr)
+        self.ovr = E.ovr_borne(note_ovr, self.ovr_base)
         self.prix = round(E.prix_carte(self.valeur_base, self.ovr_base, self.ovr) * (1.0 + self.demande), 2)
 
     def jouer(self, prestas: list[S.Prestation]):
-        n = self.note_ovr
+        n, w = self.note_ovr, self.poids
         for p in prestas:
-            n = E.note_ema(n, p.note, p.minutes)
+            n, w = E.note_maj(n, w, p.note, p.minutes)
             self.notes.append((p.note, p.minutes))
+        self.poids = w
         self.fixer(n)
 
     def forme(self, k=FENETRE_FORME) -> float | None:
@@ -188,12 +190,13 @@ def amorcer(joueurs, prestas, amorce: list[int]) -> dict[int, Carte]:
         v = [x for d, x in j.get("valeurs", []) if d <= limite]
         if v:
             valeurs[pid] = v[-1]
-    notes = {pid: E.note_initiale(hists[pid]) for pid in joueurs}
+    etats = {pid: E.note_initiale_ponderee(hists[pid]) for pid in joueurs}
+    notes = {pid: n for pid, (n, _) in etats.items()}
     ajust = E.ajuster_valeur([(E.ovr_depuis_note(notes[pid]), valeurs[pid]) for pid in valeurs])
     cartes = {}
     for pid, j in joueurs.items():
         base = valeurs.get(pid) or E.valeur_estimee(E.ovr_depuis_note(notes[pid]), ajust)
-        c = Carte(pid, j["poste"], notes[pid], base)
+        c = Carte(pid, j["poste"], notes[pid], base, etats[pid][1])
         c.notes = hists[pid]
         cartes[pid] = c
     return cartes
@@ -489,7 +492,7 @@ def jouer(jeu_path, ligue_id, amorce, a_jouer, sortie: pathlib.Path,
         "plus_detenus": [(joueurs[pid]["nom"], round(part, 2), cartes[pid].prix) for pid, part in top],
         "echelle_ovr": {"note_40": E.NOTE_OVR_BAS, "note_99": E.NOTE_OVR_HAUT,
                         "budget": E.BUDGET_INITIAL, "prix_double_tous_les": E.PRIX_DOUBLE_TOUS_LES,
-                        "alpha_ema": E.ALPHA_EMA, "k_retrecissement": E.K_RETRECISSEMENT,
+                        "poids_passe": E.POIDS_SAISON_PASSEE, "borne": E.BORNE_OVR, "k_retrecissement": E.K_RETRECISSEMENT,
                         "prior": E.PRIOR_NOTE},
         "perimetre": {"ligue": ligue_id, "cartes": len(cartes),
                       "amorce": f"J{amorce[0]}-J{amorce[-1]}", "joue": f"J{a_jouer[0]}-J{a_jouer[-1]}"},

@@ -100,7 +100,8 @@ CREATE TABLE IF NOT EXISTS parametre (
 
 -- ------------------------------------------------------------------ cards
 -- The card is the player's game-side state.  One row per player per season;
--- `note_ovr` is the EMA of evolution.py, `ovr` derives from it and `prix`
+-- `note_ovr` is the running mean of evolution.py (weight `poids`), `ovr`
+-- derives from it (bounded around `ovr_base`) and `prix`
 -- (M€) from the OVR move since the seed: valeur_base x 2^((ovr-ovr_base)/8),
 -- times the demand multiplier.
 CREATE TABLE IF NOT EXISTS carte (
@@ -111,6 +112,7 @@ CREATE TABLE IF NOT EXISTS carte (
     prix             REAL NOT NULL,                 -- M€, with the demand multiplier
     valeur_base      REAL NOT NULL DEFAULT 1,       -- M€ at the seed (market value)
     ovr_base         INTEGER NOT NULL DEFAULT 60,   -- OVR at the seed
+    poids            REAL NOT NULL DEFAULT 0,       -- weight of the running mean (full matches)
     part             REAL NOT NULL DEFAULT 0,       -- share of managers owning the card
     attributs        TEXT,                          -- JSON, season-to-date
     matchs           INTEGER NOT NULL DEFAULT 0,
@@ -128,6 +130,7 @@ CREATE TABLE IF NOT EXISTS carte_historique (
     ovr              INTEGER NOT NULL,
     prix             REAL NOT NULL,                 -- M€, with the demand multiplier
     part             REAL NOT NULL DEFAULT 0,
+    poids            REAL NOT NULL DEFAULT 0,
     PRIMARY KEY (player_id, journee_id)
 );
 

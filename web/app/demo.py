@@ -1,9 +1,11 @@
 """demo.py — prepare a demo game base from the 2025/26 season.
 
-    python3 web/app/demo.py [--source jeu/jeu_2526.sqlite] [--sortie jeu/demo.sqlite] [--amorce 1-17]
+    python3 web/app/demo.py [--source jeu/jeu_2526.sqlite] [--sortie jeu/demo.sqlite] [--amorce 1-25]
 
-The demo season is 2025/26 itself: cards seeded on J1-J17 (as if that were
-last season), the market open at J18, and every later gameweek's rated
+The demo season is 2025/26 itself: cards seeded on J1-J25 (as if that were
+last season; a longer seed gives credible cards, Dembélé's autumn injury
+no longer prices him as an unknown), the market open at J26, and every
+later gameweek's rated
 performances already in the base.  The admin advances the season from the
 site (Admin → clôturer la journée) without uploading anything, which
 makes a multi-player demo possible before the live season.
@@ -29,7 +31,7 @@ def main():
     ap.add_argument("--source", default=str(RACINE / "jeu" / "jeu_2526.sqlite"))
     ap.add_argument("--sortie", default=str(RACINE / "jeu" / "demo.sqlite"))
     ap.add_argument("--saison", default="2025/26")
-    ap.add_argument("--amorce", default="1-17")
+    ap.add_argument("--amorce", default="1-25")
     ap.add_argument("--fotmob", default=str(RACINE / "moteur" / "fotmob_2526.db"),
                     help="FotMob base used to build the game base if --source is missing")
     a = ap.parse_args()

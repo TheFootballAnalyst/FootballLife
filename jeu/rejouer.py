@@ -114,7 +114,7 @@ def main():
         total_pipeline += score_pipeline; total_memoire += score_memoire
         # card state check on the witness squad
         etat = P.etat_cartes(jeu, a.saison, num)
-        d_cartes = max(abs(etat[p] - cartes[p].note_ovr) for p in effectif)
+        d_cartes = max(abs(etat[p][0] - cartes[p].note_ovr) for p in effectif)
         print(f"J{num}: pipeline {score_pipeline:7.2f}  mémoire {score_memoire:7.2f}  {'OK' if ok else 'ÉCART'}"
               f"  cartes bougées {r['cartes_bougees']:>4}  écart max note_ovr {d_cartes:.1e}")
     budget, pts = jeu.execute("SELECT budget, points_total FROM equipe WHERE equipe_id=1").fetchone()

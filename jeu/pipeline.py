@@ -9,9 +9,10 @@ One command turns a finished gameweek into frozen results:
 
   1. import   the engine rates every performance of the window
               (importer.importer_journee) -> prestation
-  2. evolve   every card that played moves (evolution.note_ema); the state
-              after this gameweek is written to carte_historique and copied
-              to carte
+  2. evolve   every card that played folds its matches into its running
+              mean (evolution.note_maj); the displayed OVR is bounded around
+              the season start (evolution.ovr_borne); the state after this
+              gameweek is written to carte_historique and copied to carte
   3. score    every composition submitted before the lock is scored
               (scoring.score_equipe) -> resultat; the payout goes to
               equipe.budget and the points to equipe.points_total
@@ -157,7 +158,8 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
     bas, haut = E.calibrer_echelle(moyennes)
     fixer_parametre(jeu, saison, "echelle", {"bas": bas, "haut": haut, "source": source,
                                              "journees": list(journees_source) if journees_source else None})
-    fixer_parametre(jeu, saison, "economie", {"budget": E.BUDGET_INITIAL, "alpha": E.ALPHA_EMA,
+    fixer_parametre(jeu, saison, "economie", {"budget": E.BUDGET_INITIAL, "poids_passe": E.POIDS_SAISON_PASSEE,
+                                              "borne": E.BORNE_OVR,
                                               "prior": E.PRIOR_NOTE, "k": E.K_RETRECISSEMENT,
                                               "prix_double": E.PRIX_DOUBLE_TOUS_LES,
                                               "plancher": E.PRIX_PLANCHER, "demande": E.DEMANDE,
@@ -168,7 +170,8 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
         row = jeu.execute("SELECT au FROM journee WHERE saison=? AND numero=?", (source, journees_source[1])).fetchone()
         limite = row[0] if row else None
     valeurs = I.valeurs_a_date(jeu, limite)
-    notes = {pid: E.note_initiale(hist.get(pid, [])) for pid in joueurs}
+    etats = {pid: E.note_initiale_ponderee(hist.get(pid, [])) for pid in joueurs}
+    notes = {pid: n for pid, (n, _) in etats.items()}
     ovrs = {pid: E.ovr_depuis_note(n) for pid, n in notes.items()}
     ajust = E.ajuster_valeur([(ovrs[pid], valeurs[pid]) for pid in joueurs if pid in valeurs])
     fixer_parametre(jeu, saison, "valeur_marche", {"a": ajust[0], "b": ajust[1], "limite": limite,
@@ -183,12 +186,13 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
         note, ovr = notes[pid], ovrs[pid]
         base = valeurs.get(pid) or E.valeur_estimee(ovr, ajust)
         px = E.prix_carte(base, ovr, ovr)
-        jeu.execute("""INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, valeur_base, ovr_base,
+        poids = etats[pid][1]
+        jeu.execute("""INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, valeur_base, ovr_base, poids,
                                          attributs, matchs, minutes, maj)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-                    (pid, saison, note, ovr, px, base, ovr, None, len(h), sum(m for _, m in h), maintenant()))
-        jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix) VALUES (?,?,?,?,?)",
-                    (pid, j0, note, ovr, px))
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (pid, saison, note, ovr, px, base, ovr, poids, None, len(h), sum(m for _, m in h), maintenant()))
+        jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix, poids) VALUES (?,?,?,?,?,?)",
+                    (pid, j0, note, ovr, px, poids))
         n += 1
     jeu.commit()
     return n, (bas, haut)
@@ -199,9 +203,10 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
 # --------------------------------------------------------------------------
 
 def etat_cartes(jeu, saison, numero):
-    """{player_id: note_ovr} as written after gameweek `numero`."""
+    """{player_id: (note_ovr, poids)} as written after gameweek `numero`."""
     jid = journee_id(jeu, saison, numero)
-    return dict(jeu.execute("SELECT player_id, note_ovr FROM carte_historique WHERE journee_id=?", (jid,)))
+    return {pid: (n, w) for pid, n, w in
+            jeu.execute("SELECT player_id, note_ovr, poids FROM carte_historique WHERE journee_id=?", (jid,))}
 
 
 def prestations_journee(jeu, jid):
@@ -234,10 +239,10 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
     if not avant:
         raise SystemExit(f"pas d'état de cartes après la journée {numero - 1} : la calculer d'abord (ou amorcer)")
     apres = {}
-    for pid, n in avant.items():
+    for pid, (n, w) in avant.items():
         for p in prestas.get(pid, []):
-            n = E.note_ema(n, p.note, p.minutes)
-        apres[pid] = n
+            n, w = E.note_maj(n, w, p.note, p.minutes)
+        apres[pid] = (n, w)
     postes = dict(jeu.execute("SELECT player_id, poste FROM joueur"))
 
     # 3. score every composition submitted before the lock
@@ -261,7 +266,7 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
         r["rang"] = rang
     resume["equipes"] = len(resultats)
     resume["scores"] = [(r["equipe_id"], r["score"]) for r in resultats]
-    resume["cartes_bougees"] = sum(1 for pid in apres if abs(apres[pid] - avant[pid]) > 1e-9)
+    resume["cartes_bougees"] = sum(1 for pid in apres if abs(apres[pid][0] - avant[pid][0]) > 1e-9)
     parts = parts_detention(jeu, saison)
     resume["demande"] = E.DEMANDE
     if dry_run:
@@ -273,17 +278,17 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
     now = maintenant()
     bases = {pid: (vb, ob) for pid, vb, ob in jeu.execute(
         "SELECT player_id, valeur_base, ovr_base FROM carte WHERE saison=?", (saison,))}
-    for pid, n in apres.items():
-        ovr = E.ovr_depuis_note(n)
+    for pid, (n, w) in apres.items():
+        vb, ob = bases.get(pid, (1.0, E.ovr_depuis_note(n)))
+        ovr = E.ovr_borne(n, ob)
         part = parts.get(pid, 0.0)
-        vb, ob = bases.get(pid, (1.0, ovr))
         px = E.prix_demande(vb, ob, ovr, part)
-        jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix, part) VALUES (?,?,?,?,?,?)",
-                    (pid, jid, n, ovr, px, part))
+        jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix, part, poids) VALUES (?,?,?,?,?,?,?)",
+                    (pid, jid, n, ovr, px, part, w))
         joue = prestas.get(pid, [])
-        jeu.execute("""UPDATE carte SET note_ovr=?, ovr=?, prix=?, part=?, matchs=matchs+?, minutes=minutes+?, maj=?
+        jeu.execute("""UPDATE carte SET note_ovr=?, ovr=?, prix=?, part=?, poids=?, matchs=matchs+?, minutes=minutes+?, maj=?
                        WHERE player_id=? AND saison=?""",
-                    (n, ovr, px, part, len(joue), sum(p.minutes for p in joue), now, pid, saison))
+                    (n, ovr, px, part, w, len(joue), sum(p.minutes for p in joue), now, pid, saison))
     for r in resultats:
         ancien = jeu.execute("SELECT score, gain FROM resultat WHERE equipe_id=? AND journee_id=?",
                              (r["equipe_id"], jid)).fetchone()

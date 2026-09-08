@@ -69,7 +69,7 @@ the live path below.
 
 ```
 1. import       topsflops.calculer(du, au) -> prestation (+ match, joueur, club upserts)
-2. evolve       from carte_historique of gameweek N-1: evolution.note_ema
+2. evolve       from carte_historique of gameweek N-1: evolution.note_maj, bounded by ovr_borne
                 -> carte_historique of gameweek N, copied into carte
 3. score        for each composition submitted before journee.cloture:
                 scoring.score_equipe -> resultat (rank included)
