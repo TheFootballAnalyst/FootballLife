@@ -30,10 +30,14 @@ py -m pip install fastapi "uvicorn[standard]" python-multipart
 py web/app/demo.py                                   # -> jeu/demo.sqlite (saison 25/26 à partir de J18)
                                                      # construit d'abord jeu/jeu_2526.sqlite depuis
                                                      # moteur/fotmob_2526.db s'il n'existe pas (1 min 30)
-set FL_JEU=jeu/demo.sqlite                           # Windows ; sur Mac/Linux : export FL_JEU=jeu/demo.sqlite
-set FL_SECRET=une-longue-phrase-secrete
-py -m uvicorn web.app.serveur:app --port 8000
+py web/app/lancer.py                                 # sert http://localhost:8000 sur la base de démo
 ```
+
+`lancer.py` choisit la base (`jeu/demo.sqlite` si elle existe), génère et
+garde un secret de session dans `jeu/.secret`, et dit au démarrage combien
+de cartes il voit et quelle journée est ouverte. Pour une autre base :
+`py web/app/lancer.py --jeu jeu/jeu_2627.sqlite --saison 2026/27`. La
+fenêtre reste occupée tant que le site tourne ; `Ctrl+C` l'arrête.
 
 Puis http://localhost:8000. Le premier compte créé est administrateur. En
 démo, les prestations des journées 18 à 34 sont déjà en base : sur

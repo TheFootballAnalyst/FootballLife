@@ -120,7 +120,10 @@ async function vendre(id) {
   catch (e) { toast(e.message); }
 }
 function rendreMarche() {
-  $("#marche-ferme").hidden = !!G.equipe.marche_ouvert;
+  const mf = $("#marche-ferme"); mf.hidden = !!G.equipe.marche_ouvert;
+  mf.textContent = !G.saison.courante
+    ? "Aucune journée ouverte sur cette base : la saison est terminée, ou le serveur a été lancé sur la mauvaise base (utiliser  py web/app/lancer.py)."
+    : "Marché fermé : la journée est verrouillée. Les transferts rouvrent une fois la journée calculée par l'administrateur.";
   const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const q = norm($("#f-nom").value), fam = $("#f-fam").value, ligue = $("#f-ligue").value, tri = $("#f-tri").value;
   const abord = $("#f-abord").checked, miens = $("#f-miens").checked;
