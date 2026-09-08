@@ -3,10 +3,16 @@
 
     python3 donnees/telecharger.py URL [--vers moteur/]
 
-Télécharge l'URL, décompresse si le nom finit par .xz / .gz, extrait si
-c'est un .tar.xz / .tar.gz, et dépose le résultat dans le dossier cible
-(par défaut moteur/, là où le moteur cherche fotmob.db et cache/).
-Bibliothèque standard uniquement.
+Télécharge l'URL, décompresse si le nom finit par .xz / .gz / .7z,
+extrait si c'est une archive (.tar.xz, .tar.gz, .7z), et dépose le
+résultat dans le dossier cible (par défaut moteur/, là où le moteur
+cherche fotmob.db et cache/matches/).  Bibliothèque standard, plus
+`py7zr` pour le .7z (pip install py7zr).
+
+Release data-2025-26 :
+    python3 donnees/telecharger.py .../fotmob_2526.7z   # -> moteur/fotmob_2526.db
+    python3 donnees/telecharger.py .../cache.7z         # -> moteur/cache/matches/
+puis  ln -s fotmob_2526.db moteur/fotmob.db  (ou --fotmob dans l'importer).
 """
 import argparse
 import gzip
@@ -42,6 +48,16 @@ def telecharger(url: str, dest: pathlib.Path) -> pathlib.Path:
 
 def deballer(fichier: pathlib.Path, dest: pathlib.Path) -> pathlib.Path:
     nom = fichier.name
+    if nom.endswith(".7z"):
+        try:
+            import py7zr
+        except ImportError:
+            sys.exit("archive .7z : pip install py7zr, puis relancer")
+        with py7zr.SevenZipFile(fichier) as z:
+            z.extractall(dest)
+        fichier.unlink()
+        print(f"   archive 7z extraite dans {dest}")
+        return dest
     if nom.endswith((".tar.xz", ".tar.gz", ".tgz")):
         with tarfile.open(fichier) as t:
             t.extractall(dest)

@@ -59,6 +59,9 @@ search boxes only.
 | `composition` | lineup × gameweek | immutable after lock |
 | `resultat` | scored lineup × gameweek | frozen output of `score_equipe` |
 
+`jeu/importer.py` is the offline version of steps 2 and 4 below, run over
+a whole season; `jeu/backtest.py` reads the result.
+
 ## The weekly write path
 
 ```

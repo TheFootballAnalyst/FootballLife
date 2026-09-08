@@ -1,4 +1,5 @@
 import json
+import pathlib
 
 from jeu import notation as N
 
@@ -7,50 +8,57 @@ def test_anchors_map_to_their_notes():
     seuils = N.charger_seuils()
     s = seuils["Buteur"]
     for valeur, attendu in s.ancres():
-        assert N.note_brute(valeur, s) == attendu
+        assert abs(N.note_brute(valeur, s) - attendu) < 1e-9
 
 
-def test_interpolation_is_monotonic_and_bounded():
+def test_curve_is_monotonic_and_saturates():
     s = N.charger_seuils()["Ailier"]
     prev = None
-    for v in range(-100, 200):
+    for v in range(-300, 600):
         n = N.note_brute(float(v), s)
-        assert N.NOTE_MIN <= n <= N.NOTE_MAX
+        assert 2.0 < n < 10.0
         if prev is not None:
             assert n >= prev
         prev = n
+    # far beyond p90 the note approaches 10 without reaching it
+    assert 9.7 < N.note_brute(s.p90 * 40, s) < 10.0
 
 
 def test_short_cameo_cannot_reach_extremes():
-    # A monster performance in 14 minutes: note pulled back towards 6.
     seuils = N.charger_seuils()
     s = seuils["Buteur"]
-    brut = s.p90 * 3          # far beyond p90
-    plein = N.note_sur_10(brut, 1.0, "Buteur", 90)
-    court = N.note_sur_10(brut, 1.0, "Buteur", 14)
+    pts = s.p90 * 3          # far beyond p90
+    plein = N.note_sur_10(pts, "Buteur", 90)
+    court = N.note_sur_10(pts, "Buteur", 14)
     assert plein > 8.5
     assert 6 < court < 8
     # And a disaster in 14 minutes cannot be a 3.
-    assert N.note_sur_10(s.p10 * 3, 1.0, "Buteur", 14) > 4.0
-
-
-def test_competition_coef_is_neutralised():
-    # Same neutral performance in Ligue 1 (coef 0.634) and UCL (coef 2.0).
-    s = N.charger_seuils()["Milieu relayeur"]
-    neutre = s.p75
-    n_l1 = N.note_sur_10(neutre * 0.634, 0.634, "Milieu relayeur", 90)
-    n_ucl = N.note_sur_10(neutre * 2.0, 2.0, "Milieu relayeur", 90)
-    assert n_l1 == n_ucl == 7.0
+    assert N.note_sur_10(s.p10 * 3, "Buteur", 14) > 4.0
 
 
 def test_winger_sides_share_thresholds():
-    assert N.note_sur_10(10.0, 1.0, "Ailier droit", 90) == \
-        N.note_sur_10(10.0, 1.0, "Ailier gauche", 90) == \
-        N.note_sur_10(10.0, 1.0, "Ailier", 90)
+    assert N.note_sur_10(10.0, "Ailier droit", 90) == \
+        N.note_sur_10(10.0, "Ailier gauche", 90) == \
+        N.note_sur_10(10.0, "Ailier", 90)
 
 
 def test_unknown_position_gives_none():
-    assert N.note_sur_10(10.0, 1.0, "Libero", 90) is None
+    assert N.note_sur_10(10.0, "Libero", 90) is None
+
+
+def test_reference_values_from_the_visual_pipeline():
+    """40 performances rated by the production pipeline: note and six
+    attributes must match exactly (jeu/tests/donnees)."""
+    doc = json.loads((pathlib.Path(__file__).parent / "donnees"
+                      / "controle_2026-08-28_09-06.json").read_text(encoding="utf-8"))
+    ecarts = []
+    for row in doc["prestations"]:
+        m, e = row["moteur"], row["attendu"]
+        note = N.note_prestation(m)
+        att = N.attributs_prestation(m)
+        if abs(note - e["note_sur_10"]) > 0.051 or att != e["attributs"]:
+            ecarts.append((e["nom"], note, e["note_sur_10"], att, e["attributs"]))
+    assert not ecarts, ecarts
 
 
 def test_attribute_scale_bounds():
@@ -92,17 +100,18 @@ def test_families_table_matches_engine_labels():
 
 def test_attributes_have_six_axes_for_both_kinds():
     lignes = {"But": 6.34, "Passe reussie": 1.2, "Interception": 0.5}
-    champ = N.attributs(lignes, 0.634, "Buteur")
+    champ = N.attributs(lignes, "Buteur")
     assert set(champ) == set(N.AXES_CHAMP)
     assert champ["FIN"] > champ["DEF"]
-    gk = N.attributs({"Arret": 3.0, "Passe reussie": 1.0}, 1.0, "Gardien")
+    gk = N.attributs({"Arret": 3.0, "Passe reussie": 1.0}, "Gardien")
     assert set(gk) == set(N.AXES_GARDIEN)
     assert gk["REL"] > 40 and gk["PRO"] > 40   # shared label feeds both
 
 
 def test_prestation_helpers_accept_topsflops_rows():
     p = {"nom": "X", "poste": "Lateral", "minutes": 90, "brut": 12.0,
-         "coef": 0.634, "lignes": {"Passe reussie": 0.8, "Interception": 0.76}}
+         "coef": 0.634, "points": 25.7,
+         "lignes": {"Passe reussie": 0.8, "Interception": 0.76}}
     assert N.note_prestation(p) is not None
     attrs = N.attributs_prestation(p)
     assert len(attrs) == 6

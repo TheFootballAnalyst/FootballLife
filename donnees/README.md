@@ -35,9 +35,14 @@ un instantané de saison, celui dont le backtest a besoin.
    cache-2025-26.tar.xz cache/matches`.
 3. Récupérer d'un côté ou de l'autre :
    ```
-   python3 donnees/telecharger.py https://github.com/TheFootballAnalyst/FootballLife/releases/download/data-2025-26/fotmob.db.xz
+   python3 donnees/telecharger.py https://github.com/TheFootballAnalyst/FootballLife/releases/download/data-2025-26/fotmob_2526.7z
+   python3 donnees/telecharger.py https://github.com/TheFootballAnalyst/FootballLife/releases/download/data-2025-26/cache.7z
    ```
-   Le script décompresse et dépose le fichier dans `moteur/`.
+   Le script décompresse et dépose les fichiers dans `moteur/`
+   (`.7z` demande `pip install py7zr` ; `.xz`, `.gz` et `.tar.*` passent
+   avec la bibliothèque standard). La release `data-2025-26` contient
+   `fotmob_2526.7z` (57 Mo, base de 452 Mo) et `cache.7z` (38 Mo, 3 963
+   feuilles de match sous `cache/matches/`).
 
 Pour la base *vivante* de la saison en cours, mise à jour chaque semaine,
 la release n'est pas le bon outil : elle vivra sur la machine qui fait

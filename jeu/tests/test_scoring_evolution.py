@@ -93,5 +93,19 @@ def test_weekly_gain_is_bounded():
 
 
 def test_initial_budget_buys_a_solid_but_not_star_squad():
-    # Spread evenly, 100 credits over 15 cards lands around OVR 82.
-    assert 78 < E.budget_moyen_par_carte() < 86
+    # Spread evenly, 40 credits over 15 cards lands around OVR 71: solid
+    # regulars, no room for a squad of stars (docs/BACKTEST.md).
+    assert 68 < E.budget_moyen_par_carte() < 75
+
+
+def test_scale_calibrates_on_the_perimeter():
+    bas, haut = E.NOTE_OVR_BAS, E.NOTE_OVR_HAUT
+    try:
+        moyennes = [5.0 + i / 100 for i in range(200)]          # 5.00 .. 6.99
+        b, h = E.calibrer_echelle(moyennes)
+        assert 5.0 <= b <= 5.1 and 6.9 <= h <= 7.0
+        assert E.ovr_depuis_note(b) == 40 and E.ovr_depuis_note(h) == 99
+        # too small a sample leaves the scale alone
+        assert E.calibrer_echelle([6.0] * 5) == (b, h)
+    finally:
+        E.NOTE_OVR_BAS, E.NOTE_OVR_HAUT = bas, haut

@@ -15,28 +15,22 @@ the most visible piece and the last one to start.
 - Game database schema (`jeu/schema.sql`).
 - Design decisions written down (`docs/GAME_DESIGN.md`).
 
-## Phase 1 — backtest the economy on 2025/26 (2–3 weeks)
+## Phase 1 — backtest the economy on 2025/26 (done)
 
-Goal: replay a whole season of the *game* offline, before writing a single
-screen. You have every match of 2025/26 in `fotmob.db`; that is a full
-season of ground truth for free.
+`jeu/importer.py` cuts the season into gameweeks and rates every
+performance into the game base; `jeu/backtest.py` replays J18–J34 with
+scripted managers after seeding cards on J1–J17. Results and settings in
+`docs/BACKTEST.md`: informed beats naive by 8 % in points and 45 % in
+value, random is far behind, the oracle keeps a 19 % margin.
 
-1. `jeu/importer.py` — run `topsflops.calculer()` window by window over
-   the season, compute note and attributes, write `prestation` rows.
-2. `jeu/journees.py` — cut the season into gameweeks (league round +
-   following midweek).
-3. `jeu/backtest.py` — seed cards from 2024/25 notes, then for each
-   gameweek: score a handful of scripted managers (naive, informed,
-   random), update every card's OVR and price, pay out.
-4. Read the four questions at the end of `GAME_DESIGN.md` off the
-   output. Tune the constants in `evolution.py` and `scoring.py`. Repeat.
-
-Deliverable: a CSV of card prices per gameweek and a table of manager
-budgets per strategy. Also the first real card images, since `carte()`
-can now be fed real notes and attributes.
-
-Exit criterion: the informed strategy beats the naive one by a margin
-you find fair, and no card sits on the floor or ceiling all season.
+Left open from this phase:
+- the Champions League weighting inside the note (the PSG effect), to be
+  decided before season one; the backtest can price each option;
+- the note curve below p10, unverified against the visual pipeline;
+- `SCORE_REFERENCE` for payouts, to be reset once real managers' scores
+  are observed;
+- the first real card images (`carte_design.carte` fed from the game
+  base) — needs the fonts and portraits, which are not in the repo.
 
 ## Phase 2 — the weekly pipeline (2 weeks)
 

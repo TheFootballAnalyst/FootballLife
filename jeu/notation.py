@@ -15,12 +15,20 @@ shipped with the engine (`seuils_flops_postes_2526.json`,
 the points table or the percentiles: they are calibrated on 42 000
 performances and are read-only.
 
-Spec (from docs/CONTEXTE.md, section 2 "La note sur 10"):
-  - anchors per position on the *neutral* raw score (brut / coef):
-        p10 -> 4, p25 -> 5, median -> 6, p75 -> 7, p90 -> 8
-    linear interpolation between anchors, linear extrapolation beyond;
+Spec, as reverse-checked against the visual pipeline's reference output
+(40/40 exact on jeu/tests/donnees/valeurs_attendues.json):
+  - input is the engine's `points` (raw score x position coefficient),
+    compared to the position's thresholds as shipped;
+  - anchors: p10 -> 4, p25 -> 5, median -> 6, p75 -> 7, p90 -> 8, linear
+    in between;
+  - beyond p90 the curve saturates:  note = 8 + 2u / (1 + u)  with
+    u = (points - p90) / (p90 - median), so 10 is an asymptote;
+  - below p10, mirror of the same curve (not covered by the reference file;
+    to confirm on a flops sample);
   - minutes damping: the note departs from 6 in proportion to the square
     root of minutes played, full at 60 minutes.
+Attributes take the engine's `lignes` as they are (no coefficient removed):
+240/240 exact on the same reference file.
 """
 from __future__ import annotations
 
@@ -133,32 +141,25 @@ def charger_echelles(chemin: pathlib.Path = ECHELLES_PATH) -> dict:
 # Note out of 10
 # --------------------------------------------------------------------------
 
-def brut_neutre(brut: float, coef: float) -> float:
-    """Raw score with the competition/round coefficient removed.
-
-    The percentile thresholds were measured on brut / coef, so the note
-    compares performances of the same quality across competitions.  The
-    competition and opponent weighting still lives in the engine's points;
-    the game does not add a second layer on top (docs/REPONSES.md §3).
-    """
-    return brut / coef if coef else brut
-
-
 def note_brute(valeur: float, seuils: Seuils) -> float:
-    """Piecewise-linear map of a neutral raw score to a note, no damping."""
+    """Map the engine's `points` to a note, no damping.
+
+    Linear between the five anchors; saturating beyond p90 (and, mirrored,
+    below p10) so that the note approaches 10 (resp. 2) without reaching it:
+    a monstrous night reads 9.5, not 12.
+    """
+    if valeur >= seuils.p90:
+        u = (valeur - seuils.p90) / (seuils.p90 - seuils.mediane)
+        return 8.0 + 2.0 * u / (1.0 + u)
+    if valeur <= seuils.p10:
+        u = (seuils.p10 - valeur) / (seuils.mediane - seuils.p10)
+        return 4.0 - 2.0 * u / (1.0 + u)
     ancres = seuils.ancres()
     xs = [x for x, _ in ancres]
-    # Beyond the anchors: extend the outer segment's slope.
-    if valeur <= xs[0]:
-        (x0, y0), (x1, y1) = ancres[0], ancres[1]
-    elif valeur >= xs[-1]:
-        (x0, y0), (x1, y1) = ancres[-2], ancres[-1]
-    else:
-        i = bisect.bisect_right(xs, valeur) - 1
-        (x0, y0), (x1, y1) = ancres[i], ancres[i + 1]
+    i = bisect.bisect_right(xs, valeur) - 1
+    (x0, y0), (x1, y1) = ancres[i], ancres[i + 1]
     pente = (y1 - y0) / (x1 - x0) if x1 != x0 else 0.0
-    note = y0 + (valeur - x0) * pente
-    return max(NOTE_MIN, min(NOTE_MAX, note))
+    return y0 + (valeur - x0) * pente
 
 
 def amortissement(minutes: float) -> float:
@@ -168,46 +169,48 @@ def amortissement(minutes: float) -> float:
     return min(1.0, math.sqrt(minutes / MINUTES_PLEINES))
 
 
-def note_sur_10(brut: float, coef: float, poste: str, minutes: float,
+def note_sur_10(points: float, poste: str, minutes: float,
                 seuils: dict[str, Seuils] | None = None) -> float | None:
     """Note out of 10 for one performance, or None if the position is unknown.
 
-    `brut` and `coef` are the engine's fields of the same name (brut already
-    includes coef; it is divided out here).  Rounded to one decimal, which is
-    the precision shown on the card.
+    `points` is the engine's field of the same name (raw score x competition
+    x position coefficient).  Rounded to one decimal, the precision shown on
+    the card.
     """
     seuils = seuils or charger_seuils()
     s = seuils.get(POSTE_SEUIL.get(poste, poste))
     if s is None:
         return None
-    n = note_brute(brut_neutre(brut, coef), s)
+    n = note_brute(points, s)
     n = NOTE_PIVOT + (n - NOTE_PIVOT) * amortissement(minutes)
     return round(n, 1)
 
 
 def note_prestation(p: dict, seuils: dict[str, Seuils] | None = None) -> float | None:
     """Convenience: note from one entry of topsflops.json `prestations`."""
-    return note_sur_10(float(p["brut"]), float(p.get("coef") or 1.0),
-                       p["poste"], float(p.get("minutes") or 0.0), seuils)
+    return note_sur_10(float(p["points"]), p["poste"],
+                       float(p.get("minutes") or 0.0), seuils)
 
 
 # --------------------------------------------------------------------------
 # Attributes 40-99
 # --------------------------------------------------------------------------
 
-def sommes_par_famille(lignes: dict[str, float], coef: float,
+def sommes_par_famille(lignes: dict[str, float],
                        familles: dict[str, list[str]] | None = None) -> dict[str, float]:
-    """Sum the engine's scoring lines per card family, neutral of coef.
+    """Sum the engine's scoring lines per card family, as they are.
 
-    Every family of the table is summed, outfield and goalkeeper alike; the
-    caller picks the six axes it displays.  A label in two families is added
-    to both.
+    The scales in echelles_attributs.json were measured on the lines exactly
+    as topsflops writes them (competition and position coefficients
+    included), so nothing is divided out.  Every family of the table is
+    summed, outfield and goalkeeper alike; the caller picks the six axes it
+    displays.  A label in two families is added to both.
     """
     inv = familles_du_libelle(familles)
     out: dict[str, float] = {}
     for lib, v in lignes.items():
         for fam in inv.get(lib, ()):
-            out[fam] = out.get(fam, 0.0) + brut_neutre(v, coef)
+            out[fam] = out.get(fam, 0.0) + v
     return out
 
 
@@ -242,7 +245,7 @@ def attribut(valeur: float, echelle: list[float]) -> int:
                      * rang_percentile(valeur, echelle)))
 
 
-def attributs(lignes: dict[str, float], coef: float, poste: str,
+def attributs(lignes: dict[str, float], poste: str,
               echelles: dict | None = None) -> dict[str, int]:
     """Six attributes on 40-99 for a performance (outfield or goalkeeper)."""
     echelles = echelles or charger_echelles()
@@ -251,11 +254,10 @@ def attributs(lignes: dict[str, float], coef: float, poste: str,
     # full-back's finishing is measured against every outfield player.
     table = echelles["gardien" if gardien else "champ"]
     axes = AXES_GARDIEN if gardien else AXES_CHAMP
-    sommes = sommes_par_famille(lignes, coef)
+    sommes = sommes_par_famille(lignes)
     return {ax: attribut(sommes.get(ax, 0.0), table[ax]) for ax in axes}
 
 
 def attributs_prestation(p: dict, echelles: dict | None = None) -> dict[str, int]:
     """Convenience: attributes from one entry of topsflops.json `prestations`."""
-    return attributs(p.get("lignes") or {}, float(p.get("coef") or 1.0),
-                     p["poste"], echelles)
+    return attributs(p.get("lignes") or {}, p["poste"], echelles)

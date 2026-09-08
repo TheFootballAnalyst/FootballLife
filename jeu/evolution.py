@@ -23,7 +23,13 @@ from __future__ import annotations
 import math
 
 OVR_MIN, OVR_MAX = 40, 99
-NOTE_OVR_BAS, NOTE_OVR_HAUT = 4.0, 9.0   # note 4 -> OVR 40, note 9 -> OVR 99
+# Season-mean notes are compressed (regulars sit between ~4.8 and ~8.0 over
+# the five leagues, ~4.7 to ~7.7 in Ligue 1 alone, because the engine's
+# competition weighting lives inside the note).  The OVR scale is therefore
+# calibrated per game league on its own perimeter: `calibrer_echelle` sets
+# the two bounds from the distribution of the seeding season's means.
+NOTE_OVR_BAS, NOTE_OVR_HAUT = 4.8, 7.8   # defaults ~ top-5 regulars
+QUANTILE_BAS, QUANTILE_HAUT = 0.02, 0.995
 
 # Season start: weighted mean of last season's notes shrunk to a prior.
 PRIOR_NOTE = 5.5             # below median: an unproven player is cheap
@@ -31,7 +37,7 @@ K_RETRECISSEMENT = 10.0      # in full matches (90 min); the prior weighs
                              # as much as 10 full matches
 
 # In season: exponential moving average of the notes.
-ALPHA_EMA = 0.12             # a note moves the OVR-note by 12 % of the gap
+ALPHA_EMA = 0.08             # a note moves the OVR-note by 8 % of the gap
 MINUTES_POIDS_PLEIN = 60.0   # a short cameo moves the rating less
 
 # Price
@@ -40,11 +46,29 @@ PRIX_BASE_OVR = 60           # OVR 60 costs 1 credit
 PRIX_DOUBLE_TOUS_LES = 8     # +8 OVR = price x2  (99 ~ 29.5 credits)
 
 # Budget
-BUDGET_INITIAL = 100.0
+BUDGET_INITIAL = 40.0        # ~60 % of the perimeter's best 15 (backtest)
 TAILLE_EFFECTIF = 15         # 11 + 4 bench
 SCORE_REFERENCE = 60.0       # a gameweek at 11 x 5.5 (or 66 at 11 x 6)
 TAUX_GAIN = 0.05             # credits per point above the reference
 GAIN_MAX_SEMAINE = 3.0
+
+
+def calibrer_echelle(moyennes: list[float]) -> tuple[float, float]:
+    """Set NOTE_OVR_BAS/HAUT so that the perimeter's regulars span 40-99.
+
+    `moyennes` are minutes-weighted season means of players with a real
+    sample (say >= 450 minutes).  Bounds are the 2nd and 99.5th percentiles
+    so one freak season does not stretch the whole scale.
+    """
+    global NOTE_OVR_BAS, NOTE_OVR_HAUT
+    if len(moyennes) < 20:
+        return NOTE_OVR_BAS, NOTE_OVR_HAUT
+    xs = sorted(moyennes)
+    def q(p):
+        i = min(len(xs) - 1, max(0, int(round(p * (len(xs) - 1)))))
+        return xs[i]
+    NOTE_OVR_BAS, NOTE_OVR_HAUT = round(q(QUANTILE_BAS), 2), round(q(QUANTILE_HAUT), 2)
+    return NOTE_OVR_BAS, NOTE_OVR_HAUT
 
 
 def ovr_depuis_note(note_moyenne: float) -> int:

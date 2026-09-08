@@ -47,23 +47,26 @@ Tuesday-night moments that the engine's competition weighting rewards.
 
 This is the structuring decision. The proposal:
 
+**The OVR scale is calibrated on the perimeter.** Season means are
+compressed (regulars sit between roughly 4.8 and 8.0 across the five
+leagues, 4.7 to 7.7 in Ligue 1 alone, because the engine's competition
+weighting lives inside the note). So `evolution.calibrer_echelle` maps the
+2nd percentile of the seeding season's means to OVR 40 and the 99.5th to
+99, per game league. For Ligue 1 2025/26 that is 4.84 → 40, 7.21 → 99.
+
 **Start of season.** A card's rating-note is the minutes-weighted mean of
 its notes last season, **shrunk towards a prior of 5.5** with the weight of
-ten full matches (`evolution.note_initiale`). Consequences:
-
-- a player with a full season at 7.0 starts around OVR 71;
-- a player with three matches at 8.0 starts around OVR 65;
-- a newcomer with no data starts at OVR 58, price under 1 credit.
-
-The prior sits *below* the median on purpose. The game is meant to reward
+ten full matches (`evolution.note_initiale`). A newcomer with no data
+starts at the prior, well under the median, price under 1 credit. The
+prior sits *below* the median on purpose: the game is meant to reward
 knowledge of low-cost players, so the unknowns must be cheap enough that
 being right about them pays.
 
-**In season.** After every match the rating-note moves by 12 % of the gap
-to the new note, scaled by minutes (`evolution.note_ema`). Ten matches
-at 7.5 lift a card from OVR 64 to 76; one good match barely moves it.
-That is slow enough that a manager who spots a trend early has time to buy,
-fast enough that the card visibly "evolves" over a month.
+**In season.** After every match the rating-note moves by 8 % of the gap
+to the new note, scaled by minutes (`evolution.note_ema`). At 12 % the
+backtest showed prices jumping a full band on one match; at 8 % a run of
+five good matches is needed to move a card visibly, which is the horizon
+a manager can anticipate.
 
 **Price.** `prix = 2 ^ ((OVR − 60) / 8)`, floor 0.5 credits:
 
@@ -71,14 +74,17 @@ fast enough that the card visibly "evolves" over a month.
 |-----|----|----|----|----|----|----|----|
 | credits | 0.5 | 1 | 2 | 4 | 8 | 16 | 29.5 |
 
-Exponential so that the top of the market is scarce: with 100 credits for
-15 cards, spreading evenly buys an OVR-82 squad; one OVR-95 card costs a
-fifth of the budget on its own.
+Exponential so that the top of the market is scarce. A steeper slope
+(doubling every 6) made risers too lucrative in the backtest (an informed
+manager's value ×4 in half a season).
 
-**Budget.** Starts at 100. Each gameweek pays `0.05 × (score − 60)`
-credits, capped at 3 (`evolution.gain_semaine`): a strong week at 80
-points earns 1 credit. Payouts are small on purpose; the main way to grow
-is to hold cards that climb.
+**Budget.** Starts at **40** for 15 cards, spread evenly that buys an
+OVR-71 squad. The perimeter's best fifteen cost 64: at 60 or 100 credits
+the naive manager simply bought them and matched the oracle, so scarcity
+is what makes knowledge count. Each gameweek pays `0.05 × (score − 60)`
+credits, capped at 3 (`evolution.gain_semaine`). Payouts are small on
+purpose; the main way to grow is to hold cards that climb. See
+`BACKTEST.md` for the full run.
 
 ## Rules fixed in code (proposals)
 
@@ -100,12 +106,18 @@ game-side multiplier on top; that counted the premium twice and was removed
 so the note stays comparable across competitions; the engine's weighting is
 the only one.
 
-**Price scale and the note's range.** The note is compressed: median 6,
-p90 8. The price doubles every 8 points of **OVR**, not of note. OVR maps
-note 4 → 40 and note 9 → 99, so 8 OVR is about 0.7 of a note: a median
-player (6.0, OVR 64) costs 1.4 credits and a p90 regular (8.0, OVR 87)
-costs 10.4. That is the spread the backtest will tune, on the real
-distribution of season means (roughly 5 to 8).
+**Price scale and the note's range.** The price doubles every 8 points
+of **OVR**, not of note, and the OVR scale is calibrated on the
+perimeter's real season means (see above), so the spread of prices
+follows the spread that actually exists.
+
+**Open: the Champions League inside the note.** The backtest's eight
+biggest price rises were all PSG players, carried by the C1 knockout
+coefficients (competition 2.0 × final 2.2) that the engine puts inside the
+note. In a Ligue 1-only league that makes "buy PSG in spring" the dominant
+strategy. Three options are laid out in `BACKTEST.md`; the recommended one
+for a Ligue 1 league is to cap the *round* coefficient in the note the
+game uses, without touching the engine.
 
 ## Deliberately left out of v1
 
@@ -121,6 +133,8 @@ distribution of season means (roughly 5 to 8).
   per-league ownership cap.
 
 ## What the backtest must answer
+
+Answered in `BACKTEST.md`; kept here as the checklist for the next run.
 
 1. Distribution of end-of-season budgets under a naive strategy (buy the
    15 highest-OVR cards you can afford) vs. an informed one (buy last

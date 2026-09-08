@@ -28,16 +28,20 @@ Spotting under-priced players is the skill the game rewards.
 ```
 moteur/     the rating engine — a library, do not rewrite (see moteur/LISEZMOI.md)
 jeu/        the game layer: pure functions + schema, all tested
-  notation.py    engine output -> note out of 10 and six card attributes (with floor)
+  notation.py    engine output -> note out of 10 and six card attributes
+                 (40/40 notes and 240/240 attributes exact vs the visual pipeline)
   scoring.py     lineup + performances -> team score for a gameweek
   evolution.py   card OVR, price, manager budget over time
+  importer.py    fotmob.db -> game base (gameweeks, rated performances)
+  backtest.py    replay a season with scripted managers
   schema.sql     the game database
-  tests/
-donnees/    league logos for the cards
+  tests/         incl. the reference performances in tests/donnees/
+donnees/    league logos, and how to fetch the FotMob base (README + script)
 docs/
   CONTEXTE.md    the original project brief (French)
   REPONSES.md    answers on families, attribute floor, UCL bonus (French)
   GAME_DESIGN.md decisions: perimeter, cadence, valuation, rules
+  BACKTEST.md    the 2025/26 season replayed: settings, results, the PSG finding
   DATA_MODEL.md  the two databases and the weekly write path
   ROADMAP.md     phases, in order of risk: economy, pipeline, UI, hosting
 ```
@@ -54,9 +58,18 @@ The engine itself needs a FotMob base (`fotmob.db`, one per season,
 the repository (see `.gitignore` and `donnees/README.md`). The game layer's
 tests run without them.
 
+## Replaying a season
+
+```
+python3 donnees/telecharger.py <release asset url>   # fotmob.db + cache into moteur/
+python3 -m jeu.importer                              # -> jeu/jeu_2526.sqlite
+python3 -m jeu.backtest                              # -> out/
+```
+
 ## Where things stand
 
-Phase 0 of `docs/ROADMAP.md` is done: engine under Git, game rules as
-code, database designed, decisions written. Next is phase 1: replay the
-2025/26 season through the game offline and tune the economy before any
-screen is built.
+Phases 0 and 1 of `docs/ROADMAP.md` are done: engine under Git, game
+rules as code, the 2025/26 season imported and replayed, the economy
+tuned so that an informed manager beats a naive one (`docs/BACKTEST.md`).
+One design question is open before phase 2: how much of the Champions
+League weighting the game should keep inside the note.
