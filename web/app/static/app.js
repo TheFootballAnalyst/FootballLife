@@ -332,11 +332,14 @@ $("#fiche").addEventListener("click", e => { if (e.target === e.currentTarget) e
 async function ouvrirFiche(id) {
   let d; try { d = await api("/cartes/" + id); } catch (e) { toast(e.message); return; }
   const dlg = $("#fiche"); dlg.replaceChildren();
-  const box = el("div", {class: "fiche"});
-  const tete = el("div", {class: "fiche-tete"}); tete.append(vignette(id));
-  tete.append(el("div", {style: "flex:1;min-width:0"}, el("div", {class: "etiq"}, `${d.club} · ${d.ligue}`), el("h3", {class: "anton"}, d.nom), el("div", {class: "compteur"}, `${POSTE_COURT[d.poste] || d.poste} · ${d.matchs} matchs, ${d.minutes} min · ${Math.round(d.part * 100)} % des équipes`)),
-    el("div", {style: "text-align:right"}, el("div", {class: "ovr num" + (d.ovr >= 80 ? " haut" : ""), style: "font-size:40px"}, String(d.ovr)), el("div", {class: "prix num"}, f1(d.prix) + " cr.")));
-  box.append(tete);
+  const box = el("div", {class: "fiche fiche-carte"});
+  const img = el("img", {class: "carte-img", src: `/images/cartes/${id}.png?ovr=${d.ovr}`, alt: `Carte de ${d.nom}`});
+  img.addEventListener("error", () => img.remove());
+  const cote = el("div", {class: "fiche-cote"});
+  cote.append(el("div", {class: "etiq"}, `${d.club} · ${d.ligue}`), el("h3", {class: "anton"}, d.nom),
+    el("div", {class: "compteur"}, `${POSTE_COURT[d.poste] || d.poste} · ${d.matchs} matchs, ${d.minutes} min · ${Math.round(d.part * 100)} % des équipes`),
+    el("div", {style: "display:flex;gap:14px;align-items:baseline;margin-top:6px"}, el("div", {class: "ovr num" + (d.ovr >= 80 ? " haut" : ""), style: "font-size:40px"}, String(d.ovr)), el("div", {class: "prix num", style: "font-size:22px"}, f1(d.prix) + " cr.")));
+  box.append(el("div", {class: "fiche-haut"}, img, cote));
   const axes = d.fam === "GK" ? AXES.gardien : AXES.champ; const A = el("div", {class: "attrs"});
   for (const ax of axes) { const val = d.attributs[ax] ?? 40; A.append(el("div", {class: "attr"}, el("span", {}, ATTR_NOMS[ax]), el("div", {class: "jauge"}, el("i", {class: val >= 80 ? "haut" : "", style: `width:${(val - 40) / 59 * 100}%`})), el("b", {class: "num"}, String(val)))); }
   box.append(el("div", {class: "etiq"}, "Attributs de la saison"), A);

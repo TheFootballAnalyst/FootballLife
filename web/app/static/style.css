@@ -115,7 +115,7 @@ tr.moi td{background:color-mix(in srgb,var(--or) 14%,transparent);font-weight:70
 .info b{color:var(--encre)}
 
 /* --- fiche --- */
-dialog{border:none;border-radius:12px;padding:0;background:var(--surface);color:var(--encre);max-width:520px;width:92vw;box-shadow:var(--ombre)}
+dialog{border:none;border-radius:12px;padding:0;background:var(--surface);color:var(--encre);max-width:640px;width:92vw;box-shadow:var(--ombre)}
 dialog::backdrop{background:rgba(5,8,18,.6)}
 .fiche{padding:18px}
 .fiche-tete{display:flex;gap:14px;align-items:flex-end;padding-bottom:12px;border-bottom:1px solid var(--ligne);margin-bottom:12px}
@@ -141,6 +141,14 @@ dialog::backdrop{background:rgba(5,8,18,.6)}
 .accueil p{font-size:17px;max-width:62ch}
 .accueil ol{padding-left:20px;font-size:16px}
 .accueil li{margin:6px 0}
+
+/* --- fiche avec la carte dessinée --- */
+.fiche-carte{max-width:640px}
+.fiche-haut{display:flex;gap:16px;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--ligne);margin-bottom:12px}
+.carte-img{width:200px;flex:none;border-radius:10px}
+.fiche-cote{flex:1;min-width:0}
+.fiche-cote h3{font-size:30px;line-height:1}
+@media (max-width:600px){.fiche-haut{flex-direction:column;align-items:center}.carte-img{width:240px}}
 
 /* --- site : connexion, formulaires, ligues, admin --- */
 .onglets{display:flex;gap:4px;margin-bottom:12px}

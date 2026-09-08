@@ -38,12 +38,17 @@ from jeu import evolution as E  # noqa: E402
 from jeu import importer as I  # noqa: E402
 from jeu import pipeline as P  # noqa: E402
 from jeu import scoring as S  # noqa: E402
+try:
+    from jeu import cartes as CARTES  # noqa: E402  (needs Pillow and the fonts in moteur/)
+except Exception:  # noqa: BLE001
+    CARTES = None
 
 CHEMIN_JEU = pathlib.Path(os.environ.get("FL_JEU", RACINE / "jeu" / "jeu_2526.sqlite"))
 SAISON = os.environ.get("FL_SAISON", "2025/26")
 SECRET = os.environ.get("FL_SECRET", "dev-secret-change-me").encode()
 ADMINS = {p.strip() for p in os.environ.get("FL_ADMINS", "").split(",") if p.strip()}
 IMAGES = RACINE / "moteur" / "images"
+CACHE_CARTES = pathlib.Path(os.environ.get("FL_CACHE", RACINE / "out" / "cartes_site"))
 STATIQUE = pathlib.Path(__file__).resolve().parent / "static"
 LIGUE_MONDE = "Monde"
 QUOTA = {"GK": 2, "DEF": 5, "MID": 5, "FWD": 3}
@@ -590,6 +595,50 @@ def portrait(pid: int):
     if not f.exists():
         raise HTTPException(404)
     return FileResponse(f, headers={"Cache-Control": "public, max-age=604800"})
+
+
+def carte_dessinee(jeu, pid: int) -> pathlib.Path | None:
+    """The player's season card as the game trades it (OVR in the token,
+    season attributes), rendered by moteur/carte_design and cached on disk
+    until the card changes."""
+    if CARTES is None:
+        return None
+    row = jeu.execute("""SELECT c.ovr, c.prix, j.nom, j.poste, j.team_id, COALESCE(cl.couleur, '#14161E')
+                         FROM carte c JOIN joueur j ON j.player_id = c.player_id
+                         LEFT JOIN club cl ON cl.team_id = j.team_id WHERE c.player_id=? AND c.saison=?""",
+                      (pid, SAISON)).fetchone()
+    if not row:
+        return None
+    ovr, prix, nom, poste, tid, couleur = row
+    rows = jeu.execute("""SELECT p.minutes, p.attributs, cp.nom FROM prestation p JOIN match m ON m.match_id = p.match_id
+                          JOIN journee j ON j.journee_id = m.journee_id JOIN competition cp ON cp.competition_id = m.competition_id
+                          WHERE p.player_id=? AND j.saison=? AND j.calculee=1""", (pid, SAISON)).fetchall()
+    somme, poids, comps = {}, 0.0, {}
+    for m, att, comp in rows:
+        poids += m
+        comps[comp] = comps.get(comp, 0) + 1
+        for k, v in json.loads(att or "{}").items():
+            somme[k] = somme.get(k, 0.0) + v * m
+    attributs = {k: int(round(v / poids)) for k, v in somme.items()} if poids else {}
+    competition = max(comps, key=comps.get) if comps else "Ligue 1"
+    cle = f"{pid}_{ovr}_{len(rows)}_{sum(attributs.values())}"
+    CACHE_CARTES.mkdir(parents=True, exist_ok=True)
+    f = CACHE_CARTES / f"{cle}.png"
+    if not f.exists():
+        for vieux in CACHE_CARTES.glob(f"{pid}_*.png"):
+            vieux.unlink()
+        d = dict(pid=pid, nom=nom, note=int(ovr), ovr=int(ovr), attributs=attributs, poste=poste,
+                 minutes=None, competition=competition, couleur=couleur, team_id=tid)
+        CARTES.dessiner(d, 420).save(f)
+    return f
+
+
+@app.get("/images/cartes/{pid}.png")
+def image_carte(pid: int, jeu=Depends(bd)):
+    f = carte_dessinee(jeu, pid)
+    if f is None:
+        raise HTTPException(404, "Carte indisponible")
+    return FileResponse(f, headers={"Cache-Control": "public, max-age=3600"})
 
 
 @app.get("/images/logos/{tid}.png")

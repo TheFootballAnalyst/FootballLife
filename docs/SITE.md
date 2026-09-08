@@ -43,7 +43,11 @@ Puis http://localhost:8000. Le premier compte créé est administrateur. En
 démo, les prestations des journées 18 à 34 sont déjà en base : sur
 l'écran Admin, « Clôturer la journée » suffit à faire avancer la saison.
 Les portraits sont lus dans `moteur/images/joueurs/` (release
-`data-2025-26` ou `donnees/portraits.py`).
+`data-2025-26` ou `donnees/portraits.py`) ; sans ce dossier, le marché
+affiche des initiales. La fiche d'un joueur (clic sur sa ligne) montre sa
+carte dessinée : OVR courant, attributs de la saison, portrait, couleur du
+club. Elle est rendue par `/images/cartes/{player_id}.png` et mise en cache
+dans `out/cartes_site/` (variable `FL_CACHE`).
 
 Une base neuve pour une vraie saison :
 
