@@ -218,6 +218,7 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
         tous = B.calculer(fot)
         population = {pid: (j["poste"], B.fenetre(j, None, limite)) for pid, j in tous.items()}
         pal = B.palmares(fot) if not journees_source else {}
+        exempt = B.eligibles(fot)
         # the source season's windows, for a later replay of it
         if not jeu.execute("SELECT 1 FROM bareme_journee b JOIN journee j ON j.journee_id=b.journee_id WHERE j.saison=? LIMIT 1",
                            (source,)).fetchone() and journees_saison(jeu, source):
@@ -231,9 +232,9 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
     else:
         population = {pid: (joueurs.get(pid, (None,))[0] or postes_connus(jeu).get(pid, "Milieu relayeur"), f)
                       for pid, f in fenetres_saison(jeu, source, journees_source).items()}
-        pal = {}
+        pal, exempt = {}, set()
     bases = {pid: (poste, population[pid][1] if pid in population else B.fenetre_vide()) for pid, (poste, _) in joueurs.items()}
-    params = B.parametres(bases, pal, population)
+    params = B.parametres(bases, pal, population, exempt)
     params["source"] = {"saison": source, "journees": list(journees_source) if journees_source else None,
                         "fotmob": fot is not None, "palmares": len(pal)}
     fixer_parametre(jeu, saison, "bareme", params)

@@ -106,12 +106,27 @@ Le mécanisme retenu remplace la moyenne glissante des notes par le barème
 de saison du moteur (`moteur/bareme_stats.py`, celui du Ballon d'or
 maison), branché par `jeu/bareme.py`. Vérifications, sur la base 2025/26 :
 
-**Reproduction du Ballon d'or.** Sur les 1 137 joueurs du panel (2 300
-minutes), le score terrain S du jeu est corrélé à 0,999 au par 90 du
-moteur (seule différence : la part de titularisations vient des feuilles
-FotMob et non de FBref). Le classement hybride donne Dembélé, Olise,
-Mbappé, Kane, Yamal, Rice, Kvaratskhelia, Rodri, Haaland, Nuno Mendes —
-l'ordre du fichier `ballondor_top30.json` à une place près.
+**Reproduction du Ballon d'or.** Sur les 1 138 joueurs du panel (2 300
+minutes, plus les distinctions majeures que le moteur exempte de seuil :
+c'est ce qui garde Messi, 1 990 minutes de club et équipe-type de la
+Coupe du monde), le score terrain S du jeu est corrélé à 0,999 au par 90
+du moteur. Comparé au fichier de référence `ballondor_top30.json` :
+
+| | |
+|---|---|
+| joueurs communs dans le top 30 | 28 / 30 |
+| écart moyen de place | 1,8 |
+| corrélation de rang | 0,970 |
+| podium | identique (Dembélé, Olise, Mbappé) |
+
+Les deux entrants du jeu, Julián Álvarez (19e) et Federico Valverde
+(29e), prennent la place de joueurs classés 31e et au-delà dans le
+fichier ; les plus gros écarts sont Emiliano Martínez (+6) et Vitinha
+(−4). Les écarts résiduels de par 90 (Kane −1,4, Messi +4,4, Haaland
+−0,7) viennent de la version du moteur : le fichier de référence a été
+produit avec un `bareme_stats.py` antérieur aux réglages du 27/08/2026
+(poids des duels défensifs ramené de 8,0 à 3,0, duels au sol neutralisés,
+corrections rendues à leur famille).
 
 **La cloche.** Total hybride placé par rang parmi les 1 782 réguliers
 (≥ 900 min) des cinq championnats, cloche 65 ± 10 : 47 cartes à 85 et

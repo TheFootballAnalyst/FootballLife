@@ -217,6 +217,17 @@ def fenetres_journees(joueur: dict, journees: list[tuple[int, str, str]]) -> dic
     return out
 
 
+def eligibles(fot) -> set[int]:
+    """The players the engine admits into its panel whatever their minutes:
+    an MVP or a team-of-the-tournament pick of a major competition is a
+    jury's verdict on a season and cannot be cut by a minutes threshold
+    (bareme_stats.eligibles_distinction — that is how Messi, 1 990 club
+    minutes and the World Cup's team of the tournament, stays in)."""
+    bs, _ = moteur()
+    bs._ELIGIBLES = None
+    return set(bs.eligibles_distinction(fot))
+
+
 def palmares(fot) -> dict[int, float]:
     """Palmarès points of every player (palmares_zero.calculer), from the
     base and moteur/bareme_manuel.json."""
@@ -328,13 +339,16 @@ def attributs(f: dict, poste: str, params: dict) -> dict[str, int]:
 # --------------------------------------------------------------------------
 
 def parametres(bases: dict[int, tuple[str, dict]], pal: dict[int, float] | None = None,
-               population: dict[int, tuple[str, dict]] | None = None) -> dict:
+               population: dict[int, tuple[str, dict]] | None = None,
+               exemptes: set[int] | None = None) -> dict:
     """Measure everything a season needs from the seed windows
     {player_id: (poste, fenetre)} and the palmarès: the priors, the keeper
     alignment, the role reference and the hybrid dispersions on
     `population` (every player the engine rated — the engine's own panel;
     the cards themselves when not given), the OVR and attribute scales on
-    the cards' regulars.  Stored as parametre 'bareme'."""
+    the cards' regulars.  `exemptes` are the players the engine admits
+    into its panel whatever their minutes (see `eligibles`).  Stored as
+    parametre 'bareme'."""
     bs, pz = moteur()
     pal = pal or {}
     med = statistics.median
@@ -364,12 +378,18 @@ def parametres(bases: dict[int, tuple[str, dict]], pal: dict[int, float] | None 
     champ = [brut[pid] for pid, (po, f) in bases.items() if po != "Gardien" and f["min"] >= MINUTES_PRIOR]
     if gk and champ and med(gk) > 0:
         params["gk_k"] = med(champ) / med(gk)
-    parts = [min(1.0, f["tit"] / f["dispo"]) for _, (po, f) in bases.items() if f["dispo"] > 0]
+    # the median REGULAR starter is the neutral point (engine: facteur_role).
+    # Measured on the whole pool it lands on 1.0 — a fringe player who started
+    # the two matches he was on the sheet for reads as a full-time starter —
+    # and nobody could ever earn the bonus, only the penalty.
+    parts = [min(1.0, f["tit"] / f["dispo"]) for _, (po, f) in bases.items()
+             if f["dispo"] > 0 and f["min"] >= MINUTES_REGULIER]
     hauts = [p for p in parts if p >= 0.75]
     params["role_ref"] = med(hauts) if hauts else 1.0
     S = {pid: terrain(f, po, params) for pid, (po, f) in bases.items()}
     # hybrid dispersions on the engine's panel (players with palmarès, else all of it)
-    panel = [pid for pid, (po, f) in bases.items() if f["min"] >= MINUTES_REFERENCE]
+    exemptes = exemptes or set()
+    panel = [pid for pid, (po, f) in bases.items() if f["min"] >= MINUTES_REFERENCE or pid in exemptes]
     if len(panel) < 20:
         panel = list(bases)
     pop = [pid for pid in panel if pal.get(pid, 0.0) > 0] or panel
@@ -397,6 +417,7 @@ def parametres(bases: dict[int, tuple[str, dict]], pal: dict[int, float] | None 
             ech[cle][ax] = _quantiles([axes_par90(f, po, params)[ax] for po, f in gens])
     params["echelles"] = ech
     params["panel"], params["reguliers"], params["cartes"] = len(pop), len(reguliers), len(cartes)
+    params["exemptes"] = sorted(pid for pid in exemptes if pid in bases)
     return params
 
 
@@ -434,13 +455,16 @@ def main():
     fot = sqlite3.connect(a.fotmob)
     tous = calculer(fot)
     pal = {} if a.sans_palmares else palmares(fot)
+    exempt = eligibles(fot)
     bases = {pid: (j["poste"], fenetre(j)) for pid, j in tous.items()}
-    params = parametres(bases, pal)
+    params = parametres(bases, pal, exemptes=exempt)
     cartes = {pid: carte_initiale(bases[pid][0], bases[pid][1], pal.get(pid, 0.0), params) for pid in bases}
-    print(f"{len(cartes)} joueurs, panel {params['panel']}, réguliers {params['reguliers']} ; "
+    # the Ballon d'or ranking is read on the engine's own panel
+    panel = [pid for pid in bases if bases[pid][1]["min"] >= MINUTES_REFERENCE or pid in exempt]
+    print(f"{len(cartes)} joueurs, panel {len(panel)}, réguliers {params['reguliers']} ; "
           f"priors {json.dumps({k: round(v, 1) for k, v in params['priors'].items()})}")
     print(f"{'rang':>4} {'joueur':24s} {'poste':18s} {'min':>5} {'S':>6} {'P':>5} {'T':>6} OVR  attributs")
-    for i, pid in enumerate(sorted(cartes, key=lambda p: -cartes[p]["t"])[:a.top], 1):
+    for i, pid in enumerate(sorted(panel, key=lambda p: -cartes[p]["t"])[:a.top], 1):
         c, j = cartes[pid], tous[pid]
         attrs = attributs(ajouter(fenetre_vide(), bases[pid][1], params["poids_passe"]), j["poste"], params)
         print(f"{i:>4} {j['nom'][:24]:24s} {j['poste'][:18]:18s} {bases[pid][1]['min']:>5.0f} {c['s25']:>6.1f} "
