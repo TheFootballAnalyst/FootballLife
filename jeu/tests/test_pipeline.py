@@ -206,3 +206,32 @@ def test_ovr_is_bounded_around_the_season_start():
     o1 = jeu.execute("SELECT ovr FROM carte WHERE player_id=1").fetchone()[0]
     o2 = jeu.execute("SELECT ovr FROM carte WHERE player_id=2").fetchone()[0]
     assert o1 <= ob + E.BORNE_OVR and o2 >= ob - E.BORNE_OVR
+
+
+def test_head_to_head_fixture_is_resolved_and_moves_elo():
+    jeu = base()
+    jeu.execute("INSERT INTO journee(saison, numero, du, au, cloture, calculee) VALUES ('2025/26', 2, '2025-08-22', '2025-08-28', '2025-08-22T18:45:00Z', 0)")
+    equipe_et_compo(jeu)
+    jeu.execute("INSERT INTO utilisateur(pseudo, cree_le) VALUES ('lui', 'x')")
+    jeu.execute("INSERT INTO equipe(utilisateur_id, ligue_jeu_id, nom, budget) VALUES (2, 1, 'Eux', 60)")
+    j1 = P.journee_id(jeu, "2025/26", 1)
+    # the second team fields the same eleven minus the striker, no captain
+    jeu.execute("INSERT INTO composition VALUES (2, ?, '4-3-3', ?, ?, NULL, ?)",
+                (j1, json.dumps(list(range(1, 10)) + [11, 15]), json.dumps([12, 13, 14]), "2025-08-15T10:00:00Z"))
+    jeu.commit()
+    P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
+    assert P.apparier_journee(jeu, "2025/26", 1) == 1
+    prestations_j1(jeu, {i: (6.0, 90) for i in range(1, 16)})
+    # player 10 (captain of team 1) scores twice; player 15 (only on team 2) scores once
+    jeu.execute("UPDATE prestation SET stats=? WHERE match_id=200 AND player_id=10", ('{"buts": 2, "cadres": 2, "passes": 20}',))
+    jeu.execute("UPDATE prestation SET stats=? WHERE match_id=200 AND player_id=15", ('{"buts": 1, "cadres": 1, "passes": 20}',))
+    jeu.commit()
+    r = P.calculer(jeu, None, "2025/26", 1, importer=False)
+    assert r["matchs"] == 1
+    m = jeu.execute("SELECT score_a, score_b, resultat, elo_a_apres, elo_b_apres FROM match_h2h").fetchone()
+    assert (m[0], m[1], m[2]) == (2, 1, "A") and m[3] == 1016 and m[4] == 984
+    assert jeu.execute("SELECT elo FROM equipe WHERE equipe_id=1").fetchone()[0] == 1016
+    # the next gameweek is paired, and recomputing does not double the Elo move
+    assert jeu.execute("SELECT COUNT(*) FROM match_h2h WHERE journee_id=?", (P.journee_id(jeu, "2025/26", 2),)).fetchone()[0] == 1
+    P.calculer(jeu, None, "2025/26", 1, importer=False)
+    assert jeu.execute("SELECT elo FROM equipe WHERE equipe_id=1").fetchone()[0] == 1016

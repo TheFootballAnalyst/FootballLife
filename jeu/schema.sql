@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS prestation (
     statut           TEXT,                          -- ok / sous_mediane / flop / flop_severe
     lignes           TEXT NOT NULL,                 -- JSON {label: points}
     attributs        TEXT,                          -- JSON {FIN: 71, ...}
+    stats            TEXT,                          -- JSON raw actions of the match (importer.STATS)
     PRIMARY KEY (match_id, player_id)
 );
 CREATE INDEX IF NOT EXISTS ix_prestation_joueur ON prestation(player_id);
@@ -185,8 +186,29 @@ CREATE TABLE IF NOT EXISTS equipe (
     nom              TEXT NOT NULL,
     budget           REAL NOT NULL,                 -- M€ not tied up in cards
     points_total     REAL NOT NULL DEFAULT 0,
+    elo              REAL NOT NULL DEFAULT 1000,    -- head-to-head ladder (jeu/match.py)
     UNIQUE (utilisateur_id, ligue_jeu_id)
 );
+
+-- One head-to-head match per team per gameweek, paired Swiss-style on Elo
+-- when the previous gameweek closes, resolved from the real actions of
+-- both elevens when this one closes (jeu/match.feuille_de_match).
+CREATE TABLE IF NOT EXISTS match_h2h (
+    match_h2h_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    journee_id       INTEGER NOT NULL REFERENCES journee(journee_id),
+    ligue_jeu_id     INTEGER NOT NULL REFERENCES ligue_jeu(ligue_jeu_id),
+    equipe_a         INTEGER NOT NULL REFERENCES equipe(equipe_id),
+    equipe_b         INTEGER NOT NULL REFERENCES equipe(equipe_id),
+    score_a          INTEGER,
+    score_b          INTEGER,
+    resultat         TEXT,                          -- 'A', 'B', 'N'; NULL until resolved
+    elo_a_avant      REAL NOT NULL,
+    elo_b_avant      REAL NOT NULL,
+    elo_a_apres      REAL,
+    elo_b_apres      REAL,
+    feuille          TEXT                           -- JSON match sheet
+);
+CREATE INDEX IF NOT EXISTS ix_h2h_journee ON match_h2h(journee_id);
 
 -- Cards currently owned.  `prix_achat` is what the manager paid: the gap
 -- to the current price is their scouting reward (evolution.plus_value).

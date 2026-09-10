@@ -116,6 +116,30 @@ budget. Each gameweek pays `0.1 M€ × (score − 60)`, capped at 5 M€
 (`evolution.gain_semaine`). Payouts are small on purpose; the main way to
 grow is to hold cards that climb.
 
+## The match — head-to-head, resolved from real actions
+
+Every gameweek pairs each team with an opponent of its level (Swiss
+pairing on Elo, rematches avoided), and the two elevens play a virtual
+match whose sheet is made of the **real actions** of their players over
+the gameweek (`jeu/match.py`). Nothing is random: the same gameweek
+always gives the same match.
+
+1. Every real goal of one of your starters is a chance, carried by its
+   scorer with the note he got that match. The shots on target your
+   players did not convert add one more chance per three of them, carried
+   by your best shooters, a notch weaker than a goal.
+2. The opposing back line cancels chances with its defensive work of the
+   gameweek, measured in the engine's own points (DEF lines of the
+   outfield players, ARR/EVI/SOR lines of the keeper): one cancellation
+   per 90 points. Cancellations hit the weakest chances first; the
+   captain's goals cannot be cancelled.
+3. What is left is the score. Win 3, draw 1, Elo K = 32.
+
+The sheet shows possession (real completed passes), shots, xG, big
+chances, passes into the final third, tackles, interceptions, saves,
+goals prevented, and who scored, who missed, who cancelled what. The
+calibration, on 340 simulated matches of 2025/26, is in `BACKTEST.md`.
+
 ## Rules fixed in code (proposals)
 
 | Rule | Value | Where |

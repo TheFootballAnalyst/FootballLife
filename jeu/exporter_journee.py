@@ -34,6 +34,7 @@ def exporter(fot, jeu, saison, numero):
     du, au = jeu.execute("SELECT du, au FROM journee WHERE journee_id=?", (jid,)).fetchone()
     prestas, matchs = T.calculer(fot, du, au, comps=T.COMPS_SERIE, seuil_min=1)
     statuts = T._charger_seuils()
+    stats = I.lire_stats(fot, list(matchs))
     doc = {"saison": saison, "journee": numero, "du": du, "au": au, "matchs": {}, "clubs": {}, "joueurs": {}, "prestations": []}
     for mid, m in matchs.items():
         lid, plid, lname, dutc = fot.execute("SELECT league_id, parent_league_id, league_name, date_utc FROM match WHERE match_id=?", (mid,)).fetchone()
@@ -49,7 +50,7 @@ def exporter(fot, jeu, saison, numero):
                                        minutes=p["minutes"], entrant=int(bool(p.get("entrant"))), brut=p["brut"],
                                        coef=p["coef"], points=p["points"], note=N.note_prestation(p),
                                        statut=T._statut_final(p, statuts), lignes=p["lignes"],
-                                       attributs=N.attributs_prestation(p)))
+                                       attributs=N.attributs_prestation(p), stats=stats.get((mid, pid), {})))
     doc["valeurs"] = [list(v) for v in I.lire_valeurs(list(matchs))]
     return doc
 

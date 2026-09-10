@@ -215,6 +215,45 @@ form button.primaire{width:100%;margin-top:14px;padding:11px;font-size:15px;font
 .ordre button{padding:0 5px;line-height:1.2;font-size:10px;border-radius:4px}
 #formation{font-family:"Barlow Condensed",sans-serif;font-weight:700;letter-spacing:.06em}
 
+/* =========================== match =========================== */
+.affiche{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;margin:10px 0 14px}
+.equipe-aff{background:var(--surface2);border:1px solid var(--ligne);border-radius:12px;padding:14px 16px;text-align:right}
+.equipe-aff.moi{text-align:left;border-color:rgba(226,187,79,.45)}
+.equipe-aff b{display:block;font-family:"Barlow Condensed",sans-serif;font-size:22px;text-transform:uppercase;letter-spacing:.03em;margin:4px 0}
+.elo-chip{display:inline-block;font-family:"Barlow Condensed",sans-serif;font-size:12.5px;padding:2px 8px;border-radius:5px;background:rgba(255,255,255,.06);color:var(--sourd)}
+.vs{font-size:34px;color:var(--or)}
+.badge-res{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:12.5px;padding:3px 9px;border-radius:6px}
+.badge-res.V{background:rgba(59,209,134,.2);color:var(--vert)}.badge-res.N{background:rgba(255,255,255,.08);color:var(--sourd)}.badge-res.D{background:rgba(255,92,92,.18);color:var(--rouge)}
+.tableau-score{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;margin:8px 0 12px}
+.tableau-score .eq b{font-family:"Barlow Condensed",sans-serif;font-size:20px;text-transform:uppercase;letter-spacing:.03em}
+.tableau-score .eq.droite{text-align:right}
+.tableau-score .score{font-size:64px;line-height:1;color:var(--or2);text-shadow:0 0 30px rgba(226,187,79,.25);white-space:nowrap}
+.poss{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-family:"Barlow Condensed",sans-serif;font-weight:700}
+.barre-poss{height:8px;background:rgba(255,92,92,.35);border-radius:4px;overflow:hidden}
+.barre-poss i{display:block;height:100%;background:linear-gradient(90deg,var(--or3),var(--or2))}
+.deux-cotes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+.chances{display:flex;flex-direction:column;gap:4px}
+.chances.d{text-align:right}
+.chance{font-family:"Barlow Condensed",sans-serif;font-size:14.5px}
+.chance .ico{margin:0 6px}
+.chance.annulee{color:var(--sourd);text-decoration:line-through}
+.chance i{font-style:normal;color:var(--rouge);text-decoration:none;font-size:12.5px}
+table.totaux td{padding:5px 8px}
+table.totaux td.lib{text-align:center;color:var(--sourd);font-family:"Barlow Condensed",sans-serif;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em}
+table.totaux td.g{text-align:right;font-weight:700}
+table.totaux td.d{text-align:left;font-weight:700}
+table.totaux tr.def td{background:rgba(226,187,79,.08)}
+.onze-liste{display:flex;flex-direction:column;gap:4px}
+.ligne-onze{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:4px 6px;border-radius:8px;cursor:pointer}
+.ligne-onze:hover{background:var(--surface2)}
+.ligne-onze .vign,.ligne-onze .vign img{width:34px;height:34px}
+.ligne-onze .vign .init{font-size:14px;line-height:34px}
+.ligne-onze .nom{font-size:14px}
+.ligne-onze .sous{text-transform:none;letter-spacing:0;font-size:11.5px}
+.ligne-onze .note{font-size:11.5px;padding:2px 5px}
+td.res-V{color:var(--vert);font-weight:700}td.res-D{color:var(--rouge);font-weight:700}td.res-N{color:var(--sourd)}
+@media (max-width:640px){.deux-cotes{grid-template-columns:1fr}.chances.d{text-align:left}.tableau-score .score{font-size:44px}}
+
 /* =========================== journée =========================== */
 .gros{font-family:Anton,sans-serif;font-size:72px;line-height:1;color:var(--or2);text-shadow:0 0 30px rgba(226,187,79,.25)}
 .recap{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:14px 0}

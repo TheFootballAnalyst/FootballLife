@@ -100,6 +100,28 @@ qu'une carte fixe : l'évolution est un jeu économique, pas de
 l'information. Le mécanisme retenu garde une plus-value réelle (forme
 174 contre 145 pour une carte fixe) sans les excès de l'EMA.
 
+## Le match en face à face (J18–J34, 40 équipes, 340 matchs)
+
+Quarante effectifs tirés comme la foule (OVR bruité, 100 M€), appariés
+au hasard chaque journée, leurs onze passés par les remplacements
+automatiques. Buts réels par onze et par journée : moyenne 1,39, médiane
+1 ; tirs cadrés 3,8 ; travail défensif 98 points (p10 35, p90 164).
+
+Avec les buts réels seuls, 33 % de nuls avant même la défense : trop peu
+de buts. Une chance supplémentaire par K tirs cadrés non convertis, une
+annulation par `seuil` points défensifs :
+
+| K | seuil | buts / équipe | nuls | 0-0 | ≥ 4 buts | meilleur score fantasy gagne | la défense change le résultat |
+|---|---|---|---|---|---|---|---|
+| 3 | 60 | 1,17 | 41 % | 20 % | 11 % | 78 % | 31 % |
+| **3** | **80–100** | **1,40–1,58** | **31 %** | **14–9 %** | **14–16 %** | **73–71 %** | **24–16 %** |
+| 4 | 100 | 1,37 | 34 % | 13 % | 13 % | 72 % | 15 % |
+| 6 | 130 | 1,34 | 33 % | 10 % | 11 % | 73 % | 12 % |
+
+Retenu : K = 3, seuil = 90. Le football réel fait 1,4 but par équipe et
+25 % de nuls ; ici la défense pèse sur un match sur cinq, ce qui est le
+but : un défenseur central rapporte quelque chose au-delà de sa note.
+
 ## Résultats en euros, ligue globale (J18–J34, budget 100 M€, demande 1,0)
 
 Prix de départ = valeur marchande connue à la fin de J17 (pas de regard

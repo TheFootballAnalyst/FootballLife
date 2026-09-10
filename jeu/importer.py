@@ -85,6 +85,8 @@ def journees_depuis_rounds(fot: sqlite3.Connection, ligue_id: int,
 # --------------------------------------------------------------------------
 
 MIGRATIONS = {                       # columns added after the first bases were written
+    "prestation": [("stats", "TEXT")],
+    "equipe": [("elo", "REAL NOT NULL DEFAULT 1000")],
     "joueur": [("valeur_marche", "REAL"), ("age", "INTEGER"), ("numero", "TEXT"), ("pays", "TEXT")],
     "carte": [("part", "REAL NOT NULL DEFAULT 0"), ("valeur_base", "REAL NOT NULL DEFAULT 1"),
               ("ovr_base", "INTEGER NOT NULL DEFAULT 60"), ("poids", "REAL NOT NULL DEFAULT 0")],
@@ -103,6 +105,37 @@ def ouvrir_jeu(chemin: pathlib.Path) -> sqlite3.Connection:
                 jeu.execute(f"ALTER TABLE {table} ADD COLUMN {nom} {typ}")
     jeu.commit()
     return jeu
+
+
+# Raw match actions kept on every performance, for the head-to-head match
+# sheet (jeu/match.py): FotMob stat key -> short key.  Counts, not points.
+STATS = {
+    "goals": "buts", "assists": "pd", "total_shots": "tirs", "ShotsOnTarget": "cadres",
+    "expected_goals": "xg", "expected_assists": "xa", "chances_created": "occ",
+    "big_chance_missed_title": "gom", "accurate_passes": "passes", "passes_into_final_third": "p3",
+    "touches": "touches", "touches_opp_box": "surf", "dribbles_succeeded": "drib",
+    "matchstats.headers.tackles": "tacles", "interceptions": "int", "clearances": "deg",
+    "shot_blocks": "blocs", "recoveries": "rec", "duel_won": "dg", "duel_lost": "dp",
+    "aerials_won": "aer", "dribbled_past": "dribble", "fouls": "fautes", "was_fouled": "subies",
+    "saves": "arrets", "goals_conceded": "enc", "goals_prevented": "evites",
+    "expected_goals_on_target_faced": "xgot", "owngoal": "csc", "errors_led_to_goal": "err",
+}
+
+
+def lire_stats(fot: sqlite3.Connection, match_ids) -> dict[tuple[int, int], dict]:
+    """{(match_id, player_id): {short key: value}} from the FotMob stat table."""
+    out: dict[tuple[int, int], dict] = {}
+    marks = ",".join("?" * len(match_ids))
+    if not match_ids:
+        return out
+    for mid, pid, cle, val in fot.execute(f"""SELECT match_id, player_id, stat_key, value FROM stat
+                                              WHERE match_id IN ({marks})""", list(match_ids)):
+        court = STATS.get(cle)
+        if court is None or val is None:
+            continue
+        v = float(val)
+        out.setdefault((mid, pid), {})[court] = int(v) if v == int(v) and court not in ("xg", "xa", "evites", "xgot") else round(v, 2)
+    return out
 
 
 def importer_journee(fot: sqlite3.Connection, jeu: sqlite3.Connection,
@@ -137,6 +170,7 @@ def importer_journee(fot: sqlite3.Connection, jeu: sqlite3.Connection,
 
     # performances
     statuts = T._charger_seuils()
+    stats = lire_stats(fot, list(matchs))
     n = 0
     for (mid, pid), p in prestas.items():
         jeu.execute("""INSERT OR IGNORE INTO joueur(player_id, nom, nom_normalise, team_id, poste)
@@ -147,12 +181,12 @@ def importer_journee(fot: sqlite3.Connection, jeu: sqlite3.Connection,
         tid = fot.execute("SELECT team_id FROM appearance WHERE match_id=? AND player_id=?",
                           (mid, pid)).fetchone()
         jeu.execute("""INSERT OR REPLACE INTO prestation(match_id, player_id, team_id, poste, minutes,
-                       entrant, brut, coef, points, note, statut, lignes, attributs)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                       entrant, brut, coef, points, note, statut, lignes, attributs, stats)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (mid, pid, tid[0] if tid else None, p["poste"], p["minutes"],
                      int(bool(p.get("entrant"))), p["brut"], p["coef"], p["points"], note,
                      T._statut_final(p, statuts), json.dumps(p["lignes"], ensure_ascii=False),
-                     json.dumps(attrs)))
+                     json.dumps(attrs), json.dumps(stats.get((mid, pid), {}))))
         n += 1
     jeu.commit()
     importer_valeurs(jeu, list(matchs))
@@ -226,6 +260,19 @@ def valeurs_a_date(jeu: sqlite3.Connection, limite: str | None = None) -> dict[i
                                  ORDER BY date""", (limite or "9999-12-31",)):
         out[pid] = v
     return out
+
+
+def importer_stats(fot: sqlite3.Connection, jeu: sqlite3.Connection) -> int:
+    """Fill prestation.stats on a base written before the column existed."""
+    mids = [r[0] for r in jeu.execute("SELECT match_id FROM match")]
+    n = 0
+    for i in range(0, len(mids), 500):
+        stats = lire_stats(fot, mids[i:i + 500])
+        for (mid, pid), st in stats.items():
+            n += jeu.execute("UPDATE prestation SET stats=? WHERE match_id=? AND player_id=?",
+                             (json.dumps(st), mid, pid)).rowcount
+    jeu.commit()
+    return n
 
 
 def recalculer_attributs(jeu: sqlite3.Connection) -> int:
@@ -314,7 +361,13 @@ def main():
                     help="only (re)read the market values from the cached match sheets")
     ap.add_argument("--attributs-seulement", action="store_true",
                     help="only recompute the card attributes from the stored lines")
+    ap.add_argument("--stats-seulement", action="store_true",
+                    help="only fill the raw match actions (prestation.stats) from the FotMob base")
     a = ap.parse_args()
+    if a.stats_seulement:
+        jeu = ouvrir_jeu(pathlib.Path(a.jeu))
+        print(f"{importer_stats(sqlite3.connect(a.fotmob), jeu)} prestations, actions brutes -> {a.jeu}")
+        return
     if a.attributs_seulement:
         jeu = ouvrir_jeu(pathlib.Path(a.jeu))
         print(f"{recalculer_attributs(jeu)} prestations, attributs recalculés -> {a.jeu}")

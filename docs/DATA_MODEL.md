@@ -40,7 +40,7 @@ search boxes only.
 | `journee` | gameweek | date window + lock time; gameweek 0 holds the seed state |
 | `parametre` | season × key | OVR scale and economy constants frozen at seed time |
 | `match` | match | assigned to a gameweek |
-| `prestation` | rated appearance | engine output + note + attributes, frozen |
+| `prestation` | rated appearance | engine output + note + attributes + raw actions (`stats`, for the match sheet), frozen |
 
 ### Cards
 
@@ -50,6 +50,10 @@ search boxes only.
 | `carte_historique` | player × gameweek | price chart, "card evolves" screen |
 
 ### Managers
+
+| table | one row per | notes |
+|-------|-------------|-------|
+| `match_h2h` | fixture | one per team per gameweek, Elo before/after, the JSON match sheet |
 
 | table | one row per | notes |
 |-------|-------------|-------|

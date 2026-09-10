@@ -11,6 +11,7 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 |---|---|
 | Connexion | créer un compte (pseudo, mot de passe, nom d'équipe) ; le premier compte est administrateur |
 | Marché | toutes les cartes (écussons ou liste), filtres par poste, ligue, tri (OVR, prix, OVR par M€, forme, âge, popularité), fiche joueur, achat et vente au prix public en M€ ; fermé pendant une journée verrouillée |
+| Match | ton adversaire de la journée (appariement Elo), la feuille du dernier match (score, possession, occasions annulées, statistiques des deux onze), la ligue Elo et ton bilan |
 | Équipe | formation, onze sur le terrain, capitaine, ordre du banc, **Envoyer la composition** avant le premier coup d'envoi |
 | Journée | le résultat de la dernière journée (détail par joueur, entrants du banc, rang), l'état de la journée en cours, l'historique |
 | Classement | mondial, plus les ligues privées : créer une ligue donne un code, le partager suffit |
