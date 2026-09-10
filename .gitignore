@@ -16,6 +16,8 @@ moteur/topsflops.json
 moteur/bareme_manuel.json
 moteur/postes_manuel.json
 moteur/coefs_championnats.json
+moteur/fbref_matchs.json
+moteur/titulaire_dispo.json
 moteur/*.xlsx
 moteur/bareme_stats_events.json
 jeu/*.sqlite
