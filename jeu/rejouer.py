@@ -71,8 +71,8 @@ def main():
     jeu.execute("INSERT OR IGNORE INTO journee(saison, numero, du, au, cloture, calculee) VALUES (?,0,?,?,?,0)",
                 (a.saison, j1[0], j1[0], j1[1]))
     jeu.commit()
-    n, (bas, haut) = P.amorcer(jeu, a.saison, a.saison, (amorce[0], amorce[-1]), numero_etat=amorce[-1])
-    print(f"amorce : {n} cartes, échelle {bas} -> {haut}")
+    n, _params = P.amorcer(jeu, a.saison, a.saison, (amorce[0], amorce[-1]), numero_etat=amorce[-1])
+    print(f"amorce : {n} cartes ({_params['reguliers']} réguliers)")
 
     # the witness manager and its squad, bought once at seed prices
     joueurs, prestas, _ = BT.charger(jeu, 0)

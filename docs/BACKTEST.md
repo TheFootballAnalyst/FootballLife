@@ -75,7 +75,7 @@ aux deux périmètres.
 |---|---|---|
 | échelle OVR | calibrée sur le périmètre : p2 des moyennes → 40, p99,5 → 99 (global 25/26 : 4,90 → 7,69 ; Ligue 1 seule : 4,84 → 7,21) | les moyennes de saison sont resserrées, et chaque périmètre a sa distribution |
 | prior / K | 5,5 / 10 matchs pleins | un inconnu est bon marché |
-| évolution | moyenne glissante : la note de départ garde une inertie de 0,5 × matchs pleins de la saison passée + K, chaque match ajoute son poids en minutes/90 ; OVR affiché borné à ±10 du départ | l'EMA à 8 % faisait ×14 sur Dembélé en une demi-saison (tableau ci-dessous) |
+| évolution | **barème de saison** (`jeu/bareme.py`) : la carte part du total Ballon d'or de la saison passée (60 % barème par 90, 40 % palmarès) placé sur une cloche par rang parmi les réguliers ; en saison la part terrain suit les journées, la saison passée pesant 0,5 ; OVR borné à ±10 du départ | la moyenne glissante des notes prédisait la suite à 0,26, le barème à 0,47 (section ci-dessous) ; l'EMA à 8 % faisait ×14 sur Dembélé en une demi-saison |
 | prix | départ = valeur marchande réelle (FotMob) à la date d'amorce, puis ×2 tous les 8 OVR gagnés, plancher 0,1 M€ | pente 6 rend les hausses trop lucratives |
 | budget | **100 M€** | l'ordre informé > naïf > hasard tient de 60 à 250 M€ (tableau ci-dessous) ; 100 est un budget de club lisible |
 
@@ -99,6 +99,45 @@ oracle 1 620 partout) et l'OVR qui bouge ne prédit pas mieux l'avenir
 qu'une carte fixe : l'évolution est un jeu économique, pas de
 l'information. Le mécanisme retenu garde une plus-value réelle (forme
 174 contre 145 pour une carte fixe) sans les excès de l'EMA.
+
+## L'OVR sur le barème de saison (J25 → J34, 2 371 cartes)
+
+Le mécanisme retenu remplace la moyenne glissante des notes par le barème
+de saison du moteur (`moteur/bareme_stats.py`, celui du Ballon d'or
+maison), branché par `jeu/bareme.py`. Vérifications, sur la base 2025/26 :
+
+**Reproduction du Ballon d'or.** Sur les 1 137 joueurs du panel (2 300
+minutes), le score terrain S du jeu est corrélé à 0,999 au par 90 du
+moteur (seule différence : la part de titularisations vient des feuilles
+FotMob et non de FBref). Le classement hybride donne Dembélé, Olise,
+Mbappé, Kane, Yamal, Rice, Kvaratskhelia, Rodri, Haaland, Nuno Mendes —
+l'ordre du fichier `ballondor_top30.json` à une place près.
+
+**La cloche.** Total hybride placé par rang parmi les 1 782 réguliers
+(≥ 900 min) des cinq championnats, cloche 65 ± 10 : 47 cartes à 85 et
+plus, 307 à 75 et plus, 1 014 entre 60 et 74, 1 050 sous 60 ; sommet à 98
+(Olise, Dembélé). Une échelle linéaire sur le total donnait 1 248 cartes
+entre 40 et 44 et 34 à 75 et plus : la queue du palmarès écrasait tout.
+
+**Amplitude de l'évolution.** Saison rejouée avec une amorce sur J1–J25
+(terrain seul, comme la démo) puis neuf journées calculées par le
+pipeline : ΔOVR p5 −8, p25 −4, médiane 0, p75 +2, p95 +10 ; 120 cartes
+butent sur +10, 79 sur −10, 802 bougent d'au moins 5, 2 010 d'au moins 1.
+Les plus fortes hausses sont des jeunes partis de 40 (aucune
+titularisation) qui se mettent à jouer ; les plus fortes baisses des
+titulaires devenus remplaçants (Hrádecký 75 → 65, Trippier 77 → 67). Les
+prix suivent : médiane ×1,00, p5 ×0,50, p95 ×2,36. Avec une amorce sur une
+saison entière, la saison passée pèse plus et ces amplitudes se
+resserrent.
+
+**Prédiction.** Le score terrain de l'amorce prédit le par 90 des neuf
+journées suivantes à 0,47 (1 202 joueurs à 450 min et plus après J25),
+contre 0,26 pour la moyenne glissante des notes.
+
+**Attributs.** Six axes de points d'actions par 90, classés parmi tous les
+joueurs de champ réguliers : Mbappé FIN 99 DRI 98 DEF 43, Van Dijk DEF 98
+DRI 49, Saliba DEF 99 FIN 51, Vitinha PRO 99 CON 99. La première version
+(corrections relatives au poste incluses) donnait Mbappé 93 en défense.
 
 ## Le match en face à face (J18–J34, 40 équipes, 340 matchs)
 

@@ -57,11 +57,14 @@ Une base neuve pour une vraie saison :
 ```
 py -m jeu.importer --jeu jeu/jeu_2627.sqlite --fotmob moteur/fotmob_2526.db --saison 2025/26
 py -m jeu.pipeline journees --saison 2026/27 --jeu jeu/jeu_2627.sqlite --fotmob moteur/fotmob_2627.db
-py -m jeu.pipeline amorcer  --saison 2026/27 --jeu jeu/jeu_2627.sqlite --source 2025/26
+py -m jeu.pipeline amorcer  --saison 2026/27 --jeu jeu/jeu_2627.sqlite --source 2025/26 --fotmob moteur/fotmob_2526.db
 ```
 
-(`amorcer` lit les prestations de la saison source dans la même base,
-d'où l'import de 2025/26 d'abord.)
+(`amorcer` lit la saison source dans la base FotMob de cette saison :
+le barème de saison de chaque joueur et son palmarès (`moteur/bareme_manuel.json`
+à côté), c'est le Ballon d'or maison qui fixe les cartes. Sans base FotMob
+il additionne les fenêtres `bareme_journee` de la saison source déjà dans
+la base du jeu — terrain seul, sans palmarès. Compter 1 min 30.)
 
 ## La semaine type, en vraie saison
 
@@ -73,7 +76,9 @@ d'où l'import de 2025/26 d'abord.)
    py -m jeu.exporter_journee --saison 2026/27 --journee 3 --jeu jeu/jeu_2627.sqlite --fotmob moteur/fotmob_2627.db
    ```
    Ça écrit `out/journees/2026-27_J3.json` : toutes les prestations notées
-   de la fenêtre, avec attributs.
+   de la fenêtre, avec attributs, et la fenêtre de barème de saison de
+   chaque joueur (ce qui fait bouger les cartes ; compter une minute de
+   calcul en plus).
 3. Sur le site, écran Admin : **Charger les prestations** (ce fichier),
    puis **Clôturer la journée**. Scores, gains, cartes, prix : tout est
    écrit en une transaction, et relancer ne change rien.

@@ -104,10 +104,13 @@ CREATE TABLE IF NOT EXISTS parametre (
 
 -- ------------------------------------------------------------------ cards
 -- The card is the player's game-side state.  One row per player per season;
--- `note_ovr` is the running mean of evolution.py (weight `poids`), `ovr`
--- derives from it (bounded around `ovr_base`) and `prix`
--- (M€) from the OVR move since the seed: valeur_base x 2^((ovr-ovr_base)/8),
--- times the demand multiplier.
+-- `note_ovr` is the card's terrain score S (the season barème per 90,
+-- jeu/bareme.py: last season weighed POIDS_SAISON_PASSEE plus this season),
+-- `ovr` derives from its move since the seed (bounded around `ovr_base`)
+-- and `prix` (M€) from the OVR move: valeur_base x 2^((ovr-ovr_base)/8),
+-- times the demand multiplier.  `bareme` keeps the seed record (last
+-- season's window, its scores, the palmarès), `sommes` the season-to-date
+-- window (minutes, barème points, starts, sheets, points per axis).
 CREATE TABLE IF NOT EXISTS carte (
     player_id        INTEGER NOT NULL REFERENCES joueur(player_id),
     saison           TEXT NOT NULL,
@@ -116,15 +119,31 @@ CREATE TABLE IF NOT EXISTS carte (
     prix             REAL NOT NULL,                 -- M€, with the demand multiplier
     valeur_base      REAL NOT NULL DEFAULT 1,       -- M€ at the seed (market value)
     ovr_base         INTEGER NOT NULL DEFAULT 60,   -- OVR at the seed
-    poids            REAL NOT NULL DEFAULT 0,       -- weight of the running mean (full matches)
+    poids            REAL NOT NULL DEFAULT 0,       -- weight of the sample in the shrink (0..1)
     part             REAL NOT NULL DEFAULT 0,       -- share of managers owning the card
-    sommes           TEXT,                          -- JSON {family: engine points}, same window as the OVR
+    sommes           TEXT,                          -- JSON window of this season (bareme.fenetre)
     min90            REAL NOT NULL DEFAULT 0,       -- full-match equivalents behind `sommes`
-    attributs        TEXT,                          -- JSON, notation.attributs_saison(sommes, min90)
+    attributs        TEXT,                          -- JSON, bareme.attributs on last season + this one
+    bareme           TEXT,                          -- JSON, bareme.carte_initiale (the seed record)
     matchs           INTEGER NOT NULL DEFAULT 0,
     minutes          REAL NOT NULL DEFAULT 0,
     maj              TEXT NOT NULL,                 -- ISO datetime of last update
     PRIMARY KEY (player_id, saison)
+);
+
+-- The season barème of one gameweek, per player: what the engine's
+-- per-date trace gives over the gameweek's window (jeu/bareme.py), written
+-- by the importer / the exporter document.  The pipeline adds these up
+-- into carte.sommes; the seed of a replay adds up a source season's rows.
+CREATE TABLE IF NOT EXISTS bareme_journee (
+    journee_id       INTEGER NOT NULL REFERENCES journee(journee_id),
+    player_id        INTEGER NOT NULL,
+    minutes          REAL NOT NULL DEFAULT 0,
+    points           REAL NOT NULL DEFAULT 0,       -- barème points of the window (no position coefficient)
+    tit              INTEGER NOT NULL DEFAULT 0,    -- starts
+    dispo            INTEGER NOT NULL DEFAULT 0,    -- match sheets (bench included)
+    axes             TEXT,                          -- JSON {axe: points}
+    PRIMARY KEY (journee_id, player_id)
 );
 
 -- Full history of a card's value: this is what the "card evolves" screen

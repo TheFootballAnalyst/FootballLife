@@ -34,7 +34,8 @@ jeu/        the game layer: pure functions + schema, all tested
                  (40/40 notes and 240/240 attributes exact vs the visual pipeline)
   scoring.py     lineup + performances -> team score for a gameweek
   evolution.py   card OVR, price, manager budget over time
-  importer.py    fotmob.db -> game base (gameweeks, rated performances, club colours)
+  importer.py    fotmob.db -> game base (gameweeks, rated performances, club colours, barème windows)
+  bareme.py      the season barème (moteur/bareme_stats.py + palmares_zero.py) -> OVR, attributes, evolution
   pipeline.py    the live weekly path: gameweeks, seed, close a gameweek (idempotent)
   rejouer.py     phase 2 exit check: a season through the live path = the backtest
   backtest.py    replay a season with scripted managers

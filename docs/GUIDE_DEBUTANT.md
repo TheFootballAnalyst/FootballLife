@@ -184,8 +184,12 @@ Ouvre-le avec le Bloc-notes (clic droit → Ouvrir avec) :
 | `GAIN_MAX_SEMAINE = 5.0` | gain maximal par journée, en M€ |
 | `POIDS_SAISON_PASSEE = 0.5` | inertie de la saison passée face aux nouveaux matchs |
 | `BORNE_OVR = 10` | l'OVR affiché ne s'éloigne jamais de plus de 10 du départ |
-| `PRIOR_NOTE = 5.5` | note supposée d'un inconnu |
-| `K_RETRECISSEMENT = 10.0` | poids de cette supposition, en matchs pleins |
+| `MU_OVR, SIGMA_OVR = 65.0, 10.0` | la cloche des OVR : le régulier médian vaut 65, un écart-type vaut 10 |
+
+L'OVR et les six attributs viennent du barème de saison du moteur
+(`moteur\bareme_stats.py`, ton Ballon d'or) via `jeu\bareme.py` ; ses
+réglages (rétrécissement à 1 200 minutes, part terrain 60 %) sont ceux du
+moteur. `py -m jeu.bareme` affiche le top 30 du barème sur `moteur\fotmob.db`.
 
 Change une valeur, enregistre, relance l'étape 8, compare. Deux
 variantes utiles :

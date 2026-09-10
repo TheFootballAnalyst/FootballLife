@@ -30,8 +30,6 @@ sys.path.insert(0, str(MOTEUR))
 
 import carte_design as CD  # noqa: E402
 
-from jeu import evolution as E  # noqa: E402
-from jeu import notation as N  # noqa: E402
 
 SORTIE = RACINE / "out" / "cartes"
 POSTE_COURT = {
@@ -67,34 +65,26 @@ def prestation_carte(jeu: sqlite3.Connection, pid: int, journee: int) -> dict | 
                 minutes=minutes, competition=comp, couleur=couleur or "#14161E", team_id=tid)
 
 
-def carte_saison(jeu: sqlite3.Connection, pid: int, jusqua: int | None = None) -> dict | None:
-    """OVR and season attributes (minutes-weighted mean of per-match ones)."""
+def carte_saison(jeu: sqlite3.Connection, pid: int, saison: str | None = None) -> dict | None:
+    """The player's card as the game holds it (OVR and the six season
+    attributes of jeu/bareme.py, table carte): the latest season unless
+    `saison` is given."""
     cond, args = "", [pid]
-    if jusqua is not None:
-        cond, args = "AND j.numero <= ?", [pid, jusqua]
-    rows = jeu.execute(f"""
-        SELECT p.note, p.minutes, p.attributs, p.poste, c.nom
-        FROM prestation p JOIN match m ON m.match_id = p.match_id
-        JOIN journee j ON j.journee_id = m.journee_id
-        JOIN competition c ON c.competition_id = m.competition_id
-        WHERE p.player_id = ? AND p.note IS NOT NULL {cond}""", args).fetchall()
-    if not rows:
+    if saison:
+        cond, args = "AND c.saison = ?", [pid, saison]
+    row = jeu.execute(f"""
+        SELECT c.ovr, c.attributs, c.minutes, j.poste, j.nom, COALESCE(cl.couleur, '#14161E'), j.team_id
+        FROM carte c JOIN joueur j ON j.player_id = c.player_id
+        LEFT JOIN club cl ON cl.team_id = j.team_id
+        WHERE c.player_id = ? {cond} ORDER BY c.saison DESC LIMIT 1""", args).fetchone()
+    if not row:
         return None
-    hist = [(n, m) for n, m, *_ in rows]
-    ovr = E.ovr_initial(hist)
-    from collections import Counter
-    poste = Counter(p for *_, p, _c in rows).most_common(1)[0][0]
-    lignes = jeu.execute(f"""SELECT p.minutes, p.lignes FROM prestation p JOIN match m ON m.match_id = p.match_id
-        JOIN journee j ON j.journee_id = m.journee_id WHERE p.player_id = ? AND p.note IS NOT NULL {cond}""", args).fetchall()
-    sommes, min90 = N.sommes_saison([(m, json.loads(l or "{}")) for m, l in lignes])
-    attributs = N.attributs_saison(sommes, min90, poste)
-    comp = Counter(c for *_, c in rows).most_common(1)[0][0]
-    nom, couleur, tid = jeu.execute("""
-        SELECT j.nom, COALESCE(cl.couleur, '#14161E'), j.team_id
-        FROM joueur j LEFT JOIN club cl ON cl.team_id = j.team_id WHERE j.player_id=?""",
-        (pid,)).fetchone()
-    return dict(pid=pid, nom=nom, note=ovr, ovr=ovr, attributs=attributs, poste=poste,
-                minutes=None, competition=comp, couleur=couleur, team_id=tid)
+    ovr, attrs, minutes, poste, nom, couleur, tid = row
+    comp = jeu.execute("""SELECT c.nom FROM prestation p JOIN match m ON m.match_id = p.match_id
+        JOIN competition c ON c.competition_id = m.competition_id WHERE p.player_id = ?
+        GROUP BY c.nom ORDER BY COUNT(*) DESC LIMIT 1""", (pid,)).fetchone()
+    return dict(pid=pid, nom=nom, note=ovr, ovr=ovr, attributs=json.loads(attrs or "{}"), poste=poste,
+                minutes=None, competition=comp[0] if comp else "", couleur=couleur, team_id=tid)
 
 
 def _jeton_entier(im, cx, cy, note, r, _orig=CD.jeton):

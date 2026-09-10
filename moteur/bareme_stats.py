@@ -1027,6 +1027,10 @@ def charger(conn, seuil, seuil_champ):
         matchs[mid] = (date[:10], coef_competition(nom) * COEF_TOUR.get(phase, 1.0),
                        parent, phase)
 
+    # par_cle_date : les memes points, ventiles par cle d'action ET par date,
+    # sans coefficient de poste. Ne change aucun total : c'est la trace qui
+    # permet a un client (le jeu, un export) de recomposer une famille ou une
+    # periode sans relancer le calcul.
     joueurs = {}
     for pid, nom, minutes, club, tid in conn.execute(f"""
             SELECT s.player_id, p.name, SUM(s.value),
@@ -1048,6 +1052,7 @@ def charger(conn, seuil, seuil_champ):
                             brut=0.0, familles=defaultdict(float),
                             evenements=defaultdict(float),
                             par_famille_date=defaultdict(lambda: defaultdict(float)),
+                            par_cle_date=defaultdict(lambda: defaultdict(float)),
                             minutes_par_date=defaultdict(float))
 
     # Deuxieme filtre : un minimum de minutes de CHAMPIONNAT. Sans lui,
@@ -1106,6 +1111,7 @@ def charger(conn, seuil, seuil_champ):
         j["familles"][famille] += gagne
         j["evenements"][date] += gagne
         j["par_famille_date"][famille][date] += gagne
+        j["par_cle_date"][cle][date] += gagne
 
     # Surperformance de finition : buts marques au-dela de ce que les tirs
     # valaient. Un joueur qui convertit 20 buts pour 12 d'xG a une qualite de
@@ -1127,6 +1133,7 @@ def charger(conn, seuil, seuil_champ):
         j["familles"]["Finition"] += gagne
         j["evenements"][date] += gagne
         j["par_famille_date"]["Finition"][date] += gagne
+        j["par_cle_date"]["g_moins_xg"][date] += gagne
 
     # Penalties marques : detectes par l'ecart entre xG total et xG hors
     # penalty, qui vaut exactement 0,79 par penalty tire dans cette base. Un
@@ -1159,6 +1166,7 @@ def charger(conn, seuil, seuil_champ):
         j["familles"]["Finition"] += perdu
         j["evenements"][date] += perdu
         j["par_famille_date"]["Finition"][date] += perdu
+        j["par_cle_date"]["penalty_marque"][date] += perdu
 
     # Les profils servent de groupe de reference aux corrections ci-dessous
     # comme aux taux de reussite : ils doivent donc etre connus avant.
@@ -1271,6 +1279,7 @@ def charger(conn, seuil, seuil_champ):
             j["familles"][famille] += v
             j["evenements"][date] += v
             j["par_famille_date"][famille][date] += v
+            j["par_cle_date"]["correction_" + famille][date] += v
 
     # ------------------------------------------------------------------
     # DONNEES FBREF — INTEGRATION MATCH PAR MATCH
@@ -1312,6 +1321,7 @@ def charger(conn, seuil, seuil_champ):
                 gagne += g
                 j_["familles"][famille] = j_["familles"].get(famille, 0.0) + g
                 j_["par_famille_date"][famille][date] += g
+                j_["par_cle_date"][cle][date] += g
             # taux de reussite : excedent sur le taux du profil, rapporte aux
             # tentatives du joueur dans CE match
             for n_, d_, poids, famille in (("ad_n", "ad_d", POIDS_TAUX["anti_dribble"], "Defense"),
@@ -1325,6 +1335,7 @@ def charger(conn, seuil, seuil_champ):
                 gagne += g
                 j_["familles"][famille] = j_["familles"].get(famille, 0.0) + g
                 j_["par_famille_date"][famille][date] += g
+                j_["par_cle_date"]["fbref_" + n_[:2]][date] += g
             j_["brut"] += gagne
             j_["evenements"][date] += gagne
 
@@ -1376,6 +1387,7 @@ def charger(conn, seuil, seuil_champ):
                 k = gagne / len(j["evenements"])
                 for d in list(j["evenements"]):
                     j["evenements"][d] += k
+                    j["par_cle_date"]["physique"][d] += k
 
     # Construction, mesuree par le xGBuildup d'Understat.
     if POIDS_BUILDUP and UNDERSTAT.exists() and UNDERSTAT_ASSOC.exists():
@@ -1418,6 +1430,7 @@ def charger(conn, seuil, seuil_champ):
                 part = gagne / len(j["evenements"])
                 for d in list(j["evenements"]):
                     j["evenements"][d] += part
+                    j["par_cle_date"]["buildup"][d] += part
 
     # Progression par ballon touche. Le denominateur est le nombre de touches
     # DU MATCH, ce qui neutralise la possession de l'equipe ce jour-la.
@@ -1447,6 +1460,7 @@ def charger(conn, seuil, seuil_champ):
         j["familles"][FAMILLE_PROGRESSION] += gagne
         j["evenements"][date] += gagne
         j["par_famille_date"][FAMILLE_PROGRESSION][date] += gagne
+        j["par_cle_date"][cle][date] += gagne
 
     # Minutes datees : necessaires pour une course en points par 90, ou la
     # valeur affichee est un ratio et non un cumul.
@@ -1492,6 +1506,7 @@ def charger(conn, seuil, seuil_champ):
         j["brut"] += gagne
         j["familles"][famille] += gagne
         j["par_famille_date"][famille][date] += gagne
+        j["par_cle_date"][cle][date] += gagne
         j["evenements"][date] += gagne
 
     # Taux de reussite dans les duels defensifs engages.
@@ -1529,6 +1544,7 @@ def charger(conn, seuil, seuil_champ):
                 for d in list(j["evenements"]):
                     j["evenements"][d] += part
                     j["par_famille_date"]["Defense"][d] += part
+                    j["par_cle_date"]["taux_duels"][d] += part
 
     # Clean sheets : absents de la table stat, calcules ici. Etendus aux
     # defenseurs, pour qui c'est le seul indicateur de resultat collectif.
@@ -1556,6 +1572,7 @@ def charger(conn, seuil, seuil_champ):
             j["familles"]["Gardien" if gardien else "Defense"] += gagne
             j["evenements"][date] += gagne
             j["par_famille_date"][("Gardien" if gardien else "Defense")][date] += gagne
+            j["par_cle_date"]["clean_sheet"][date] += gagne
 
     # Coefficient de club, applique une fois sur le cumul du joueur.
     for pid, j in joueurs.items():
@@ -1567,6 +1584,9 @@ def charger(conn, seuil, seuil_champ):
                 j["familles"][f] *= k
             for d in list(j["evenements"]):
                 j["evenements"][d] *= k
+            for c_ in j["par_cle_date"].values():
+                for d in list(c_):
+                    c_[d] *= k
 
     return joueurs
 

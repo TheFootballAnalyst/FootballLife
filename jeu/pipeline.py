@@ -9,10 +9,13 @@ One command turns a finished gameweek into frozen results:
 
   1. import   the engine rates every performance of the window
               (importer.importer_journee) -> prestation
-  2. evolve   every card that played folds its matches into its running
-              mean (evolution.note_maj); the displayed OVR is bounded around
-              the season start (evolution.ovr_borne); the state after this
-              gameweek is written to carte_historique and copied to carte
+  2. evolve   the gameweek's window of the season barème (bareme_journee:
+              minutes, barème points, starts, points per axis) is added to
+              every card's season-to-date window; the card's terrain score,
+              its OVR (the seed OVR plus the move of the terrain reading,
+              bounded around the season start) and its six attributes
+              follow (jeu/bareme.py); the state after this gameweek is
+              written to carte_historique and copied to carte
   3. score    every composition submitted before the lock is scored
               (scoring.score_equipe) -> resultat; the payout goes to
               equipe.budget and the points to equipe.points_total
@@ -28,6 +31,11 @@ from the OVR for the few players without one) and moves with its OVR
 (evolution.prix_demande): the share of the season's teams owning a card is
 read from `effectif` at closing time and applied to the new price, so a
 card everybody holds costs more.
+
+The seed (`amorcer`) reads the source season with the FotMob base when it
+is there (the full barème and the palmarès of palmares_zero.py: the
+Ballon d'or reading of last season), or the source season's bareme_journee
+rows otherwise (a replay split in two, the demo, the tests: terrain only).
 
 Idempotent: a gameweek is always recomputed from the card state written for
 the PREVIOUS gameweek (the seed is stored as gameweek 0), and a resultat
@@ -47,11 +55,11 @@ from datetime import datetime, timezone
 RACINE = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RACINE))
 
+from jeu import bareme as B  # noqa: E402
 from jeu import evolution as E  # noqa: E402
 from jeu import importer as I  # noqa: E402
 from jeu import marche as MA  # noqa: E402
 from jeu import match as M  # noqa: E402
-from jeu import notation as N  # noqa: E402
 from jeu import scoring as S  # noqa: E402
 
 TOP5 = (47, 87, 55, 54, 53)
@@ -77,14 +85,16 @@ def fixer_parametre(jeu, saison, cle, valeur):
 
 
 def appliquer_echelle(jeu, saison):
-    """Load the season's OVR scale and economy into evolution's constants."""
-    ech = parametre(jeu, saison, "echelle")
-    if ech:
-        E.NOTE_OVR_BAS, E.NOTE_OVR_HAUT = ech["bas"], ech["haut"]
+    """Load the season's economy into evolution's constants and return the
+    season's barème parameters (None before the seed)."""
     eco = parametre(jeu, saison, "economie") or {}
     if "demande" in eco:
         E.DEMANDE = eco["demande"]
-    return ech
+    bar = parametre(jeu, saison, "bareme")
+    if bar:
+        E.MU_OVR, E.SIGMA_OVR, E.BORNE_OVR = bar["mu"], bar["sigma"], bar["borne"]
+        E.POIDS_SAISON_PASSEE = bar["poids_passe"]
+    return bar
 
 
 def parts_detention(jeu, saison):
@@ -125,13 +135,65 @@ def journee_id(jeu, saison, numero):
 # Seed: cards of a season from another season's performances
 # --------------------------------------------------------------------------
 
-def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=0):
-    """Create the season's cards from the performances of `source`
-    (optionally restricted to a range of its gameweeks).  Calibrates the
-    OVR scale on the source's regulars and stores it as a parameter.
-    The state is written as gameweek `numero_etat` of `saison` (0 for a
-    real season start; the last seeding gameweek when a season is split
-    in two for a replay)."""
+def journees_saison(jeu, saison):
+    """[(journee_id, numero, du, au)] of the season's gameweeks 1.., by date."""
+    return [tuple(r) for r in jeu.execute(
+        "SELECT journee_id, numero, du, au FROM journee WHERE saison=? AND numero >= 1 ORDER BY du", (saison,))]
+
+
+def fenetres_journee(jeu, jid) -> dict[int, dict]:
+    """{player_id: fenetre} of one gameweek, from bareme_journee."""
+    return {pid: {"min": m, "pts": pts, "tit": tit, "dispo": dispo, "axes": json.loads(axes or "{}")}
+            for pid, m, pts, tit, dispo, axes in jeu.execute(
+                "SELECT player_id, minutes, points, tit, dispo, axes FROM bareme_journee WHERE journee_id=?", (jid,))}
+
+
+def fenetres_saison(jeu, saison, journees=None) -> dict[int, dict]:
+    """{player_id: fenetre} summed over the season's gameweeks (optionally a
+    range of numbers), from bareme_journee."""
+    cond, args = "", [saison]
+    if journees:
+        cond, args = "AND j.numero BETWEEN ? AND ?", [saison, journees[0], journees[1]]
+    out: dict[int, dict] = {}
+    for pid, m, pts, tit, dispo, axes in jeu.execute(f"""
+            SELECT b.player_id, b.minutes, b.points, b.tit, b.dispo, b.axes FROM bareme_journee b
+            JOIN journee j ON j.journee_id = b.journee_id WHERE j.saison = ? {cond}""", args):
+        f = {"min": m, "pts": pts, "tit": tit, "dispo": dispo, "axes": json.loads(axes or "{}")}
+        out[pid] = B.ajouter(out.get(pid, B.fenetre_vide()), f)
+    return out
+
+
+def ecrire_fenetres(jeu, jid, fenetres: dict[int, dict]) -> int:
+    jeu.execute("DELETE FROM bareme_journee WHERE journee_id=?", (jid,))
+    for pid, f in fenetres.items():
+        jeu.execute("""INSERT OR REPLACE INTO bareme_journee(journee_id, player_id, minutes, points, tit, dispo, axes)
+                       VALUES (?,?,?,?,?,?,?)""",
+                    (jid, pid, round(f["min"], 1), round(f["pts"], 4), int(round(f["tit"])), int(round(f["dispo"])),
+                     json.dumps({k: round(v, 4) for k, v in f["axes"].items()})))
+    return len(fenetres)
+
+
+def fenetre_de_journee(tous: dict, jeu, saison, numero) -> dict[int, dict]:
+    """{player_id: fenetre} of gameweek `numero` from the engine's per-date
+    output, with the season's first/last gameweek absorbing what falls
+    before/after (bareme.fenetres_journees)."""
+    journees = [(jid, du, au) for jid, _, du, au in journees_saison(jeu, saison)]
+    jid = journee_id(jeu, saison, numero)
+    return {pid: fs[jid] for pid, j in tous.items() for fs in [B.fenetres_journees(j, journees)] if jid in fs}
+
+
+def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=0, fot=None):
+    """Create the season's cards from the season barème of `source`
+    (optionally restricted to a range of its gameweeks).
+
+    With `fot` (the FotMob base of the source season) the barème is run on
+    it and the palmarès read: the seed is the Ballon d'or reading of the
+    source season.  Without it the source season's bareme_journee rows are
+    added up (a replay, the demo): terrain only, no palmarès.  The season's
+    barème parameters (priors, dispersions, scales) are measured on the
+    seed and stored; the state is written as gameweek `numero_etat` of
+    `saison` (0 for a real season start; the last seeding gameweek when a
+    season is split in two for a replay)."""
     cond, args = "", [source]
     if journees_source:
         lo, hi = journees_source
@@ -140,40 +202,50 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
     clubs = {r[0] for r in jeu.execute(f"""
         SELECT DISTINCT home_team_id FROM match WHERE competition_id IN ({marks})
         UNION SELECT DISTINCT away_team_id FROM match WHERE competition_id IN ({marks})""", ligues * 2)}
-    hist, lignes_hist = {}, {}
-    for pid, note, minutes, lignes in jeu.execute(f"""
-            SELECT p.player_id, p.note, p.minutes, p.lignes FROM prestation p
+    hist = {}
+    for pid, minutes in jeu.execute(f"""
+            SELECT p.player_id, p.minutes FROM prestation p
             JOIN match m ON m.match_id = p.match_id JOIN journee j ON j.journee_id = m.journee_id
             WHERE j.saison = ? AND p.note IS NOT NULL {cond}""", args):
-        hist.setdefault(pid, []).append((note, minutes))
-        lignes_hist.setdefault(pid, []).append((minutes, json.loads(lignes or "{}")))
+        hist.setdefault(pid, []).append(minutes)
     joueurs = {pid: (poste, tid) for pid, poste, tid in jeu.execute("SELECT player_id, poste, team_id FROM joueur")
                if tid in clubs and poste in S.FAMILLE_POSTE}
-    moyennes = []
-    for pid in joueurs:
-        h = hist.get(pid, [])
-        if sum(m for _, m in h) >= MINUTES_REGULIER:
-            w = sum(m / 90 for _, m in h)
-            moyennes.append(sum(n * m / 90 for n, m in h) / w)
-    bas, haut = E.calibrer_echelle(moyennes)
-    fixer_parametre(jeu, saison, "echelle", {"bas": bas, "haut": haut, "source": source,
-                                             "journees": list(journees_source) if journees_source else None})
-    fixer_parametre(jeu, saison, "economie", {"budget": E.BUDGET_INITIAL, "poids_passe": E.POIDS_SAISON_PASSEE,
-                                              "borne": E.BORNE_OVR,
-                                              "prior": E.PRIOR_NOTE, "k": E.K_RETRECISSEMENT,
-                                              "prix_double": E.PRIX_DOUBLE_TOUS_LES,
-                                              "plancher": E.PRIX_PLANCHER, "demande": E.DEMANDE,
-                                              "gain_taux": E.TAUX_GAIN, "gain_max": E.GAIN_MAX_SEMAINE})
-    # market values known at the seed date (no look-ahead when a season is replayed)
     limite = None
     if journees_source:
         row = jeu.execute("SELECT au FROM journee WHERE saison=? AND numero=?", (source, journees_source[1])).fetchone()
         limite = row[0] if row else None
+    if fot is not None:
+        tous = B.calculer(fot)
+        population = {pid: (j["poste"], B.fenetre(j, None, limite)) for pid, j in tous.items()}
+        pal = B.palmares(fot) if not journees_source else {}
+        # the source season's windows, for a later replay of it
+        if not jeu.execute("SELECT 1 FROM bareme_journee b JOIN journee j ON j.journee_id=b.journee_id WHERE j.saison=? LIMIT 1",
+                           (source,)).fetchone() and journees_saison(jeu, source):
+            journees = [(jid, du, au) for jid, _, du, au in journees_saison(jeu, source)]
+            par_jid: dict[int, dict] = {}
+            for pid, j in tous.items():
+                for jid, f in B.fenetres_journees(j, journees).items():
+                    par_jid.setdefault(jid, {})[pid] = f
+            for jid, fs in par_jid.items():
+                ecrire_fenetres(jeu, jid, fs)
+    else:
+        population = {pid: (joueurs.get(pid, (None,))[0] or postes_connus(jeu).get(pid, "Milieu relayeur"), f)
+                      for pid, f in fenetres_saison(jeu, source, journees_source).items()}
+        pal = {}
+    bases = {pid: (poste, population[pid][1] if pid in population else B.fenetre_vide()) for pid, (poste, _) in joueurs.items()}
+    params = B.parametres(bases, pal, population)
+    params["source"] = {"saison": source, "journees": list(journees_source) if journees_source else None,
+                        "fotmob": fot is not None, "palmares": len(pal)}
+    fixer_parametre(jeu, saison, "bareme", params)
+    fixer_parametre(jeu, saison, "economie", {"budget": E.BUDGET_INITIAL, "poids_passe": E.POIDS_SAISON_PASSEE,
+                                              "borne": E.BORNE_OVR, "mu": E.MU_OVR, "sigma": E.SIGMA_OVR,
+                                              "prix_double": E.PRIX_DOUBLE_TOUS_LES,
+                                              "plancher": E.PRIX_PLANCHER, "demande": E.DEMANDE,
+                                              "gain_taux": E.TAUX_GAIN, "gain_max": E.GAIN_MAX_SEMAINE})
+    # market values known at the seed date (no look-ahead when a season is replayed)
     valeurs = I.valeurs_a_date(jeu, limite)
-    etats = {pid: E.note_initiale_ponderee(hist.get(pid, [])) for pid in joueurs}
-    notes = {pid: n for pid, (n, _) in etats.items()}
-    ovrs = {pid: E.ovr_depuis_note(n) for pid, n in notes.items()}
-    ajust = E.ajuster_valeur([(ovrs[pid], valeurs[pid]) for pid in joueurs if pid in valeurs])
+    cartes = {pid: B.carte_initiale(poste, bases[pid][1], pal.get(pid, 0.0), params) for pid, (poste, _) in joueurs.items()}
+    ajust = E.ajuster_valeur([(cartes[pid]["ovr"], valeurs[pid]) for pid in joueurs if pid in valeurs])
     fixer_parametre(jeu, saison, "valeur_marche", {"a": ajust[0], "b": ajust[1], "limite": limite,
                                                    "connues": sum(1 for pid in joueurs if pid in valeurs),
                                                    "estimees": sum(1 for pid in joueurs if pid not in valeurs)})
@@ -181,27 +253,28 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
     jeu.execute("DELETE FROM carte_historique WHERE journee_id=?", (j0,))
     jeu.execute("DELETE FROM carte WHERE saison=?", (saison,))
     n = 0
+    vide = B.fenetre_vide()
     for pid, (poste, tid) in joueurs.items():
-        h = hist.get(pid, [])
-        note, ovr = notes[pid], ovrs[pid]
+        ci = cartes[pid]
+        ovr = ci["ovr"]
         base = valeurs.get(pid) or E.valeur_estimee(ovr, ajust)
         px = E.prix_carte(base, ovr, ovr)
-        poids = etats[pid][1]
-        # season attributes: last season's family points, discounted like the OVR's inertia
-        s_, m90 = N.sommes_saison(lignes_hist.get(pid, []))
-        sommes = {k: v * E.POIDS_SAISON_PASSEE for k, v in s_.items()}
-        min90 = m90 * E.POIDS_SAISON_PASSEE
-        attrs = N.attributs_saison(sommes, min90, poste)
+        s0, ovr0, attrs, w = B.etat_courant(ci, vide, poste, params)
+        h = hist.get(pid, [])
         jeu.execute("""INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, valeur_base, ovr_base, poids,
-                                         sommes, min90, attributs, matchs, minutes, maj)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (pid, saison, note, ovr, px, base, ovr, poids, json.dumps(sommes), min90, json.dumps(attrs),
-                     len(h), sum(m for _, m in h), maintenant()))
+                                         sommes, min90, attributs, bareme, matchs, minutes, maj)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (pid, saison, s0, ovr, px, base, ovr, w, json.dumps(vide), 0.0, json.dumps(attrs), json.dumps(ci),
+                     len(h), bases[pid][1]["min"], maintenant()))
         jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix, poids, sommes, min90) VALUES (?,?,?,?,?,?,?,?)",
-                    (pid, j0, note, ovr, px, poids, json.dumps(sommes), min90))
+                    (pid, j0, s0, ovr, px, w, json.dumps(vide), 0.0))
         n += 1
     jeu.commit()
-    return n, (bas, haut)
+    return n, params
+
+
+def postes_connus(jeu):
+    return dict(jeu.execute("SELECT player_id, poste FROM joueur"))
 
 
 # --------------------------------------------------------------------------
@@ -216,18 +289,12 @@ def etat_cartes(jeu, saison, numero):
 
 
 def etat_attributs(jeu, saison, numero):
-    """{player_id: (sommes, min90)} as written after gameweek `numero`."""
+    """{player_id: season-to-date window} as written after gameweek `numero`."""
     jid = journee_id(jeu, saison, numero)
-    return {pid: (json.loads(s or "{}"), m or 0.0) for pid, s, m in
-            jeu.execute("SELECT player_id, sommes, min90 FROM carte_historique WHERE journee_id=?", (jid,))}
-
-
-def lignes_journee(jeu, jid):
-    """{player_id: [(minutes, lignes)]} of the gameweek."""
     out = {}
-    for pid, m, lignes in jeu.execute("""SELECT p.player_id, p.minutes, p.lignes FROM prestation p
-            JOIN match mt ON mt.match_id = p.match_id WHERE mt.journee_id = ? AND p.note IS NOT NULL""", (jid,)):
-        out.setdefault(pid, []).append((m, json.loads(lignes or "{}")))
+    for pid, s in jeu.execute("SELECT player_id, sommes FROM carte_historique WHERE journee_id=?", (jid,)):
+        f = json.loads(s or "{}")
+        out[pid] = f if "pts" in f else B.fenetre_vide()
     return out
 
 
@@ -261,24 +328,31 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
     jeu.commit()
 
     # 2. evolve, from the state after the previous gameweek
+    params = appliquer_echelle(jeu, saison)
+    if not params:
+        raise SystemExit(f"pas de paramètres de barème pour {saison} : amorcer d'abord")
     avant = etat_cartes(jeu, saison, numero - 1)
     if not avant:
         raise SystemExit(f"pas d'état de cartes après la journée {numero - 1} : la calculer d'abord (ou amorcer)")
-    apres = {}
-    for pid, (n, w) in avant.items():
-        for p in prestas.get(pid, []):
-            n, w = E.note_maj(n, w, p.note, p.minutes)
-        apres[pid] = (n, w)
+    fenetres = fenetres_journee(jeu, jid)
+    if not fenetres and fot is not None and importer:
+        fenetres = fenetre_de_journee(B.calculer(fot), jeu, saison, numero)
+        ecrire_fenetres(jeu, jid, fenetres)
+        jeu.commit()
+    resume["bareme"] = len(fenetres)
     postes = dict(jeu.execute("SELECT player_id, poste FROM joueur"))
-    # season attributes: family points accumulate on top of the seed
+    graines = {pid: json.loads(b) for pid, b in jeu.execute("SELECT player_id, bareme FROM carte WHERE saison=?", (saison,)) if b}
     attrs_avant = etat_attributs(jeu, saison, numero - 1)
-    lignes = lignes_journee(jeu, jid)
-    attrs_apres = {}
-    for pid in apres:
-        sommes, min90 = attrs_avant.get(pid, ({}, 0.0))
-        s_, m90 = N.sommes_saison(lignes.get(pid, []))
-        sommes = {k: sommes.get(k, 0.0) + s_.get(k, 0.0) for k in set(sommes) | set(s_)}
-        attrs_apres[pid] = (sommes, min90 + m90)
+    apres, attrs_apres = {}, {}
+    for pid, (s_avant, _) in avant.items():
+        ci = graines.get(pid)
+        if ci is None:
+            continue
+        saison_f = B.ajouter(attrs_avant.get(pid, B.fenetre_vide()), fenetres.get(pid, B.fenetre_vide()))
+        poste = postes.get(pid, "Milieu relayeur")
+        s_, ovr_, attrs_, w_ = B.etat_courant(ci, saison_f, poste, params)
+        apres[pid] = (s_, w_, ovr_, attrs_)
+        attrs_apres[pid] = saison_f
 
     # 3. score every composition submitted before the lock
     resultats = []
@@ -302,6 +376,8 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
     resume["equipes"] = len(resultats)
     resume["scores"] = [(r["equipe_id"], r["score"]) for r in resultats]
     resume["cartes_bougees"] = sum(1 for pid in apres if abs(apres[pid][0] - avant[pid][0]) > 1e-9)
+    resume["ovr_bouges"] = sum(1 for pid in apres if apres[pid][2] != jeu.execute(
+        "SELECT ovr FROM carte_historique WHERE player_id=? AND journee_id=?", (pid, journee_id(jeu, saison, numero - 1))).fetchone()[0])
     parts = parts_detention(jeu, saison)
     resume["demande"] = E.DEMANDE
     if dry_run:
@@ -313,13 +389,12 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
     now = maintenant()
     bases = {pid: (vb, ob) for pid, vb, ob in jeu.execute(
         "SELECT player_id, valeur_base, ovr_base FROM carte WHERE saison=?", (saison,))}
-    for pid, (n, w) in apres.items():
-        vb, ob = bases.get(pid, (1.0, E.ovr_depuis_note(n)))
-        ovr = E.ovr_borne(n, ob)
+    for pid, (n, w, ovr, attrs) in apres.items():
+        vb, ob = bases.get(pid, (1.0, ovr))
         part = parts.get(pid, 0.0)
         px = E.prix_demande(vb, ob, ovr, part)
-        sommes, min90 = attrs_apres[pid]
-        attrs = N.attributs_saison(sommes, min90, postes.get(pid, "Milieu relayeur"))
+        sommes = B.arrondir(attrs_apres[pid])
+        min90 = sommes["min"] / 90.0
         jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix, part, poids, sommes, min90) VALUES (?,?,?,?,?,?,?,?,?)",
                     (pid, jid, n, ovr, px, part, w, json.dumps(sommes), min90))
         joue = prestas.get(pid, [])
@@ -446,7 +521,8 @@ def charger_prestations(jeu, saison, numero, doc):
            "clubs": {team_id: {nom, couleur}}, "joueurs": {player_id: {nom, poste}},
            "prestations": [{match_id, player_id, team_id, poste, minutes, entrant,
                             brut, coef, points, note, statut, lignes, attributs}],
-           "valeurs": [[player_id, date, M€, age, shirt, country], ...]}   # from the sheets
+           "valeurs": [[player_id, date, M€, age, shirt, country], ...],  # from the sheets
+           "bareme": {player_id: fenetre}}                                   # the gameweek's barème windows
     """
     if doc.get("saison") != saison or int(doc.get("journee", -1)) != numero:
         raise SystemExit(f"le fichier est pour {doc.get('saison')} J{doc.get('journee')}, pas {saison} J{numero}")
@@ -474,6 +550,8 @@ def charger_prestations(jeu, saison, numero, doc):
                      json.dumps(p.get("lignes", {}), ensure_ascii=False), json.dumps(p.get("attributs", {})),
                      json.dumps(p.get("stats", {}))))
         n += 1
+    if doc.get("bareme"):
+        ecrire_fenetres(jeu, jid, {int(pid): f for pid, f in doc["bareme"].items()})
     jeu.commit()
     I.ecrire_valeurs(jeu, [tuple(v) for v in doc.get("valeurs", [])])
     return n
@@ -481,9 +559,10 @@ def charger_prestations(jeu, saison, numero, doc):
 
 def etat(jeu, saison):
     rows = jeu.execute("SELECT numero, du, au, calculee FROM journee WHERE saison=? ORDER BY numero", (saison,)).fetchall()
-    ech = parametre(jeu, saison, "echelle")
+    bar = parametre(jeu, saison, "bareme") or {}
+    ech = {k: bar.get(k) for k in ("mu", "sigma", "borne", "poids_passe", "panel", "reguliers", "cartes", "source")} if bar else None
     n_cartes = jeu.execute("SELECT COUNT(*) FROM carte WHERE saison=?", (saison,)).fetchone()[0]
-    return dict(saison=saison, echelle=ech, cartes=n_cartes,
+    return dict(saison=saison, bareme=ech, cartes=n_cartes,
                 journees=[dict(numero=n, du=du, au=au, calculee=bool(c)) for n, du, au, c in rows])
 
 
@@ -500,7 +579,8 @@ def main():
     ap.add_argument("--journees-source", help="amorcer: e.g. 1-17")
     ap.add_argument("--journee", type=int)
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--sans-import", action="store_true", help="calculer: performances already in the base")
+    ap.add_argument("--sans-import", action="store_true",
+                    help="calculer: performances already in the base ; amorcer: ignore the FotMob base")
     a = ap.parse_args()
     jeu = I.ouvrir_jeu(pathlib.Path(a.jeu))
     if a.commande == "journees":
@@ -508,8 +588,11 @@ def main():
         print(f"{creer_journees(jeu, fot, a.saison, a.ligue)} journées de {a.saison}")
     elif a.commande == "amorcer":
         js = tuple(int(x) for x in a.journees_source.split("-")) if a.journees_source else None
-        n, (bas, haut) = amorcer(jeu, a.saison, a.source, js)
-        print(f"{n} cartes amorcées pour {a.saison} depuis {a.source} ; échelle {bas} -> {haut}")
+        fot = sqlite3.connect(a.fotmob) if pathlib.Path(a.fotmob).exists() and not a.sans_import else None
+        n, params = amorcer(jeu, a.saison, a.source, js, fot=fot)
+        print(f"{n} cartes amorcées pour {a.saison} depuis {a.source} "
+              f"({'barème + palmarès de la base FotMob' if fot else 'fenêtres de barème de la base du jeu'}) ; "
+              f"panel {params['panel']}, réguliers {params['reguliers']}")
     elif a.commande == "calculer":
         fot = None if a.sans_import else sqlite3.connect(a.fotmob)
         r = calculer(jeu, fot, a.saison, a.journee, dry_run=a.dry_run, importer=not a.sans_import)

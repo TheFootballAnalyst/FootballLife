@@ -62,6 +62,8 @@ POSTE_SEUIL = {
 }
 
 # Card attribute families.  Outfield players and goalkeepers each have six.
+# The per-MATCH attributes (one performance, from its engine lines).  The
+# card's SEASON attributes come from the season barème (jeu/bareme.py).
 AXES_CHAMP = ("FIN", "CRE", "PRO", "DEF", "DRI", "CON")
 AXES_GARDIEN = ("ARR", "EVI", "SOR", "REL", "BUT", "PRO")
 ATTRIBUT_MIN, ATTRIBUT_MAX = 40, 99
@@ -267,53 +269,6 @@ def attributs(lignes: dict[str, float], poste: str,
     axes = AXES_GARDIEN if gardien else AXES_CHAMP
     sommes = sommes_par_famille(lignes)
     return {ax: attribut(sommes.get(ax, 0.0), table[ax]) for ax in axes}
-
-
-# --------------------------------------------------------------------------
-# Season attributes: the card's six numbers
-# --------------------------------------------------------------------------
-# A season is ranked among SEASONS, not averaged from match ranks: averaging
-# percentiles match by match pulled every regular towards 70.  The season
-# scale (echelles_attributs.json["saison"], measured by
-# importer.mesurer_echelles_saison on players with >= 450 minutes) ranks the
-# family points per 90 minutes; a thin sample is shrunk towards a cautious
-# prior (the PRIOR_SAISON quantile of the scale, under the median: an
-# unknown player reads modest, like his OVR) with the weight of K_SAISON_90
-# full matches.
-
-K_SAISON_90 = 5.0
-PRIOR_SAISON = 60          # index on the 201-point scale: the 30th percentile
-
-
-def attributs_saison(sommes: dict[str, float], min90: float, poste: str,
-                     echelles: dict | None = None) -> dict[str, int]:
-    """Six attributes on 40-99 from the season's family points (`sommes`,
-    engine points summed per family) over `min90` full-match equivalents."""
-    echelles = echelles or charger_echelles()
-    saison = echelles.get("saison")
-    if not saison:
-        raise KeyError("echelles_attributs.json has no 'saison' scales: run importer --echelles-saison")
-    gardien = poste == "Gardien"
-    table = saison["gardien" if gardien else "champ"]
-    axes = AXES_GARDIEN if gardien else AXES_CHAMP
-    out = {}
-    for ax in axes:
-        ech = table[ax]
-        prior = ech[PRIOR_SAISON]
-        v = ((sommes.get(ax, 0.0) + prior * K_SAISON_90) / (min90 + K_SAISON_90)) if min90 + K_SAISON_90 > 0 else prior
-        out[ax] = attribut(v, ech)
-    return out
-
-
-def sommes_saison(prestations: list[tuple[float, dict]]) -> tuple[dict[str, float], float]:
-    """(family points, full-match equivalents) of a list of (minutes, lignes)."""
-    sommes: dict[str, float] = {}
-    min90 = 0.0
-    for m, lignes in prestations:
-        min90 += (m or 0) / 90.0
-        for f, v in sommes_par_famille(lignes or {}).items():
-            sommes[f] = sommes.get(f, 0.0) + v
-    return sommes, min90
 
 
 def attributs_prestation(p: dict, echelles: dict | None = None) -> dict[str, int]:

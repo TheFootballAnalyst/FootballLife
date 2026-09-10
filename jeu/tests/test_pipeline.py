@@ -36,11 +36,26 @@ def base():
     for i in range(1, 16):
         jeu.execute("""INSERT INTO prestation(match_id, player_id, team_id, poste, minutes, entrant, brut, coef, points, note, statut, lignes, attributs)
                        VALUES (100, ?, 1, ?, 90, 0, 10, 1, 20, 6.0, 'ok', '{}', '{}')""", (i, POSTES[i - 1]))
+        # the season barème of the source season: a full season each, player i
+        # worth 100 + 20 i points, his axes spread so the attributes differ
+        fenetre_bareme(jeu, js, i, 2700, 100 + 20 * i, tit=30, dispo=30)
     # live season: gameweek 0 (seed) and 1
     jeu.execute("INSERT INTO journee(saison, numero, du, au, cloture, calculee) VALUES ('2025/26', 0, '2025-08-01', '2025-08-01', '2025-08-01T00:00:00Z', 0)")
     jeu.execute("INSERT INTO journee(saison, numero, du, au, cloture, calculee) VALUES ('2025/26', 1, '2025-08-15', '2025-08-21', '2025-08-15T18:45:00Z', 0)")
     jeu.commit()
     return jeu
+
+
+def fenetre_bareme(jeu, jid, pid, minutes, pts, tit=1, dispo=1, axes=None):
+    """One bareme_journee row (a player's window over a gameweek)."""
+    if axes is None:
+        if POSTES[pid - 1] == "Gardien":
+            axes = {"ARR": pts * 0.5, "EVI": pts * 0.2, "SOR": pts * 0.1, "REL": 0.0, "BUT": -pts * 0.1, "PRO": 0.0}
+        else:
+            axes = {"FIN": 400 * pid / 15, "CRE": pts * 0.2, "PRO": pts * 0.2, "DEF": 400 * (16 - pid) / 15,
+                    "DRI": pts * 0.1, "CON": pts * 0.1}
+    jeu.execute("INSERT OR REPLACE INTO bareme_journee(journee_id, player_id, minutes, points, tit, dispo, axes) VALUES (?,?,?,?,?,?,?)",
+                (jid, pid, minutes, pts, tit, dispo, json.dumps(axes)))
 
 
 def equipe_et_compo(jeu, soumise="2025-08-15T10:00:00Z"):
@@ -65,13 +80,18 @@ def prestations_j1(jeu, notes):
 
 def test_seed_writes_cards_and_scale():
     jeu = base()
-    n, (bas, haut) = P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
+    n, params = P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
     assert n == 15
-    assert P.parametre(jeu, "2025/26", "echelle")["bas"] == bas
-    # 15 players x 90 min < the 20-regular minimum: scale untouched, cards at the shrunk mean
-    note = jeu.execute("SELECT note_ovr FROM carte WHERE player_id=1").fetchone()[0]
-    assert abs(note - E.note_initiale([(6.0, 90)])) < 1e-9
+    assert P.parametre(jeu, "2025/26", "bareme")["reguliers"] == params["reguliers"] == 15
+    # the card keeps its seed record; its terrain score is the seed's s0
+    note, bareme = jeu.execute("SELECT note_ovr, bareme FROM carte WHERE player_id=1").fetchone()
+    ci = json.loads(bareme)
+    assert abs(note - ci["s0"]) < 1e-3 and ci["base"]["min"] == 2700 and ci["pal"] == 0
     assert jeu.execute("SELECT COUNT(*) FROM carte_historique").fetchone()[0] == 15
+    # more barème points per 90 = a higher OVR, on a bell centred on the median
+    ovrs = dict(jeu.execute("SELECT player_id, ovr FROM carte"))
+    assert ovrs[15] > ovrs[8] > ovrs[2]
+    assert E.OVR_MIN <= min(ovrs.values()) and max(ovrs.values()) <= E.OVR_MAX
 
 
 def test_gameweek_scores_pays_and_is_idempotent():
@@ -83,6 +103,8 @@ def test_gameweek_scores_pays_and_is_idempotent():
     notes[11] = (7.0, 90)
     notes[15] = (8.0, 90)
     prestations_j1(jeu, notes)
+    fenetre_bareme(jeu, P.journee_id(jeu, "2025/26", 1), 1, 90, 60.0)
+    jeu.commit()
     r = P.calculer(jeu, None, "2025/26", 1, importer=False)
     # 10 starters x 7 + sub 15 at 8 (captain absent, no bonus) = 78
     assert r["scores"] == [(1, 78.0)]
@@ -90,12 +112,12 @@ def test_gameweek_scores_pays_and_is_idempotent():
     assert pts == 78.0 and abs(budget - (60 + E.gain_semaine(78.0))) < 1e-9
     res = jeu.execute("SELECT score, gain, rang, onze FROM resultat").fetchone()
     assert res[0] == 78.0 and res[2] == 1 and 15 in json.loads(res[3]) and 10 not in json.loads(res[3])
-    # cards: player 1 moved, player 10 did not
+    # cards: player 1 (a barème window this gameweek) moved, player 10 (none) did not
     n1 = jeu.execute("SELECT note_ovr FROM carte WHERE player_id=1").fetchone()[0]
     n10 = jeu.execute("SELECT note_ovr FROM carte WHERE player_id=10").fetchone()[0]
-    n0, w0 = E.note_initiale_ponderee([(6.0, 90)])
-    assert abs(n1 - E.note_maj(n0, w0, 7.0, 90)[0]) < 1e-9 and abs(n10 - n0) < 1e-9
-    assert abs(jeu.execute("SELECT poids FROM carte WHERE player_id=1").fetchone()[0] - (w0 + 1)) < 1e-9
+    s0 = {pid: json.loads(b)["s0"] for pid, b in jeu.execute("SELECT player_id, bareme FROM carte")}
+    assert n1 > s0[1] + 1e-6 and abs(n10 - s0[10]) < 1e-3
+    assert 0 < jeu.execute("SELECT poids FROM carte WHERE player_id=1").fetchone()[0] < 1
     assert jeu.execute("SELECT calculee FROM journee WHERE numero=1 AND saison='2025/26'").fetchone()[0] == 1
     # run again: nothing changes
     P.calculer(jeu, None, "2025/26", 1, importer=False)
@@ -201,13 +223,23 @@ def test_ovr_is_bounded_around_the_season_start():
     jeu = base()
     equipe_et_compo(jeu)
     P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
-    ob = jeu.execute("SELECT ovr_base FROM carte WHERE player_id=1").fetchone()[0]
-    prestations_j1(jeu, {1: (10.0, 90)} | {i: (1.0, 90) for i in range(2, 12)})
+    ob = dict(jeu.execute("SELECT player_id, ovr_base FROM carte"))
+    prestations_j1(jeu, {i: (6.0, 90) for i in range(1, 12)})
+    # player 2 has a monstrous gameweek, player 3 a disastrous one (barème points over 90 min)
+    j1 = P.journee_id(jeu, "2025/26", 1)
+    fenetre_bareme(jeu, j1, 2, 90, 5000.0)
+    fenetre_bareme(jeu, j1, 3, 90, -5000.0)
+    jeu.commit()
     P.calculer(jeu, None, "2025/26", 1, importer=False)
-    # the running mean moved, the displayed OVR by at most BORNE_OVR
-    o1 = jeu.execute("SELECT ovr FROM carte WHERE player_id=1").fetchone()[0]
-    o2 = jeu.execute("SELECT ovr FROM carte WHERE player_id=2").fetchone()[0]
-    assert o1 <= ob + E.BORNE_OVR and o2 >= ob - E.BORNE_OVR
+    ovr = dict(jeu.execute("SELECT player_id, ovr FROM carte"))
+    s = dict(jeu.execute("SELECT player_id, note_ovr FROM carte"))
+    s0 = {pid: json.loads(b)["s0"] for pid, b in jeu.execute("SELECT player_id, bareme FROM carte")}
+    assert s[2] > s0[2] and s[3] < s0[3]
+    assert ovr[2] == ob[2] + E.BORNE_OVR and ovr[3] == ob[3] - E.BORNE_OVR
+    assert ovr[4] == ob[4]                     # nothing played, nothing moved
+    # the season-to-date window is kept on the card and in the history
+    som, m90 = jeu.execute("SELECT sommes, min90 FROM carte WHERE player_id=2").fetchone()
+    assert json.loads(som)["pts"] == 5000.0 and m90 == 1.0
 
 
 def test_head_to_head_fixture_is_resolved_and_moves_elo():
@@ -242,18 +274,17 @@ def test_head_to_head_fixture_is_resolved_and_moves_elo():
 def test_cards_carry_season_attributes_from_the_seed_onwards():
     jeu = base()
     equipe_et_compo(jeu)
-    jeu.execute("UPDATE prestation SET lignes=? WHERE player_id=10", ('{"But": 55.0, "Tir cadre": 7.0}',))
-    jeu.commit()
     P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
-    a10 = json.loads(jeu.execute("SELECT attributs FROM carte WHERE player_id=10").fetchone()[0])
-    a1 = json.loads(jeu.execute("SELECT attributs FROM carte WHERE player_id=1").fetchone()[0])
-    assert set(a10) == {"FIN", "CRE", "PRO", "DEF", "DRI", "CON"} and set(a1) == {"ARR", "EVI", "SOR", "REL", "BUT", "PRO"}
-    assert a10["FIN"] > a1["PRO"] or a10["FIN"] > 70
+    attrs = {pid: json.loads(a) for pid, a in jeu.execute("SELECT player_id, attributs FROM carte")}
+    assert set(attrs[10]) == {"FIN", "CRE", "PRO", "DEF", "DRI", "CON"} and set(attrs[1]) == {"ARR", "EVI", "SOR", "REL", "BUT", "PRO"}
+    # finishing points grow with the player number, defence points shrink: ranked among ALL outfield players
+    assert attrs[15]["FIN"] > attrs[8]["FIN"] > attrs[2]["FIN"] and attrs[2]["DEF"] > attrs[8]["DEF"] > attrs[15]["DEF"]
     prestations_j1(jeu, {i: (6.0, 90) for i in range(1, 12)})
-    jeu.execute("UPDATE prestation SET lignes=? WHERE match_id=200 AND player_id=10", ('{"But": 110.0}',))
+    j1 = P.journee_id(jeu, "2025/26", 1)
+    fenetre_bareme(jeu, j1, 2, 90, 100.0, axes={"FIN": 100.0})      # a striker's night from a defender
     jeu.commit()
     P.calculer(jeu, None, "2025/26", 1, importer=False)
-    apres = json.loads(jeu.execute("SELECT attributs FROM carte WHERE player_id=10").fetchone()[0])
-    assert apres["FIN"] >= a10["FIN"]
-    s, m = jeu.execute("SELECT sommes, min90 FROM carte WHERE player_id=10").fetchone()
-    assert json.loads(s)["FIN"] > 0 and m > 0
+    apres = json.loads(jeu.execute("SELECT attributs FROM carte WHERE player_id=2").fetchone()[0])
+    assert apres["FIN"] > attrs[2]["FIN"] and apres["DEF"] <= attrs[2]["DEF"]
+    s, m = jeu.execute("SELECT sommes, min90 FROM carte WHERE player_id=2").fetchone()
+    assert json.loads(s)["axes"]["FIN"] == 100.0 and m == 1.0

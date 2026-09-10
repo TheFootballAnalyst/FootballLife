@@ -227,13 +227,14 @@ def saison(jeu=Depends(bd)):
     j = journee_courante(jeu)
     d = derniere_journee_calculee(jeu)
     eco = P.parametre(jeu, SAISON, "economie") or {}
-    ech = P.parametre(jeu, SAISON, "echelle") or {}
+    bar = P.parametre(jeu, SAISON, "bareme") or {}
+    ech = {k: bar.get(k) for k in ("mu", "sigma", "borne", "poids_passe", "panel", "reguliers", "cartes")} if bar else {}
     n_equipes = jeu.execute("SELECT COUNT(*) FROM equipe WHERE ligue_jeu_id=?", (ligue_monde(jeu),)).fetchone()[0]
     return {
         "saison": SAISON, "maintenant": P.maintenant(),
         "courante": dict(j) | {"verrouillee": verrouillee(j)} if j else None,
         "derniere": dict(d) if d else None,
-        "economie": eco, "echelle": ech, "equipes": n_equipes,
+        "economie": eco, "bareme": ech, "equipes": n_equipes,
         "quotas": QUOTA, "taille_effectif": TAILLE_EFFECTIF,
         "formations": S.FORMATIONS, "limites": S.LIMITES_FAMILLE,
     }
@@ -788,7 +789,7 @@ def carte_dessinee(jeu, pid: int) -> pathlib.Path | None:
                                   WHERE p.player_id=? AND j.saison=? AND j.calculee=1""", (pid, SAISON)):
         comps[comp] = comps.get(comp, 0) + 1
     competition = max(comps, key=comps.get) if comps else "Ligue 1"
-    cle = f"{pid}_{ovr}_{sum(attributs.values())}_s1"      # s1: season-scale attributes, escutcheon
+    cle = f"{pid}_{ovr}_{sum(attributs.values())}_s2"      # s2: barème attributes, escutcheon
     CACHE_CARTES.mkdir(parents=True, exist_ok=True)
     f = CACHE_CARTES / f"{cle}.png"
     if not f.exists():

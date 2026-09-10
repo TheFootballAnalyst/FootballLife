@@ -8,15 +8,18 @@ season can be replayed offline with different constants.
 Three quantities:
 
   OVR      the card's overall rating on 40-99: the player's quality over
-           a season.  It starts from last season's notes (shrunk towards a
-           cautious prior when the sample is thin — an unknown player is
-           *cheap*, which is what rewards scouting) and then becomes a
-           running mean that takes this season's matches in; each new match
-           weighs less as the season fills, so one night never remakes a
-           card.  The displayed OVR is bounded to ±BORNE_OVR around the
-           season start: a bad month cannot cost a star twenty points.
-           Recent form is shown on the card, not priced in — the gap
-           between form and OVR is what an attentive manager exploits.
+           a season, read from the SEASON BARÈME (jeu/bareme.py, the
+           engine's Ballon d'or barème).  It starts as last season's
+           hybrid total (60 % barème per 90, 40 % palmarès) placed on a
+           bell by rank among the regulars (MU_OVR, SIGMA_OVR), then the
+           terrain part follows this season's matches, last season keeping
+           the weight POIDS_SAISON_PASSEE; the OVR is bounded to
+           ±BORNE_OVR around the season start: a bad month cannot cost a
+           star twenty points.  Recent form is shown on the card, not
+           priced in — the gap between form and OVR is what an attentive
+           manager exploits.  (The note-based running mean below —
+           note_initiale, note_maj, ovr_borne — was the first mechanism;
+           it is kept for jeu/backtest.py, which compares mechanisms.)
   PRIX     the card's price in millions of euros.  It starts the season at
            the player's real market value (FotMob's figure, Transfermarkt
            style, read from the match sheets) and then follows the OVR:
@@ -54,6 +57,13 @@ K_RETRECISSEMENT = 10.0      # in full matches (90 min); the prior weighs
 # full season behind, about 1/25 at the start and 1/45 at the end.
 POIDS_SAISON_PASSEE = 0.5
 BORNE_OVR = 10               # displayed OVR stays within +-10 of the season start
+
+# The barème OVR (jeu/bareme.py): a card's Ballon d'or total is placed on
+# 40-99 by its rank among the season's regulars, on a bell centred on
+# MU_OVR with SIGMA_OVR per standard deviation.  The median regular reads
+# 65, one regular in six is 75 or more, one in forty 85 or more, the top of
+# the ranking 98-99 — a FIFA-like spread, whatever the shape of the barème.
+MU_OVR, SIGMA_OVR = 65.0, 10.0
 
 # Price (M€)
 PRIX_PLANCHER = 0.1          # 100 k€: a card is never free

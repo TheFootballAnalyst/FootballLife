@@ -5,7 +5,8 @@
 
 Runs the engine on the gameweek's window (dates read from the game base,
 so run `pipeline journees` first), rates every performance (note +
-attributes) and writes out/journees/2026-27_J3.json.  The admin uploads
+attributes), runs the season barème for the cards (about a minute) and
+writes out/journees/2026-27_J3.json.  The admin uploads
 that file on the site (Admin → journée → prestations), then closes the
 gameweek; the server never needs fotmob.db or the match cache.
 
@@ -23,7 +24,7 @@ RACINE = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RACINE))
 
 from jeu import importer as I  # noqa: E402
-from jeu import notation as N  # noqa: E402
+from jeu import notation as N  # noqa: E402  # noqa: F401
 from jeu import pipeline as P  # noqa: E402
 
 T = I.T   # topsflops, with its side files pinned to moteur/
@@ -52,6 +53,9 @@ def exporter(fot, jeu, saison, numero):
                                        statut=T._statut_final(p, statuts), lignes=p["lignes"],
                                        attributs=N.attributs_prestation(p), stats=stats.get((mid, pid), {})))
     doc["valeurs"] = [list(v) for v in I.lire_valeurs(list(matchs))]
+    # the gameweek's windows of the season barème (jeu/bareme.py), for the cards
+    from jeu import bareme as B
+    doc["bareme"] = {str(pid): B.arrondir(f) for pid, f in P.fenetre_de_journee(B.calculer(fot), jeu, saison, numero).items()}
     return doc
 
 

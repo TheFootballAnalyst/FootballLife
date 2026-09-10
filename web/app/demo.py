@@ -54,6 +54,14 @@ def main():
         n = I.importer_valeurs(jeu, mids)
         if n == 0:
             print("Aucune valeur trouvée : le dossier moteur/cache/matches est-il rempli ? Les prix seront estimés d'après l'OVR.")
+    # the season barème windows (the cards' OVR and attributes): computed from the FotMob base if missing
+    if jeu.execute("SELECT COUNT(*) FROM bareme_journee").fetchone()[0] == 0:
+        fot = pathlib.Path(a.fotmob)
+        if not fot.exists():
+            sys.exit(f"La base du jeu {src} n'a pas de fenêtres de barème et la base FotMob {fot} n'existe pas.\n"
+                     f"Récupère la release data-2025-26 (docs/GUIDE_DEBUTANT.md, étape 6), puis relance.")
+        print(f"Calcul du barème de saison depuis {fot} (environ 1 min)...")
+        I.importer_bareme(sqlite3.connect(fot), jeu, a.saison)
     amorce = BT.parse_plage(a.amorce)
     for t in ("resultat", "composition", "effectif", "transfert", "ligue_privee_membre", "ligue_privee",
               "equipe", "ligue_jeu", "utilisateur", "carte_historique", "carte"):
@@ -63,10 +71,10 @@ def main():
     jeu.execute("UPDATE journee SET calculee=1 WHERE saison=? AND numero<=?", (a.saison, amorce[-1]))
     jeu.execute("UPDATE journee SET calculee=0, cloture='2099-01-01T00:00:00Z' WHERE saison=? AND numero>?", (a.saison, amorce[-1]))
     jeu.commit()
-    n, (bas, haut) = P.amorcer(jeu, a.saison, a.saison, (amorce[0], amorce[-1]), numero_etat=amorce[-1])
+    n, params = P.amorcer(jeu, a.saison, a.saison, (amorce[0], amorce[-1]), numero_etat=amorce[-1])
     jeu.execute("VACUUM")
     jeu.commit()
-    print(f"{dst}: {n} cartes amorcées sur J{amorce[0]}-J{amorce[-1]}, échelle {bas} -> {haut}; "
+    print(f"{dst}: {n} cartes amorcées sur J{amorce[0]}-J{amorce[-1]} ({params['reguliers']} réguliers) ; "
           f"marché ouvert à J{amorce[-1] + 1}")
 
 

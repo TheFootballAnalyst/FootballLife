@@ -45,43 +45,55 @@ This matches how the engine already works (`topsflops.py --du --au`) and
 how the audience follows football. Slower cadences (fortnightly) lose the
 Tuesday-night moments that the engine's competition weighting rewards.
 
-### 3. Valuation — from last season's notes, cautious on thin samples
+### 3. Valuation — the season barème fixes the card, the season moves it
 
-This is the structuring decision. The proposal:
+This is the structuring decision. The card is read from the engine's
+**season barème** (`moteur/bareme_stats.py`, the "Ballon d'or" barème:
+every action of every match, weighted by the competition, the round and
+the opponent, summed per player and read per 90 minutes) through
+`jeu/bareme.py`. The per-match note of `topsflops.py` keeps its job — the
+fantasy score and the head-to-head match — but it no longer makes the
+card: two readings, two uses.
 
-**The OVR scale is calibrated on the perimeter.** Season means are
-compressed (regulars sit between roughly 4.8 and 8.0 across the five
-leagues, 4.7 to 7.7 in Ligue 1 alone, because the engine's competition
-weighting lives inside the note). So `evolution.calibrer_echelle` maps the
-2nd percentile of the seeding season's means to OVR 40 and the 99.5th to
-99, per game league. For Ligue 1 2025/26 that is 4.84 → 40, 7.21 → 99.
+**Start of season.** A card's OVR is last season's **hybrid Ballon d'or
+total**: 60 % the barème per 90 (S, "terrain"), 40 % the palmarès
+(`palmares_zero.py`: titles, distinctions), both centred on their 25th
+percentile and scaled by their dispersion, exactly the engine's own
+assembly. That total is placed on 40–99 **by rank among the season's
+regulars (900 minutes or more), on a bell** centred on 65 with 10 per
+standard deviation: the median regular reads 65, one in six is 75 or
+more, one in forty 85 or more, the top of the ranking 98. Whatever the
+shape of the barème (its top is heavy-tailed because of the palmarès),
+the cards spread like a card game's. Dembélé and Olise 98, Mbappé and
+Yamal 96, Kane and Rodri 94, Van Dijk 86, Saliba 87, Donnarumma 77.
 
-**Start of season.** A card's rating-note is the minutes-weighted mean of
-its notes last season, **shrunk towards a prior of 5.5** with the weight of
-ten full matches (`evolution.note_initiale`). A newcomer with no data
-starts at the prior, well under the median. The
-prior sits *below* the median on purpose: the game is meant to reward
-knowledge of low-cost players, so the unknowns must be cheap enough that
-being right about them pays.
+Thin samples are shrunk **exactly as the engine does**: towards the
+position's median regular with the weight of 1 200 minutes, keepers
+aligned on the outfield median, a substitute's per 90 discounted by his
+share of starts (read from the match sheets, so it works in season). An
+unknown therefore reads like a median player of his position — and is
+cheap through his market value, which is where "unknown = cheap" lives.
 
-**In season.** The rating-note is a running mean that folds every new
-match in (`evolution.note_maj`): the season-start note keeps an inertia
-of half of last season's full-match equivalents plus the prior's ten, so a
-new match weighs about 1/25 at the start of the season and 1/45 at the
-end. One night never remakes a card. On top of that the displayed OVR is
-**bounded to ±10 around the season start** (`evolution.ovr_borne`): a
-star's bad month cannot cost twenty points, a rookie's hot streak earns
-at most ten, and a card's price moves at most ×2.4 or ÷2.4 in a season.
+**In season.** The palmarès is frozen; the terrain part moves. The card's
+running barème blends last season (weight `POIDS_SAISON_PASSEE` = 0.5 on
+its minutes and points) with this season's gameweeks; its reading on the
+same bell, minus the reading of the seed with the same blend, is the
+card's move. One extra season at the same level leaves the card where it
+started; a mid-table regular one standard deviation above his last
+season gains about ten points by the end. On top of that the OVR is
+**bounded to ±10 around the season start** (`BORNE_OVR`): a star's bad
+month cannot cost twenty points, a rookie's hot streak earns at most ten,
+and a card's price moves at most ×2.4 or ÷2.4 in a season.
 
-Why so calm: the replay showed that an evolving OVR predicts the next
-eight gameweeks no better than a fixed one (rank correlation 0.26 against
-0.24), and that manager points are identical whatever the mechanism. Card
-evolution is not information, it is the economy. The earlier exponential
-moving average (8 % of the gap per match) sent Dembélé from 64 to 95 and
-98 M€ to 1 435 M€ in half a season, and cost Andrich 21 points: that was
-the volatility of a form indicator, not of a card. Form is shown on the
-card (the last notes) and left out of the price on purpose: buying a
-player in form before his OVR, hence his price, catches up is the edge.
+Why this and not the notes: replayed on 2025/26 (`BACKTEST.md`), the
+seed's terrain score predicts the rest of the season with a correlation
+of 0.47, against 0.26 for the running mean of the notes; the notes were
+built to rate one match, not a season. The earlier exponential moving
+average (8 % of the gap per match) sent Dembélé from 64 to 95 and 98 M€
+to 1 435 M€ in half a season: that was the volatility of a form
+indicator, not of a card. Form is shown on the card (the last notes) and
+left out of the price on purpose: buying a player in form before his OVR,
+hence his price, catches up is the edge.
 
 **Price — in euros, from the real market value.** Every amount in the
 game is money: a card's price starts the season at the player's **real
@@ -118,15 +130,19 @@ grow is to hold cards that climb.
 
 ## The six attributes on the card
 
-They are **season** attributes: the engine points of each family per 90
-minutes, ranked among the seasons of the regular players (the `saison`
-scales of `echelles_attributs.json`, players with 450 minutes or more), with
-a thin sample shrunk towards the 30th percentile. The season starts from
-last season's points with the same discount as the OVR and accumulates
-this season's matches. Ranking seasons rather than averaging match ranks
-is what spreads the cards out: a centre-back sits at 90 in Défense and a
-winger at 52, a striker at 90 in Finition and a centre-back at 60. Match
-cards (one performance) keep the per-match scales.
+They come from the same season barème: the points of the barème's
+**actions** per 90 minutes, grouped in six axes (finishing, creation,
+progression, defence, dribbling, retention; the keeper's own six), on the
+same blend of last season and this one as the OVR, ranked among **all
+outfield regulars together** — a centre-back's dribbling is compared to a
+winger's, which is what the per-position percentiles of the first version
+got wrong (Van Dijk out-dribbled Dembélé). Only absolute action points are
+used, never the engine's position-relative corrections: those made a
+striker's three interceptions read as elite defence (Mbappé 93 in
+Défense). Now Mbappé reads FIN 99, DRI 98, DEF 43; Van Dijk DEF 98, DRI
+49; Saliba DEF 99, FIN 51. Keepers are ranked among keepers (arrêts, buts
+évités, sorties, jeu long, imbattabilité, jeu court). Match cards (one
+performance) keep the per-match scales of `echelles_attributs.json`.
 
 ## The market — packs, copies, auction house
 
