@@ -646,7 +646,7 @@ def carte_dessinee(jeu, pid: int) -> pathlib.Path | None:
             somme[k] = somme.get(k, 0.0) + v * m
     attributs = {k: int(round(v / poids)) for k, v in somme.items()} if poids else {}
     competition = max(comps, key=comps.get) if comps else "Ligue 1"
-    cle = f"{pid}_{ovr}_{len(rows)}_{sum(attributs.values())}"
+    cle = f"{pid}_{ovr}_{len(rows)}_{sum(attributs.values())}_e1"      # e1: escutcheon silhouette
     CACHE_CARTES.mkdir(parents=True, exist_ok=True)
     f = CACHE_CARTES / f"{cle}.png"
     if not f.exists():

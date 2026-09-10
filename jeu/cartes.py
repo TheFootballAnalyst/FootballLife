@@ -115,10 +115,52 @@ def _jeton_entier(im, cx, cy, note, r, _orig=CD.jeton):
 CD.jeton = _jeton_entier
 
 
+POINTE = 0.16          # height of the escutcheon point, as a share of the card width
+MARGE = 26             # carte_design's canvas margin around the card body
+
+
+def ecusson(im, larg: int, couleur: str):
+    """Turn the drawn rectangle into an escutcheon: the bottom band continues
+    into a point, with the club-colour rim and the gold inner line following
+    the new edge — the same silhouette as the cards of the site."""
+    from PIL import Image, ImageDraw, ImageFilter
+    haut, pointe = int(larg * 1.50), int(larg * POINTE)
+    ox, oy, rc = MARGE, MARGE, int(larg * 0.07)
+    bw = max(3, larg // 60)
+    club = CD.rgb(couleur)
+    bande = (6, 7, 11, 255)
+    W, H0 = im.size
+    out = Image.new('RGBA', (W, H0 + pointe), (0, 0, 0, 0))
+    # shadow of the point
+    ombre = Image.new('RGBA', out.size, (0, 0, 0, 0))
+    ImageDraw.Draw(ombre).polygon([(ox + 4, oy + haut - rc + 8), (ox + larg + 4, oy + haut - rc + 8),
+                                   (ox + larg // 2 + 4, oy + haut + pointe + 8)], fill=(0, 0, 0, 160))
+    out.alpha_composite(ombre.filter(ImageFilter.GaussianBlur(7)))
+    # the band, behind the card: squares the bottom corners and makes the point
+    d = ImageDraw.Draw(out)
+    d.polygon([(ox, oy + haut - rc), (ox + larg, oy + haut - rc), (ox + larg, oy + haut),
+               (ox + larg // 2, oy + haut + pointe), (ox, oy + haut)], fill=bande)
+    out.alpha_composite(im, (0, 0))
+    d = ImageDraw.Draw(out)
+    # hide the old bottom rim, extend the club stripe, redraw the rim along the point
+    d.rectangle([ox + bw, oy + haut - 12, ox + larg - bw, oy + haut + 1], fill=bande)
+    d.rectangle([ox, oy + haut - rc, ox + int(larg * 0.022), oy + haut], fill=club + (255,))
+    h = bw / 2
+    contour = [(ox + h, oy + haut - rc), (ox + h, oy + haut), (ox + larg / 2, oy + haut + pointe - h),
+               (ox + larg - h, oy + haut), (ox + larg - h, oy + haut - rc)]
+    d.line(contour, fill=club + (255,), width=bw, joint="curve")
+    k = 7
+    interieur = [(ox + k, oy + haut - rc), (ox + k, oy + haut - 2), (ox + larg / 2, oy + haut + pointe - k * 2.2),
+                 (ox + larg - k, oy + haut - 2), (ox + larg - k, oy + haut - rc)]
+    d.line(interieur, fill=CD.OR + (120,), width=1)
+    return out
+
+
 def dessiner(d: dict, larg: int = 420):
-    return CD.carte(d["pid"], d["nom"], d["note"], d["couleur"], d["competition"],
-                    POSTE_COURT.get(d["poste"], d["poste"]), d["minutes"], d["attributs"],
-                    larg, d["team_id"])
+    im = CD.carte(d["pid"], d["nom"], d["note"], d["couleur"], d["competition"],
+                  POSTE_COURT.get(d["poste"], d["poste"]), d["minutes"], d["attributs"],
+                  larg, d["team_id"])
+    return ecusson(im, larg, d["couleur"])
 
 
 def main():

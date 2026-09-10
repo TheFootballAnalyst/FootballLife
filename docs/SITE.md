@@ -122,7 +122,9 @@ bord biseauté en dégradé, haut aux couleurs du club avec l'OVR, le poste,
 l'âge, le drapeau, le numéro et le portrait, bas sombre avec le nom, le
 club, la forme récente (six dernières notes), le prix et le bouton. Une
 carte possédée a le bord doré. Sur le terrain, les onze sont des
-mini-écussons ; la fiche montre la carte dessinée par `jeu/cartes.py`.
+mini-écussons ; la fiche montre la carte dessinée par `jeu/cartes.py`,
+qui prend la même silhouette (`cartes.ecusson` prolonge le bandeau du bas
+en pointe, avec le liseré du club).
 
 Âge, numéro et nationalité viennent des feuilles de match FotMob, comme
 la valeur marchande (`importer.lire_valeurs`). La page d'accueil montre
