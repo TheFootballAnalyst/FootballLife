@@ -9,7 +9,7 @@ Ce sont **les mêmes libellés qui ont servi à calculer `echelles_attributs.jso
 Il faut que `FAMILLE_LIGNE` corresponde à cette table, sinon les percentiles
 ne mesureront pas ce qu'ils prétendent mesurer.
 
-Onze familles, 41 libellés. Six pour les joueurs de champ — FIN, CRE, PRO,
+Onze familles, 40 libellés (« Duel gagne » a quitté Dribble : un défenseur central dominait l’attribut). Six pour les joueurs de champ — FIN, CRE, PRO,
 DEF, DRI, CON — et six pour les gardiens — ARR, EVI, SOR, REL, BUT, plus PRO
 partagé.
 

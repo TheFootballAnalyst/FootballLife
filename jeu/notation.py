@@ -69,7 +69,7 @@ ATTRIBUT_MIN, ATTRIBUT_MAX = 40, 99
 # --------------------------------------------------------------------------
 # Line label -> card families.  Loaded from moteur/familles_lignes.json, the
 # exact table that produced echelles_attributs.json (docs/REPONSES.md §1):
-# eleven families, 41 labels, strict string equality on the engine's
+# eleven families, 40 labels (duels left DRI), strict string equality on the engine's
 # accent-free labels.  A label may belong to two families ("Passe reussie"
 # and "Long ballon reussi" count in PRO and in REL) — that is deliberate.
 #
