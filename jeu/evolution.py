@@ -59,10 +59,11 @@ BORNE_OVR = 10               # displayed OVR stays within +-10 of the season sta
 PRIX_PLANCHER = 0.1          # 100 k€: a card is never free
 PRIX_DOUBLE_TOUS_LES = 8     # +8 OVR since the season start = price x2
 
-# Demand: a card's price is its OVR price x (1 + DEMANDE x share of the
-# managers who own it).  Backtested at 1.0 (docs/BACKTEST.md): keeps the
-# game global and the informed manager ahead.
-DEMANDE = 1.0
+# Demand multiplier on the cote: (1 + DEMANDE x share of the managers who
+# hold the card).  It priced the first store (backtested at 1.0, see
+# docs/BACKTEST.md); with the auction house the managers set the price
+# themselves and the cote stays a pure reference, so it is off.
+DEMANDE = 0.0
 
 # Budget (M€)
 BUDGET_INITIAL = 100.0       # a club's transfer budget for 15 cards

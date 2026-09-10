@@ -116,6 +116,34 @@ budget. Each gameweek pays `0.1 M€ × (score − 60)`, capped at 5 M€
 (`evolution.gain_semaine`). Payouts are small on purpose; the main way to
 grow is to hold cards that climb.
 
+## The market — packs, copies, auction house
+
+The card of a player (OVR, attributes, cote) is a model; what a manager
+owns is a **copy** of it, and copies only come out of **packs**
+(`jeu/marche.py`). Every copy shares the model's evolution, so the point
+of the game is unchanged — find the player before his OVR climbs — but the
+price at which copies change hands is set by the managers on the
+**auction house**. The cote (market value × OVR move) stays an indicative
+value.
+
+- Packs, sold by the bank at a fixed price: Bronze 6 M€ (three cards under
+  60), Argent 25 M€ (three cards 60–74), Or 50 M€ (one card 75+, two
+  60–74); a pack of one family costs 20 % more. Contents are drawn
+  uniformly among the players of the tier whose copies in circulation are
+  under the cap: **max(3, 25 % of the teams)** copies of a player. A star
+  is rare, and gets rarer as the ladder fills.
+- The club: 15 cards at most in the squad (2 GK / 5 DEF / 5 MID / 3 FWD,
+  one copy of a player), 30 in the reserve, held as investments.
+- The auction house: a start price, an optional buy-now price, 6 to 48
+  hours; bids lock the money, +5 % at least; the seller receives the price
+  minus 5 %. A listed card leaves the squad.
+- The bank buys back at 40 % of the cote and destroys the copy: opening
+  packs to resell them to the bank loses money, which keeps the supply
+  honest.
+
+The first store (buy at the cote, demand multiplier) is gone; its backtest
+stays in `BACKTEST.md` as the calibration of the cote.
+
 ## The match — head-to-head, resolved from real actions
 
 Every gameweek pairs each team with an opponent of its level (Swiss

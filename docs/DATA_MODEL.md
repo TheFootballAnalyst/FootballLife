@@ -53,6 +53,9 @@ search boxes only.
 
 | table | one row per | notes |
 |-------|-------------|-------|
+| `exemplaire` | copy of a card | owner, squad or reserve, serial number, price paid; destroyed by a bank sale |
+| `enchere` | listing | start, buy-now, end, best bid (money locked), status |
+| `pack_ouvert` | pack opening | type, price, contents |
 | `match_h2h` | fixture | one per team per gameweek, Elo before/after, the JSON match sheet |
 
 | table | one row per | notes |

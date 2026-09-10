@@ -13,7 +13,9 @@
   <div class="barre">
     <div class="marque"><h1 class="anton">FOOTBALL<span>LIFE</span></h1><small id="marque-sous">saison</small></div>
     <nav id="nav" hidden>
-      <button data-ecran="marche">Marché</button>
+      <button data-ecran="packs">Packs</button>
+      <button data-ecran="encheres">Enchères</button>
+      <button data-ecran="marche">Cartes</button>
       <button data-ecran="equipe">Équipe</button>
       <button data-ecran="match">Match</button>
       <button data-ecran="journee">Journée</button>
@@ -36,11 +38,11 @@
   <section id="ecran-connexion" class="accueil">
     <div class="hero">
       <h2 class="anton">Les points viennent des <em>vrais matchs</em>.</h2>
-      <p>Chaque carte est un joueur des cinq grands championnats. Sa note à chaque journée est calculée sur le match qu'il a réellement joué. Un seul marché mondial : chaque carte démarre à la valeur marchande réelle du joueur, puis son prix suit ses performances et monte quand tout le monde veut la même.</p>
+      <p>Chaque carte est un joueur des cinq grands championnats. Sa note à chaque journée est calculée sur le match qu'il a réellement joué. Sa cote part de la valeur marchande réelle du joueur et suit ses performances ; son prix, c'est vous qui le faites, sur le marché.</p>
       <ol>
-        <li><i>1</i><span><b>Recrute 15 cartes</b> avec 100 M€ : 2 gardiens, 5 défenseurs, 5 milieux, 3 attaquants au plus. Une star ou deux, le reste à dénicher.</span></li>
-        <li><i>2</i><span><b>Aligne ton onze</b> avant le premier coup d'envoi, choisis un capitaine (×1,5) et l'ordre du banc.</span></li>
-        <li><i>3</i><span><b>Les matchs se jouent</b>, le barème note, ton score est la somme des notes. Les cartes évoluent, les prix suivent.</span></li>
+        <li><i>1</i><span><b>Ouvre des packs</b> avec tes 100 M€, aligne 15 cartes : 2 gardiens, 5 défenseurs, 5 milieux, 3 attaquants au plus. Chaque carte n'existe qu'en quelques exemplaires.</span></li>
+        <li><i>2</i><span><b>Négocie sur le marché</b> : vends aux enchères les cartes qui montent, achète celles que les autres sous-estiment.</span></li>
+        <li><i>3</i><span><b>Ton équipe joue</b> chaque journée contre un manager de ton niveau, sur les vraies actions de vos onze. Le barème note, l'Elo bouge.</span></li>
       </ol>
       <div class="vitrine" id="vitrine" aria-hidden="true"></div>
     </div>
@@ -57,8 +59,24 @@
     </div>
   </section>
 
+  <section id="ecran-packs" hidden>
+    <div class="tete"><h2 class="anton">Packs</h2><span class="compteur" id="packs-info"></span></div>
+    <div class="packs-grille" id="packs-liste"></div>
+  </section>
+
+  <section id="ecran-encheres" hidden>
+    <div class="tete"><h2 class="anton">Hôtel des ventes</h2><span class="compteur" id="encheres-compteur"></span></div>
+    <div class="filtres">
+      <input type="search" id="e-nom" placeholder="Nom de joueur ou de club">
+      <select id="e-fam"><option value="">Tous les postes</option><option value="GK">Gardiens</option><option value="DEF">Défenseurs</option><option value="MID">Milieux</option><option value="FWD">Attaquants</option></select>
+      <select id="e-tri"><option value="fin">Tri : fin proche</option><option value="prix">Tri : prix</option><option value="ovr">Tri : OVR</option><option value="cote">Tri : cote</option></select>
+      <label class="case"><input type="checkbox" id="e-miennes"> mes ventes et mes offres</label>
+    </div>
+    <div class="ventes" id="encheres-liste"></div>
+  </section>
+
   <section id="ecran-marche" hidden>
-    <div class="tete"><h2 class="anton">Marché</h2><span class="compteur" id="marche-compteur"></span>
+    <div class="tete"><h2 class="anton">Toutes les cartes</h2><span class="compteur" id="marche-compteur"></span>
       <div class="droite marche-effectif" id="marche-effectif"></div></div>
     <div id="marche-ferme" class="avert" hidden></div>
     <div class="filtres">
@@ -69,7 +87,7 @@
       <select id="f-fam" hidden><option value="">Tous les postes</option><option value="GK">Gardiens</option><option value="DEF">Défenseurs</option><option value="MID">Milieux</option><option value="FWD">Attaquants</option></select>
       <select id="f-ligue"><option value="">Toutes les ligues</option><option>Premier League</option><option>LaLiga</option><option>Serie A</option><option>Bundesliga</option><option>Ligue 1</option></select>
       <select id="f-tri"><option value="ovr">Tri : OVR</option><option value="prix">Tri : prix</option><option value="rapport">Tri : OVR par M€</option><option value="forme">Tri : forme récente</option><option value="age">Tri : âge</option><option value="part">Tri : popularité</option><option value="nom">Tri : nom</option></select>
-      <label class="case"><input type="checkbox" id="f-abord"> abordables</label>
+      <label class="case"><input type="checkbox" id="f-abord"> en vente</label>
       <label class="case"><input type="checkbox" id="f-miens"> mon effectif</label>
       <div class="vue" role="group" aria-label="Affichage"><button data-vue="cartes" aria-current="page" title="Cartes">▦ Cartes</button><button data-vue="liste" title="Liste">☰ Liste</button></div>
     </div>
@@ -89,11 +107,17 @@
         <div id="avert-compo"></div>
         <div class="terrain" id="terrain"></div>
         <p class="info" id="compo-etat"></p>
+        <div class="pan" style="margin-top:20px">
+          <div class="tete"><h2 class="anton">Mon club</h2><span class="compteur" id="club-compteur"></span></div>
+          <div class="club" id="club-liste"></div>
+        </div>
       </div>
-      <div class="pan">
-        <h2 class="anton">Banc</h2>
-        <p class="compteur">Ordre d'entrée : le premier qui a joué remplace un titulaire absent.</p>
-        <div class="banc" id="banc"></div>
+      <div>
+        <div class="pan">
+          <h2 class="anton">Banc</h2>
+          <p class="compteur">Ordre d'entrée : le premier qui a joué remplace un titulaire absent.</p>
+          <div class="banc" id="banc"></div>
+        </div>
       </div>
     </div>
   </section>

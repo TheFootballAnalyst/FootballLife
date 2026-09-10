@@ -49,6 +49,7 @@ sys.path.insert(0, str(RACINE))
 
 from jeu import evolution as E  # noqa: E402
 from jeu import importer as I  # noqa: E402
+from jeu import marche as MA  # noqa: E402
 from jeu import match as M  # noqa: E402
 from jeu import scoring as S  # noqa: E402
 
@@ -86,15 +87,8 @@ def appliquer_echelle(jeu, saison):
 
 
 def parts_detention(jeu, saison):
-    """{player_id: share of the season's teams owning the card}."""
-    n = jeu.execute("""SELECT COUNT(*) FROM equipe e JOIN ligue_jeu l ON l.ligue_jeu_id = e.ligue_jeu_id
-                       WHERE l.saison = ?""", (saison,)).fetchone()[0]
-    if not n:
-        return {}
-    return {pid: c / n for pid, c in jeu.execute("""
-        SELECT f.player_id, COUNT(*) FROM effectif f
-        JOIN equipe e ON e.equipe_id = f.equipe_id JOIN ligue_jeu l ON l.ligue_jeu_id = e.ligue_jeu_id
-        WHERE l.saison = ? GROUP BY f.player_id""", (saison,))}
+    """{player_id: share of the season's teams holding a copy in their squad}."""
+    return MA.parts_detention(jeu, saison)
 
 
 # --------------------------------------------------------------------------
@@ -237,8 +231,9 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
     if importer and fot is not None:
         resume["prestations"] = I.importer_journee(fot, jeu, saison, dict(numero=numero, du=du, au=au, cloture=cloture))
     prestas = prestations_journee(jeu, jid)
-    # teams that joined after the pairing get their fixture now
+    # teams that joined after the pairing get their fixture now; auctions past their end close
     apparier_journee(jeu, saison, numero)
+    MA.resoudre_encheres(jeu)
     jeu.commit()
 
     # 2. evolve, from the state after the previous gameweek

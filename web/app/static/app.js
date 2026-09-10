@@ -23,7 +23,8 @@ const ageTxt = c => c.age ? `${c.age} ans` : "";
 const FAM_COURT = {GK: "GB", DEF: "DÉF", MID: "MIL", FWD: "ATT"};
 
 // ---- état local (miroir de ce que le serveur a renvoyé) ----
-const G = {moi: null, saison: null, cartes: [], idx: new Map(), equipe: null, compo: null, ecran: "connexion"};
+const G = {moi: null, saison: null, cartes: [], idx: new Map(), equipe: null, compo: null, ecran: "connexion", ventes: [], club: [], packs: null};
+const ventesDe = id => G.ventes.filter(v => v.player_id === id);
 let TAILLE = 15, FORMATIONS = {"4-3-3": [1,4,3,3]}, LIMITES = {GK: [1,1], DEF: [3,5], MID: [2,5], FWD: [1,3]};
 
 // ---- utilitaires ----
@@ -61,6 +62,7 @@ async function rafraichir(tout) {
   if (tout || !G.cartes.length) { G.cartes = await api("/cartes"); G.idx = new Map(G.cartes.map(c => [c.id, c])); }
   G.equipe = await api("/equipe");
   G.compo = G.equipe.composition || compoVide();
+  try { G.ventes = (await api("/marche")).ventes; } catch (e) { G.ventes = []; }
   majStatut();
 }
 function majStatut() {
@@ -81,7 +83,7 @@ async function montrer(ecran) {
   if (ecran === "connexion") return;
   try {
     await rafraichir(ecran === "marche" || !G.cartes.length);
-    await ({marche: rendreMarche, equipe: rendreEquipe, match: rendreMatch, journee: rendreJournee, classement: rendreClassement, admin: rendreAdmin}[ecran] || (async () => {}))();
+    await ({packs: rendrePacks, encheres: rendreEncheres, marche: rendreMarche, equipe: rendreEquipe, match: rendreMatch, journee: rendreJournee, classement: rendreClassement, admin: rendreAdmin}[ecran] || (async () => {}))();
   } catch (e) { if (e.status === 401) { connecte(null); } else toast(e.message); }
 }
 async function vitrine() {
@@ -110,8 +112,8 @@ $("#form-auth").addEventListener("submit", async e => {
   try {
     const r = await api("/" + modeAuth, {pseudo: fd.get("pseudo"), mot_de_passe: fd.get("mot_de_passe"), equipe: fd.get("equipe") || null});
     connecte({connecte: true, ...r});
-    await montrer(idsEffectif().length ? "equipe" : "marche");
-    if (modeAuth === "inscription") toast("Bienvenue ! Recrute tes 15 cartes.");
+    await montrer(idsEffectif().length ? "equipe" : "packs");
+    if (modeAuth === "inscription") toast("Bienvenue ! Ouvre tes premiers packs.");
   } catch (err) { $("#auth-erreur").textContent = err.message; }
 });
 $("#btn-deconnexion").addEventListener("click", async () => { await api("/deconnexion", {}); connecte(null); });
@@ -122,35 +124,95 @@ let marcheVue = "cartes";
 try { marcheVue = localStorage.getItem("fl_vue") || "cartes"; } catch (e) {}
 document.querySelectorAll(".vue button").forEach(b => b.addEventListener("click", () => { marcheVue = b.dataset.vue; try { localStorage.setItem("fl_vue", marcheVue); } catch (e) {} rendreMarche(); }));
 document.querySelectorAll("#pills-fam button").forEach(b => b.addEventListener("click", () => { $("#f-fam").value = b.dataset.fam; document.querySelectorAll("#pills-fam button").forEach(x => x === b ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current")); marcheLimite = 60; rendreMarche(); }));
-function peutAcheter(id) {
-  const c = carte(id);
-  if (G.equipe.effectif[id]) return "déjà dans l'effectif";
-  if (!G.equipe.marche_ouvert) return "marché fermé";
-  if (idsEffectif().length >= TAILLE) return `effectif complet (${TAILLE})`;
-  if (nbFam(c.fam) >= QUOTA[c.fam]) return `déjà ${QUOTA[c.fam]} ${PLURIEL[c.fam]}`;
-  if (c.prix > G.equipe.budget + 1e-9) return "budget insuffisant";
-  return null;
+// ---- the market: packs, club, auctions ----
+const TIER_TXT = {bronze: "Bronze", argent: "Argent", or: "Or"};
+const resteTxt = fin => { const ms = new Date(fin) - Date.now(); if (ms <= 0) return "terminée"; const h = Math.floor(ms / 3.6e6), m = Math.floor(ms % 3.6e6 / 6e4); return h ? `${h} h ${String(m).padStart(2, "0")}` : `${m} min`; };
+async function rendrePacks() {
+  G.packs = await api("/packs");
+  const P = $("#packs-liste"); P.replaceChildren();
+  $("#packs-info").textContent = `Une carte ne peut exister qu'en ${G.packs.plafond} exemplaires dans la ligue. Réserve : ${G.packs.reserve_max} cartes. La banque rachète à ${Math.round(G.packs.rachat * 100)} % de la cote.`;
+  for (const p of G.packs.catalogue) {
+    const k = el("div", {class: "pack " + p.type + (p.disponible ? "" : " epuise")},
+      el("div", {class: "pack-tier etiq"}, TIER_TXT[p.type] + (p.fam ? " · " + (p.fam === "GK" ? "Gardiens" : p.fam === "DEF" ? "Défenseurs" : p.fam === "MID" ? "Milieux" : "Attaquants") : " · Mixte")),
+      el("div", {class: "pack-visuel"}, el("div", {class: "pack-carte a"}), el("div", {class: "pack-carte b"}), el("div", {class: "pack-carte c"})),
+      el("div", {class: "pack-desc"}, p.desc),
+      el("div", {class: "pack-prix anton"}, fM(p.prix)),
+      el("button", {class: "primaire", disabled: !p.disponible || p.prix > G.equipe.budget + 1e-9, onclick: () => ouvrirPack(p)}, p.disponible ? "Ouvrir" : "Épuisé"));
+    P.append(k);
+  }
 }
-async function acheter(id) {
-  const why = peutAcheter(id); if (why) { toast(why); return; }
-  try { const r = await api("/equipe/acheter", {player_id: id}); toast(`${carte(id).nom} recruté pour ${fM(r.prix)}`); await rafraichir(false); rendreMarche(); }
-  catch (e) { toast(e.message); }
+async function ouvrirPack(p) {
+  let r; try { r = await api("/packs/ouvrir", {type: p.type, fam: p.fam}); } catch (e) { toast(e.message); return; }
+  await rafraichir(false);
+  const dlg = $("#fiche"); dlg.replaceChildren();
+  const box = el("div", {class: "fiche ouverture"}, el("h3", {class: "anton"}, `${p.nom}`), el("p", {class: "compteur"}, `${fM(p.prix)} · il te reste ${fM(r.budget)}`));
+  const grille = el("div", {class: "cartes-grille ouverture-grille"});
+  r.cartes.forEach((x, i) => { const c = x.carte; const k = carteMarche(c, {vitrine: true}); k.classList.add("revele"); k.style.animationDelay = (i * 0.25) + "s";
+    k.append(el("div", {class: "cj-cote"}, `cote ${fM(x.cote)} · n° ${x.numero}`)); grille.append(k); });
+  box.append(grille, el("div", {class: "actions"}, el("button", {onclick: () => { dlg.close(); montrer("equipe"); }}, "Gérer mon club"), el("button", {class: "primaire", onclick: () => { dlg.close(); rendrePacks(); }}, "Encore un pack")));
+  dlg.append(box); dlg.showModal();
 }
-async function vendre(id) {
-  try { const r = await api("/equipe/vendre", {player_id: id}); toast(`${carte(id).nom} vendu ${fM(r.prix)}`); await rafraichir(false); rendreMarche(); if (G.ecran === "equipe") rendreEquipe(); }
-  catch (e) { toast(e.message); }
+async function rendreEncheres(filtrePid = null) {
+  const d = await api("/marche"); G.ventes = d.ventes;
+  const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const q = norm($("#e-nom").value), fam = $("#e-fam").value, miennes = $("#e-miennes").checked, tri = $("#e-tri").value;
+  let rows = d.ventes.filter(v => v.carte && (!filtrePid || v.player_id === filtrePid) && (!fam || v.carte.fam === fam) && (!miennes || v.mienne || v.je_mene) && (!q || norm(v.carte.nom).includes(q) || norm(v.carte.club).includes(q)));
+  const cle = {fin: v => new Date(v.fin) - 0, prix: v => -(v.meilleure_offre ?? v.prix_depart), ovr: v => -v.carte.ovr, cote: v => -(v.cote || 0)}[tri];
+  rows.sort((a, b) => cle(a) - cle(b));
+  $("#encheres-compteur").textContent = `${rows.length} vente${rows.length > 1 ? "s" : ""} en cours`;
+  const L = $("#encheres-liste"); L.replaceChildren();
+  if (!rows.length) L.append(el("p", {class: "info"}, "Aucune vente en cours. Les cartes se vendent depuis ton club (écran Équipe) : mise à prix, achat immédiat, durée."));
+  for (const v of rows) L.append(ligneVente(v));
+}
+function ligneVente(v) {
+  const c = v.carte; const cour = v.meilleure_offre ?? null;
+  const l = el("div", {class: "vente" + (v.mienne ? " mienne" : "") + (v.je_mene ? " mene" : "")});
+  l.style.setProperty("--clubc", c.couleur);
+  const k = carteMarche(c, {vitrine: true}); k.classList.add("petite");
+  const infos = el("div", {class: "vente-infos"},
+    el("div", {class: "etiq"}, `Vendeur : ${v.vendeur} · exemplaire n° ${v.numero} · cote ${fM(v.cote)}`),
+    el("div", {class: "vente-prix"}, el("div", {}, el("span", {class: "etiq"}, cour ? "Meilleure offre" : "Mise à prix"), el("b", {class: "anton"}, fM(cour ?? v.prix_depart))),
+      v.prix_immediat ? el("div", {}, el("span", {class: "etiq"}, "Achat immédiat"), el("b", {class: "anton"}, fM(v.prix_immediat))) : null,
+      el("div", {}, el("span", {class: "etiq"}, "Fin"), el("b", {class: "anton"}, resteTxt(v.fin)))),
+    v.je_mene ? el("div", {class: "compteur", style: "color:var(--vert)"}, "Tu mènes l'enchère") : null);
+  const acts = el("div", {class: "vente-actions"});
+  if (v.mienne) {
+    acts.append(el("span", {class: "compteur"}, cour ? "Une offre est faite, la vente ira à son terme." : "Ta vente."),
+      el("button", {disabled: !!cour, onclick: async () => { try { await api("/marche/annuler", {enchere_id: v.enchere_id}); toast("Vente annulée"); rendreEncheres(); } catch (e) { toast(e.message); } }}, "Retirer"));
+  } else {
+    const mini = cour ? Math.round(cour * 1.05 * 100 + 0.5) / 100 : v.prix_depart;
+    const inp = el("input", {type: "number", step: "0.1", min: String(mini), value: String(mini), style: "width:110px"});
+    acts.append(inp, el("button", {class: "achat", onclick: async () => { try { const r = await api("/marche/encherir", {enchere_id: v.enchere_id, montant: +inp.value}); toast(`Offre de ${fM(r.montant)} placée`); await rafraichir(false); rendreEncheres(); } catch (e) { toast(e.message); } }}, "Enchérir"));
+    if (v.prix_immediat) acts.append(el("button", {class: "achat primaire", onclick: async () => { try { const r = await api("/marche/acheter", {enchere_id: v.enchere_id}); toast(`${c.nom} acheté ${fM(r.prix)}`); await rafraichir(false); rendreEncheres(); } catch (e) { toast(e.message); } }}, "Acheter " + fM(v.prix_immediat)));
+  }
+  l.append(k, infos, acts);
+  return l;
+}
+function dialogueVente(x) {
+  const c = x.carte; const dlg = $("#fiche"); dlg.replaceChildren();
+  const cote = x.cote || 1;
+  const dep = el("input", {type: "number", step: "0.1", min: "0.1", value: String(Math.round(cote * 0.8 * 10) / 10)});
+  const imm = el("input", {type: "number", step: "0.1", min: "0.1", value: String(Math.round(cote * 1.2 * 10) / 10)});
+  const dur = el("select", {}, ...(G.packs?.durees || [6, 12, 24, 48]).map(h => el("option", {value: String(h), selected: h === 24 ? "selected" : null}, h + " heures")));
+  const box = el("div", {class: "fiche"}, el("h3", {class: "anton"}, "Mettre en vente"), el("p", {class: "compteur"}, `${c.nom} · exemplaire n° ${x.numero} · cote ${fM(cote)} · acheté ${fM(x.prix_achat)}`),
+    el("form", {class: "form-vente", onsubmit: async e => { e.preventDefault(); try { await api("/marche/vendre", {exemplaire_id: x.exemplaire_id, prix_depart: +dep.value, prix_immediat: imm.value ? +imm.value : null, duree_h: +dur.value}); toast("Carte mise en vente"); dlg.close(); await rafraichir(false); rendreEquipe(); } catch (err) { toast(err.message); } }},
+      el("label", {}, "Mise à prix (M€)", dep), el("label", {}, "Achat immédiat (M€, facultatif)", imm), el("label", {}, "Durée", dur),
+      el("p", {class: "compteur"}, `La banque prend ${Math.round((G.packs?.commission ?? 0.05) * 100)} % à la vente. Une carte en vente quitte l'effectif.`),
+      el("div", {class: "actions"}, el("button", {type: "button", class: "discret", onclick: () => dlg.close()}, "Annuler"), el("button", {type: "submit", class: "primaire"}, "Mettre en vente"))));
+  dlg.append(box); dlg.showModal();
+}
+async function actionClub(chemin, corps, msg) {
+  try { await api(chemin, corps); if (msg) toast(msg); await rafraichir(false); if (G.ecran === "equipe") rendreEquipe(); if (G.ecran === "packs") rendrePacks(); } catch (e) { toast(e.message); }
 }
 function rendreMarche() {
-  const mf = $("#marche-ferme"); mf.hidden = !!G.equipe.marche_ouvert;
-  mf.textContent = !G.saison.courante
-    ? "Aucune journée ouverte sur cette base : la saison est terminée, ou le serveur a été lancé sur la mauvaise base (utiliser  py web/app/lancer.py)."
-    : "Marché fermé : la journée est verrouillée. Les transferts rouvrent une fois la journée calculée par l'administrateur.";
+  const mf = $("#marche-ferme"); mf.hidden = !!G.saison.courante;
+  mf.textContent = "Aucune journée ouverte sur cette base : la saison est terminée, ou le serveur a été lancé sur la mauvaise base (utiliser  py web/app/lancer.py).";
   const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const q = norm($("#f-nom").value), fam = $("#f-fam").value, ligue = $("#f-ligue").value, tri = $("#f-tri").value;
   const abord = $("#f-abord").checked, miens = $("#f-miens").checked;
   let rows = G.cartes.filter(c => {
     if (fam && c.fam !== fam) return false; if (ligue && c.ligue !== ligue) return false;
-    if (abord && c.prix > G.equipe.budget) return false; if (miens && !G.equipe.effectif[c.id]) return false;
+    if (abord && !ventesDe(c.id).length) return false; if (miens && !G.equipe.effectif[c.id]) return false;
     if (q && !norm(c.nom).includes(q) && !norm(c.club).includes(q)) return false; return true;
   });
   const cle = {ovr: c => -c.ovr, prix: c => -c.prix, rapport: c => -(c.ovr - 40) / Math.max(c.prix, 0.1), forme: c => -formeMoy(c), age: c => c.age || 99, part: c => -c.part, nom: c => 0}[tri];
@@ -164,10 +226,10 @@ function rendreMarche() {
   $("#marche-plus").hidden = rows.length <= marcheLimite;
 }
 function boutonAchatVente(c, mien) {
-  const why = mien ? null : peutAcheter(c.id);
-  return mien ? el("button", {class: "vente", disabled: !G.equipe.marche_ouvert, onclick: e => { e.stopPropagation(); vendre(c.id); }}, "Vendre")
-              : el("button", {class: "achat" + (why ? "" : " primaire"), title: why || "", onclick: e => { e.stopPropagation(); acheter(c.id); }}, "Acheter");
+  const n = ventesDe(c.id).length;
+  return el("button", {class: "achat" + (n ? " primaire" : ""), disabled: !n, onclick: e => { e.stopPropagation(); if (n) allerAuxVentes(c.id); }}, n ? `${n} vente${n > 1 ? "s" : ""}` : "Aucune vente");
 }
+async function allerAuxVentes(pid) { $("#e-nom").value = carte(pid)?.nom || ""; await montrer("encheres"); }
 // the card itself: an escutcheon (clip-path) in the club colour — OVR, position, age,
 // flag, shirt number, portrait, then name, club, form, price and the button
 function carteMarche(c, opts = {}) {
@@ -257,6 +319,32 @@ function rendreEquipe(recalc = true) {
   const B = $("#banc"); B.replaceChildren();
   C.banc.forEach((i, r) => B.append(ligneBanc(i, r)));
   if (!C.banc.length) B.append(el("p", {class: "compteur"}, "Banc vide. 4 remplaçants conseillés : un gardien et trois joueurs de champ."));
+  rendreClub();
+}
+async function rendreClub() {
+  const d = await api("/club"); G.club = d.cartes;
+  const R = $("#club-liste"); R.replaceChildren();
+  const eff = d.cartes.filter(x => x.dans_effectif), res = d.cartes.filter(x => !x.dans_effectif);
+  $("#club-compteur").textContent = `${eff.length} / ${d.effectif_max} dans l'effectif · ${res.length} / ${d.reserve_max} en réserve`;
+  const ligne = x => {
+    const c = x.carte; const l = el("div", {class: "ligne club-ligne" + (x.enchere_id ? " en-vente" : "")}); l.style.setProperty("--clubc", c.couleur);
+    const delta = (x.cote || 0) - x.prix_achat;
+    l.append(vignette(c.id), el("div", {class: "qui", tabindex: "0", onclick: () => ouvrirFiche(c.id)}, el("div", {class: "nom"}, c.nom, el("span", {class: "compteur"}, ` n° ${x.numero}`)), el("div", {class: "sous"}, `${c.club} · acheté ${fM(x.prix_achat)} · cote ${fM(x.cote)} `, el("span", {class: "delta " + (delta >= 0 ? "plus" : "moins")}, fM(delta, true)))),
+      el("span", {class: "fam " + c.fam}, FAM_COURT[c.fam]), el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)));
+    const acts = el("div", {class: "club-actions"});
+    if (x.enchere_id) acts.append(el("span", {class: "compteur"}, "en vente"), el("button", {onclick: () => montrer("encheres")}, "Voir"));
+    else {
+      acts.append(x.dans_effectif
+        ? el("button", {title: "Mettre en réserve", onclick: () => actionClub("/club/aligner", {exemplaire_id: x.exemplaire_id, dans_effectif: false}, `${c.nom} en réserve`)}, "Réserve")
+        : el("button", {class: "primaire", title: "Aligner dans l'effectif", disabled: !G.equipe.marche_ouvert, onclick: () => actionClub("/club/aligner", {exemplaire_id: x.exemplaire_id, dans_effectif: true}, `${c.nom} dans l'effectif`)}, "Aligner"));
+      acts.append(el("button", {class: "vente", onclick: () => dialogueVente(x)}, "Vendre"),
+        el("button", {class: "discret", title: `Vendre à la banque : ${fM((G.packs?.rachat ?? 0.4) * (x.cote || 0))}`, onclick: () => { if (confirm(`Vendre ${c.nom} à la banque pour ${fM((G.packs?.rachat ?? 0.4) * (x.cote || 0))} ? La carte est détruite.`)) actionClub("/club/banque", {exemplaire_id: x.exemplaire_id}, "Vendu à la banque"); }}, "Banque"));
+    }
+    l.append(acts); return l;
+  };
+  R.append(el("div", {class: "etiq"}, "Effectif"), ...(eff.length ? eff.map(ligne) : [el("p", {class: "compteur"}, "Personne. Ouvre des packs, puis aligne tes cartes ici.")]));
+  R.append(el("div", {class: "etiq", style: "margin-top:12px"}, "Réserve"), ...(res.length ? res.map(ligne) : [el("p", {class: "compteur"}, "Réserve vide.")]));
+  if (!G.packs) { try { G.packs = await api("/packs"); } catch (e) {} }
 }
 function slotEl(s, fam) {
   const i = C.slots[s];
@@ -435,6 +523,7 @@ async function rendreAdmin() {
 // ---- démarrage ----
 for (const b of document.querySelectorAll("nav button[data-ecran]")) b.addEventListener("click", () => montrer(b.dataset.ecran));
 for (const id of ["f-nom", "f-fam", "f-ligue", "f-tri", "f-abord", "f-miens"]) $("#" + id).addEventListener("input", () => { marcheLimite = 60; rendreMarche(); });
+for (const id of ["e-nom", "e-fam", "e-tri", "e-miennes"]) $("#" + id).addEventListener("input", () => rendreEncheres());
 $("#marche-plus").addEventListener("click", () => { marcheLimite += 100; rendreMarche(); });
 $("#formation").addEventListener("change", e => auto(e.target.value));
 $("#btn-auto").addEventListener("click", () => auto(C.formation));
@@ -464,8 +553,9 @@ async function ouvrirFiche(id) {
   box.append(el("div", {class: "etiq"}, "Dernières prestations"), el("div", {class: "notes"}, ...(d.prestations.length ? d.prestations.slice(0, 8).map(p => el("span", {class: "note " + (p.note >= 7 ? "b" : p.note < 5 ? "m" : ""), title: `J${p.numero} · ${p.competition}`}, `${f1(p.note)} · ${Math.round(p.minutes)}'`)) : [el("span", {class: "compteur"}, "aucun match noté cette saison")])));
   if (d.historique.length > 1) box.append(el("div", {class: "etiq", style: "margin-top:10px"}, "Prix par journée"), sparkline(d.historique.map(h => h.prix), fM));
   const acts = el("div", {class: "actions"});
-  if (G.equipe.effectif[id]) { const dl = d.prix - G.equipe.effectif[id]; acts.append(el("span", {class: "compteur", style: "margin-right:auto"}, `acheté ${fM(G.equipe.effectif[id])} · ${fM(dl, true)}`), el("button", {class: "vente", disabled: !G.equipe.marche_ouvert, onclick: () => { dlg.close(); vendre(id); }}, "Vendre " + fM(d.prix))); }
-  else { const why = peutAcheter(id); acts.append(why ? el("span", {class: "compteur", style: "margin-right:auto"}, why) : null, el("button", {class: "achat" + (why ? "" : " primaire"), disabled: !!why, onclick: () => { dlg.close(); acheter(id); }}, "Acheter " + fM(d.prix))); }
+  const nv = ventesDe(id).length;
+  if (G.equipe.effectif[id]) { const dl = d.prix - G.equipe.effectif[id]; acts.append(el("span", {class: "compteur", style: "margin-right:auto"}, `dans ton effectif · acheté ${fM(G.equipe.effectif[id])} · ${fM(dl, true)}`)); }
+  acts.append(el("button", {class: "achat" + (nv ? " primaire" : ""), disabled: !nv, onclick: () => { dlg.close(); allerAuxVentes(id); }}, nv ? `${nv} vente${nv > 1 ? "s" : ""} en cours` : "Aucune vente en cours"));
   acts.append(el("button", {class: "discret", onclick: () => dlg.close()}, "Fermer"));
   box.append(acts); dlg.append(box); dlg.showModal();
 }
@@ -481,6 +571,6 @@ function sparkline(vals, fmt = f1) {
   try {
     const s = await api("/saison"); TAILLE = s.taille_effectif; FORMATIONS = s.formations; LIMITES = s.limites;
     const moi = await api("/moi"); connecte(moi);
-    if (moi.connecte) { const h = location.hash.replace("#", ""); await montrer(["marche", "equipe", "match", "journee", "classement", "admin"].includes(h) ? h : "equipe"); }
+    if (moi.connecte) { const h = location.hash.replace("#", ""); await montrer(["packs", "encheres", "marche", "equipe", "match", "journee", "classement", "admin"].includes(h) ? h : (idsEffectif().length ? "equipe" : "packs")); }
   } catch (e) { toast("Serveur injoignable : " + e.message); }
 })();

@@ -64,30 +64,62 @@ def test_login_logout(client):
     assert client.get("/api/equipe").status_code == 200
 
 
-def test_market_rules(client):
+def donner(client, pids, equipe_id=None):
+    """Put copies of `pids` straight into the logged-in team's squad."""
+    from web.app import serveur as SV
+    j = SV.ouvrir()
+    eid = equipe_id or j.execute("SELECT MAX(equipe_id) FROM equipe").fetchone()[0]
+    for pid in pids:
+        n = j.execute("SELECT COUNT(*) FROM exemplaire WHERE player_id=?", (pid,)).fetchone()[0] + 1
+        j.execute("INSERT INTO exemplaire(player_id, saison, numero, equipe_id, dans_effectif, origine, prix_achat, achete_le) VALUES (?, '2025/26', ?, ?, 1, 'pack', 1.0, 'x')", (pid, n, eid))
+    j.commit(); j.close()
+
+
+def test_packs_club_and_auction_house(client):
     inscrire(client)
     cartes = client.get("/api/cartes").json()
     assert len(cartes) == 15 and {"id", "nom", "fam", "ovr", "prix", "part", "notes"} <= set(cartes[0])
-    prix = {c["id"]: c["prix"] for c in cartes}
-    assert client.post("/api/equipe/acheter", json={"player_id": 1}).status_code == 200
-    assert client.post("/api/equipe/acheter", json={"player_id": 1}).status_code == 409      # already owned
-    assert client.post("/api/equipe/acheter", json={"player_id": 999}).status_code == 404
-    e = client.get("/api/equipe").json()
-    assert abs(e["budget"] - (E.BUDGET_INITIAL - prix[1])) < 1e-6 and "1" in e["effectif"] or 1 in e["effectif"]
-    # quotas: three goalkeepers is one too many (ids 1 and 12 are GK)
-    assert client.post("/api/equipe/acheter", json={"player_id": 12}).status_code == 200
-    # a third GK does not exist in the fixture; check a family cap with strikers (10, 15 + none) is fine
-    assert client.post("/api/equipe/vendre", json={"player_id": 12}).status_code == 200
-    assert client.post("/api/equipe/vendre", json={"player_id": 12}).status_code == 404
-    e = client.get("/api/equipe").json()
-    assert abs(e["budget"] - (E.BUDGET_INITIAL - prix[1])) < 1e-6
+    cat = client.get("/api/packs").json()
+    assert {"catalogue", "plafond", "rachat", "commission"} <= set(cat)
+    assert client.post("/api/packs/ouvrir", json={"type": "diamant"}).status_code == 409
+    # every synthetic card is bronze: a bronze pack works, its copies land in the reserve
+    r = client.post("/api/packs/ouvrir", json={"type": "bronze"}).json()
+    assert len(r["cartes"]) == 3 and all(c["carte"]["ovr"] < 60 for c in r["cartes"])
+    assert abs(r["budget"] - (E.BUDGET_INITIAL - 6.0)) < 1e-6
+    club = client.get("/api/club").json()["cartes"]
+    assert len(club) == 3 and not any(c["dans_effectif"] for c in club)
+    x = club[0]["exemplaire_id"]
+    assert client.post("/api/club/aligner", json={"exemplaire_id": x, "dans_effectif": True}).status_code == 200
+    assert client.get("/api/equipe").json()["effectif"] != {}
+    # list it: it leaves the squad; a second manager bids, buys now
+    assert client.post("/api/marche/vendre", json={"exemplaire_id": x, "prix_depart": 2.0, "prix_immediat": 3.0, "duree_h": 6}).status_code == 200
+    assert client.get("/api/equipe").json()["effectif"] == {}
+    vente = client.get("/api/marche").json()["ventes"][0]
+    assert vente["mienne"] and vente["prix_immediat"] == 3.0
+    assert client.post("/api/marche/encherir", json={"enchere_id": vente["enchere_id"], "montant": 2.0}).status_code == 409   # own sale
+    client.post("/api/deconnexion")
+    inscrire(client, "bob", "motdepasse")
+    assert client.post("/api/marche/encherir", json={"enchere_id": vente["enchere_id"], "montant": 1.0}).status_code == 409   # under start
+    assert client.post("/api/marche/encherir", json={"enchere_id": vente["enchere_id"], "montant": 2.0}).status_code == 200
+    assert abs(client.get("/api/equipe").json()["budget"] - (E.BUDGET_INITIAL - 2.0)) < 1e-6           # locked
+    assert client.post("/api/marche/acheter", json={"enchere_id": vente["enchere_id"]}).status_code == 200
+    assert abs(client.get("/api/equipe").json()["budget"] - (E.BUDGET_INITIAL - 3.0)) < 1e-6
+    club_b = client.get("/api/club").json()["cartes"]
+    assert [c["exemplaire_id"] for c in club_b] == [x] and club_b[0]["prix_achat"] == 3.0
+    # sell it to the bank: 40 % of the cote, the copy is gone
+    r = client.post("/api/club/banque", json={"exemplaire_id": x}).json()
+    assert abs(r["montant"] - 0.4 * club_b[0]["cote"]) < 1e-6 and client.get("/api/club").json()["cartes"] == []
+    assert client.get("/api/marche").json()["ventes"] == []
 
 
 def test_composition_rules_and_lock(client):
     inscrire(client)
-    for pid in range(1, 15):          # 15 would be a fourth striker: quota
-        assert client.post("/api/equipe/acheter", json={"player_id": pid}).status_code == 200
-    assert client.post("/api/equipe/acheter", json={"player_id": 15}).status_code == 409
+    donner(client, range(1, 15))
+    # 15 would be a fourth striker: quota
+    from web.app import serveur as SV
+    j = SV.ouvrir(); j.execute("INSERT INTO exemplaire(player_id, saison, numero, equipe_id, dans_effectif, origine, prix_achat, achete_le) VALUES (15, '2025/26', 1, 1, 0, 'pack', 1.0, 'x')"); j.commit(); j.close()
+    x15 = [c for c in client.get("/api/club").json()["cartes"] if c["player_id"] == 15][0]["exemplaire_id"]
+    assert client.post("/api/club/aligner", json={"exemplaire_id": x15, "dans_effectif": True}).status_code == 409
     bonne = {"formation": "4-3-3", "titulaires": list(range(1, 12)), "banc": [12, 13, 14], "capitaine": 10}
     assert client.post("/api/equipe/composition", json=bonne).status_code == 200
     e = client.get("/api/equipe").json()
@@ -99,22 +131,22 @@ def test_composition_rules_and_lock(client):
     assert client.post("/api/equipe/composition", json=dict(bonne, capitaine=14)).status_code == 400
     # a player not owned
     assert client.post("/api/equipe/composition", json=dict(bonne, banc=[12, 13, 99])).status_code == 400
-    # selling a starter removes him from the composition
-    assert client.post("/api/equipe/vendre", json={"player_id": 11}).status_code == 200
+    # moving a starter to the reserve removes him from the composition
+    x11 = [c for c in client.get("/api/club").json()["cartes"] if c["player_id"] == 11][0]["exemplaire_id"]
+    assert client.post("/api/club/aligner", json={"exemplaire_id": x11, "dans_effectif": False}).status_code == 200
     assert 11 not in client.get("/api/equipe").json()["composition"]["titulaires"]
     # lock: admin locks now, then nothing moves
     assert client.post("/api/admin/journee/1/verrouiller").status_code == 200
     assert client.get("/api/saison").json()["courante"]["verrouillee"] is True
     assert client.post("/api/equipe/composition", json=bonne).status_code == 409
-    assert client.post("/api/equipe/acheter", json={"player_id": 11}).status_code == 409
+    assert client.post("/api/club/aligner", json={"exemplaire_id": x11, "dans_effectif": True}).status_code == 409
     assert client.post("/api/admin/journee/1/ouvrir").status_code == 200
     assert client.get("/api/saison").json()["courante"]["verrouillee"] is False
 
 
 def test_admin_close_and_standings(client):
     inscrire(client, "admin1")
-    for pid in range(1, 15):
-        client.post("/api/equipe/acheter", json={"player_id": pid})
+    donner(client, range(1, 15))
     client.post("/api/equipe/composition", json={"formation": "4-3-3", "titulaires": list(range(1, 12)), "banc": [12, 13, 14], "capitaine": 10})
     # a second manager, not admin, with no composition
     client.post("/api/deconnexion")

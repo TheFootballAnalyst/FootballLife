@@ -36,6 +36,7 @@ sys.path.insert(0, str(RACINE))
 
 from jeu import evolution as E  # noqa: E402
 from jeu import importer as I  # noqa: E402
+from jeu import marche as MA  # noqa: E402
 from jeu import pipeline as P  # noqa: E402
 from jeu import scoring as S  # noqa: E402
 try:
@@ -351,7 +352,8 @@ class Compo(BaseModel):
 
 
 def effectif_de(jeu, eid):
-    return {r["player_id"]: r["prix_achat"] for r in jeu.execute("SELECT player_id, prix_achat FROM effectif WHERE equipe_id=?", (eid,))}
+    return {r["player_id"]: r["prix_achat"] for r in jeu.execute(
+        "SELECT player_id, prix_achat FROM exemplaire WHERE equipe_id=? AND saison=? AND detruit=0 AND dans_effectif=1", (eid, SAISON))}
 
 
 def marche_ouvert(jeu):
@@ -378,61 +380,127 @@ def equipe(u=Depends(exiger), jeu=Depends(bd)):
             "marche_ouvert": marche_ouvert(jeu)}
 
 
-@app.post("/api/equipe/acheter")
-def acheter(t: Transfert, u=Depends(exiger), jeu=Depends(bd)):
-    e = equipe_de(jeu, u)
-    if not marche_ouvert(jeu):
-        raise HTTPException(409, "Marché fermé : la journée est en cours")
-    c = jeu.execute("SELECT c.prix, j.poste FROM carte c JOIN joueur j ON j.player_id=c.player_id WHERE c.player_id=? AND c.saison=?",
-                    (t.player_id, SAISON)).fetchone()
-    if not c:
-        raise HTTPException(404, "Carte inconnue")
-    eff = effectif_de(jeu, e["equipe_id"])
-    if t.player_id in eff:
-        raise HTTPException(409, "Déjà dans ton effectif")
-    if len(eff) >= TAILLE_EFFECTIF:
-        raise HTTPException(409, f"Effectif complet ({TAILLE_EFFECTIF})")
-    fam = S.FAMILLE_POSTE.get(c["poste"], "MID")
-    postes = dict(jeu.execute("SELECT player_id, poste FROM joueur"))
-    n_fam = sum(1 for p in eff if S.FAMILLE_POSTE.get(postes[p], "MID") == fam)
-    if n_fam >= QUOTA[fam]:
-        raise HTTPException(409, f"Déjà {QUOTA[fam]} à ce poste")
-    if c["prix"] > e["budget"] + 1e-9:
-        raise HTTPException(409, "Budget insuffisant")
-    jeu.execute("INSERT INTO effectif VALUES (?,?,?,?)", (e["equipe_id"], t.player_id, c["prix"], P.maintenant()))
-    jeu.execute("UPDATE equipe SET budget = ROUND(budget - ?, 2) WHERE equipe_id=?", (c["prix"], e["equipe_id"]))
-    j = journee_courante(jeu)
-    jeu.execute("INSERT INTO transfert(equipe_id, player_id, sens, prix, journee_id, date) VALUES (?,?,?,?,?,?)",
-                (e["equipe_id"], t.player_id, "achat", c["prix"], j["journee_id"] if j else None, P.maintenant()))
-    jeu.commit()
-    return {"ok": True, "prix": c["prix"]}
+# --------------------------------------------------------------------------
+# The market: packs, club, auction house, bank (jeu/marche.py)
+# --------------------------------------------------------------------------
+
+class Pack(BaseModel):
+    type: str
+    fam: Optional[str] = None
 
 
-@app.post("/api/equipe/vendre")
-def vendre(t: Transfert, u=Depends(exiger), jeu=Depends(bd)):
+class Exemplaire(BaseModel):
+    exemplaire_id: int
+
+
+class Alignement(BaseModel):
+    exemplaire_id: int
+    dans_effectif: bool
+
+
+class MiseEnVente(BaseModel):
+    exemplaire_id: int
+    prix_depart: float
+    prix_immediat: Optional[float] = None
+    duree_h: int = 24
+
+
+class Offre(BaseModel):
+    enchere_id: int
+    montant: Optional[float] = None
+
+
+def marche_ou_409(fn, *args):
+    try:
+        return fn(*args)
+    except MA.ErreurMarche as e:
+        raise HTTPException(409, str(e))
+
+
+def exemplaire_json(jeu, x):
+    """A copy with its card."""
+    c = next((k for k in cartes_toutes(jeu) if k["id"] == x["player_id"]), None)
+    return x | {"carte": c, "cote": c["prix"] if c else None}
+
+
+@app.get("/api/packs")
+def packs(u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
-    if not marche_ouvert(jeu):
-        raise HTTPException(409, "Marché fermé : la journée est en cours")
-    if t.player_id not in effectif_de(jeu, e["equipe_id"]):
-        raise HTTPException(404, "Pas dans ton effectif")
-    prix = jeu.execute("SELECT prix FROM carte WHERE player_id=? AND saison=?", (t.player_id, SAISON)).fetchone()[0]
-    jeu.execute("DELETE FROM effectif WHERE equipe_id=? AND player_id=?", (e["equipe_id"], t.player_id))
-    jeu.execute("UPDATE equipe SET budget = ROUND(budget + ?, 2) WHERE equipe_id=?", (prix, e["equipe_id"]))
-    j = journee_courante(jeu)
-    jeu.execute("INSERT INTO transfert(equipe_id, player_id, sens, prix, journee_id, date) VALUES (?,?,?,?,?,?)",
-                (e["equipe_id"], t.player_id, "vente", prix, j["journee_id"] if j else None, P.maintenant()))
-    # take the player out of the pending composition
-    if j:
-        row = jeu.execute("SELECT titulaires, banc, capitaine FROM composition WHERE equipe_id=? AND journee_id=?",
-                          (e["equipe_id"], j["journee_id"])).fetchone()
-        if row:
-            tit = [p for p in json.loads(row["titulaires"]) if p != t.player_id]
-            banc = [p for p in json.loads(row["banc"]) if p != t.player_id]
-            cap = row["capitaine"] if row["capitaine"] != t.player_id else None
-            jeu.execute("UPDATE composition SET titulaires=?, banc=?, capitaine=? WHERE equipe_id=? AND journee_id=?",
-                        (json.dumps(tit), json.dumps(banc), cap, e["equipe_id"], j["journee_id"]))
-    jeu.commit()
-    return {"ok": True, "prix": prix}
+    return {"catalogue": MA.catalogue_packs(jeu, SAISON, e["ligue_jeu_id"]), "plafond": MA.plafond_copies(jeu, e["ligue_jeu_id"]),
+            "reserve_max": MA.RESERVE_MAX, "rachat": MA.RACHAT_BANQUE, "commission": MA.COMMISSION, "durees": list(MA.DUREES_H)}
+
+
+@app.post("/api/packs/ouvrir")
+def ouvrir_pack(pk: Pack, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    cartes = marche_ou_409(MA.ouvrir_pack, jeu, SAISON, e["equipe_id"], pk.type, pk.fam)
+    _CACHE["cle"] = None
+    return {"cartes": [exemplaire_json(jeu, c) for c in cartes], "budget": round(equipe_de(jeu, u)["budget"], 2)}
+
+
+@app.get("/api/club")
+def mon_club(u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    MA.resoudre_encheres(jeu)
+    return {"cartes": [exemplaire_json(jeu, x) for x in MA.club(jeu, SAISON, e["equipe_id"])],
+            "effectif_max": TAILLE_EFFECTIF, "reserve_max": MA.RESERVE_MAX, "quotas": QUOTA}
+
+
+@app.post("/api/club/aligner")
+def aligner(al: Alignement, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    if al.dans_effectif and not marche_ouvert(jeu):
+        raise HTTPException(409, "Journée verrouillée : l'effectif ne bouge plus jusqu'à la clôture")
+    marche_ou_409(MA.aligner, jeu, e["equipe_id"], al.exemplaire_id, al.dans_effectif)
+    return {"ok": True}
+
+
+@app.post("/api/club/banque")
+def vendre_banque(x: Exemplaire, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    montant = marche_ou_409(MA.vendre_banque, jeu, SAISON, e["equipe_id"], x.exemplaire_id)
+    return {"ok": True, "montant": montant}
+
+
+@app.get("/api/marche")
+def marche(player_id: Optional[int] = None, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    out = []
+    for v in MA.encheres_ouvertes(jeu, SAISON, player_id):
+        c = next((k for k in cartes_toutes(jeu) if k["id"] == v["player_id"]), None)
+        out.append(v | {"carte": c, "cote": c["prix"] if c else None, "mienne": v["vendeur_id"] == e["equipe_id"],
+                        "je_mene": v["meilleur_offrant"] == e["equipe_id"]})
+    return {"ventes": out, "maintenant": P.maintenant()}
+
+
+@app.post("/api/marche/vendre")
+def mettre_en_vente(m: MiseEnVente, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    eid = marche_ou_409(MA.mettre_en_vente, jeu, e["equipe_id"], m.exemplaire_id, m.prix_depart, m.prix_immediat, m.duree_h)
+    return {"ok": True, "enchere_id": eid}
+
+
+@app.post("/api/marche/encherir")
+def encherir(o: Offre, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    if o.montant is None:
+        raise HTTPException(400, "Montant manquant")
+    montant = marche_ou_409(MA.encherir, jeu, e["equipe_id"], o.enchere_id, o.montant)
+    return {"ok": True, "montant": montant, "budget": round(equipe_de(jeu, u)["budget"], 2)}
+
+
+@app.post("/api/marche/acheter")
+def acheter_immediat(o: Offre, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    prix = marche_ou_409(MA.acheter_immediat, jeu, e["equipe_id"], o.enchere_id)
+    return {"ok": True, "prix": prix, "budget": round(equipe_de(jeu, u)["budget"], 2)}
+
+
+@app.post("/api/marche/annuler")
+def annuler_vente(o: Offre, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    marche_ou_409(MA.annuler_vente, jeu, e["equipe_id"], o.enchere_id)
+    return {"ok": True}
 
 
 @app.post("/api/equipe/composition")
@@ -508,8 +576,8 @@ def classement_equipes(jeu, ids=None):
         args += list(ids)
     rows = jeu.execute(f"""
         SELECT e.equipe_id, e.nom, u.pseudo, e.points_total, e.budget,
-               (SELECT COALESCE(SUM(c.prix), 0) FROM effectif f JOIN carte c ON c.player_id = f.player_id AND c.saison = ?
-                WHERE f.equipe_id = e.equipe_id) AS valeur_cartes,
+               (SELECT COALESCE(SUM(c.prix), 0) FROM exemplaire x JOIN carte c ON c.player_id = x.player_id AND c.saison = x.saison
+                WHERE x.equipe_id = e.equipe_id AND x.saison = ? AND x.detruit = 0) AS valeur_cartes,
                (SELECT r.score FROM resultat r JOIN journee j ON j.journee_id = r.journee_id
                 WHERE r.equipe_id = e.equipe_id ORDER BY j.numero DESC LIMIT 1) AS derniere
         FROM equipe e JOIN utilisateur u ON u.utilisateur_id = e.utilisateur_id

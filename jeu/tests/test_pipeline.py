@@ -137,14 +137,16 @@ def test_demand_raises_the_price_of_owned_cards():
     jeu.execute("INSERT INTO equipe(utilisateur_id, ligue_jeu_id, nom, budget) VALUES (2, 1, 'B', 60)")
     jeu.execute("INSERT INTO equipe(utilisateur_id, ligue_jeu_id, nom, budget) VALUES (3, 1, 'C', 60)")
     for eid in (1, 2):
-        jeu.execute("INSERT INTO effectif VALUES (?, 1, 1.0, 'x')", (eid,))
-    jeu.execute("INSERT INTO effectif VALUES (1, 2, 1.0, 'x')")
+        jeu.execute("INSERT INTO exemplaire(player_id, saison, numero, equipe_id, dans_effectif, origine, prix_achat, achete_le) VALUES (1, '2025/26', ?, ?, 1, 'pack', 1.0, 'x')", (eid, eid))
+    jeu.execute("INSERT INTO exemplaire(player_id, saison, numero, equipe_id, dans_effectif, origine, prix_achat, achete_le) VALUES (2, '2025/26', 1, 1, 1, 'pack', 1.0, 'x')")
     prestations_j1(jeu, {i: (6.0, 90) for i in range(1, 12)})
     P.calculer(jeu, None, "2025/26", 1, importer=False)
     ovr1, prix1, part1, vb1, ob1 = jeu.execute("SELECT ovr, prix, part, valeur_base, ovr_base FROM carte WHERE player_id=1").fetchone()
     ovr3, prix3, part3, vb3, ob3 = jeu.execute("SELECT ovr, prix, part, valeur_base, ovr_base FROM carte WHERE player_id=3").fetchone()
     assert abs(part1 - 2 / 3) < 1e-9 and part3 == 0
-    assert prix1 == E.prix_demande(vb1, ob1, ovr1, 2 / 3) and prix1 > E.prix_carte(vb1, ob1, ovr1)
+    assert prix1 == E.prix_demande(vb1, ob1, ovr1, 2 / 3)
+    assert prix1 == E.prix_carte(vb1, ob1, ovr1)            # DEMANDE is 0: the cote ignores popularity
+    assert E.prix_demande(vb1, ob1, ovr1, 2 / 3, k=1.0) > prix1
     assert prix3 == E.prix_carte(vb3, ob3, ovr3)
     h = jeu.execute("SELECT prix, part FROM carte_historique ch JOIN journee j ON j.journee_id = ch.journee_id WHERE ch.player_id=1 AND j.numero=1").fetchone()
     assert h == (prix1, part1)

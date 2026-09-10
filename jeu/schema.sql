@@ -210,8 +210,51 @@ CREATE TABLE IF NOT EXISTS match_h2h (
 );
 CREATE INDEX IF NOT EXISTS ix_h2h_journee ON match_h2h(journee_id);
 
--- Cards currently owned.  `prix_achat` is what the manager paid: the gap
--- to the current price is their scouting reward (evolution.plus_value).
+-- A COPY of a card (jeu/marche.py).  Copies only come out of packs; a
+-- copy sits in the squad (dans_effectif=1, quotas of marche.py) or in the
+-- reserve; it is destroyed when sold back to the bank.
+CREATE TABLE IF NOT EXISTS exemplaire (
+    exemplaire_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id        INTEGER NOT NULL REFERENCES joueur(player_id),
+    saison           TEXT NOT NULL,
+    numero           INTEGER NOT NULL,              -- serial number of the copy for this player
+    equipe_id        INTEGER REFERENCES equipe(equipe_id),
+    dans_effectif    INTEGER NOT NULL DEFAULT 0,
+    origine          TEXT NOT NULL,                 -- 'pack' | 'marche'
+    prix_achat       REAL NOT NULL,                 -- M€ paid by the current owner
+    achete_le        TEXT NOT NULL,
+    detruit          INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS ix_exemplaire_equipe ON exemplaire(equipe_id);
+CREATE INDEX IF NOT EXISTS ix_exemplaire_joueur ON exemplaire(player_id, saison);
+
+-- The auction house: one listing per copy at a time.
+CREATE TABLE IF NOT EXISTS enchere (
+    enchere_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    exemplaire_id    INTEGER NOT NULL REFERENCES exemplaire(exemplaire_id),
+    vendeur_id       INTEGER NOT NULL REFERENCES equipe(equipe_id),
+    prix_depart      REAL NOT NULL,
+    prix_immediat    REAL,
+    fin              TEXT NOT NULL,                 -- ISO datetime
+    meilleur_offrant INTEGER REFERENCES equipe(equipe_id),
+    meilleure_offre  REAL,
+    statut           TEXT NOT NULL DEFAULT 'ouverte', -- ouverte | vendue | expiree | annulee
+    cree_le          TEXT NOT NULL,
+    conclue_le       TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_enchere_statut ON enchere(statut, fin);
+
+CREATE TABLE IF NOT EXISTS pack_ouvert (
+    pack_id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    equipe_id        INTEGER NOT NULL REFERENCES equipe(equipe_id),
+    type             TEXT NOT NULL,
+    fam              TEXT,
+    prix             REAL NOT NULL,
+    contenu          TEXT NOT NULL,                 -- JSON list of player ids
+    date             TEXT NOT NULL
+);
+
+-- Legacy of the first store (buy at the public price); kept for old bases.
 CREATE TABLE IF NOT EXISTS effectif (
     equipe_id        INTEGER NOT NULL REFERENCES equipe(equipe_id),
     player_id        INTEGER NOT NULL REFERENCES joueur(player_id),
