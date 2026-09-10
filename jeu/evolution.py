@@ -65,6 +65,15 @@ BORNE_OVR = 10               # displayed OVR stays within +-10 of the season sta
 # the ranking 98-99 — a FIFA-like spread, whatever the shape of the barème.
 MU_OVR, SIGMA_OVR = 65.0, 10.0
 
+# The same bell for the six attributes, on their own axis distribution.
+# A plain 40 + 59 x rank put the MEDIAN outfield player at 70 on every
+# axis, so half the pool read 70+ and a position's own specialty (rank
+# 0.88 for a striker's finishing) read 92 whatever the player was worth.
+# Centred lower and wider: the median reads 58, a position's specialty
+# about 73, the genuine top of an axis 95-99, and 2 % of the cards carry
+# a 90 anywhere.
+MU_ATTR, SIGMA_ATTR = 58.0, 14.0
+
 # Price (M€)
 PRIX_PLANCHER = 0.1          # 100 k€: a card is never free
 PRIX_DOUBLE_TOUS_LES = 8     # +8 OVR since the season start = price x2

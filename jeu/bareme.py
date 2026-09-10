@@ -30,8 +30,11 @@ What a card takes from it:
                             dribbling, retention, defence; the keeper's
                             own six), ranked among ALL outfield regulars:
                             a defender's dribbling is compared to a
-                            winger's.  Only absolute action points are used
-                            here, never the engine's position-relative
+                            winger's.  Read on the same kind of bell as the
+                            OVR (MU_ATTR +- SIGMA_ATTR), so the median of a
+                            position on its own specialty reads about 73
+                            and not 92.  Only absolute action points are
+                            used here, never the engine's position-relative
                             corrections — those are what made a striker's
                             three interceptions read as elite defence.
 
@@ -74,6 +77,7 @@ MINUTES_REFERENCE = 2300     # the engine's Ballon d'or panel: the hybrid disper
 MINUTES_REGULIER = 900       # a card with a real season behind it: the scales are measured on them
 MINUTES_PRIOR = 2000         # the position's median is taken among these (engine: retrecir)
 Q = 1000                     # resolution of the stored scales (quantiles at i/Q)
+ATTR_MIN, ATTR_MAX = 40, 99
 _ND = NormalDist()
 
 # The six axes, as points of the barème's ACTIONS (bareme_stats.POINTS and
@@ -327,11 +331,28 @@ def axes_par90(f: dict, poste: str, params: dict) -> dict[str, float]:
     return out
 
 
+def attribut(valeur: float, echelle: list[float], params: dict) -> int:
+    """One attribute on 40-99: the rank of `valeur` on its axis scale, read
+    on a bell (MU_ATTR +- SIGMA_ATTR).
+
+    Not 40 + 59 x rank: that puts the MEDIAN player of the pool at 70 on
+    every axis, so half the cards read 70+, and the median of a position on
+    its own specialty — rank 0.88 for a striker's finishing, 0.90 for a
+    centre-back's defending — reads 92 before the player has done anything.
+    A card then described the position, not the player.  The bell keeps the
+    order (so a winger still out-dribbles a centre-back, the rule that
+    forbids per-position percentiles) and gives the scale its shape back.
+    """
+    mu = params.get("mu_attr", E.MU_ATTR)
+    sigma = params.get("sigma_attr", E.SIGMA_ATTR)
+    return int(round(max(ATTR_MIN, min(ATTR_MAX, mu + sigma * _ND.inv_cdf(rang(valeur, echelle))))))
+
+
 def attributs(f: dict, poste: str, params: dict) -> dict[str, int]:
     """Six attributes on 40-99: the axes per 90 ranked on the season's
     scales (outfield players all together, keepers among keepers)."""
     table = params["echelles"]["gardien" if poste == "Gardien" else "champ"]
-    return {ax: N.attribut(v, table[ax]) for ax, v in axes_par90(f, poste, params).items()}
+    return {ax: attribut(v, table[ax], params) for ax, v in axes_par90(f, poste, params).items()}
 
 
 # --------------------------------------------------------------------------
@@ -371,7 +392,8 @@ def parametres(bases: dict[int, tuple[str, dict]], pal: dict[int, float] | None 
     priors_axes["*"] = {ax: med(v) for ax, v in global_axes.items()}
     # keeper alignment and role reference, before the role factor
     params = {"priors": priors, "priors_axes": priors_axes, "gk_k": 1.0, "role_ref": 1.0,
-              "mu": E.MU_OVR, "sigma": E.SIGMA_OVR, "borne": E.BORNE_OVR, "poids_passe": E.POIDS_SAISON_PASSEE,
+              "mu": E.MU_OVR, "sigma": E.SIGMA_OVR, "mu_attr": E.MU_ATTR, "sigma_attr": E.SIGMA_ATTR,
+              "borne": E.BORNE_OVR, "poids_passe": E.POIDS_SAISON_PASSEE,
               "k_retrecissement": bs.K_RETRECISSEMENT, "exp_role": bs.EXP_ROLE, "coef_poste": bool(bs.APPLIQUER_COEF_POSTE)}
     brut = {pid: terrain(f, po, params) for pid, (po, f) in bases.items()}
     gk = [brut[pid] for pid, (po, f) in bases.items() if po == "Gardien" and f["min"] >= MINUTES_PRIOR]

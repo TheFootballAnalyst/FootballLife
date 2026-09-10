@@ -150,9 +150,21 @@ journées suivantes à 0,47 (1 202 joueurs à 450 min et plus après J25),
 contre 0,26 pour la moyenne glissante des notes.
 
 **Attributs.** Six axes de points d'actions par 90, classés parmi tous les
-joueurs de champ réguliers : Mbappé FIN 99 DRI 98 DEF 43, Van Dijk DEF 98
-DRI 49, Saliba DEF 99 FIN 51, Vitinha PRO 99 CON 99. La première version
-(corrections relatives au poste incluses) donnait Mbappé 93 en défense.
+joueurs de champ réguliers, lus sur une cloche 58 ± 14. Deux versions
+écartées avant celle-ci :
+
+| version | symptôme |
+|---|---|
+| corrections relatives au poste incluses dans les axes | Mbappé 93 en défense |
+| rang lu en 40 + 59 × rang | le joueur médian lit 70 sur chaque axe, la spécialité d'un poste 92 ; 55 % des cartes sous OVR 65 avaient un attribut à 90+, Laporte 92 en défense, Hamed Traoré 94 en création avec 572 minutes |
+| **rang lu sur une cloche 58 ± 14 (retenu)** | **0 % des cartes sous 65 ont un 90+, 2 % de toutes les cartes en ont un ; Laporte DEF 74, Hamed Traoré CRE 77** |
+
+La médiane d'un poste sur sa spécialité passe de 92 à 75 (défense d'un
+central), de 91 à 78 (finition d'un buteur). Repères après correction :
+Mbappé FIN 99 DRI 81 DEF 43, Van Dijk DEF 94 PRO 94 DRI 44, Saliba DEF 85
+FIN 50, Haaland FIN 99 PRO 40. La transformation est monotone : l'ordre
+entre postes, la contrainte qui interdit les centiles par poste, est
+inchangé.
 
 ## Le match en face à face (J18–J34, 40 équipes, 340 matchs)
 

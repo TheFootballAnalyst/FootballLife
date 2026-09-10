@@ -107,6 +107,23 @@ def test_attributes_rank_every_outfield_player_together():
         assert 40 <= v <= 99
 
 
+def test_attribute_bell_puts_the_median_in_the_middle():
+    """40 + 59 x rank put the median player at 70 on every axis, so a
+    position's own specialty read 92 before the player had done anything."""
+    pop = population()
+    params = B.parametres(pop)
+    ech = params["echelles"]["champ"]["FIN"]
+    median = ech[len(ech) // 2]
+    assert abs(B.attribut(median, ech, params) - E.MU_ATTR) <= 1
+    # the 90th percentile of an axis — where a position's specialty sits —
+    # reads in the seventies, not in the nineties
+    assert 68 <= B.attribut(ech[int(0.90 * len(ech))], ech, params) <= 80
+    assert B.attribut(ech[-1], ech, params) >= 90 and B.attribut(ech[0], ech, params) <= 45
+    # still monotone, so the cross-position order is untouched
+    serie = [B.attribut(v, ech, params) for v in ech]
+    assert serie == sorted(serie)
+
+
 def test_rank_is_finite_at_both_ends():
     ech = [float(i) for i in range(11)]
     assert 0 < B.rang(-5.0, ech) < B.rang(5.0, ech) < B.rang(50.0, ech) < 1

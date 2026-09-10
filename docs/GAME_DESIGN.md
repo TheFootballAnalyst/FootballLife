@@ -139,10 +139,27 @@ winger's, which is what the per-position percentiles of the first version
 got wrong (Van Dijk out-dribbled Dembélé). Only absolute action points are
 used, never the engine's position-relative corrections: those made a
 striker's three interceptions read as elite defence (Mbappé 93 in
-Défense). Now Mbappé reads FIN 99, DRI 98, DEF 43; Van Dijk DEF 98, DRI
-49; Saliba DEF 99, FIN 51. Keepers are ranked among keepers (arrêts, buts
-évités, sorties, jeu long, imbattabilité, jeu court). Match cards (one
-performance) keep the per-match scales of `echelles_attributs.json`.
+Défense).
+
+The rank is read **on a bell** (`MU_ATTR` 58, `SIGMA_ATTR` 14), like the
+OVR and for the same reason. A plain 40 + 59 × rank puts the *median*
+outfield player at 70 on every axis: half the pool then reads 70 or more,
+and the median of a position on its own specialty — rank 0.88 for a
+striker's finishing, 0.90 for a centre-back's defending — reads 92 before
+the player has done anything. Combined with the shrink of a thin sample
+towards the position's median, an OVR-60 winger with 500 minutes read
+CRE 94 and a winger whose own finishing was in the bottom quarter read
+FIN 83: the card described the position, not the player. On the bell the
+median regular of a position reads about 73 on its specialty, 2 % of the
+cards carry a 90 anywhere, and no card under OVR 65 does. The map is
+monotone, so the cross-position order — the rule that forbids
+per-position percentiles — is untouched.
+
+Mbappé reads FIN 99, DRI 81, DEF 43; Van Dijk DEF 94, PRO 94, DRI 44;
+Saliba DEF 85, FIN 50; Haaland FIN 99, PRO 40. Keepers are ranked among
+keepers (arrêts, buts évités, sorties, jeu long, imbattabilité, jeu
+court). Match cards (one performance) keep the per-match scales of
+`echelles_attributs.json`.
 
 ## The market — packs, copies, auction house
 
