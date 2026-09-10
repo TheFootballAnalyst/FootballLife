@@ -1,65 +1,64 @@
 {
- "FIN": [
-  "But",
-  "Surperformance de finition (G - xG)",
-  "Tir cadre",
-  "Tir non cadre",
-  "Tir contre par un defenseur",
-  "Poteau ou barre",
-  "Grosse occasion manquee",
-  "xG hors penalty (par unite)"
- ],
- "CRE": [
-  "Passe decisive",
-  "Occasion creee",
-  "Grosse occasion creee",
-  "Centre reussi",
-  "xA (par unite)"
- ],
- "PRO": [
-  "Passe dans le dernier tiers",
-  "Passe reussie",
-  "Long ballon reussi"
- ],
- "DEF": [
-  "Interception",
-  "Degagement",
-  "Degagement de la tete",
-  "Recuperation",
-  "Duel aerien gagne",
-  "Duel au sol gagne",
-  "Tir contre",
-  "Duels defensifs (taux vs reference)",
-  "Dribble par l'adversaire",
-  "Faute commise"
- ],
- "DRI": [
-  "Dribble reussi",
-  "Faute subie",
-  "Duel gagne"
- ],
- "CON": [
-  "Ballon touche",
-  "Ballon perdu au contact",
-  "Duel perdu"
- ],
- "ARR": [
-  "Arret",
-  "Arret dans la surface"
- ],
- "EVI": [
-  "But evite vs xGOT (par unite)"
- ],
- "SOR": [
-  "Sortie aerienne",
-  "Sortie dans le dos",
-  "Degagement du poing"
- ],
- "REL": [
-  "Long ballon reussi",
-  "Passe reussie"
- ],
- "BUT": [
-  "But encaisse"
- ]
+  "FIN": [
+    "But",
+    "Surperformance de finition (G - xG)",
+    "Tir cadre",
+    "Tir non cadre",
+    "Tir contre par un defenseur",
+    "Poteau ou barre",
+    "Grosse occasion manquee",
+    "xG hors penalty (par unite)"
+  ],
+  "CRE": [
+    "Passe decisive",
+    "Occasion creee",
+    "Grosse occasion creee",
+    "Centre reussi",
+    "xA (par unite)"
+  ],
+  "PRO": [
+    "Passe dans le dernier tiers",
+    "Passe reussie",
+    "Long ballon reussi"
+  ],
+  "DEF": [
+    "Interception",
+    "Degagement",
+    "Degagement de la tete",
+    "Recuperation",
+    "Duel aerien gagne",
+    "Duel au sol gagne",
+    "Tir contre",
+    "Duels defensifs (taux vs reference)",
+    "Dribble par l'adversaire",
+    "Faute commise"
+  ],
+  "DRI": [
+    "Dribble reussi",
+    "Faute subie"
+  ],
+  "CON": [
+    "Ballon touche",
+    "Ballon perdu au contact",
+    "Duel perdu"
+  ],
+  "ARR": [
+    "Arret",
+    "Arret dans la surface"
+  ],
+  "EVI": [
+    "But evite vs xGOT (par unite)"
+  ],
+  "SOR": [
+    "Sortie aerienne",
+    "Sortie dans le dos",
+    "Degagement du poing"
+  ],
+  "REL": [
+    "Long ballon reussi",
+    "Passe reussie"
+  ],
+  "BUT": [
+    "But encaisse"
+  ]
 }

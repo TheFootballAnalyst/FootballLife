@@ -228,6 +228,18 @@ def valeurs_a_date(jeu: sqlite3.Connection, limite: str | None = None) -> dict[i
     return out
 
 
+def recalculer_attributs(jeu: sqlite3.Connection) -> int:
+    """Recompute prestation.attributs from the stored lines after a change of
+    the family table or of an attribute scale (the note is untouched)."""
+    rows = jeu.execute("SELECT match_id, player_id, poste, lignes FROM prestation").fetchall()
+    for mid, pid, poste, lignes in rows:
+        att = N.attributs(json.loads(lignes or "{}"), poste)
+        jeu.execute("UPDATE prestation SET attributs=? WHERE match_id=? AND player_id=?", (json.dumps(att), mid, pid))
+    jeu.execute("UPDATE carte SET attributs=NULL")
+    jeu.commit()
+    return len(rows)
+
+
 def majorite_postes_et_clubs(jeu: sqlite3.Connection) -> None:
     """Set joueur.poste / team_id to the season's majority (by minutes)."""
     rows = jeu.execute("""
@@ -300,7 +312,13 @@ def main():
                     help="only refresh club colours from the cache")
     ap.add_argument("--valeurs-seulement", action="store_true",
                     help="only (re)read the market values from the cached match sheets")
+    ap.add_argument("--attributs-seulement", action="store_true",
+                    help="only recompute the card attributes from the stored lines")
     a = ap.parse_args()
+    if a.attributs_seulement:
+        jeu = ouvrir_jeu(pathlib.Path(a.jeu))
+        print(f"{recalculer_attributs(jeu)} prestations, attributs recalculés -> {a.jeu}")
+        return
     if a.couleurs_seulement:
         jeu = ouvrir_jeu(pathlib.Path(a.jeu))
         print(f"{importer_couleurs(jeu)} couleurs de club -> {a.jeu}")
