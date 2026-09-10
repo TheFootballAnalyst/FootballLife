@@ -37,11 +37,11 @@
     "p10_du_poste": -16.06,
     "attributs": {
      "ARR": 74,
-     "EVI": 42,
+     "EVI": 43,
      "SOR": 79,
-     "REL": 84,
+     "REL": 71,
      "BUT": 41,
-     "PRO": 84
+     "PRO": 71
     }
    }
   },
@@ -81,11 +81,11 @@
     "p10_du_poste": -16.06,
     "attributs": {
      "ARR": 77,
-     "EVI": 42,
-     "SOR": 40,
-     "REL": 88,
-     "BUT": 43,
-     "PRO": 88
+     "EVI": 43,
+     "SOR": 52,
+     "REL": 80,
+     "BUT": 42,
+     "PRO": 80
     }
    }
   },
@@ -133,12 +133,12 @@
     "note_sur_10": 1.0,
     "p10_du_poste": -0.45,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 83,
      "PRO": 77,
      "DEF": 42,
-     "DRI": 46,
-     "CON": 56
+     "DRI": 52,
+     "CON": 72
     }
    }
   },
@@ -191,9 +191,9 @@
      "FIN": 71,
      "CRE": 89,
      "PRO": 52,
-     "DEF": 40,
+     "DEF": 41,
      "DRI": 82,
-     "CON": 42
+     "CON": 44
     }
    }
   },
@@ -242,12 +242,12 @@
     "note_sur_10": 1.0,
     "p10_du_poste": 0.89,
     "attributs": {
-     "FIN": 48,
-     "CRE": 45,
+     "FIN": 52,
+     "CRE": 46,
      "PRO": 62,
      "DEF": 41,
-     "DRI": 46,
-     "CON": 45
+     "DRI": 52,
+     "CON": 51
     }
    }
   },
@@ -288,11 +288,11 @@
     "p10_du_poste": -16.06,
     "attributs": {
      "ARR": 82,
-     "EVI": 43,
-     "SOR": 40,
-     "REL": 74,
-     "BUT": 43,
-     "PRO": 74
+     "EVI": 45,
+     "SOR": 52,
+     "REL": 54,
+     "BUT": 42,
+     "PRO": 54
     }
    }
   },
@@ -328,12 +328,12 @@
     "note_sur_10": 3.6,
     "p10_du_poste": -16.06,
     "attributs": {
-     "ARR": 40,
-     "EVI": 45,
-     "SOR": 40,
-     "REL": 85,
-     "BUT": 44,
-     "PRO": 85
+     "ARR": 52,
+     "EVI": 47,
+     "SOR": 52,
+     "REL": 73,
+     "BUT": 43,
+     "PRO": 73
     }
    }
   },
@@ -374,11 +374,11 @@
     "p10_du_poste": -16.06,
     "attributs": {
      "ARR": 81,
-     "EVI": 43,
+     "EVI": 45,
      "SOR": 87,
-     "REL": 77,
-     "BUT": 43,
-     "PRO": 77
+     "REL": 59,
+     "BUT": 42,
+     "PRO": 59
     }
    }
   },
@@ -427,12 +427,12 @@
     "note_sur_10": 1.5,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 40,
+     "FIN": 41,
      "CRE": 76,
      "PRO": 47,
-     "DEF": 44,
-     "DRI": 46,
-     "CON": 41
+     "DEF": 43,
+     "DRI": 52,
+     "CON": 43
     }
    }
   },
@@ -469,12 +469,12 @@
     "note_sur_10": 3.7,
     "p10_du_poste": -16.06,
     "attributs": {
-     "ARR": 40,
-     "EVI": 46,
+     "ARR": 52,
+     "EVI": 49,
      "SOR": 75,
-     "REL": 44,
+     "REL": 41,
      "BUT": 43,
-     "PRO": 44
+     "PRO": 41
     }
    }
   },
@@ -517,12 +517,12 @@
     "note_sur_10": 2.0,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 73,
      "PRO": 62,
      "DEF": 42,
-     "DRI": 46,
-     "CON": 42
+     "DRI": 52,
+     "CON": 43
     }
    }
   },
@@ -570,10 +570,10 @@
     "note_sur_10": 2.1,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 40,
+     "FIN": 41,
      "CRE": 85,
      "PRO": 47,
-     "DEF": 45,
+     "DEF": 44,
      "DRI": 78,
      "CON": 41
     }
@@ -630,9 +630,9 @@
      "FIN": 41,
      "CRE": 81,
      "PRO": 43,
-     "DEF": 43,
+     "DEF": 42,
      "DRI": 73,
-     "CON": 47
+     "CON": 55
     }
    }
   },
@@ -672,12 +672,12 @@
     "note_sur_10": 3.3,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 71,
      "PRO": 41,
      "DEF": 43,
      "DRI": 80,
-     "CON": 41
+     "CON": 42
     }
    }
   },
@@ -721,12 +721,12 @@
     "note_sur_10": 2.3,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 83,
      "PRO": 64,
      "DEF": 42,
-     "DRI": 46,
-     "CON": 43
+     "DRI": 52,
+     "CON": 46
     }
    }
   },
@@ -765,11 +765,11 @@
     "p10_du_poste": -16.06,
     "attributs": {
      "ARR": 70,
-     "EVI": 46,
+     "EVI": 49,
      "SOR": 75,
-     "REL": 84,
+     "REL": 72,
      "BUT": 42,
-     "PRO": 84
+     "PRO": 72
     }
    }
   },
@@ -817,12 +817,12 @@
     "note_sur_10": 1.0,
     "p10_du_poste": 7.8,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 73,
      "PRO": 59,
-     "DEF": 96,
+     "DEF": 94,
      "DRI": 82,
-     "CON": 81
+     "CON": 85
     }
    }
   },
@@ -864,11 +864,11 @@
     "p10_du_poste": -16.06,
     "attributs": {
      "ARR": 94,
-     "EVI": 43,
+     "EVI": 45,
      "SOR": 93,
-     "REL": 70,
+     "REL": 47,
      "BUT": 41,
-     "PRO": 70
+     "PRO": 47
     }
    }
   },
@@ -911,12 +911,12 @@
     "note_sur_10": 2.5,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 84,
      "PRO": 65,
      "DEF": 41,
      "DRI": 75,
-     "CON": 48
+     "CON": 56
     }
    }
   },
@@ -963,12 +963,12 @@
     "note_sur_10": 1.0,
     "p10_du_poste": 7.8,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 71,
      "PRO": 57,
-     "DEF": 42,
+     "DEF": 41,
      "DRI": 72,
-     "CON": 54
+     "CON": 69
     }
    }
   },
@@ -1010,12 +1010,12 @@
     "note_sur_10": 2.7,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 93,
      "PRO": 41,
      "DEF": 41,
-     "DRI": 46,
-     "CON": 44
+     "DRI": 52,
+     "CON": 48
     }
    }
   },
@@ -1055,11 +1055,11 @@
     "p10_du_poste": -16.06,
     "attributs": {
      "ARR": 94,
-     "EVI": 44,
-     "SOR": 40,
-     "REL": 91,
-     "BUT": 46,
-     "PRO": 91
+     "EVI": 46,
+     "SOR": 52,
+     "REL": 85,
+     "BUT": 45,
+     "PRO": 85
     }
    }
   },
@@ -1098,11 +1098,11 @@
     "p10_du_poste": -16.06,
     "attributs": {
      "ARR": 86,
-     "EVI": 46,
-     "SOR": 40,
-     "REL": 73,
+     "EVI": 49,
+     "SOR": 52,
+     "REL": 52,
      "BUT": 43,
-     "PRO": 73
+     "PRO": 52
     }
    }
   },
@@ -1154,12 +1154,12 @@
     "note_sur_10": 1.0,
     "p10_du_poste": 7.8,
     "attributs": {
-     "FIN": 41,
+     "FIN": 42,
      "CRE": 76,
      "PRO": 84,
-     "DEF": 54,
-     "DRI": 46,
-     "CON": 58
+     "DEF": 53,
+     "DRI": 52,
+     "CON": 77
     }
    }
   },
@@ -1200,12 +1200,12 @@
     "note_sur_10": 2.6,
     "p10_du_poste": 7.8,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 44,
-     "DEF": 57,
-     "DRI": 44,
-     "CON": 52
+     "DEF": 55,
+     "DRI": 47,
+     "CON": 66
     }
    }
   },
@@ -1252,12 +1252,12 @@
     "note_sur_10": 2.2,
     "p10_du_poste": -3.41,
     "attributs": {
-     "FIN": 41,
-     "CRE": 49,
+     "FIN": 42,
+     "CRE": 52,
      "PRO": 43,
      "DEF": 47,
-     "DRI": 41,
-     "CON": 43
+     "DRI": 42,
+     "CON": 47
     }
    }
   },
@@ -1306,12 +1306,12 @@
     "note_sur_10": 1.8,
     "p10_du_poste": 0.89,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 41,
      "PRO": 46,
-     "DEF": 44,
-     "DRI": 45,
-     "CON": 46
+     "DEF": 43,
+     "DRI": 51,
+     "CON": 53
     }
    }
   },
@@ -1351,11 +1351,11 @@
     "p10_du_poste": -16.06,
     "attributs": {
      "ARR": 71,
-     "EVI": 47,
+     "EVI": 50,
      "SOR": 74,
-     "REL": 84,
-     "BUT": 44,
-     "PRO": 84
+     "REL": 72,
+     "BUT": 43,
+     "PRO": 72
     }
    }
   },
@@ -1397,12 +1397,12 @@
     "note_sur_10": 3.3,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 74,
      "PRO": 54,
      "DEF": 43,
      "DRI": 78,
-     "CON": 45
+     "CON": 51
     }
    }
   },
@@ -1452,12 +1452,12 @@
     "note_sur_10": 1.6,
     "p10_du_poste": 1.89,
     "attributs": {
-     "FIN": 42,
+     "FIN": 43,
      "CRE": 70,
      "PRO": 59,
-     "DEF": 43,
-     "DRI": 46,
-     "CON": 50
+     "DEF": 42,
+     "DRI": 52,
+     "CON": 61
     }
    }
   },
@@ -1507,12 +1507,12 @@
     "note_sur_10": 2.9,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 41,
+     "FIN": 42,
      "CRE": 92,
      "PRO": 46,
      "DEF": 42,
-     "DRI": 46,
-     "CON": 47
+     "DRI": 52,
+     "CON": 54
     }
    }
   },
@@ -1553,12 +1553,12 @@
     "note_sur_10": 4.4,
     "p10_du_poste": -0.45,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 49,
-     "DEF": 70,
-     "DRI": 46,
-     "CON": 55
+     "DEF": 55,
+     "DRI": 52,
+     "CON": 72
     }
    }
   },
@@ -1611,12 +1611,12 @@
     "note_sur_10": 2.3,
     "p10_du_poste": -3.41,
     "attributs": {
-     "FIN": 40,
-     "CRE": 47,
+     "FIN": 41,
+     "CRE": 49,
      "PRO": 56,
-     "DEF": 45,
+     "DEF": 44,
      "DRI": 92,
-     "CON": 42
+     "CON": 44
     }
    }
   },
@@ -1671,12 +1671,12 @@
     "note_sur_10": 2.0,
     "p10_du_poste": 0.89,
     "attributs": {
-     "FIN": 45,
+     "FIN": 47,
      "CRE": 95,
      "PRO": 85,
      "DEF": 43,
      "DRI": 72,
-     "CON": 57
+     "CON": 76
     }
    }
   },
@@ -1730,12 +1730,12 @@
     "note_sur_10": 2.4,
     "p10_du_poste": -0.45,
     "attributs": {
-     "FIN": 44,
+     "FIN": 45,
      "CRE": 91,
      "PRO": 93,
-     "DEF": 47,
-     "DRI": 41,
-     "CON": 51
+     "DEF": 44,
+     "DRI": 42,
+     "CON": 64
     }
    }
   },
@@ -1778,12 +1778,12 @@
     "note_sur_10": 2.4,
     "p10_du_poste": 1.89,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 53,
      "DEF": 43,
      "DRI": 73,
-     "CON": 54
+     "CON": 70
     }
    }
   },
@@ -1832,12 +1832,12 @@
     "note_sur_10": 3.6,
     "p10_du_poste": -0.45,
     "attributs": {
-     "FIN": 46,
+     "FIN": 50,
      "CRE": 79,
      "PRO": 50,
      "DEF": 44,
-     "DRI": 43,
-     "CON": 52
+     "DRI": 47,
+     "CON": 65
     }
    }
   },
@@ -1885,12 +1885,12 @@
     "note_sur_10": 1.2,
     "p10_du_poste": 7.8,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 59,
-     "DEF": 75,
-     "DRI": 46,
-     "CON": 71
+     "DEF": 65,
+     "DRI": 52,
+     "CON": 78
     }
    }
   },
@@ -1939,12 +1939,12 @@
     "note_sur_10": 2.4,
     "p10_du_poste": 0.89,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 73,
      "PRO": 53,
-     "DEF": 47,
+     "DEF": 45,
      "DRI": 41,
-     "CON": 44
+     "CON": 49
     }
    }
   },
@@ -1992,12 +1992,12 @@
     "note_sur_10": 3.2,
     "p10_du_poste": -3.41,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 92,
      "PRO": 43,
-     "DEF": 44,
+     "DEF": 43,
      "DRI": 76,
-     "CON": 42
+     "CON": 44
     }
    }
   },
@@ -2046,12 +2046,12 @@
     "note_sur_10": 4.0,
     "p10_du_poste": 7.8,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 71,
      "PRO": 81,
-     "DEF": 72,
+     "DEF": 55,
      "DRI": 72,
-     "CON": 54
+     "CON": 69
     }
    }
   },
@@ -2100,12 +2100,12 @@
     "note_sur_10": 4.0,
     "p10_du_poste": 7.8,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 71,
      "PRO": 77,
-     "DEF": 93,
-     "DRI": 42,
-     "CON": 88
+     "DEF": 92,
+     "DRI": 45,
+     "CON": 91
     }
    }
   },
@@ -2154,12 +2154,12 @@
     "note_sur_10": 4.0,
     "p10_du_poste": 7.8,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 72,
      "PRO": 82,
-     "DEF": 72,
+     "DEF": 58,
      "DRI": 74,
-     "CON": 56
+     "CON": 73
     }
    }
   },
@@ -2202,12 +2202,12 @@
     "note_sur_10": 4.2,
     "p10_du_poste": 7.8,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 44,
-     "DEF": 79,
-     "DRI": 46,
-     "CON": 71
+     "DEF": 68,
+     "DRI": 52,
+     "CON": 78
     }
    }
   },
@@ -2251,12 +2251,12 @@
     "note_sur_10": 4.9,
     "p10_du_poste": 1.89,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 80,
      "PRO": 58,
-     "DEF": 56,
+     "DEF": 55,
      "DRI": 70,
-     "CON": 52
+     "CON": 64
     }
    }
   },
@@ -2293,12 +2293,12 @@
     "note_sur_10": 5.7,
     "p10_du_poste": 1.89,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 44,
-     "DEF": 71,
-     "DRI": 46,
-     "CON": 70
+     "DEF": 59,
+     "DRI": 52,
+     "CON": 77
     }
    }
   },
@@ -2335,12 +2335,12 @@
     "note_sur_10": 5.5,
     "p10_du_poste": 0.89,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 41,
-     "DEF": 72,
-     "DRI": 46,
-     "CON": 70
+     "DEF": 60,
+     "DRI": 52,
+     "CON": 77
     }
    }
   },
@@ -2381,12 +2381,12 @@
     "note_sur_10": 5.2,
     "p10_du_poste": 0.89,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 42,
-     "DEF": 72,
-     "DRI": 46,
-     "CON": 55
+     "DEF": 62,
+     "DRI": 52,
+     "CON": 70
     }
    }
   },
@@ -2433,12 +2433,12 @@
     "note_sur_10": 4.8,
     "p10_du_poste": 0.89,
     "attributs": {
-     "FIN": 42,
-     "CRE": 43,
+     "FIN": 43,
+     "CRE": 44,
      "PRO": 51,
-     "DEF": 71,
+     "DEF": 57,
      "DRI": 83,
-     "CON": 52
+     "CON": 66
     }
    }
   },
@@ -2486,12 +2486,12 @@
     "note_sur_10": 4.0,
     "p10_du_poste": 0.89,
     "attributs": {
-     "FIN": 41,
+     "FIN": 42,
      "CRE": 89,
      "PRO": 57,
-     "DEF": 52,
+     "DEF": 47,
      "DRI": 75,
-     "CON": 56
+     "CON": 74
     }
    }
   },
@@ -2528,12 +2528,12 @@
     "note_sur_10": 4.9,
     "p10_du_poste": 0.89,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 62,
-     "DEF": 55,
-     "DRI": 46,
-     "CON": 56
+     "DEF": 54,
+     "DRI": 52,
+     "CON": 74
     }
    }
   },
@@ -2568,12 +2568,12 @@
     "note_sur_10": 5.6,
     "p10_du_poste": 0.89,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 44,
-     "DEF": 58,
-     "DRI": 46,
-     "CON": 70
+     "DEF": 57,
+     "DRI": 52,
+     "CON": 77
     }
    }
   },
@@ -2623,12 +2623,12 @@
     "note_sur_10": 4.1,
     "p10_du_poste": -0.45,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 88,
      "PRO": 87,
      "DEF": 42,
      "DRI": 92,
-     "CON": 46
+     "CON": 52
     }
    }
   },
@@ -2665,12 +2665,12 @@
     "note_sur_10": 4.8,
     "p10_du_poste": 1.89,
     "attributs": {
-     "FIN": 46,
-     "CRE": 49,
+     "FIN": 49,
+     "CRE": 52,
      "PRO": 43,
-     "DEF": 58,
-     "DRI": 46,
-     "CON": 72
+     "DEF": 57,
+     "DRI": 52,
+     "CON": 79
     }
    }
   },
@@ -2706,12 +2706,12 @@
     "note_sur_10": 5.7,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 41,
-     "DEF": 58,
-     "DRI": 46,
-     "CON": 71
+     "DEF": 57,
+     "DRI": 52,
+     "CON": 78
     }
    }
   },
@@ -2760,9 +2760,9 @@
      "FIN": 41,
      "CRE": 77,
      "PRO": 43,
-     "DEF": 76,
-     "DRI": 46,
-     "CON": 52
+     "DEF": 68,
+     "DRI": 52,
+     "CON": 65
     }
    }
   },
@@ -2801,12 +2801,12 @@
     "note_sur_10": 5.2,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 41,
-     "DEF": 72,
-     "DRI": 46,
-     "CON": 47
+     "DEF": 61,
+     "DRI": 52,
+     "CON": 54
     }
    }
   },
@@ -2850,11 +2850,11 @@
     "p10_du_poste": -16.06,
     "attributs": {
      "ARR": 74,
-     "EVI": 50,
+     "EVI": 56,
      "SOR": 87,
-     "REL": 89,
-     "BUT": 50,
-     "PRO": 89
+     "REL": 80,
+     "BUT": 49,
+     "PRO": 80
     }
    }
   },
@@ -2894,12 +2894,12 @@
     "note_sur_10": 5.6,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 41,
-     "DEF": 58,
+     "DEF": 57,
      "DRI": 71,
-     "CON": 53
+     "CON": 67
     }
    }
   },
@@ -2941,12 +2941,12 @@
     "note_sur_10": 5.1,
     "p10_du_poste": -3.41,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 90,
      "PRO": 44,
-     "DEF": 52,
-     "DRI": 44,
-     "CON": 51
+     "DEF": 51,
+     "DRI": 49,
+     "CON": 63
     }
    }
   },
@@ -2993,12 +2993,12 @@
     "note_sur_10": 4.7,
     "p10_du_poste": -0.45,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 58,
-     "DEF": 55,
+     "DEF": 51,
      "DRI": 71,
-     "CON": 48
+     "CON": 57
     }
    }
   },
@@ -3041,12 +3041,12 @@
     "note_sur_10": 5.2,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 81,
      "PRO": 49,
-     "DEF": 58,
-     "DRI": 46,
-     "CON": 47
+     "DEF": 57,
+     "DRI": 52,
+     "CON": 55
     }
    }
   },
@@ -3087,12 +3087,12 @@
     "note_sur_10": 5.8,
     "p10_du_poste": -1.33,
     "attributs": {
-     "FIN": 42,
-     "CRE": 49,
+     "FIN": 43,
+     "CRE": 52,
      "PRO": 42,
-     "DEF": 73,
-     "DRI": 44,
-     "CON": 56
+     "DEF": 62,
+     "DRI": 48,
+     "CON": 74
     }
    }
   },
@@ -3130,12 +3130,12 @@
     "note_sur_10": 5.7,
     "p10_du_poste": -16.06,
     "attributs": {
-     "ARR": 40,
-     "EVI": 56,
+     "ARR": 52,
+     "EVI": 64,
      "SOR": 72,
-     "REL": 70,
-     "BUT": 53,
-     "PRO": 70
+     "REL": 46,
+     "BUT": 52,
+     "PRO": 46
     }
    }
   },
@@ -3177,15 +3177,16 @@
     "note_sur_10": 5.2,
     "p10_du_poste": -6.54,
     "attributs": {
-     "FIN": 43,
-     "CRE": 49,
+     "FIN": 45,
+     "CRE": 52,
      "PRO": 41,
-     "DEF": 57,
+     "DEF": 56,
      "DRI": 70,
-     "CON": 55
+     "CON": 72
     }
    }
   }
  ],
- "note_dri": "DRI attendu recalcule le 2026-09-10 apres retrait de 'Duel gagne' de la famille (moteur/familles_lignes.json)."
+ "note_dri": "DRI attendu recalcule le 2026-09-10 apres retrait de 'Duel gagne' de la famille (moteur/familles_lignes.json).",
+ "note_attributs": "Attributs attendus recalcules le 2026-09-10 : plancher sur les zeros exacts seulement, 'Duel au sol gagne' hors de DEF."
 }

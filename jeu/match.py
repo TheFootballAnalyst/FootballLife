@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from jeu import notation as N
 
-SEUIL_ANNULATION = 90.0        # engine points of defensive work per cancelled chance
+SEUIL_ANNULATION = 70.0        # engine points of defensive work per cancelled chance (DEF without ground duels)
 CADRES_PAR_CHANCE = 3          # unconverted shots on target per extra chance
 DEF_FAMILLES_CHAMP = ("DEF",)
 DEF_FAMILLES_GARDIEN = ("ARR", "EVI", "SOR")

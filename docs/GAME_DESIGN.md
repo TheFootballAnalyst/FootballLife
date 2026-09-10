@@ -159,7 +159,7 @@ always gives the same match.
 2. The opposing back line cancels chances with its defensive work of the
    gameweek, measured in the engine's own points (DEF lines of the
    outfield players, ARR/EVI/SOR lines of the keeper): one cancellation
-   per 90 points. Cancellations hit the weakest chances first; the
+   per 70 points. Cancellations hit the weakest chances first; the
    captain's goals cannot be cancelled.
 3. What is left is the score. Win 3, draw 1, Elo K = 32.
 

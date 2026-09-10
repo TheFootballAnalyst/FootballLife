@@ -56,9 +56,9 @@
      "FIN": 99,
      "CRE": 98,
      "PRO": 95,
-     "DEF": 77,
+     "DEF": 61,
      "DRI": 83,
-     "CON": 56
+     "CON": 74
     }
    }
   },
@@ -115,7 +115,7 @@
      "FIN": 70,
      "CRE": 98,
      "PRO": 90,
-     "DEF": 94,
+     "DEF": 85,
      "DRI": 99,
      "CON": 97
     }
@@ -171,9 +171,9 @@
      "FIN": 98,
      "CRE": 95,
      "PRO": 83,
-     "DEF": 53,
+     "DEF": 48,
      "DRI": 97,
-     "CON": 42
+     "CON": 45
     }
    }
   },
@@ -226,12 +226,12 @@
     "score_brut": 85.65,
     "note_sur_10": 9.1,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 97,
      "PRO": 84,
      "DEF": 98,
      "DRI": 98,
-     "CON": 79
+     "CON": 84
     }
    }
   },
@@ -286,9 +286,9 @@
      "FIN": 98,
      "CRE": 81,
      "PRO": 43,
-     "DEF": 77,
+     "DEF": 62,
      "DRI": 95,
-     "CON": 50
+     "CON": 61
     }
    }
   },
@@ -341,9 +341,9 @@
      "FIN": 98,
      "CRE": 74,
      "PRO": 57,
-     "DEF": 80,
-     "DRI": 46,
-     "CON": 50
+     "DEF": 72,
+     "DRI": 52,
+     "CON": 61
     }
    }
   },
@@ -399,12 +399,12 @@
     "score_brut": 81.36,
     "note_sur_10": 9.0,
     "attributs": {
-     "FIN": 45,
+     "FIN": 48,
      "CRE": 95,
      "PRO": 90,
-     "DEF": 97,
+     "DEF": 95,
      "DRI": 98,
-     "CON": 80
+     "CON": 85
     }
    }
   },
@@ -462,7 +462,7 @@
      "PRO": 72,
      "DEF": 98,
      "DRI": 86,
-     "CON": 86
+     "CON": 89
     }
    }
   },
@@ -518,11 +518,11 @@
     "note_sur_10": 8.9,
     "attributs": {
      "FIN": 91,
-     "CRE": 44,
+     "CRE": 45,
      "PRO": 89,
-     "DEF": 98,
-     "DRI": 46,
-     "CON": 88
+     "DEF": 97,
+     "DRI": 52,
+     "CON": 91
     }
    }
   },
@@ -581,9 +581,9 @@
      "FIN": 95,
      "CRE": 91,
      "PRO": 93,
-     "DEF": 96,
+     "DEF": 92,
      "DRI": 91,
-     "CON": 43
+     "CON": 47
     }
    }
   },
@@ -635,9 +635,9 @@
      "FIN": 98,
      "CRE": 79,
      "PRO": 77,
-     "DEF": 78,
+     "DEF": 70,
      "DRI": 80,
-     "CON": 44
+     "CON": 47
     }
    }
   },
@@ -693,8 +693,8 @@
      "FIN": 91,
      "CRE": 97,
      "PRO": 98,
-     "DEF": 82,
-     "DRI": 46,
+     "DEF": 76,
+     "DRI": 52,
      "CON": 97
     }
    }
@@ -744,12 +744,12 @@
     "score_brut": 72.1,
     "note_sur_10": 8.7,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 86,
      "PRO": 81,
      "DEF": 98,
      "DRI": 91,
-     "CON": 93
+     "CON": 94
     }
    }
   },
@@ -789,10 +789,10 @@
     "attributs": {
      "ARR": 95,
      "EVI": 99,
-     "SOR": 40,
-     "REL": 97,
-     "BUT": 52,
-     "PRO": 97
+     "SOR": 52,
+     "REL": 95,
+     "BUT": 51,
+     "PRO": 95
     }
    }
   },
@@ -839,12 +839,12 @@
     "score_brut": 69.8,
     "note_sur_10": 8.6,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 86,
      "PRO": 84,
      "DEF": 99,
      "DRI": 72,
-     "CON": 96
+     "CON": 97
     }
    }
   },
@@ -900,9 +900,9 @@
      "FIN": 95,
      "CRE": 96,
      "PRO": 82,
-     "DEF": 89,
+     "DEF": 83,
      "DRI": 91,
-     "CON": 84
+     "CON": 87
     }
    }
   },
@@ -960,9 +960,9 @@
      "FIN": 95,
      "CRE": 97,
      "PRO": 45,
-     "DEF": 89,
-     "DRI": 46,
-     "CON": 50
+     "DEF": 85,
+     "DRI": 52,
+     "CON": 60
     }
    }
   },
@@ -1010,10 +1010,10 @@
     "score_brut": 68.29,
     "note_sur_10": 8.6,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 85,
      "PRO": 98,
-     "DEF": 98,
+     "DEF": 97,
      "DRI": 94,
      "CON": 98
     }
@@ -1066,12 +1066,12 @@
     "score_brut": 65.98,
     "note_sur_10": 8.7,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 99,
      "PRO": 95,
-     "DEF": 93,
+     "DEF": 91,
      "DRI": 79,
-     "CON": 92
+     "CON": 94
     }
    }
   },
@@ -1125,9 +1125,9 @@
      "FIN": 92,
      "CRE": 92,
      "PRO": 69,
-     "DEF": 85,
+     "DEF": 65,
      "DRI": 99,
-     "CON": 79
+     "CON": 84
     }
    }
   },
@@ -1183,9 +1183,9 @@
      "FIN": 97,
      "CRE": 74,
      "PRO": 61,
-     "DEF": 89,
+     "DEF": 82,
      "DRI": 93,
-     "CON": 45
+     "CON": 51
     }
    }
   },
@@ -1240,9 +1240,9 @@
      "FIN": 89,
      "CRE": 96,
      "PRO": 47,
-     "DEF": 93,
+     "DEF": 88,
      "DRI": 96,
-     "CON": 43
+     "CON": 45
     }
    }
   },
@@ -1297,9 +1297,9 @@
      "FIN": 78,
      "CRE": 99,
      "PRO": 78,
-     "DEF": 89,
-     "DRI": 46,
-     "CON": 94
+     "DEF": 82,
+     "DRI": 52,
+     "CON": 95
     }
    }
   },
@@ -1349,11 +1349,11 @@
     "note_sur_10": 8.6,
     "attributs": {
      "FIN": 98,
-     "CRE": 49,
+     "CRE": 52,
      "PRO": 42,
-     "DEF": 71,
+     "DEF": 57,
      "DRI": 76,
-     "CON": 42
+     "CON": 44
     }
    }
   },
@@ -1402,12 +1402,12 @@
     "score_brut": 63.65,
     "note_sur_10": 8.4,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 96,
      "PRO": 74,
      "DEF": 98,
      "DRI": 77,
-     "CON": 83
+     "CON": 87
     }
    }
   },
@@ -1459,11 +1459,11 @@
     "note_sur_10": 8.4,
     "attributs": {
      "FIN": 89,
-     "CRE": 48,
+     "CRE": 51,
      "PRO": 85,
      "DEF": 97,
-     "DRI": 46,
-     "CON": 53
+     "DRI": 52,
+     "CON": 67
     }
    }
   },
@@ -1521,9 +1521,9 @@
      "FIN": 88,
      "CRE": 97,
      "PRO": 58,
-     "DEF": 84,
+     "DEF": 71,
      "DRI": 97,
-     "CON": 50
+     "CON": 61
     }
    }
   },
@@ -1581,9 +1581,9 @@
      "FIN": 97,
      "CRE": 92,
      "PRO": 82,
-     "DEF": 54,
+     "DEF": 50,
      "DRI": 83,
-     "CON": 56
+     "CON": 73
     }
    }
   },
@@ -1639,9 +1639,9 @@
      "FIN": 93,
      "CRE": 83,
      "PRO": 80,
-     "DEF": 94,
+     "DEF": 90,
      "DRI": 90,
-     "CON": 92
+     "CON": 94
     }
    }
   },
@@ -1685,9 +1685,9 @@
      "ARR": 91,
      "EVI": 95,
      "SOR": 94,
-     "REL": 72,
-     "BUT": 53,
-     "PRO": 72
+     "REL": 50,
+     "BUT": 52,
+     "PRO": 50
     }
    }
   },
@@ -1736,12 +1736,12 @@
     "score_brut": 61.13,
     "note_sur_10": 8.6,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 98,
      "PRO": 63,
-     "DEF": 97,
+     "DEF": 95,
      "DRI": 92,
-     "CON": 81
+     "CON": 85
     }
    }
   },
@@ -1788,12 +1788,12 @@
     "score_brut": 60.45,
     "note_sur_10": 8.2,
     "attributs": {
-     "FIN": 48,
-     "CRE": 49,
+     "FIN": 52,
+     "CRE": 52,
      "PRO": 70,
      "DEF": 98,
      "DRI": 77,
-     "CON": 55
+     "CON": 72
     }
    }
   },
@@ -1849,9 +1849,9 @@
      "FIN": 89,
      "CRE": 85,
      "PRO": 70,
-     "DEF": 96,
+     "DEF": 95,
      "DRI": 87,
-     "CON": 84
+     "CON": 88
     }
    }
   },
@@ -1901,9 +1901,9 @@
      "FIN": 90,
      "CRE": 98,
      "PRO": 54,
-     "DEF": 81,
+     "DEF": 76,
      "DRI": 78,
-     "CON": 48
+     "CON": 57
     }
    }
   },
@@ -1964,9 +1964,9 @@
      "FIN": 89,
      "CRE": 97,
      "PRO": 71,
-     "DEF": 97,
+     "DEF": 95,
      "DRI": 72,
-     "CON": 50
+     "CON": 61
     }
    }
   },
@@ -2015,12 +2015,12 @@
     "score_brut": 59.54,
     "note_sur_10": 8.2,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 78,
      "PRO": 95,
-     "DEF": 97,
+     "DEF": 94,
      "DRI": 74,
-     "CON": 93
+     "CON": 95
     }
    }
   },
@@ -2067,12 +2067,12 @@
     "score_brut": 59.23,
     "note_sur_10": 8.5,
     "attributs": {
-     "FIN": 48,
+     "FIN": 52,
      "CRE": 97,
      "PRO": 98,
-     "DEF": 89,
+     "DEF": 82,
      "DRI": 79,
-     "CON": 92
+     "CON": 94
     }
    }
   },
@@ -2123,12 +2123,12 @@
     "score_brut": 59.06,
     "note_sur_10": 8.2,
     "attributs": {
-     "FIN": 48,
-     "CRE": 46,
+     "FIN": 52,
+     "CRE": 47,
      "PRO": 90,
      "DEF": 98,
      "DRI": 98,
-     "CON": 53
+     "CON": 67
     }
    }
   },
@@ -2188,9 +2188,9 @@
      "FIN": 91,
      "CRE": 97,
      "PRO": 57,
-     "DEF": 85,
+     "DEF": 59,
      "DRI": 99,
-     "CON": 44
+     "CON": 49
     }
    }
   },
@@ -2246,12 +2246,13 @@
      "FIN": 90,
      "CRE": 92,
      "PRO": 95,
-     "DEF": 90,
+     "DEF": 87,
      "DRI": 72,
-     "CON": 91
+     "CON": 93
     }
    }
   }
  ],
- "note_dri": "DRI attendu recalcule le 2026-09-10 apres retrait de 'Duel gagne' de la famille (moteur/familles_lignes.json)."
+ "note_dri": "DRI attendu recalcule le 2026-09-10 apres retrait de 'Duel gagne' de la famille (moteur/familles_lignes.json).",
+ "note_attributs": "Attributs attendus recalcules le 2026-09-10 : plancher sur les zeros exacts seulement, 'Duel au sol gagne' hors de DEF."
 }

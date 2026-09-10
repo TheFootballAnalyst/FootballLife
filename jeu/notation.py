@@ -69,7 +69,7 @@ ATTRIBUT_MIN, ATTRIBUT_MAX = 40, 99
 # --------------------------------------------------------------------------
 # Line label -> card families.  Loaded from moteur/familles_lignes.json, the
 # exact table that produced echelles_attributs.json (docs/REPONSES.md §1):
-# eleven families, 40 labels (duels left DRI), strict string equality on the engine's
+# eleven families, 39 labels (duels left DRI, ground duels left DEF), strict string equality on the engine's
 # accent-free labels.  A label may belong to two families ("Passe reussie"
 # and "Long ballon reussi" count in PRO and in REL) — that is deliberate.
 #
@@ -228,16 +228,25 @@ def rang_percentile(valeur: float, echelle: list[float]) -> float:
     full-back — the plain rank of any positive value jumps straight past the
     zero plateau: one shot on target reads as 92.  The floor re-maps the
     scale so that the plateau ends at 0.50 and the positive values share
-    the upper half; zeros and negatives are squeezed into the lower 0.30.
+    the upper half; the zeros sit in 0.20-0.50 and the negatives below.
     One shot on target then reads as 70.
     """
     n = max(len(echelle) - 1, 1)
     rang = bisect.bisect_left(echelle, valeur) / n
-    seuil = bisect.bisect_right(echelle, EPSILON_ZERO) / n
-    if seuil > SEUIL_PLANCHER and rang > seuil:
-        rang = 0.50 + 0.50 * (rang - seuil) / max(1 - seuil, 0.01)
-    elif seuil > SEUIL_PLANCHER:
-        rang = 0.50 * rang / max(seuil, 0.01) * 0.6
+    bas = bisect.bisect_left(echelle, -EPSILON_ZERO) / n        # where the exact zeros start
+    haut = bisect.bisect_right(echelle, EPSILON_ZERO) / n       # where they end
+    zeros = haut - bas
+    # Only EXACT zeros form the plateau.  Negative sums (fouls, dribbled
+    # past, a missed big chance) are real information and stay below it:
+    # counting them as zeros made the floor fire on Défense (no zero at all,
+    # 22 % of negative sums) and pushed any striker with three duel points
+    # above 70.
+    if zeros > SEUIL_PLANCHER and rang > haut:
+        rang = 0.50 + 0.50 * (rang - haut) / max(1 - haut, 0.01)
+    elif zeros > SEUIL_PLANCHER and rang >= bas:
+        rang = 0.20 + 0.30 * (rang - bas) / max(zeros, 0.01)
+    elif zeros > SEUIL_PLANCHER:
+        rang = 0.20 * rang / max(bas, 0.01)
     return max(0.0, min(1.0, rang))
 
 

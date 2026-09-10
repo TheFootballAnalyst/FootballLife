@@ -118,9 +118,11 @@ annulation par `seuil` points défensifs :
 | 4 | 100 | 1,37 | 34 % | 13 % | 13 % | 72 % | 15 % |
 | 6 | 130 | 1,34 | 33 % | 10 % | 11 % | 73 % | 12 % |
 
-Retenu : K = 3, seuil = 90. Le football réel fait 1,4 but par équipe et
-25 % de nuls ; ici la défense pèse sur un match sur cinq, ce qui est le
-but : un défenseur central rapporte quelque chose au-delà de sa note.
+Retenu : K = 3, seuil = 90 avec la famille Défense d'origine ; **70** depuis
+que « Duel au sol gagné » l'a quittée (travail défensif moyen par onze
+passé de 98 à 77 points), pour garder la défense décisive sur un match
+sur cinq. Le football réel fait 1,4 but par équipe et 25 % de nuls ; ici
+un défenseur central rapporte quelque chose au-delà de sa note.
 
 ## Résultats en euros, ligue globale (J18–J34, budget 100 M€, demande 1,0)
 

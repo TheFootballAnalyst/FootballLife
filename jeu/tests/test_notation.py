@@ -93,7 +93,7 @@ def test_families_table_matches_engine_labels():
                "Duels defensifs (taux vs reference)"}
     fam = N.charger_familles()
     assert len(fam) == 11
-    assert sum(len(v) for v in fam.values()) == 40    # "Duel gagne" left DRI: duels live in DEF
+    assert sum(len(v) for v in fam.values()) == 39    # "Duel gagne" left DRI, "Duel au sol gagne" left DEF
     inconnus = {l for libs in fam.values() for l in libs} - moteur
     assert not inconnus, inconnus
     inv = N.familles_du_libelle()

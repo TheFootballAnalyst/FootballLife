@@ -397,7 +397,7 @@ async function rendreMatch() {
         el("div", {class: "equipe-aff moi"}, el("div", {class: "etiq"}, "Toi"), el("b", {}, G.equipe.nom), el("span", {class: "elo-chip"}, "Elo " + d.elo)),
         el("div", {class: "vs anton"}, "VS"),
         el("div", {class: "equipe-aff"}, el("div", {class: "etiq"}, a.adversaire.pseudo), el("b", {}, a.adversaire.equipe), el("span", {class: "elo-chip"}, "Elo " + a.adversaire.elo))),
-      el("p", {class: "info"}, "Le match se joue sur les vraies actions de vos deux onze pendant la journée : chaque but réel est une occasion, trois tirs cadrés non convertis en font une de plus, et la défense adverse en annule une tous les 90 points défensifs. Les buts de ton capitaine ne s'annulent jamais."));
+      el("p", {class: "info"}, "Le match se joue sur les vraies actions de vos deux onze pendant la journée : chaque but réel est une occasion, trois tirs cadrés non convertis en font une de plus, et la défense adverse en annule une tous les 70 points défensifs. Les buts de ton capitaine ne s'annulent jamais."));
   } else {
     P1.append(el("div", {class: "tete"}, el("h2", {class: "anton"}, j ? `Journée ${j.numero}` : "Saison terminée")),
       el("p", {class: "info"}, d.equipes < 2 ? "Tu es seul dans la ligue pour l'instant : le premier autre manager inscrit sera ton adversaire." : "Pas d'adversaire cette journée (nombre impair d'équipes) : tu es exempt."));
