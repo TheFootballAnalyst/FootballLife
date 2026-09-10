@@ -51,6 +51,7 @@ from jeu import evolution as E  # noqa: E402
 from jeu import importer as I  # noqa: E402
 from jeu import marche as MA  # noqa: E402
 from jeu import match as M  # noqa: E402
+from jeu import notation as N  # noqa: E402
 from jeu import scoring as S  # noqa: E402
 
 TOP5 = (47, 87, 55, 54, 53)
@@ -139,12 +140,13 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
     clubs = {r[0] for r in jeu.execute(f"""
         SELECT DISTINCT home_team_id FROM match WHERE competition_id IN ({marks})
         UNION SELECT DISTINCT away_team_id FROM match WHERE competition_id IN ({marks})""", ligues * 2)}
-    hist = {}
-    for pid, note, minutes in jeu.execute(f"""
-            SELECT p.player_id, p.note, p.minutes FROM prestation p
+    hist, lignes_hist = {}, {}
+    for pid, note, minutes, lignes in jeu.execute(f"""
+            SELECT p.player_id, p.note, p.minutes, p.lignes FROM prestation p
             JOIN match m ON m.match_id = p.match_id JOIN journee j ON j.journee_id = m.journee_id
             WHERE j.saison = ? AND p.note IS NOT NULL {cond}""", args):
         hist.setdefault(pid, []).append((note, minutes))
+        lignes_hist.setdefault(pid, []).append((minutes, json.loads(lignes or "{}")))
     joueurs = {pid: (poste, tid) for pid, poste, tid in jeu.execute("SELECT player_id, poste, team_id FROM joueur")
                if tid in clubs and poste in S.FAMILLE_POSTE}
     moyennes = []
@@ -185,12 +187,18 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
         base = valeurs.get(pid) or E.valeur_estimee(ovr, ajust)
         px = E.prix_carte(base, ovr, ovr)
         poids = etats[pid][1]
+        # season attributes: last season's family points, discounted like the OVR's inertia
+        s_, m90 = N.sommes_saison(lignes_hist.get(pid, []))
+        sommes = {k: v * E.POIDS_SAISON_PASSEE for k, v in s_.items()}
+        min90 = m90 * E.POIDS_SAISON_PASSEE
+        attrs = N.attributs_saison(sommes, min90, poste)
         jeu.execute("""INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, valeur_base, ovr_base, poids,
-                                         attributs, matchs, minutes, maj)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (pid, saison, note, ovr, px, base, ovr, poids, None, len(h), sum(m for _, m in h), maintenant()))
-        jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix, poids) VALUES (?,?,?,?,?,?)",
-                    (pid, j0, note, ovr, px, poids))
+                                         sommes, min90, attributs, matchs, minutes, maj)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (pid, saison, note, ovr, px, base, ovr, poids, json.dumps(sommes), min90, json.dumps(attrs),
+                     len(h), sum(m for _, m in h), maintenant()))
+        jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix, poids, sommes, min90) VALUES (?,?,?,?,?,?,?,?)",
+                    (pid, j0, note, ovr, px, poids, json.dumps(sommes), min90))
         n += 1
     jeu.commit()
     return n, (bas, haut)
@@ -205,6 +213,22 @@ def etat_cartes(jeu, saison, numero):
     jid = journee_id(jeu, saison, numero)
     return {pid: (n, w) for pid, n, w in
             jeu.execute("SELECT player_id, note_ovr, poids FROM carte_historique WHERE journee_id=?", (jid,))}
+
+
+def etat_attributs(jeu, saison, numero):
+    """{player_id: (sommes, min90)} as written after gameweek `numero`."""
+    jid = journee_id(jeu, saison, numero)
+    return {pid: (json.loads(s or "{}"), m or 0.0) for pid, s, m in
+            jeu.execute("SELECT player_id, sommes, min90 FROM carte_historique WHERE journee_id=?", (jid,))}
+
+
+def lignes_journee(jeu, jid):
+    """{player_id: [(minutes, lignes)]} of the gameweek."""
+    out = {}
+    for pid, m, lignes in jeu.execute("""SELECT p.player_id, p.minutes, p.lignes FROM prestation p
+            JOIN match mt ON mt.match_id = p.match_id WHERE mt.journee_id = ? AND p.note IS NOT NULL""", (jid,)):
+        out.setdefault(pid, []).append((m, json.loads(lignes or "{}")))
+    return out
 
 
 def prestations_journee(jeu, jid):
@@ -246,6 +270,15 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
             n, w = E.note_maj(n, w, p.note, p.minutes)
         apres[pid] = (n, w)
     postes = dict(jeu.execute("SELECT player_id, poste FROM joueur"))
+    # season attributes: family points accumulate on top of the seed
+    attrs_avant = etat_attributs(jeu, saison, numero - 1)
+    lignes = lignes_journee(jeu, jid)
+    attrs_apres = {}
+    for pid in apres:
+        sommes, min90 = attrs_avant.get(pid, ({}, 0.0))
+        s_, m90 = N.sommes_saison(lignes.get(pid, []))
+        sommes = {k: sommes.get(k, 0.0) + s_.get(k, 0.0) for k in set(sommes) | set(s_)}
+        attrs_apres[pid] = (sommes, min90 + m90)
 
     # 3. score every composition submitted before the lock
     resultats = []
@@ -285,12 +318,15 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
         ovr = E.ovr_borne(n, ob)
         part = parts.get(pid, 0.0)
         px = E.prix_demande(vb, ob, ovr, part)
-        jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix, part, poids) VALUES (?,?,?,?,?,?,?)",
-                    (pid, jid, n, ovr, px, part, w))
+        sommes, min90 = attrs_apres[pid]
+        attrs = N.attributs_saison(sommes, min90, postes.get(pid, "Milieu relayeur"))
+        jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix, part, poids, sommes, min90) VALUES (?,?,?,?,?,?,?,?,?)",
+                    (pid, jid, n, ovr, px, part, w, json.dumps(sommes), min90))
         joue = prestas.get(pid, [])
-        jeu.execute("""UPDATE carte SET note_ovr=?, ovr=?, prix=?, part=?, poids=?, matchs=matchs+?, minutes=minutes+?, maj=?
-                       WHERE player_id=? AND saison=?""",
-                    (n, ovr, px, part, w, len(joue), sum(p.minutes for p in joue), now, pid, saison))
+        jeu.execute("""UPDATE carte SET note_ovr=?, ovr=?, prix=?, part=?, poids=?, sommes=?, min90=?, attributs=?,
+                       matchs=matchs+?, minutes=minutes+?, maj=? WHERE player_id=? AND saison=?""",
+                    (n, ovr, px, part, w, json.dumps(sommes), min90, json.dumps(attrs),
+                     len(joue), sum(p.minutes for p in joue), now, pid, saison))
     for r in resultats:
         ancien = jeu.execute("SELECT score, gain FROM resultat WHERE equipe_id=? AND journee_id=?",
                              (r["equipe_id"], jid)).fetchone()

@@ -175,7 +175,7 @@ def test_admin_close_and_standings(client):
     assert client.get("/api/saison").json()["courante"] is None      # only one gameweek in the fixture
     # card detail after a computed gameweek
     d = client.get("/api/cartes/1").json()
-    assert d["attributs"] == {"FIN": 60} and len(d["historique"]) == 2 and d["prestations"][0]["note"] == 7.0
+    assert set(d["attributs"]) == {"ARR", "EVI", "SOR", "REL", "BUT", "PRO"} and len(d["historique"]) == 2 and d["prestations"][0]["note"] == 7.0
 
 
 def test_private_leagues(client):

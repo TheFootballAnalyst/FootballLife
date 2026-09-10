@@ -119,3 +119,19 @@ def test_prestation_helpers_accept_topsflops_rows():
     attrs = N.attributs_prestation(p)
     assert len(attrs) == 6
     json.dumps(attrs)  # serialisable
+
+
+def test_season_attributes_rank_seasons_and_shrink_thin_samples():
+    e = N.charger_echelles()["saison"]["champ"]
+    # the season scale exists for the six outfield families and the six goalkeeper ones
+    assert set(e) == set(N.AXES_CHAMP) and set(N.charger_echelles()["saison"]["gardien"]) == set(N.AXES_GARDIEN)
+    # a striker's season: lots of finishing per 90, little defence
+    a = N.attributs_saison({"FIN": 300.0, "DEF": 10.0}, 20.0, "Buteur")     # 15 finishing points per 90
+    assert a["FIN"] >= 90 and a["DEF"] < 60
+    # an empty season sits at the cautious prior, under the median
+    vide = N.attributs_saison({}, 0.0, "Buteur")
+    assert all(52 <= v <= 62 for v in vide.values())
+    # one match is shrunk towards the median: the same per-90 rate reads lower than over 20 matches
+    court = N.attributs_saison({"FIN": 15.0}, 1.0, "Buteur")["FIN"]
+    long_ = N.attributs_saison({"FIN": 300.0}, 20.0, "Buteur")["FIN"]
+    assert vide["FIN"] < court < long_

@@ -116,6 +116,18 @@ budget. Each gameweek pays `0.1 M€ × (score − 60)`, capped at 5 M€
 (`evolution.gain_semaine`). Payouts are small on purpose; the main way to
 grow is to hold cards that climb.
 
+## The six attributes on the card
+
+They are **season** attributes: the engine points of each family per 90
+minutes, ranked among the seasons of the regular players (the `saison`
+scales of `echelles_attributs.json`, players with 450 minutes or more), with
+a thin sample shrunk towards the 30th percentile. The season starts from
+last season's points with the same discount as the OVR and accumulates
+this season's matches. Ranking seasons rather than averaging match ranks
+is what spreads the cards out: a centre-back sits at 90 in Défense and a
+winger at 52, a striker at 90 in Finition and a centre-back at 60. Match
+cards (one performance) keep the per-match scales.
+
 ## The market — packs, copies, auction house
 
 The card of a player (OVR, attributes, cote) is a model; what a manager

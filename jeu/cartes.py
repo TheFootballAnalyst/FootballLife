@@ -82,14 +82,12 @@ def carte_saison(jeu: sqlite3.Connection, pid: int, jusqua: int | None = None) -
         return None
     hist = [(n, m) for n, m, *_ in rows]
     ovr = E.ovr_initial(hist)
-    poids = sum(m for _, m in hist) or 1.0
-    somme: dict[str, float] = {}
-    for _, m, attrs, *_ in rows:
-        for k, v in json.loads(attrs).items():
-            somme[k] = somme.get(k, 0.0) + v * m
-    attributs = {k: int(round(v / poids)) for k, v in somme.items()}
     from collections import Counter
     poste = Counter(p for *_, p, _c in rows).most_common(1)[0][0]
+    lignes = jeu.execute(f"""SELECT p.minutes, p.lignes FROM prestation p JOIN match m ON m.match_id = p.match_id
+        JOIN journee j ON j.journee_id = m.journee_id WHERE p.player_id = ? AND p.note IS NOT NULL {cond}""", args).fetchall()
+    sommes, min90 = N.sommes_saison([(m, json.loads(l or "{}")) for m, l in lignes])
+    attributs = N.attributs_saison(sommes, min90, poste)
     comp = Counter(c for *_, c in rows).most_common(1)[0][0]
     nom, couleur, tid = jeu.execute("""
         SELECT j.nom, COALESCE(cl.couleur, '#14161E'), j.team_id

@@ -319,15 +319,8 @@ def carte(pid: int, jeu=Depends(bd)):
         SELECT j.numero, ch.ovr, ch.prix, ch.part FROM carte_historique ch
         JOIN journee j ON j.journee_id = ch.journee_id WHERE ch.player_id=? AND j.saison=? ORDER BY j.numero""",
         (pid, SAISON))]
-    rows = jeu.execute("""SELECT p.minutes, p.attributs FROM prestation p JOIN match m ON m.match_id = p.match_id
-                          JOIN journee j ON j.journee_id = m.journee_id WHERE p.player_id=? AND j.saison=? AND j.calculee=1""",
-                       (pid, SAISON)).fetchall()
-    somme, poids = {}, 0.0
-    for m, att in rows:
-        poids += m
-        for k, v in json.loads(att or "{}").items():
-            somme[k] = somme.get(k, 0.0) + v * m
-    attributs = {k: int(round(v / poids)) for k, v in somme.items()} if poids else {}
+    row = jeu.execute("SELECT attributs FROM carte WHERE player_id=? AND saison=?", (pid, SAISON)).fetchone()
+    attributs = json.loads(row["attributs"]) if row and row["attributs"] else {}
     prestas = [dict(r) for r in jeu.execute("""
         SELECT j.numero, p.note, p.minutes, cp.nom AS competition, m.date_utc
         FROM prestation p JOIN match m ON m.match_id = p.match_id JOIN journee j ON j.journee_id = m.journee_id
@@ -781,25 +774,21 @@ def carte_dessinee(jeu, pid: int) -> pathlib.Path | None:
     until the card changes."""
     if CARTES is None:
         return None
-    row = jeu.execute("""SELECT c.ovr, c.prix, j.nom, j.poste, j.team_id, COALESCE(cl.couleur, '#14161E')
+    row = jeu.execute("""SELECT c.ovr, c.prix, j.nom, j.poste, j.team_id, COALESCE(cl.couleur, '#14161E'), c.attributs
                          FROM carte c JOIN joueur j ON j.player_id = c.player_id
                          LEFT JOIN club cl ON cl.team_id = j.team_id WHERE c.player_id=? AND c.saison=?""",
                       (pid, SAISON)).fetchone()
     if not row:
         return None
-    ovr, prix, nom, poste, tid, couleur = row
-    rows = jeu.execute("""SELECT p.minutes, p.attributs, cp.nom FROM prestation p JOIN match m ON m.match_id = p.match_id
-                          JOIN journee j ON j.journee_id = m.journee_id JOIN competition cp ON cp.competition_id = m.competition_id
-                          WHERE p.player_id=? AND j.saison=? AND j.calculee=1""", (pid, SAISON)).fetchall()
-    somme, poids, comps = {}, 0.0, {}
-    for m, att, comp in rows:
-        poids += m
+    ovr, prix, nom, poste, tid, couleur, attrs = row
+    attributs = json.loads(attrs) if attrs else {}
+    comps = {}
+    for (comp,) in jeu.execute("""SELECT cp.nom FROM prestation p JOIN match m ON m.match_id = p.match_id
+                                  JOIN journee j ON j.journee_id = m.journee_id JOIN competition cp ON cp.competition_id = m.competition_id
+                                  WHERE p.player_id=? AND j.saison=? AND j.calculee=1""", (pid, SAISON)):
         comps[comp] = comps.get(comp, 0) + 1
-        for k, v in json.loads(att or "{}").items():
-            somme[k] = somme.get(k, 0.0) + v * m
-    attributs = {k: int(round(v / poids)) for k, v in somme.items()} if poids else {}
     competition = max(comps, key=comps.get) if comps else "Ligue 1"
-    cle = f"{pid}_{ovr}_{len(rows)}_{sum(attributs.values())}_e1"      # e1: escutcheon silhouette
+    cle = f"{pid}_{ovr}_{sum(attributs.values())}_s1"      # s1: season-scale attributes, escutcheon
     CACHE_CARTES.mkdir(parents=True, exist_ok=True)
     f = CACHE_CARTES / f"{cle}.png"
     if not f.exists():

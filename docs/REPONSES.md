@@ -9,7 +9,7 @@ Ce sont **les mêmes libellés qui ont servi à calculer `echelles_attributs.jso
 Il faut que `FAMILLE_LIGNE` corresponde à cette table, sinon les percentiles
 ne mesureront pas ce qu'ils prétendent mesurer.
 
-Onze familles, 39 libellés (« Duel gagne » a quitté Dribble et « Duel au sol gagne » a quitté Défense : FotMob y compte les dribbles réussis, un attaquant y gagnait de la défense). Le plancher ne compte que les zéros exacts, les sommes négatives restent en dessous. Six pour les joueurs de champ — FIN, CRE, PRO,
+Onze familles, 39 libellés (« Duel gagne » a quitté Dribble et « Duel au sol gagne » a quitté Défense : FotMob y compte les dribbles réussis, un attaquant y gagnait de la défense). Le plancher ne compte que les zéros exacts, les sommes négatives restent en dessous. Les six attributs de la carte sont des attributs de **saison** : les points de chaque famille par 90 minutes, classés parmi les saisons des titulaires (échelle « saison » de echelles_attributs.json, mesurée par `importer --echelles-saison`), avec un rétrécissement vers le 30e percentile pour les échantillons courts. Moyenner les percentiles match par match tassait tout le monde vers 70. Six pour les joueurs de champ — FIN, CRE, PRO,
 DEF, DRI, CON — et six pour les gardiens — ARR, EVI, SOR, REL, BUT, plus PRO
 partagé.
 

@@ -237,3 +237,23 @@ def test_head_to_head_fixture_is_resolved_and_moves_elo():
     assert jeu.execute("SELECT COUNT(*) FROM match_h2h WHERE journee_id=?", (P.journee_id(jeu, "2025/26", 2),)).fetchone()[0] == 1
     P.calculer(jeu, None, "2025/26", 1, importer=False)
     assert jeu.execute("SELECT elo FROM equipe WHERE equipe_id=1").fetchone()[0] == 1016
+
+
+def test_cards_carry_season_attributes_from_the_seed_onwards():
+    jeu = base()
+    equipe_et_compo(jeu)
+    jeu.execute("UPDATE prestation SET lignes=? WHERE player_id=10", ('{"But": 55.0, "Tir cadre": 7.0}',))
+    jeu.commit()
+    P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
+    a10 = json.loads(jeu.execute("SELECT attributs FROM carte WHERE player_id=10").fetchone()[0])
+    a1 = json.loads(jeu.execute("SELECT attributs FROM carte WHERE player_id=1").fetchone()[0])
+    assert set(a10) == {"FIN", "CRE", "PRO", "DEF", "DRI", "CON"} and set(a1) == {"ARR", "EVI", "SOR", "REL", "BUT", "PRO"}
+    assert a10["FIN"] > a1["PRO"] or a10["FIN"] > 70
+    prestations_j1(jeu, {i: (6.0, 90) for i in range(1, 12)})
+    jeu.execute("UPDATE prestation SET lignes=? WHERE match_id=200 AND player_id=10", ('{"But": 110.0}',))
+    jeu.commit()
+    P.calculer(jeu, None, "2025/26", 1, importer=False)
+    apres = json.loads(jeu.execute("SELECT attributs FROM carte WHERE player_id=10").fetchone()[0])
+    assert apres["FIN"] >= a10["FIN"]
+    s, m = jeu.execute("SELECT sommes, min90 FROM carte WHERE player_id=10").fetchone()
+    assert json.loads(s)["FIN"] > 0 and m > 0

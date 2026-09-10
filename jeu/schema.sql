@@ -118,7 +118,9 @@ CREATE TABLE IF NOT EXISTS carte (
     ovr_base         INTEGER NOT NULL DEFAULT 60,   -- OVR at the seed
     poids            REAL NOT NULL DEFAULT 0,       -- weight of the running mean (full matches)
     part             REAL NOT NULL DEFAULT 0,       -- share of managers owning the card
-    attributs        TEXT,                          -- JSON, season-to-date
+    sommes           TEXT,                          -- JSON {family: engine points}, same window as the OVR
+    min90            REAL NOT NULL DEFAULT 0,       -- full-match equivalents behind `sommes`
+    attributs        TEXT,                          -- JSON, notation.attributs_saison(sommes, min90)
     matchs           INTEGER NOT NULL DEFAULT 0,
     minutes          REAL NOT NULL DEFAULT 0,
     maj              TEXT NOT NULL,                 -- ISO datetime of last update
@@ -135,6 +137,8 @@ CREATE TABLE IF NOT EXISTS carte_historique (
     prix             REAL NOT NULL,                 -- M€, with the demand multiplier
     part             REAL NOT NULL DEFAULT 0,
     poids            REAL NOT NULL DEFAULT 0,
+    sommes           TEXT,
+    min90            REAL NOT NULL DEFAULT 0,
     PRIMARY KEY (player_id, journee_id)
 );
 

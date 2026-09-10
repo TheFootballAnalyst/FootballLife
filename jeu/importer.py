@@ -89,8 +89,10 @@ MIGRATIONS = {                       # columns added after the first bases were 
     "equipe": [("elo", "REAL NOT NULL DEFAULT 1000")],
     "joueur": [("valeur_marche", "REAL"), ("age", "INTEGER"), ("numero", "TEXT"), ("pays", "TEXT")],
     "carte": [("part", "REAL NOT NULL DEFAULT 0"), ("valeur_base", "REAL NOT NULL DEFAULT 1"),
-              ("ovr_base", "INTEGER NOT NULL DEFAULT 60"), ("poids", "REAL NOT NULL DEFAULT 0")],
-    "carte_historique": [("part", "REAL NOT NULL DEFAULT 0"), ("poids", "REAL NOT NULL DEFAULT 0")],
+              ("ovr_base", "INTEGER NOT NULL DEFAULT 60"), ("poids", "REAL NOT NULL DEFAULT 0"),
+              ("sommes", "TEXT"), ("min90", "REAL NOT NULL DEFAULT 0")],
+    "carte_historique": [("part", "REAL NOT NULL DEFAULT 0"), ("poids", "REAL NOT NULL DEFAULT 0"),
+                         ("sommes", "TEXT"), ("min90", "REAL NOT NULL DEFAULT 0")],
     "utilisateur": [("mdp_hash", "TEXT"), ("mdp_sel", "TEXT"), ("est_admin", "INTEGER NOT NULL DEFAULT 0")],
 }
 
@@ -275,6 +277,36 @@ def importer_stats(fot: sqlite3.Connection, jeu: sqlite3.Connection) -> int:
     return n
 
 
+def mesurer_echelles_saison(jeu: sqlite3.Connection, minutes_min: int = 450,
+                            chemin: pathlib.Path = N.ECHELLES_PATH) -> dict:
+    """Write the season scales into echelles_attributs.json: for every
+    family, the 201 percentiles of the family points per 90 minutes over the
+    seasons of the players with >= `minutes_min` minutes in the base
+    (outfield players for the champ families, goalkeepers for theirs)."""
+    agg: dict[int, dict] = {}
+    for pid, poste, m, lignes in jeu.execute("SELECT player_id, poste, minutes, lignes FROM prestation WHERE note IS NOT NULL"):
+        a = agg.setdefault(pid, {"min": 0.0, "gk": poste == "Gardien", "s": {}})
+        a["min"] += m
+        for f, v in N.sommes_par_famille(json.loads(lignes or "{}")).items():
+            a["s"][f] = a["s"].get(f, 0.0) + v
+    regs = [a for a in agg.values() if a["min"] >= minutes_min]
+
+    def echelle(f, gk):
+        vals = sorted(a["s"].get(f, 0.0) / (a["min"] / 90.0) for a in regs if a["gk"] == gk)
+        n = len(vals)
+        return [round(vals[min(n - 1, int(round(k / 200 * (n - 1))))], 4) for k in range(201)]
+
+    saison = {"champ": {f: echelle(f, False) for f in N.AXES_CHAMP},
+              "gardien": {f: echelle(f, True) for f in N.AXES_GARDIEN},
+              "note": f"Percentiles des saisons (points par 90 min) des joueurs a {minutes_min} min et plus, "
+                      f"{sum(1 for a in regs if not a['gk'])} joueurs de champ, {sum(1 for a in regs if a['gk'])} gardiens."}
+    doc = json.loads(chemin.read_text(encoding="utf-8"))
+    doc["saison"] = saison
+    chemin.write_text(json.dumps(doc, ensure_ascii=False) + "\n", encoding="utf-8")
+    N._ECHELLES = None
+    return saison
+
+
 def recalculer_attributs(jeu: sqlite3.Connection) -> int:
     """Recompute prestation.attributs from the stored lines after a change of
     the family table or of an attribute scale (the note is untouched)."""
@@ -363,7 +395,14 @@ def main():
                     help="only recompute the card attributes from the stored lines")
     ap.add_argument("--stats-seulement", action="store_true",
                     help="only fill the raw match actions (prestation.stats) from the FotMob base")
+    ap.add_argument("--echelles-saison", action="store_true",
+                    help="only measure the season attribute scales into moteur/echelles_attributs.json")
     a = ap.parse_args()
+    if a.echelles_saison:
+        jeu = ouvrir_jeu(pathlib.Path(a.jeu))
+        s = mesurer_echelles_saison(jeu)
+        print(s["note"])
+        return
     if a.stats_seulement:
         jeu = ouvrir_jeu(pathlib.Path(a.jeu))
         print(f"{importer_stats(sqlite3.connect(a.fotmob), jeu)} prestations, actions brutes -> {a.jeu}")
