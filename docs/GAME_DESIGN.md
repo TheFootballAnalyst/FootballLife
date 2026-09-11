@@ -201,6 +201,51 @@ keepers (arrêts, buts évités, sorties, jeu long, imbattabilité, jeu
 court). Match cards (one performance) keep the per-match scales of
 `echelles_attributs.json`.
 
+## The ranked lobby — the cards play the match
+
+There are two matches in the game and they must not be confused.
+
+| | `jeu/match.py` — the weekly head-to-head | `jeu/simulation.py` — the ranked lobby |
+|---|---|---|
+| made of | the real actions of your starters over the gameweek | the six attributes of the cards you field |
+| when | once, at the close | whenever you want, against a matched opponent |
+| drawn | nothing | the dice of each minute, fixed by the seed |
+| decides | the Elo ladder of the game league | the ranked ladder |
+
+The repeatability rule protects the **cards**, not the lobby match. The
+real weekend fixes what a card is worth: an injured Barcola stops
+accumulating and his card slides, an inconsistent Adeyemi loses OVR. The
+lobby then plays those cards. A manager who assembles Haaland, Dembélé
+and Olise up front wins a lot of matches because the cards are good, and
+the cards are good because of what those players really did.
+
+Nothing is drawn from an unseeded generator: the dice of minute *m* come
+from the seed and the minute alone. A match is a pure function of the two
+elevens, the seed and the tactical timeline, so a result can be audited
+and nobody can reroll a bad minute. Changing a tactic changes what
+happens to the **same** dice, which is what makes an adjustment a
+decision instead of a new draw. It is also what lets the live view
+advance minute by minute without rewriting what the manager already saw.
+
+**An eleven is a way of playing.** Six team traits, read from the cards
+by line: `controle` (retention and progression of the defence and
+midfield) decides the share of possession, `percussion` how many
+possessions reach a shot, `creation` the quality of those shots,
+`finition` the conversion, `defense` how much of the other side is
+smothered, and the keeper what gets through. A midfield of retention
+keeps the ball; wingers who dribble break lines and open the score up.
+
+**Tactics are trades, never bonuses,** and they form a cycle:
+
+    possession > bloc bas > direct > bloc haut > possession
+
+Holding the ball wins minutes and loses sharpness; going direct is the
+mirror. Against a high line, going direct finds the space behind; against
+a low one it finds nothing. Pressing high wins the ball higher but leaves
+better chances behind. Measured over 400 matches a case, no setting beats
+every other (`BACKTEST.md`), so the lobby cannot be solved by copying one
+build. The three axes can be changed while the match runs.
+
 ## The market — packs, copies, auction house
 
 The card of a player (OVR, attributes, cote) is a model; what a manager

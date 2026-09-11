@@ -121,6 +121,20 @@ league and on his position's rotation-player median otherwise, priced on
 his real market value, with the wide bound of `bareme.borne`. See
 `GAME_DESIGN.md` and the replay in `BACKTEST.md`.
 
+## Phase 3c — the ranked lobby (engine done)
+
+`jeu/simulation.py` plays a match from the CARDS: six team traits read
+from the attributes, three tactical axes that form a cycle, minute-by-
+minute dice fixed by the seed so the match is reproducible and the live
+view can advance without rewriting itself. Calibrated in `BACKTEST.md`.
+
+What remains, in order: matchmaking and a ranked Elo separate from the
+game league's; the lobby screen (pick the eleven from the squad and the
+reserve, set the tactics, launch); the live view that advances the match
+over a few minutes and takes tactical changes while it runs; and the
+decision of whether the weekly head-to-head of `jeu/match.py` stays
+alongside it or is retired.
+
 ## Not before season two
 
 Manager traits, peer trading, ownership caps, the other four leagues as

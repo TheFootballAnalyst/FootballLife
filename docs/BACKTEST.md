@@ -166,6 +166,43 @@ FIN 50, Haaland FIN 99 PRO 40. La transformation est monotone : l'ordre
 entre postes, la contrainte qui interdit les centiles par poste, est
 inchangé.
 
+## Le match du lobby classé (jeu/simulation.py)
+
+Le moteur joue les **cartes**, pas les actions réelles. Calibré sur les
+cartes de la démo, mille matchs entre onzes tirés au hasard :
+
+| mesure | valeur | cible (football réel) |
+|---|---|---|
+| buts par équipe | 1,5 | 1,4 |
+| tirs par équipe | 9 à 12 | 12 |
+| matchs nuls | 22 % | 25 % |
+| 0-0 | 9 % | 8 % |
+| scores les plus fréquents | 1-0, 0-1, 1-1, 2-0 | idem |
+
+**Le niveau décide.** Un onze d'élite contre un milieu de tableau (OVR 88
+contre 61) gagne **91 %** de ses matchs sur un score moyen de 3,9-0,4 ;
+contre un onze de même niveau il redescend à 41 % de victoires et 23 % de
+nuls. C'est ce qu'on veut : une attaque Haaland-Dembélé-Olise gagne
+beaucoup, sans jamais gagner à coup sûr.
+
+**Les tactiques forment un cycle.** Matrice de 400 matchs par case, à
+onzes équivalents, en pourcentage de victoires de la ligne :
+
+| | possession | direct | bloc haut | bloc bas |
+|---|---|---|---|---|
+| **possession** | 37 | 41 | 36 | **45** |
+| **direct** | 38 | 42 | **50** | 32 |
+| **bloc haut** | **41** | 32 | 41 | 41 |
+| **bloc bas** | 33 | **48** | 39 | 40 |
+
+Soit possession > bloc bas > direct > bloc haut > possession. Aucune
+ligne ne domine : la moyenne de chaque réglage tient entre 38 et 41 %.
+Première version écartée : la possession était un bonus net (odds ×1,30,
+tir ×0,85, qualité ×1,12, soit ×1,24) et gagnait contre tout. Les
+produits sont maintenant équilibrés et ce sont les **contres** — jouer
+direct contre une ligne haute, garder le ballon contre un bloc bas — qui
+départagent.
+
 ## Le mercato (J18–J25 rejouées, amorce J1–J17)
 
 Amorce sur J1–J17 en n'ayant jamais vu les 287 joueurs qui n'avaient pas

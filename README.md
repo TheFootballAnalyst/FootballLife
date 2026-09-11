@@ -36,6 +36,7 @@ jeu/        the game layer: pure functions + schema, all tested
   evolution.py   card OVR, price, manager budget over time
   importer.py    fotmob.db -> game base (gameweeks, rated performances, club colours, barème windows)
   bareme.py      the season barème (moteur/bareme_stats.py + palmares_zero.py) -> OVR, attributes, evolution
+  simulation.py  the ranked lobby match: the cards play it, tactics decide the scenario
   pipeline.py    the live weekly path: gameweeks, seed, close a gameweek (idempotent)
   rejouer.py     phase 2 exit check: a season through the live path = the backtest
   backtest.py    replay a season with scripted managers
