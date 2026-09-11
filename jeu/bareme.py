@@ -110,6 +110,33 @@ AXES_GARDIEN = {
 }
 LIBELLES_GARDIEN = {"REL": "Jeu long", "PRO": "Jeu court"}
 
+# The countable ACTIONS behind each axis, as the match sheets record them
+# (jeu.importer.STATS short keys).  The points are the engine's and are not
+# re-derived from these; the list is there so a card can say, in football
+# words, what it was rated on.  A few barème lines have no count of their
+# own (a keeper's high claims, the engine's synthetic g-xG) and are left out
+# rather than approximated.
+ACTIONS_CHAMP = {
+    "FIN": [("buts", "Buts"), ("xg", "xG"), ("tirs", "Tirs"), ("cadres", "Tirs cadrés"),
+            ("gom", "Grosses occasions manquées")],
+    "CRE": [("pd", "Passes décisives"), ("xa", "xA"), ("occ", "Occasions créées")],
+    "PRO": [("passes", "Passes réussies"), ("p3", "Passes dans le dernier tiers")],
+    "DEF": [("dg", "Duels gagnés"), ("dp", "Duels perdus"), ("aer", "Duels aériens gagnés"),
+            ("int", "Interceptions"), ("deg", "Dégagements"), ("blocs", "Tirs contrés"),
+            ("rec", "Ballons récupérés"), ("tacles", "Tacles"), ("dribble", "Dribblé par"),
+            ("fautes", "Fautes commises"), ("err", "Erreurs menant à un but"), ("csc", "CSC")],
+    "DRI": [("drib", "Dribbles réussis"), ("subies", "Fautes subies")],
+    "CON": [("touches", "Touches de balle"), ("surf", "Touches dans la surface")],
+}
+ACTIONS_GARDIEN = {
+    "ARR": [("arrets", "Arrêts")],
+    "EVI": [("evites", "Buts évités"), ("xgot", "xG cadré affronté")],
+    "SOR": [],
+    "REL": [("passes", "Passes réussies")],
+    "BUT": [("enc", "Buts encaissés")],
+    "PRO": [("passes", "Passes réussies")],
+}
+
 _bs = _pz = None
 
 
@@ -516,6 +543,104 @@ def etat_courant(carte_bareme: dict, saison: dict, poste: str, params: dict) -> 
                       carte_bareme.get("borne", borne(carte_bareme, params)))
     w = f["min"] / (f["min"] + params["k_retrecissement"]) if f["min"] > 0 else 0.0
     return s, ovr, attributs(f, poste, params), w
+
+
+# --------------------------------------------------------------------------
+# The breakdown: every step of the arithmetic, so a card can be read
+# --------------------------------------------------------------------------
+
+def chaine_terrain(f: dict, poste: str, params: dict) -> dict:
+    """`terrain` with its working shown: the raw per 90, the position's
+    median it is shrunk towards, the weight of the shrinkage, the share of
+    starts and the factor it gives.  Same arithmetic, nothing recomputed
+    differently — a reader must land on the same S."""
+    bs, _ = moteur()
+    k = bs.K_RETRECISSEMENT
+    prior = params["priors"].get(poste, params["priors"].get("*", 0.0))
+    w = f["min"] / (f["min"] + k) if f["min"] > 0 else 0.0
+    brut = par90(f)
+    retreci = w * brut + (1 - w) * prior
+    gk = params["gk_k"] if poste == "Gardien" else 1.0
+    part = max(0.05, min(1.0, part_role(f, params)))
+    facteur = (part / params["role_ref"]) ** bs.EXP_ROLE
+    return {"minutes": round(f["min"], 1), "points": round(f["pts"], 2), "par90": round(brut, 4),
+            "prior": round(prior, 4), "k": k, "poids": round(w, 4),
+            "retreci": round(retreci * gk, 4), "gk_k": round(gk, 4),
+            "titularisations": round(f["tit"], 1), "feuilles": round(f["dispo"], 1),
+            "part_role": round(part, 4), "role_ref": round(params["role_ref"], 4),
+            "k_role": K_ROLE, "facteur_role": round(facteur, 4),
+            "s": round(retreci * gk * facteur, 4)}
+
+
+def chaine_axes(f: dict, poste: str, params: dict) -> list[dict]:
+    """The six attributes with their working shown: the axis points of the
+    window, their per 90, the position's median, the shrunk value, its rank
+    among the season's regulars and the value it reads on the bell."""
+    bs, _ = moteur()
+    k = bs.K_RETRECISSEMENT
+    axes = AXES_GARDIEN if poste == "Gardien" else AXES_CHAMP
+    priors = params["priors_axes"].get(poste) or params["priors_axes"].get("*", {})
+    table = params["echelles"]["gardien" if poste == "Gardien" else "champ"]
+    w = f["min"] / (f["min"] + k) if f["min"] > 0 else 0.0
+    out = []
+    for ax, cles in axes.items():
+        pts = f["axes"].get(ax, 0.0)
+        brut = pts / f["min"] * 90.0 if f["min"] else 0.0
+        prior = priors.get(ax, 0.0)
+        v = w * brut + (1 - w) * prior
+        out.append({"axe": ax, "points": round(pts, 2), "par90": round(brut, 4),
+                    "prior": round(prior, 4), "poids": round(w, 4), "retreci": round(v, 4),
+                    "rang": round(rang(v, table[ax]), 4), "valeur": attribut(v, table[ax], params),
+                    "cles": list(cles)})
+    return out
+
+
+def detail(carte_bareme: dict, saison: dict, poste: str, params: dict) -> dict:
+    """Where a card's OVR and its six attributes come from, step by step.
+
+    Nothing here is a second opinion: it walks the very functions the card
+    was built with (`terrain`, `hybride`, `ovr_base`, `ovr_courant`,
+    `attributs`) and keeps the intermediate numbers instead of throwing
+    them away.  The OVR it reports is the card's OVR.
+    """
+    base = carte_bareme["base"]
+    pondere = ajouter(fenetre_vide(), base, params["poids_passe"])
+    courant = ajouter(saison, base, params["poids_passe"])
+    h = params["hybride"]
+    t_terrain = 200 * h["part_terrain"] * (carte_bareme["s25"] - h["p25s"]) / h["sds"]
+    t_pal = (200 * (1 - h["part_terrain"]) * (max(carte_bareme["pal"], 0.0) - h["p25p"]) / h["sdp"]
+             if h["sdp"] else 0.0)
+    ech_s = params["echelles"]["S"]
+    ch_cour = chaine_terrain(courant, poste, params)
+    lecture = cloche(ch_cour["s"], ech_s)
+    lecture0 = cloche(carte_bareme["s0"], ech_s)
+    marge = carte_bareme.get("borne", borne(carte_bareme, params))
+    ovr_b = carte_bareme["ovr"]
+    return {
+        "poste": poste,
+        "reguliers": params.get("reguliers"),
+        "panel": params.get("panel"),
+        "depart": {
+            "terrain": chaine_terrain(base, poste, params),
+            "palmares": carte_bareme.get("pal", 0.0),
+            "part_terrain": h["part_terrain"],
+            "t_terrain": round(t_terrain, 2), "t_palmares": round(t_pal, 2),
+            "t": carte_bareme["t"], "rang": round(rang(carte_bareme["t"], params["echelles"]["T"]), 4),
+            "ovr": ovr_b,
+        },
+        "saison": {
+            "fenetre": arrondir(saison),
+            "poids_passe": params["poids_passe"],
+            "reference": chaine_terrain(pondere, poste, params),
+            "terrain": ch_cour,
+            "lecture": round(lecture, 2), "lecture_depart": round(lecture0, 2),
+            "mouvement_brut": round(lecture - lecture0, 2),
+            "borne": round(marge, 1),
+            "mouvement": round(max(-marge, min(marge, lecture - lecture0)), 2),
+            "ovr": ovr_courant(ovr_b, carte_bareme["s0"], ch_cour["s"], params, marge),
+        },
+        "axes": chaine_axes(courant, poste, params),
+    }
 
 
 # --------------------------------------------------------------------------

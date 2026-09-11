@@ -34,6 +34,7 @@ from pydantic import BaseModel
 RACINE = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(RACINE))
 
+from jeu import bareme as B  # noqa: E402
 from jeu import evolution as E  # noqa: E402
 from jeu import lobby as LB  # noqa: E402
 from jeu import importer as I  # noqa: E402
@@ -332,6 +333,54 @@ def carte(pid: int, jeu=Depends(bd)):
         prestas.append({k: r[k] for k in ("numero", "note", "minutes", "competition", "date_utc")}
                        | {"faits": {k: st[k] for k in ("buts", "pd", "tirs", "arrets", "enc") if st.get(k)}})
     return c | {"historique": hist, "attributs": attributs, "prestations": prestas}
+
+
+@app.get("/api/cartes/{pid}/detail")
+def carte_detail(pid: int, jeu=Depends(bd)):
+    """Where the card's OVR and its six attributes come from: every step of
+    the barème, plus the season's actions counted on the match sheets.
+
+    The numbers are not recomputed for the occasion — bareme.detail walks
+    the very functions the card was built with and keeps what they throw
+    away, so the OVR it reports is the OVR on the card."""
+    row = jeu.execute("""SELECT c.bareme, c.ovr, c.attributs, c.minutes, c.matchs, c.sommes, j.poste, j.nom
+                         FROM carte c JOIN joueur j ON j.player_id = c.player_id
+                         WHERE c.player_id=? AND c.saison=?""", (pid, SAISON)).fetchone()
+    if not row:
+        raise HTTPException(404, "Carte inconnue")
+    params = P.parametre(jeu, SAISON, "bareme")
+    if not params or not row["bareme"]:
+        raise HTTPException(409, "Le détail n'est pas disponible : cette base n'a pas de barème.")
+    # carte.sommes is the season-to-date window the card was LAST computed
+    # from.  Re-summing bareme_journee here would answer a different
+    # question (every gameweek in the base, calculated or not) and the
+    # breakdown would not land on the card's own numbers.
+    f = json.loads(row["sommes"] or "{}")
+    f = f if "pts" in f else B.fenetre_vide()
+    journees = [{"numero": num, "minutes": round(m, 1), "points": round(pts, 3)}
+                for num, m, pts in jeu.execute("""
+                    SELECT j.numero, b.minutes, b.points FROM bareme_journee b
+                    JOIN journee j ON j.journee_id = b.journee_id
+                    WHERE j.saison=? AND b.player_id=? AND j.calculee=1 ORDER BY j.numero""", (SAISON, pid))]
+    d = B.detail(json.loads(row["bareme"]), f, row["poste"], params)
+    d |= {"pid": pid, "nom": row["nom"], "journees": journees,
+          "source": (params.get("source") or {}).get("saison")}
+    # the acts themselves, summed over the season's rated matches
+    cumul, minutes = {}, 0.0
+    for mn, st in jeu.execute("""SELECT p.minutes, p.stats FROM prestation p
+                                 JOIN match m ON m.match_id = p.match_id
+                                 JOIN journee j ON j.journee_id = m.journee_id
+                                 WHERE p.player_id=? AND j.saison=? AND j.calculee=1""", (pid, SAISON)):
+        minutes += mn or 0.0
+        for k, v in json.loads(st or "{}").items():
+            cumul[k] = round(cumul.get(k, 0) + (v or 0), 2)
+    table = B.ACTIONS_GARDIEN if row["poste"] == "Gardien" else B.ACTIONS_CHAMP
+    for ax in d["axes"]:
+        ax["actions"] = [{"cle": k, "nom": nom, "total": cumul[k],
+                          "par90": round(cumul[k] / minutes * 90, 2) if minutes else 0.0}
+                         for k, nom in table.get(ax["axe"], []) if k in cumul]
+    d["minutes_notees"] = round(minutes, 1)
+    return d
 
 
 # --------------------------------------------------------------------------

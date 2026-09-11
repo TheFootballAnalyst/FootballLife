@@ -158,3 +158,38 @@ def test_rank_is_finite_at_both_ends():
     ech = [float(i) for i in range(11)]
     assert 0 < B.rang(-5.0, ech) < B.rang(5.0, ech) < B.rang(50.0, ech) < 1
     assert math.isfinite(B.cloche(-5.0, ech)) and math.isfinite(B.cloche(50.0, ech))
+
+
+def test_the_breakdown_lands_on_the_card_it_explains():
+    """A detail panel that does not reproduce the card is worse than none:
+    it would teach a wrong rule.  `detail` walks the same functions."""
+    pop = population()
+    pal = {i: 100.0 * (i % 7) for i in pop}
+    params = B.parametres(pop, pal)
+    for i in (0, 37, 150, 199, 1000, 1040):
+        poste, f = pop[i]
+        ci = B.carte_initiale(poste, f, pal[i], params)
+        saison = fenetre(720, 180, tit=7, dispo=8, poste=poste)
+        s, ovr, attrs, _w = B.etat_courant(ci, saison, poste, params)
+        d = B.detail(ci, saison, poste, params)
+        assert d["saison"]["ovr"] == ovr
+        assert {a["axe"]: a["valeur"] for a in d["axes"]} == attrs
+        assert d["depart"]["ovr"] == ci["ovr"]
+        # the steps add up: the seed chain ends on the stored S25
+        assert abs(d["depart"]["terrain"]["s"] - ci["s25"]) < 1e-3
+        assert abs(d["depart"]["t_terrain"] + d["depart"]["t_palmares"] - ci["t"]) < 0.02
+        # and the move is the bounded difference of the two bell readings
+        sa = d["saison"]
+        assert abs(sa["mouvement"] - max(-sa["borne"], min(sa["borne"], sa["mouvement_brut"]))) < 1e-6
+        # every axis names the barème lines it is made of
+        for a in d["axes"]:
+            assert a["cles"] and 0 < a["rang"] < 1
+
+
+def test_a_card_seeded_on_nothing_can_still_be_explained():
+    pop = population()
+    params = B.parametres(pop)
+    ci = B.carte_initiale("Ailier", B.fenetre_vide(), 0.0, params)
+    d = B.detail(ci, B.fenetre_vide(), "Ailier", params)
+    assert d["saison"]["ovr"] == ci["ovr"] and d["depart"]["terrain"]["minutes"] == 0
+    assert d["saison"]["borne"] == ci["borne"]        # the widened bound is the one shown

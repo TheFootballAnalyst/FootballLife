@@ -364,6 +364,26 @@ td.podium.p1{color:var(--or2)}td.podium.p2{color:#C9CFDD}td.podium.p3{color:#C98
 dialog{border:1px solid var(--ligne2);border-radius:16px;padding:0;background:linear-gradient(180deg,#151B32,#0E1326);color:var(--encre);max-width:680px;width:94vw;box-shadow:var(--ombre)}
 dialog::backdrop{background:rgba(3,5,12,.72);backdrop-filter:blur(4px)}
 .fiche{padding:20px 22px}
+/* the breakdown: one line per step of the arithmetic, the figure on the right */
+.fiche.detail{max-width:760px}
+.chaine{margin:6px 0 2px}
+.chaine.interne{margin:4px 0 8px;padding-left:12px;border-left:2px solid var(--ligne)}
+.etape{display:grid;grid-template-columns:1fr auto;column-gap:12px;align-items:baseline;padding:5px 0;border-bottom:1px dashed rgba(255,255,255,.07)}
+.etape .lib{font-size:14px}
+.etape .num{font-size:17px;color:var(--or2);white-space:nowrap}
+.etape .note-etape{grid-column:1 / -1;font-family:"Barlow Condensed",sans-serif;font-size:12.5px;color:var(--sourd);line-height:1.25}
+.axe-detail{border:1px solid var(--ligne);border-radius:10px;padding:6px 10px;margin:6px 0;background:var(--surface)}
+.axe-detail summary{display:grid;grid-template-columns:14px 1fr 120px auto;gap:12px;align-items:center;cursor:pointer;list-style:none}
+.axe-detail summary::-webkit-details-marker{display:none}
+.axe-detail summary::before{content:"▸";color:var(--sourd)}
+.axe-detail[open] summary::before{content:"▾"}
+.axe-detail summary .jauge{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.axe-detail summary .jauge i{display:block;height:100%;background:linear-gradient(90deg,var(--sourd2),var(--sourd))}
+.axe-detail summary .jauge i.haut{background:linear-gradient(90deg,var(--or3),var(--or2))}
+.axe-detail summary .num{font-size:20px}
+.actions-axe{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2px 16px;margin:4px 0 6px}
+.actions-axe > div{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:baseline;font-size:13.5px;padding:2px 0}
+@media (max-width:640px){.axe-detail summary{grid-template-columns:14px 1fr 60px auto;gap:8px}}
 .fiche h3{font-size:30px;line-height:1}
 .fiche-haut{display:flex;gap:20px;align-items:flex-start;padding-bottom:14px;border-bottom:1px solid var(--ligne);margin-bottom:14px}
 .carte-img{width:210px;flex:none;border-radius:12px;filter:drop-shadow(0 10px 20px rgba(0,0,0,.6))}

@@ -844,7 +844,91 @@ async function ouvrirFiche(id) {
   const nv = ventesDe(id).length;
   if (G.equipe.effectif[id]) { const dl = d.prix - G.equipe.effectif[id]; acts.append(el("span", {class: "compteur", style: "margin-right:auto"}, `dans ton effectif · acheté ${fM(G.equipe.effectif[id])} · ${fM(dl, true)}`)); }
   acts.append(el("button", {class: "achat" + (nv ? " primaire" : ""), disabled: !nv, onclick: () => { dlg.close(); allerAuxVentes(id); }}, nv ? `${nv} vente${nv > 1 ? "s" : ""} en cours` : "Aucune vente en cours"));
+  acts.append(el("button", {onclick: () => { dlg.close(); ouvrirDetail(id); }}, "Détail des stats"));
   acts.append(el("button", {class: "discret", onclick: () => dlg.close()}, "Fermer"));
+  box.append(acts); dlg.append(box); dlg.showModal();
+}
+
+// ---------------------------------------------------------------------------
+// Where the numbers come from.  Every line is a step the card really went
+// through (jeu/bareme.py), with the figure it produced: the card's OVR and
+// its six attributes are the last line of each chain, not a second opinion.
+// ---------------------------------------------------------------------------
+const pc = v => Math.round(v * 100) + " %";
+const f2 = v => (Math.round(v * 100) / 100).toLocaleString("fr-FR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+// "100 %" reads as if he were the only one; the place says it better.
+function place(rang, n) {
+  const k = Math.max(1, Math.round((1 - rang) * n));
+  return `≈ ${k}${k === 1 ? "er" : "e"} sur ${n}`;
+}
+function etape(lib, val, note) {
+  return el("div", {class: "etape"}, el("span", {class: "lib"}, lib),
+    el("b", {class: "num"}, val), note ? el("span", {class: "note-etape"}, note) : null);
+}
+async function ouvrirDetail(id) {
+  let d; try { d = await api(`/cartes/${id}/detail`); } catch (e) { toast(e.message); return; }
+  const dlg = $("#fiche"); dlg.replaceChildren();
+  const gk = d.poste === "Gardien";
+  const box = el("div", {class: "fiche detail"});
+  box.append(el("h3", {class: "anton"}, `${d.nom} — d'où viennent ses stats`),
+    el("p", {class: "compteur"}, `Tout vient du barème « Ballon d'or » du moteur : chaque action de chaque match, pondérée par la compétition, le tour et l'adversaire, lue par 90 minutes. Rien n'est tiré au sort.`));
+
+  // --- the OVR ---
+  const dep = d.depart, sa = d.saison;
+  const o = el("div", {class: "chaine"});
+  o.append(el("div", {class: "etiq"}, `1. Le départ de saison${d.source ? " — barème " + d.source : ""}`));
+  o.append(etape("Barème brut", `${f2(dep.terrain.points)} pts`, `sur ${Math.round(dep.terrain.minutes)} min`));
+  o.append(etape("Par 90 minutes", f2(dep.terrain.par90)));
+  o.append(etape("Ramené vers la médiane du poste", f2(dep.terrain.retreci),
+    `médiane ${f2(dep.terrain.prior)} · ton échantillon pèse ${pc(dep.terrain.poids)} (${dep.terrain.k} min de référence)`));
+  o.append(etape("Corrigé du rôle", f2(dep.terrain.s),
+    `${Math.round(dep.terrain.titularisations)} titularisations sur ${Math.round(dep.terrain.feuilles)} feuilles → ${pc(dep.terrain.part_role)}, contre ${pc(dep.terrain.role_ref)} pour un titulaire type`));
+  o.append(etape("Total Ballon d'or", f2(dep.t),
+    `${pc(dep.part_terrain)} terrain (${f2(dep.t_terrain)}) + ${pc(1 - dep.part_terrain)} palmarès (${f2(dep.t_palmares)})`));
+  o.append(etape("OVR de départ", String(dep.ovr), `${place(dep.rang, d.reguliers)} joueurs réguliers de la saison`));
+  o.append(el("div", {class: "etiq"}, "2. Ce que la saison en cours en fait"));
+  if (!sa.terrain.minutes || sa.fenetre.min === 0)
+    o.append(el("p", {class: "compteur"}, "Aucune journée jouée depuis le départ : la carte est encore à son OVR de départ."));
+  else
+    o.append(etape("Barème de la saison", `${f2(sa.fenetre.pts)} pts`,
+      `sur ${Math.round(sa.fenetre.min)} min, ${Math.round(sa.fenetre.tit)} titularisations · la saison passée compte encore pour ${pc(sa.poids_passe)}`));
+  o.append(etape("Niveau lu aujourd'hui", f2(sa.lecture), `contre ${f2(sa.lecture_depart)} au départ`));
+  o.append(etape("Mouvement", (sa.mouvement > 0 ? "+" : "") + f2(sa.mouvement),
+    Math.abs(sa.mouvement_brut) > sa.borne ? `ramené dans la limite de ±${sa.borne} points` : `limite ±${sa.borne} points`));
+  o.append(etape("OVR de la carte", String(sa.ovr), null));
+  box.append(o);
+
+  // --- the six attributes ---
+  box.append(el("div", {class: "etiq", style: "margin-top:14px"}, "3. Les six attributs"),
+    el("p", {class: "compteur"}, "Chaque axe est la somme des points que le barème donne à ses actions, par 90 minutes, classée parmi TOUS les joueurs de champ réguliers — le dribble d'un défenseur est comparé à celui d'un ailier, pas aux autres défenseurs."));
+  for (const a of d.axes) {
+    const nom = (gk && ATTR_NOMS_GARDIEN[a.axe]) || ATTR_NOMS[a.axe];
+    const det = el("details", {class: "axe-detail"});
+    det.append(el("summary", {},
+      el("span", {class: "lib"}, nom),
+      el("div", {class: "jauge"}, el("i", {class: a.valeur >= 80 ? "haut" : "", style: `width:${(a.valeur - 40) / 59 * 100}%`})),
+      el("b", {class: "num"}, String(a.valeur))));
+    const c = el("div", {class: "chaine interne"});
+    c.append(etape("Points de l'axe", f2(a.points), `soit ${f2(a.par90)} par 90 min`));
+    c.append(etape("Ramené vers la médiane du poste", f2(a.retreci),
+      `médiane ${f2(a.prior)} · ton échantillon pèse ${pc(a.poids)}`));
+    c.append(etape("Classement", place(a.rang, d.reguliers), `parmi les réguliers de la saison, tous postes confondus → ${a.valeur}`));
+    if (a.actions.length) {
+      c.append(el("div", {class: "etiq"}, "Les actions comptées cette saison"));
+      const t = el("div", {class: "actions-axe"});
+      for (const ac of a.actions)
+        t.append(el("div", {}, el("span", {}, ac.nom),
+          el("b", {class: "num"}, Number.isInteger(ac.total) ? String(ac.total) : f2(ac.total)),
+          el("span", {class: "compteur"}, f2(ac.par90) + " / 90")));
+      c.append(t);
+    }
+    c.append(el("p", {class: "compteur"}, "Lignes du barème : " + a.cles.join(", ")));
+    det.append(c);
+    box.append(det);
+  }
+  const acts = el("div", {class: "actions"});
+  acts.append(el("button", {onclick: () => { dlg.close(); ouvrirFiche(id); }}, "Retour à la fiche"),
+    el("button", {class: "discret", onclick: () => dlg.close()}, "Fermer"));
   box.append(acts); dlg.append(box); dlg.showModal();
 }
 function sparkline(vals, fmt = f1) {
