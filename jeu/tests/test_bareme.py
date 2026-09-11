@@ -17,13 +17,17 @@ def fenetre(minutes, pts, tit=30, dispo=30, poste="Buteur", fin=None):
     return {"min": float(minutes), "pts": float(pts), "tit": tit, "dispo": dispo, "axes": axes}
 
 
-def population(n=200):
-    """n players: full seasons, barème points growing with the index, every
-    position represented."""
+def population(n=200, frange=60):
+    """n regulars with a full season, barème points growing with the index,
+    every position represented, plus a tail of rotation players: a real
+    pool has both, and the reference points are measured on each."""
     out = {}
     for i in range(n):
         poste = POSTES[i % len(POSTES)]
         out[i] = (poste, fenetre(2700, 100 + 4 * i, poste=poste))
+    for i in range(frange):
+        poste = POSTES[i % len(POSTES)]
+        out[1000 + i] = (poste, fenetre(300, 10 + i, tit=2, dispo=12, poste=poste))
     return out
 
 
@@ -44,10 +48,12 @@ def test_parameters_and_ovr_follow_the_rank_on_a_bell():
     pop = population()
     params = B.parametres(pop)
     assert params["reguliers"] == 200 and set(params["priors"]) >= set(POSTES)
-    ovrs = [B.carte_initiale(po, f, 0.0, params)["ovr"] for po, f in pop.values()]
+    assert 0 < params["role_inconnu"] < params["role_ref"] <= 1.0
+    reg = [v for k, v in pop.items() if k < 1000]
+    ovrs = [B.carte_initiale(po, f, 0.0, params)["ovr"] for po, f in reg]
     # monotonic in the points (the keepers are aligned, so within a position at least)
     for poste in POSTES:
-        serie = [B.carte_initiale(po, f, 0.0, params)["ovr"] for po, f in pop.values() if po == poste]
+        serie = [B.carte_initiale(po, f, 0.0, params)["ovr"] for po, f in reg if po == poste]
         assert serie == sorted(serie)
     # a bell: the median regular reads MU, the top under 99, the bottom over 40
     assert abs(sorted(ovrs)[100] - E.MU_OVR) <= 2
@@ -65,7 +71,25 @@ def test_thin_samples_are_shrunk_to_the_position_and_subs_discounted():
                         + params["k_retrecissement"] / (90 + params["k_retrecissement"]) * prior)) < 1e-9
     remplacant = B.terrain(fenetre(2700, 1000, tit=3, dispo=30), "Buteur", params)
     assert remplacant < plein
-    assert B.terrain(fenetre(0, 0, 0, 0), "Buteur", params) == prior
+    # nobody at all: the position's median, read as a rotation player
+    inconnu = B.terrain(fenetre(0, 0, 0, 0), "Buteur", params)
+    assert inconnu == prior * min(1.0, params["role_inconnu"]) / params["role_ref"]
+    assert inconnu < prior
+
+
+def test_the_share_of_starts_is_shrunk_so_one_match_cannot_remake_a_card():
+    """One start out of one sheet reads 1.00 raw, and a card seeded on
+    nothing jumped eighteen OVR points on its first match."""
+    pop = population()
+    params = B.parametres(pop)
+    ancre = params["role_inconnu"]
+    assert B.part_role(B.fenetre_vide(), params) == ancre
+    un_match = B.part_role(fenetre(90, 20, tit=1, dispo=1), params)
+    assert ancre < un_match < ancre + 0.1              # a nudge, not a verdict
+    saison = B.part_role(fenetre(2700, 600, tit=30, dispo=32), params)
+    assert saison > 0.75                                # a real season decides it
+    # and a rotation player still reads as one
+    assert B.part_role(fenetre(900, 200, tit=3, dispo=30), params) < un_match
 
 
 def test_palmares_enters_the_seed_only():
@@ -90,9 +114,15 @@ def test_move_is_bounded_and_symmetric_around_the_seed():
     assert B.ovr_courant(ci["ovr"], ci["s0"], ci["s0"], params) == ci["ovr"]
     assert B.ovr_courant(ci["ovr"], ci["s0"], ci["s0"] * 10, params) == ci["ovr"] + E.BORNE_OVR
     assert B.ovr_courant(ci["ovr"], ci["s0"], -100.0, params) == ci["ovr"] - E.BORNE_OVR
-    # a full extra season at the same level leaves the card where it started
+    # a full extra season at the same level leaves the card at that level
     s, ovr, attrs, w = B.etat_courant(ci, f, po, params)
-    assert abs(ovr - ci["ovr"]) <= 1 and 0 < w < 1
+    blend = B.ajouter(f, ci["base"], params["poids_passe"])
+    assert abs(B.par90(blend) - B.par90(f)) < 1e-9        # same football
+    # what little the OVR moves is role confidence, not performance: the
+    # share of starts is shrunk (part_role) and a second season of starting
+    # every week settles it.  On the 2025/26 replay the median move over
+    # nine gameweeks is zero (docs/BACKTEST.md).
+    assert abs(ovr - ci["ovr"]) < ci["borne"] and 0 < w < 1
 
 
 def test_attributes_rank_every_outfield_player_together():

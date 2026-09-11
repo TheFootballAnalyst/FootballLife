@@ -135,6 +135,19 @@ def journee_id(jeu, saison, numero):
 # Seed: cards of a season from another season's performances
 # --------------------------------------------------------------------------
 
+def clubs_perimetre(jeu, saison=None, ligues=TOP5):
+    """The team ids of the game's perimeter: everyone who played a match of
+    one of `ligues` (the five leagues), in `saison` if given."""
+    marks = ",".join("?" * len(ligues))
+    cond, args = "", list(ligues) * 2
+    if saison:
+        cond = "AND journee_id IN (SELECT journee_id FROM journee WHERE saison = ?)"
+        args = list(ligues) + [saison] + list(ligues) + [saison]
+    return {r[0] for r in jeu.execute(f"""
+        SELECT DISTINCT home_team_id FROM match WHERE competition_id IN ({marks}) {cond}
+        UNION SELECT DISTINCT away_team_id FROM match WHERE competition_id IN ({marks}) {cond}""", args)}
+
+
 def journees_saison(jeu, saison):
     """[(journee_id, numero, du, au)] of the season's gameweeks 1.., by date."""
     return [tuple(r) for r in jeu.execute(
@@ -198,10 +211,7 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
     if journees_source:
         lo, hi = journees_source
         cond, args = "AND j.numero BETWEEN ? AND ?", [source, lo, hi]
-    marks = ",".join("?" * len(ligues))
-    clubs = {r[0] for r in jeu.execute(f"""
-        SELECT DISTINCT home_team_id FROM match WHERE competition_id IN ({marks})
-        UNION SELECT DISTINCT away_team_id FROM match WHERE competition_id IN ({marks})""", ligues * 2)}
+    clubs = clubs_perimetre(jeu, None, ligues)
     hist = {}
     for pid, minutes in jeu.execute(f"""
             SELECT p.player_id, p.minutes FROM prestation p
@@ -263,10 +273,10 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
         s0, ovr0, attrs, w = B.etat_courant(ci, vide, poste, params)
         h = hist.get(pid, [])
         jeu.execute("""INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, valeur_base, ovr_base, poids,
-                                         sommes, min90, attributs, bareme, matchs, minutes, maj)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                                         sommes, min90, attributs, bareme, arrivee, matchs, minutes, maj)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (pid, saison, s0, ovr, px, base, ovr, w, json.dumps(vide), 0.0, json.dumps(attrs), json.dumps(ci),
-                     len(h), bases[pid][1]["min"], maintenant()))
+                     0, len(h), bases[pid][1]["min"], maintenant()))
         jeu.execute("INSERT INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix, poids, sommes, min90) VALUES (?,?,?,?,?,?,?,?)",
                     (pid, j0, s0, ovr, px, w, json.dumps(vide), 0.0))
         n += 1
@@ -276,6 +286,95 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=
 
 def postes_connus(jeu):
     return dict(jeu.execute("SELECT player_id, poste FROM joueur"))
+
+
+# --------------------------------------------------------------------------
+# Mercato: a card for anyone who enters the perimeter during the season
+# --------------------------------------------------------------------------
+
+def rafraichir_clubs(jeu, saison, jid, ligues=TOP5):
+    """Point `joueur.team_id` and `joueur.poste` at what the player actually
+    did in this gameweek's league matches.
+
+    A weekly import only inserts a player if he is unknown, and then with
+    no club at all; a player who changed clubs in the window keeps his old
+    one.  Only the five leagues count here: a week of international
+    matches must not move anyone to his national team.
+    """
+    marks = ",".join("?" * len(ligues))
+    best = {}
+    for pid, tid, poste, mn in jeu.execute(f"""
+            SELECT p.player_id, p.team_id, p.poste, SUM(p.minutes) FROM prestation p
+            JOIN match m ON m.match_id = p.match_id
+            WHERE m.journee_id = ? AND m.competition_id IN ({marks}) AND p.team_id IS NOT NULL
+            GROUP BY p.player_id, p.team_id, p.poste""", [jid] + list(ligues)):
+        if pid not in best or mn > best[pid][0]:
+            best[pid] = (mn, tid, poste)
+    n = 0
+    for pid, (_, tid, poste) in best.items():
+        cur = jeu.execute("SELECT team_id, poste FROM joueur WHERE player_id=?", (pid,)).fetchone()
+        if cur and (cur[0] != tid or not cur[1]):
+            jeu.execute("UPDATE joueur SET team_id=?, poste=COALESCE(poste, ?) WHERE player_id=?", (tid, poste, pid))
+            n += 1
+    return n
+
+
+def integrer_nouveaux(jeu, saison, numero, params, ligues=TOP5):
+    """Open a card for every player who played in the perimeter this
+    gameweek and has none yet: a summer signing from a league the engine
+    does not cover, a promoted club's squad, a teenager on debut.
+
+    Without this the card pool is frozen on the players who were in the
+    five leagues last season, and the pépites of the new season — exactly
+    the cards the game is about finding — cannot be bought at all.
+
+    The seed is whatever the source season gives him (a signing from a
+    covered league keeps his real barème, so Kairat's top scorer arrives
+    priced on what he did), and his position's median when there is
+    nothing.  His price is his real market value at that date, which is
+    where the world's knowledge of an unknown lives, and his bound is the
+    wide one (jeu.bareme.borne): he has no past to protect.
+    """
+    jid = journee_id(jeu, saison, numero)
+    clubs = clubs_perimetre(jeu, saison, ligues) or clubs_perimetre(jeu, None, ligues)
+    deja = {r[0] for r in jeu.execute("SELECT player_id FROM carte WHERE saison=?", (saison,))}
+    candidats = {}
+    for pid, poste, tid in jeu.execute("""
+            SELECT DISTINCT b.player_id, j.poste, j.team_id FROM bareme_journee b
+            JOIN joueur j ON j.player_id = b.player_id
+            WHERE b.journee_id = ? AND b.minutes > 0""", (jid,)):
+        if pid in deja or tid not in clubs or poste not in S.FAMILLE_POSTE:
+            continue
+        candidats[pid] = poste
+    if not candidats:
+        return 0
+    source = (params.get("source") or {}).get("saison")
+    fenetres = fenetres_saison(jeu, source) if source and source != saison else {}
+    au = jeu.execute("SELECT au FROM journee WHERE journee_id=?", (jid,)).fetchone()[0]
+    valeurs = I.valeurs_a_date(jeu, au)
+    ajust = parametre(jeu, saison, "valeur_marche") or {}
+    ajust = (ajust.get("a", -7.5), ajust.get("b", 0.125))
+    precedente = journee_id(jeu, saison, numero - 1)
+    vide = B.fenetre_vide()
+    now = maintenant()
+    n = 0
+    for pid, poste in candidats.items():
+        ci = B.carte_initiale(poste, fenetres.get(pid, vide), 0.0, params)
+        ovr = ci["ovr"]
+        base = valeurs.get(pid) or E.valeur_estimee(ovr, ajust)
+        px = E.prix_carte(base, ovr, ovr)
+        s0, _o, attrs, w = B.etat_courant(ci, vide, poste, params)
+        jeu.execute("""INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, valeur_base, ovr_base, poids,
+                                         sommes, min90, attributs, bareme, arrivee, matchs, minutes, maj)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (pid, saison, s0, ovr, px, base, ovr, w, json.dumps(vide), 0.0, json.dumps(attrs), json.dumps(ci),
+                     numero, 0, ci["base"]["min"], now))
+        # the state the evolution of THIS gameweek starts from
+        jeu.execute("""INSERT OR REPLACE INTO carte_historique(player_id, journee_id, note_ovr, ovr, prix, poids, sommes, min90)
+                       VALUES (?,?,?,?,?,?,?,?)""",
+                    (pid, precedente, s0, ovr, px, w, json.dumps(vide), 0.0))
+        n += 1
+    return n
 
 
 # --------------------------------------------------------------------------
@@ -332,8 +431,7 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
     params = appliquer_echelle(jeu, saison)
     if not params:
         raise SystemExit(f"pas de paramètres de barème pour {saison} : amorcer d'abord")
-    avant = etat_cartes(jeu, saison, numero - 1)
-    if not avant:
+    if not etat_cartes(jeu, saison, numero - 1):
         raise SystemExit(f"pas d'état de cartes après la journée {numero - 1} : la calculer d'abord (ou amorcer)")
     fenetres = fenetres_journee(jeu, jid)
     if not fenetres and fot is not None and importer:
@@ -341,6 +439,11 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
         ecrire_fenetres(jeu, jid, fenetres)
         jeu.commit()
     resume["bareme"] = len(fenetres)
+    # mercato: clubs of the week, then a card for whoever entered the perimeter
+    resume["clubs_maj"] = rafraichir_clubs(jeu, saison, jid)
+    resume["nouvelles_cartes"] = integrer_nouveaux(jeu, saison, numero, params)
+    jeu.commit()
+    avant = etat_cartes(jeu, saison, numero - 1)
     postes = dict(jeu.execute("SELECT player_id, poste FROM joueur"))
     graines = {pid: json.loads(b) for pid, b in jeu.execute("SELECT player_id, bareme FROM carte WHERE saison=?", (saison,)) if b}
     attrs_avant = etat_attributs(jeu, saison, numero - 1)

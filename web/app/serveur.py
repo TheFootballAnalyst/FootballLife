@@ -272,7 +272,7 @@ def cartes_toutes(jeu):
     out = []
     for r in jeu.execute("""
             SELECT c.player_id, c.ovr, c.prix, c.part, c.note_ovr, c.matchs, c.minutes,
-                   c.valeur_base, c.ovr_base, j.age, j.numero, j.pays,
+                   c.valeur_base, c.ovr_base, c.arrivee, j.age, j.numero, j.pays,
                    j.nom, j.poste, j.team_id, cl.nom AS club, cl.couleur
             FROM carte c JOIN joueur j ON j.player_id = c.player_id
             LEFT JOIN club cl ON cl.team_id = j.team_id WHERE c.saison = ?""", (SAISON,)):
@@ -284,7 +284,7 @@ def cartes_toutes(jeu):
             "ovr": r["ovr"], "prix": r["prix"], "part": round(r["part"], 3),
             "valeur_base": r["valeur_base"], "ovr_base": r["ovr_base"], "valeur_marche": valeurs.get(r["player_id"]),
             "age": r["age"], "numero": r["numero"], "pays": r["pays"],
-            "matchs": r["matchs"], "minutes": int(r["minutes"] or 0),
+            "matchs": r["matchs"], "minutes": int(r["minutes"] or 0), "arrivee": r["arrivee"],
             "notes": notes.get(r["player_id"], [])[-6:],
         })
     _CACHE["cle"], _CACHE["cartes"] = cle, out

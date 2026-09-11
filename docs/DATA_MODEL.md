@@ -46,7 +46,7 @@ search boxes only.
 
 | table | one row per | notes |
 |-------|-------------|-------|
-| `carte` | player × season | current `note_ovr` (the terrain score S of the season barème), `ovr`, `prix` (M€), `attributs`; `valeur_base`/`ovr_base` anchor the price at the seed; `bareme` keeps the seed record (last season's window, its scores, the palmarès), `sommes` the season-to-date window |
+| `carte` | player × season | current `note_ovr` (the terrain score S of the season barème), `ovr`, `prix` (M€), `attributs`; `valeur_base`/`ovr_base` anchor the price at the seed; `bareme` keeps the seed record (last season's window, its scores, the palmarès, the card's own OVR bound), `sommes` the season-to-date window; `arrivee` is the gameweek the card entered, 0 at the seed and the gameweek number for a mercato card |
 | `carte_historique` | player × gameweek | price chart, "card evolves" screen |
 | `bareme_journee` | player × gameweek | the season barème of the gameweek's window (minutes, points, starts, sheets, points per axis), written by the importer or the exporter document; the pipeline adds them into `carte.sommes`, a replay seeds from them |
 | `parametre` | season × key | `bareme` (priors, dispersions, the OVR and attribute scales measured on the seed), `economie`, `valeur_marche` |
@@ -78,7 +78,9 @@ the live path below.
 
 ```
 1. import       topsflops.calculer(du, au) -> prestation (+ match, joueur, club upserts)
-2. evolve       carte_historique of gameweek N-1 + bareme_journee of N -> bareme.etat_courant
+2. mercato      rafraichir_clubs (the club each player actually played for) then
+                integrer_nouveaux (a card for whoever entered the perimeter)
+3. evolve       carte_historique of gameweek N-1 + bareme_journee of N -> bareme.etat_courant
                 (terrain score, OVR bounded around ovr_base, six attributes)
                 -> carte_historique of gameweek N, copied into carte
 3. score        for each composition submitted before journee.cloture:

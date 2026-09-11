@@ -246,6 +246,7 @@ function carteMarche(c, opts = {}) {
     el("img", {class: "cj-logo", src: `/images/logos/${c.team_id}.png`, alt: "", loading: "lazy", onerror: e => e.target.remove()}),
     c.pays ? el("div", {class: "cj-drapeau", title: c.pays}, drapeau(c.pays)) : null,
     c.numero ? el("div", {class: "cj-num"}, "#" + c.numero) : null,
+    recrue(c) ? el("div", {class: "cj-recrue", title: `Entré dans le jeu à la journée ${c.arrivee}`}, "NOUVEAU") : null,
     vignetteDe(c));
   const corps = el("div", {class: "cj-corps"},
     el("div", {class: "nom", title: c.nom}, c.nom),
@@ -256,6 +257,12 @@ function carteMarche(c, opts = {}) {
     opts.vitrine ? null : boutonAchatVente(c, mien));
   k.append(el("div", {class: "crest-bord"}, el("div", {class: "crest-corps"}, haut, corps)));
   return k;
+}
+// A card that entered the game during the season (mercato): shown for the
+// three gameweeks after it opened, which is when nobody knows it yet.
+function recrue(c) {
+  const j = G.saison?.derniere?.numero ?? 0;
+  return c.arrivee > 0 && j - c.arrivee < 3;
 }
 function vignetteDe(c) {
   const v = el("div", {class: "vign"});

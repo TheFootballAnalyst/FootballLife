@@ -46,10 +46,11 @@ def base():
     return jeu
 
 
-def fenetre_bareme(jeu, jid, pid, minutes, pts, tit=1, dispo=1, axes=None):
+def fenetre_bareme(jeu, jid, pid, minutes, pts, tit=1, dispo=1, axes=None, poste=None):
     """One bareme_journee row (a player's window over a gameweek)."""
+    poste = poste or POSTES[pid - 1]
     if axes is None:
-        if POSTES[pid - 1] == "Gardien":
+        if poste == "Gardien":
             axes = {"ARR": pts * 0.5, "EVI": pts * 0.2, "SOR": pts * 0.1, "REL": 0.0, "BUT": -pts * 0.1, "PRO": 0.0}
         else:
             axes = {"FIN": 400 * pid / 15, "CRE": pts * 0.2, "PRO": pts * 0.2, "DEF": 400 * (16 - pid) / 15,
@@ -233,9 +234,14 @@ def test_ovr_is_bounded_around_the_season_start():
     P.calculer(jeu, None, "2025/26", 1, importer=False)
     ovr = dict(jeu.execute("SELECT player_id, ovr FROM carte"))
     s = dict(jeu.execute("SELECT player_id, note_ovr FROM carte"))
-    s0 = {pid: json.loads(b)["s0"] for pid, b in jeu.execute("SELECT player_id, bareme FROM carte")}
+    bar = {pid: json.loads(b) for pid, b in jeu.execute("SELECT player_id, bareme FROM carte")}
+    s0 = {pid: b["s0"] for pid, b in bar.items()}
     assert s[2] > s0[2] and s[3] < s0[3]
-    assert ovr[2] == ob[2] + E.BORNE_OVR and ovr[3] == ob[3] - E.BORNE_OVR
+    # the bound is the card's own: BORNE_OVR for a full season behind it,
+    # wider for a thin seed (jeu.bareme.borne)
+    m2, m3 = round(bar[2]["borne"]), round(bar[3]["borne"])
+    assert E.BORNE_OVR <= m2 <= E.BORNE_NOUVEAU
+    assert ovr[2] == ob[2] + m2 and ovr[3] == max(E.OVR_MIN, ob[3] - m3)
     assert ovr[4] == ob[4]                     # nothing played, nothing moved
     # the season-to-date window is kept on the card and in the history
     som, m90 = jeu.execute("SELECT sommes, min90 FROM carte WHERE player_id=2").fetchone()
@@ -269,6 +275,81 @@ def test_head_to_head_fixture_is_resolved_and_moves_elo():
     assert jeu.execute("SELECT COUNT(*) FROM match_h2h WHERE journee_id=?", (P.journee_id(jeu, "2025/26", 2),)).fetchone()[0] == 1
     P.calculer(jeu, None, "2025/26", 1, importer=False)
     assert jeu.execute("SELECT elo FROM equipe WHERE equipe_id=1").fetchone()[0] == 1016
+
+
+def recrue(jeu, pid=16, poste="Buteur", club_avant=3, valeur=None):
+    """A player who is not in the perimeter at seeding time: he plays for a
+    club outside the five leagues (or nowhere at all)."""
+    jeu.execute("INSERT OR IGNORE INTO club(team_id, nom) VALUES (?,?)", (club_avant, f"Hors périmètre {club_avant}"))
+    jeu.execute("INSERT INTO joueur(player_id, nom, nom_normalise, team_id, poste) VALUES (?,?,?,?,?)",
+                (pid, f"Recrue{pid}", f"recrue{pid}", club_avant, poste))
+    if valeur is not None:
+        jeu.execute("INSERT INTO valeur_marche VALUES (?, '2025-01-01', ?)", (pid, valeur))
+    jeu.commit()
+    return pid
+
+
+def joue_la_journee(jeu, pid, poste="Buteur", minutes=90, pts=200.0, note=7.0, team=1):
+    """The newcomer plays gameweek 1 for a club of the perimeter."""
+    j1 = P.journee_id(jeu, "2025/26", 1)
+    jeu.execute("""INSERT INTO prestation(match_id, player_id, team_id, poste, minutes, entrant, brut, coef, points, note, statut, lignes, attributs)
+                   VALUES (200, ?, ?, ?, ?, 0, 10, 1, 20, ?, 'ok', '{}', '{}')""", (pid, team, poste, minutes, note))
+    fenetre_bareme(jeu, j1, pid, minutes, pts, poste=poste)
+    jeu.commit()
+
+
+def test_mercato_opens_a_card_for_a_newcomer_to_the_perimeter():
+    jeu = base()
+    pid = recrue(jeu, valeur=30.0)
+    P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
+    assert jeu.execute("SELECT COUNT(*) FROM carte WHERE player_id=?", (pid,)).fetchone()[0] == 0
+    prestations_j1(jeu, {i: (6.0, 90) for i in range(1, 12)})
+    joue_la_journee(jeu, pid)
+    r = P.calculer(jeu, None, "2025/26", 1, importer=False)
+    assert r["nouvelles_cartes"] == 1 and r["clubs_maj"] == 1
+    ovr, prix, vb, arrivee, bar = jeu.execute(
+        "SELECT ovr, prix, valeur_base, arrivee, bareme FROM carte WHERE player_id=?", (pid,)).fetchone()
+    # priced on his real market value, entered on gameweek 1, seeded on nothing
+    assert vb == 30.0 and arrivee == 1 and E.OVR_MIN <= ovr <= E.OVR_MAX
+    assert json.loads(bar)["base"]["min"] == 0 and json.loads(bar)["pal"] == 0
+    # and his gameweek counted: the card moved from its own seed
+    assert jeu.execute("SELECT min90 FROM carte WHERE player_id=?", (pid,)).fetchone()[0] == 1.0
+    # recomputing the gameweek does not open a second card
+    P.calculer(jeu, None, "2025/26", 1, importer=False)
+    assert jeu.execute("SELECT COUNT(*) FROM carte WHERE player_id=?", (pid,)).fetchone()[0] == 1
+
+
+def test_mercato_keeps_the_source_season_of_a_signing_from_a_covered_league():
+    jeu = base()
+    connu, inconnu = recrue(jeu, 16), recrue(jeu, 17)
+    # the engine covers eight leagues, not only the five of the game: a signing from
+    # one of them arrives with his real barème, a modest season here
+    js = jeu.execute("SELECT journee_id FROM journee WHERE saison='2024/25'").fetchone()[0]
+    fenetre_bareme(jeu, js, connu, 2700, 100.0, tit=30, dispo=30, poste="Buteur")
+    jeu.commit()
+    P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
+    prestations_j1(jeu, {i: (6.0, 90) for i in range(1, 12)})
+    joue_la_journee(jeu, connu)
+    joue_la_journee(jeu, inconnu)
+    P.calculer(jeu, None, "2025/26", 1, importer=False)
+    o = dict(jeu.execute("SELECT player_id, ovr FROM carte WHERE arrivee=1"))
+    b = {pid: json.loads(x) for pid, x in jeu.execute("SELECT player_id, bareme FROM carte WHERE arrivee=1")}
+    assert b[connu]["base"]["min"] == 2700 and b[inconnu]["base"]["min"] == 0
+    # his own season is what prices him, even when it is worse than his position's median
+    assert b[connu]["s25"] < b[inconnu]["s25"] and o[connu] < o[inconnu]
+    # the unknown keeps the wide bound, the one with a season behind him a tighter one
+    assert b[inconnu]["borne"] == E.BORNE_NOUVEAU and b[connu]["borne"] < E.BORNE_NOUVEAU
+
+
+def test_mercato_ignores_a_player_outside_the_perimeter():
+    jeu = base()
+    pid = recrue(jeu)
+    P.amorcer(jeu, "2025/26", "2024/25", ligues=(53,))
+    prestations_j1(jeu, {i: (6.0, 90) for i in range(1, 12)})
+    joue_la_journee(jeu, pid, team=3)          # still a club of no league of the game
+    r = P.calculer(jeu, None, "2025/26", 1, importer=False)
+    assert r["nouvelles_cartes"] == 0
+    assert jeu.execute("SELECT COUNT(*) FROM carte WHERE player_id=?", (pid,)).fetchone()[0] == 0
 
 
 def test_cards_carry_season_attributes_from_the_seed_onwards():

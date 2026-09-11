@@ -57,6 +57,13 @@ K_RETRECISSEMENT = 10.0      # in full matches (90 min); the prior weighs
 # full season behind, about 1/25 at the start and 1/45 at the end.
 POIDS_SAISON_PASSEE = 0.5
 BORNE_OVR = 10               # displayed OVR stays within +-10 of the season start
+# A card seeded on nothing — a signing from a league the engine does not
+# cover, a promoted club's squad, a teenager on debut — starts at its
+# position's median because there is nothing else to go on.  There is no
+# past there to protect, so its bound widens towards this one as the seed
+# thins (jeu.bareme.borne): a pépite can be found THIS season, which is
+# the whole point of the game, instead of being frozen until the next seed.
+BORNE_NOUVEAU = 25
 
 # The barème OVR (jeu/bareme.py): a card's Ballon d'or total is placed on
 # 40-99 by its rank among the season's regulars, on a bell centred on

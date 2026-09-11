@@ -112,6 +112,15 @@ Screens, in the order they unblock play:
   tops/flops output is already a good draft of it).
 - Collect the data you will need to re-tune for season two.
 
+## Phase 3b — the mercato (done)
+
+The card pool no longer freezes on the seed: `pipeline.integrer_nouveaux`
+opens a card at the close for anyone who entered the perimeter that
+gameweek, seeded on his own last season when the engine covers his old
+league and on his position's rotation-player median otherwise, priced on
+his real market value, with the wide bound of `bareme.borne`. See
+`GAME_DESIGN.md` and the replay in `BACKTEST.md`.
+
 ## Not before season two
 
 Manager traits, peer trading, ownership caps, the other four leagues as

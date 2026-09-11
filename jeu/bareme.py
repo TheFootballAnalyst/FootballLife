@@ -23,8 +23,12 @@ What a card takes from it:
                             The running barème blends last season (weighed
                             POIDS_SAISON_PASSEE) with this season's matches;
                             its reading on the same bell, minus the reading
-                            of the seed, is the card's move — bounded to
-                            +-BORNE_OVR so a bad month never unmakes a star.
+                            of the seed, is the card's move — bounded so a
+                            bad month never unmakes a star.  The bound is
+                            +-BORNE_OVR for a card with a full season
+                            behind it and widens to BORNE_NOUVEAU for one
+                            seeded on nothing (`borne`): a signing from an
+                            uncovered league has no past to protect.
   the six attributes        the points of the barème's ACTIONS per 90, per
                             axis (finishing, creation, progression,
                             dribbling, retention, defence; the keeper's
@@ -76,6 +80,7 @@ from jeu import notation as N  # noqa: E402
 MINUTES_REFERENCE = 2300     # the engine's Ballon d'or panel: the hybrid dispersions are measured on it
 MINUTES_REGULIER = 900       # a card with a real season behind it: the scales are measured on them
 MINUTES_PRIOR = 2000         # the position's median is taken among these (engine: retrecir)
+K_ROLE = 10                  # match sheets before a player's own share of starts outweighs the anchor
 Q = 1000                     # resolution of the stored scales (quantiles at i/Q)
 ATTR_MIN, ATTR_MAX = 40, 99
 _ND = NormalDist()
@@ -276,6 +281,21 @@ def par90(f: dict) -> float:
     return f["pts"] / f["min"] * 90.0 if f["min"] else 0.0
 
 
+def part_role(f: dict, params: dict) -> float:
+    """The window's share of starts, shrunk towards the unknown's anchor.
+
+    The raw ratio is worthless on a small sample: one start out of one
+    sheet reads 1.00, and a card seeded on nothing then jumped eighteen
+    OVR points on its first match — the one thing the design forbids.
+    K_ROLE sheets of the anchor are added to the count, so the first
+    appearances nudge the card and a real season decides it.  The
+    reference (`role_ref`) is measured the same way, so an established
+    player's factor is unchanged.
+    """
+    ancre = params.get("role_inconnu", 1.0)
+    return (f["tit"] + ancre * K_ROLE) / (f["dispo"] + K_ROLE)
+
+
 def terrain(f: dict, poste: str, params: dict) -> float:
     """S, the barème per 90 of a window as the engine reads it: shrunk to the
     position's median over K_RETRECISSEMENT minutes, keepers aligned on the
@@ -287,9 +307,13 @@ def terrain(f: dict, poste: str, params: dict) -> float:
     s = w * par90(f) + (1 - w) * prior
     if poste == "Gardien":
         s *= params["gk_k"]
-    if f["dispo"] > 0:
-        part = max(0.05, min(1.0, f["tit"] / f["dispo"]))
-        s *= (part / params["role_ref"]) ** bs.EXP_ROLE
+    # A player with no window at all has no role either.  Leaving the factor
+    # out read him as a guaranteed starter — better than the reference, since
+    # role_ref is under 1 — so a card seeded on nothing came out ABOVE the
+    # median card instead of below it.  An unknown is read as a rotation
+    # player until he proves otherwise (`role_inconnu`, `part_role`).
+    part = max(0.05, min(1.0, part_role(f, params)))
+    s *= (part / params["role_ref"]) ** bs.EXP_ROLE
     return s
 
 
@@ -307,12 +331,30 @@ def ovr_base(t: float, params: dict) -> int:
     return int(round(max(E.OVR_MIN, min(E.OVR_MAX, cloche(t, params["echelles"]["T"])))))
 
 
-def ovr_courant(ovr_base_: int, s0: float, s: float, params: dict) -> int:
+def borne(carte_bareme: dict, params: dict) -> float:
+    """How far a card may move from its season start, in OVR points.
+
+    The bound exists because the seed is trustworthy: a full season behind
+    a card means a bad month says little.  A card seeded on nothing — a
+    signing from an uncovered league, a promoted club's squad, a teenager
+    on debut — is seeded on its position's median, and there is nothing
+    there to protect.  The bound therefore widens as the seed thins, from
+    BORNE_OVR for a full season to BORNE_NOUVEAU for no history at all:
+    a pépite can climb this season rather than next.
+    """
+    k = params.get("k_retrecissement", 1200.0)
+    minutes = (carte_bareme.get("base") or {}).get("min", 0.0) * params.get("poids_passe", 1.0)
+    w = minutes / (minutes + k) if minutes > 0 else 0.0
+    return E.BORNE_OVR * w + E.BORNE_NOUVEAU * (1 - w)
+
+
+def ovr_courant(ovr_base_: int, s0: float, s: float, params: dict, marge: float | None = None) -> int:
     """The card's OVR in season: the seed OVR plus the move of the terrain
-    reading on the bell, bounded to +-BORNE_OVR."""
+    reading on the bell, bounded to +-`marge` (BORNE_OVR by default)."""
     ech = params["echelles"]["S"]
+    marge = E.BORNE_OVR if marge is None else marge
     o = ovr_base_ + cloche(s, ech) - cloche(s0, ech)
-    o = max(ovr_base_ - E.BORNE_OVR, min(ovr_base_ + E.BORNE_OVR, o))
+    o = max(ovr_base_ - marge, min(ovr_base_ + marge, o))
     return int(round(max(E.OVR_MIN, min(E.OVR_MAX, o))))
 
 
@@ -404,9 +446,18 @@ def parametres(bases: dict[int, tuple[str, dict]], pal: dict[int, float] | None 
     # Measured on the whole pool it lands on 1.0 — a fringe player who started
     # the two matches he was on the sheet for reads as a full-time starter —
     # and nobody could ever earn the bonus, only the penalty.
-    parts = [min(1.0, f["tit"] / f["dispo"]) for _, (po, f) in bases.items()
+    # What a player nobody has seen is read as: a rotation player.  The
+    # AGGREGATE share of starts of the non-regulars, not the median of their
+    # ratios — half of them appear on one or two sheets and started them, so
+    # the median of the ratios reads 0.83 and says nothing.
+    tit = sum(f["tit"] for _, (po, f) in bases.items() if 0 < f["min"] < MINUTES_REGULIER)
+    dispo = sum(f["dispo"] for _, (po, f) in bases.items() if 0 < f["min"] < MINUTES_REGULIER)
+    params["role_inconnu"] = round(tit / dispo, 4) if dispo else 1.0
+    # the neutral point: the median REGULAR starter, on the same shrunk
+    # quantity the players are measured with
+    parts = [part_role(f, params) for _, (po, f) in bases.items()
              if f["dispo"] > 0 and f["min"] >= MINUTES_REGULIER]
-    hauts = [p for p in parts if p >= 0.75]
+    hauts = [p for p in parts if p >= 0.75 * (med(parts) if parts else 1.0)]
     params["role_ref"] = med(hauts) if hauts else 1.0
     S = {pid: terrain(f, po, params) for pid, (po, f) in bases.items()}
     # hybrid dispersions on the engine's panel (players with palmarès, else all of it)
@@ -450,8 +501,10 @@ def carte_initiale(poste: str, base: dict, pal: float, params: dict) -> dict:
     s25 = terrain(base, poste, params)
     s0 = terrain(ajouter(fenetre_vide(), base, params["poids_passe"]), poste, params)
     t = hybride(s25, pal, params)
-    return {"base": arrondir(base), "s25": round(s25, 4), "s0": round(s0, 4), "pal": round(pal, 2), "t": round(t, 2),
-            "ovr": ovr_base(t, params)}
+    ci = {"base": arrondir(base), "s25": round(s25, 4), "s0": round(s0, 4), "pal": round(pal, 2), "t": round(t, 2),
+          "ovr": ovr_base(t, params)}
+    ci["borne"] = round(borne(ci, params), 1)
+    return ci
 
 
 def etat_courant(carte_bareme: dict, saison: dict, poste: str, params: dict) -> tuple[float, int, dict[str, int], float]:
@@ -459,7 +512,8 @@ def etat_courant(carte_bareme: dict, saison: dict, poste: str, params: dict) -> 
     season-to-date window."""
     f = ajouter(saison, carte_bareme["base"], params["poids_passe"])
     s = terrain(f, poste, params)
-    ovr = ovr_courant(carte_bareme["ovr"], carte_bareme["s0"], s, params)
+    ovr = ovr_courant(carte_bareme["ovr"], carte_bareme["s0"], s, params,
+                      carte_bareme.get("borne", borne(carte_bareme, params)))
     w = f["min"] / (f["min"] + params["k_retrecissement"]) if f["min"] > 0 else 0.0
     return s, ovr, attributs(f, poste, params), w
 

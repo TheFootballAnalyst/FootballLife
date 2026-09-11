@@ -128,6 +128,46 @@ budget. Each gameweek pays `0.1 M€ × (score − 60)`, capped at 5 M€
 (`evolution.gain_semaine`). Payouts are small on purpose; the main way to
 grow is to hold cards that climb.
 
+## The mercato — a card for whoever enters the perimeter
+
+The seed fixes the cards on the players who were in the five leagues last
+season. Left alone, that freezes the pool for the whole year: a summer
+signing from a league the engine does not cover, a promoted club's squad,
+a teenager on debut would have no card at all. Those are exactly the
+pépites the game is about finding, so the pool has to stay open.
+
+At every close, `pipeline.integrer_nouveaux` opens a card for every
+player who played a league match of the gameweek, is at a club of the
+perimeter, and has none yet. `pipeline.rafraichir_clubs` moves a player
+to the club he actually played for first, from that gameweek's league
+matches only, so a week of internationals never moves anyone to his
+national team.
+
+What a newcomer is worth:
+
+- **His own last season, if the engine saw it.** The engine covers eight
+  leagues, the game five: a signing from the Eredivisie or Liga Portugal
+  arrives with his real barème, read on the same scales as everyone.
+- **His position's median, read as a rotation player, when there is
+  nothing at all.** Leaving the role factor out of an empty window read
+  him as a guaranteed starter and put him at OVR 70, above the median
+  card; `role_inconnu` (the aggregate share of starts of last season's
+  non-regulars, 0.38) puts him at 56 to 62, under the median, which is
+  where an unproven player belongs.
+- **His real market value for the price.** That is where the world's
+  knowledge of an unknown lives: Musiala arrives at OVR 65 and 130 M€, a
+  bad buy for points until he proves it, and a youth-team debutant at
+  OVR 58 and 400 k€, which is the card worth a gamble.
+- **A wide bound.** `BORNE_OVR` protects a card whose seed is a full
+  season; a card seeded on nothing has no past to protect, so the bound
+  widens to `BORNE_NOUVEAU` (`bareme.borne`). A pépite can be found this
+  season instead of next.
+
+The share of starts is itself shrunk (`bareme.part_role`): one start out
+of one sheet reads 1.00 raw, and a new card jumped eighteen OVR points on
+its first match. With `K_ROLE` sheets of the anchor added to the count, a
+card climbs over a month instead: Mainoo 57, 59, 58, 61, 65, then flat.
+
 ## The six attributes on the card
 
 They come from the same season barème: the points of the barème's

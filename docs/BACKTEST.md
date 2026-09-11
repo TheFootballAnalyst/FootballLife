@@ -166,6 +166,27 @@ FIN 50, Haaland FIN 99 PRO 40. La transformation est monotone : l'ordre
 entre postes, la contrainte qui interdit les centiles par poste, est
 inchangé.
 
+## Le mercato (J18–J25 rejouées, amorce J1–J17)
+
+Amorce sur J1–J17 en n'ayant jamais vu les 287 joueurs qui n'avaient pas
+encore joué, puis huit journées calculées : **157 cartes ouvertes en cours
+de saison**, 13 à 30 par journée. Les recrues arrivent entre OVR 56 et 62
+quand le moteur n'a rien sur elles, prix à leur valeur marchande réelle
+(Musiala OVR 65 à 130 M€, Gabriel Jesus OVR 57 à 22 M€), et avec la borne
+large de ±25.
+
+Deux réglages trouvés en mesurant :
+
+| symptôme | cause | correction |
+|---|---|---|
+| une recrue arrivait à OVR 70, au-dessus de la carte médiane | une fenêtre vide n'a pas de rôle, donc le facteur de titularisation ne s'appliquait pas : elle comptait comme une titulaire garantie | `role_inconnu`, la part agrégée de titularisations des non-réguliers (0,38) |
+| un seul match faisait bondir une recrue de 18 points | le ratio titularisations / feuilles vaut 1,00 sur une feuille | `part_role` : `K_ROLE` feuilles d'ancre ajoutées au compte |
+
+Après correction une recrue monte sur un mois (Mainoo 57, 59, 58, 61, 65,
+puis stable) au lieu de sauter d'un coup. Effet de bord mesuré sur le
+rejeu J25→J34 : l'amplitude se resserre (p5 −7 contre −8, p95 +9 contre
++10) et la prédiction de la suite de saison **monte de 0,47 à 0,52**.
+
 ## Le match en face à face (J18–J34, 40 équipes, 340 matchs)
 
 Quarante effectifs tirés comme la foule (OVR bruité, 100 M€), appariés

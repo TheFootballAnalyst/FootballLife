@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS carte (
     min90            REAL NOT NULL DEFAULT 0,       -- full-match equivalents behind `sommes`
     attributs        TEXT,                          -- JSON, bareme.attributs on last season + this one
     bareme           TEXT,                          -- JSON, bareme.carte_initiale (the seed record)
+    arrivee          INTEGER NOT NULL DEFAULT 0,    -- gameweek the card entered (0 = the seed; >0 = mercato)
     matchs           INTEGER NOT NULL DEFAULT 0,
     minutes          REAL NOT NULL DEFAULT 0,
     maj              TEXT NOT NULL,                 -- ISO datetime of last update
