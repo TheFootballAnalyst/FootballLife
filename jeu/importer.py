@@ -99,7 +99,9 @@ MIGRATIONS = {                       # columns added after the first bases were 
                          ("sommes", "TEXT"), ("min90", "REAL NOT NULL DEFAULT 0")],
     "utilisateur": [("mdp_hash", "TEXT"), ("mdp_sel", "TEXT"), ("est_admin", "INTEGER NOT NULL DEFAULT 0")],
     "rencontre": [("banc_a", "TEXT"), ("banc_b", "TEXT"),
-                  ("remplacements", "TEXT NOT NULL DEFAULT '{}'")],
+                  ("remplacements", "TEXT NOT NULL DEFAULT '{}'"),
+                  ("campagne_id", "INTEGER"), ("tour", "INTEGER"),
+                  ("nom_adverse", "TEXT"), ("domicile", "INTEGER")],
 }
 
 

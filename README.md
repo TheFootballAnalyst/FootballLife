@@ -36,7 +36,8 @@ jeu/        the game layer: pure functions + schema, all tested
   evolution.py   card OVR, price, manager budget over time
   importer.py    fotmob.db -> game base (gameweeks, rated performances, club colours, barème windows)
   bareme.py      the season barème (moteur/bareme_stats.py + palmares_zero.py) -> OVR, attributes, evolution
-  simulation.py  the ranked lobby match: the cards play it, tactics decide the scenario
+  simulation.py  the match: the cards play it, tactics decide the scenario, and the
+                 sheet carries fouls, corners, cards, substitutions and a per-minute timeline
   lobby.py       pairing, the server clock, live adjustments, the ranked ladder
   solo.py        the solo campaign: take a real club's place in a real competition
   elo.py         the ladder maths

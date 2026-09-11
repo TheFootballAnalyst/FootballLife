@@ -142,9 +142,14 @@ def onze_defi(jeu, saison: str, niveau: float, graine: int, formation: str = "4-
 # --------------------------------------------------------------------------
 
 def en_cours(jeu, saison: str, equipe_id: int):
-    """The manager's live entry: waiting, or a match still running."""
+    """The manager's live entry: waiting, or a match still running.
+
+    A solo campaign plays its matches through the very same table — the
+    clock, the sheet, the adjustments and the substitutions are the same
+    machinery — so the lobby has to leave those alone."""
     return jeu.execute("""SELECT * FROM rencontre WHERE saison=? AND (equipe_a=? OR equipe_b=?)
-                          AND resultat IS NULL ORDER BY rencontre_id DESC LIMIT 1""",
+                          AND resultat IS NULL AND campagne_id IS NULL
+                          ORDER BY rencontre_id DESC LIMIT 1""",
                        (saison, equipe_id, equipe_id)).fetchone()
 
 
@@ -258,9 +263,13 @@ def _remplacements(r) -> dict[int, tuple[list, list]]:
 
 def _cotes(jeu, saison: str, r) -> tuple[SM.Equipe, SM.Equipe]:
     noms = {}
+    try:
+        adverse = r["nom_adverse"]
+    except (KeyError, IndexError):
+        adverse = None
     for cle, eid in (("a", r["equipe_a"]), ("b", r["equipe_b"])):
         row = jeu.execute("SELECT nom FROM equipe WHERE equipe_id=?", (eid,)).fetchone() if eid else None
-        noms[cle] = row[0] if row else "Le défi"
+        noms[cle] = row[0] if row else (adverse or "Le défi")
     def banc_de(cle):
         try:
             return json.loads(r[f"banc_{cle}"] or "[]")
@@ -291,10 +300,10 @@ def feuille(jeu, saison: str, r, minute: int | None = None) -> dict:
     return f
 
 
-def ajuster(jeu, saison: str, equipe_id: int, tactique: dict) -> int:
+def ajuster(jeu, saison: str, equipe_id: int, tactique: dict, r=None) -> int:
     """Record a tactical change AT THE CLOCK'S MINUTE, so it can only touch
     what has not been played.  Returns that minute."""
-    r = en_cours(jeu, saison, equipe_id)
+    r = r if r is not None else en_cours(jeu, saison, equipe_id)
     if not r or not r["debut"]:
         raise ErreurLobby("Aucun match en cours")
     m = minute_courante(r["debut"])
@@ -312,7 +321,7 @@ def ajuster(jeu, saison: str, equipe_id: int, tactique: dict) -> int:
     return int(cle)
 
 
-def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int) -> int:
+def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int, r=None) -> int:
     """Record a substitution AT THE CLOCK'S MINUTE, so it can only touch
     what has not been played.  Returns that minute.
 
@@ -320,7 +329,7 @@ def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int) -> int
     to be on the pitch and the other on the bench) are the simulation's:
     it is the only place that knows who is still on after a red card or an
     injury, and a check here would have to guess."""
-    r = en_cours(jeu, saison, equipe_id)
+    r = r if r is not None else en_cours(jeu, saison, equipe_id)
     if not r or not r["debut"]:
         raise ErreurLobby("Aucun match en cours")
     m = minute_courante(r["debut"])

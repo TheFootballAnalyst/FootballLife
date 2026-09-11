@@ -350,3 +350,85 @@ def test_a_free_pack_costs_nothing_and_is_spent_once():
         MA.ouvrir_pack(jeu, "2025/26", 1, "bronze", offert=True)
     with pytest.raises(MA.ErreurMarche):
         MA.ouvrir_pack(jeu, "2025/26", 1, "bronze", fam="FWD", offert=True)
+
+
+# --------------------------------------------------------------------------
+# A campaign match is played live
+# --------------------------------------------------------------------------
+
+def _reculer(jeu, secondes):
+    from datetime import datetime, timedelta, timezone
+    from jeu import lobby as LB
+    quand = (datetime.now(timezone.utc) - timedelta(seconds=secondes)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    jeu.execute("UPDATE rencontre SET debut=? WHERE resultat IS NULL", (quand,))
+    jeu.commit()
+
+
+def test_a_campaign_match_is_played_live_and_closes_the_round():
+    """It is an ordinary rencontre tied to the campaign, so it runs on the
+    lobby's clock: you watch it, adjust it, make your changes, and the round
+    resolves when its ninety minutes are up."""
+    from jeu import lobby as LB
+    jeu = base_solo()
+    SO.demarrer(jeu, "2025/26", 1, "ligue1", 11, graine=21)
+    rid = SO.lancer_tour(jeu, "2025/26", 1, ONZE, {"tempo": "direct"}, banc=[12, 13, 14, 15])
+    assert rid
+    camp = SO.en_cours(jeu, "2025/26", 1)
+    r = SO.match_en_cours(jeu, camp)
+    assert r is not None and r["campagne_id"] == camp["campagne_id"] and r["defi"] == 1
+    assert r["nom_adverse"] and r["equipe_a"] == 1
+    # the lobby must not see it: it is not a lobby match
+    assert LB.en_cours(jeu, "2025/26", 1) is None
+    with pytest.raises(SO.ErreurSolo):
+        SO.lancer_tour(jeu, "2025/26", 1, ONZE, None)          # one at a time
+    # it shows up live on the campaign screen, and the round has not moved
+    e = SO.etat(jeu, "2025/26", 1)["campagne"]
+    assert e["match"] and e["match"]["fini"] is False and e["tour"] == 0
+    # adjust and substitute through the lobby's own machinery
+    assert LB.ajuster(jeu, "2025/26", 1, {"tempo": "possession"}, r) >= 1
+    assert LB.changer(jeu, "2025/26", 1, ONZE[10], 12, r) >= 1
+    # ninety minutes later the round closes: your live sheet is the result
+    _reculer(jeu, LB.DUREE_REELLE + 5)
+    e = SO.etat(jeu, "2025/26", 1)["campagne"]
+    assert e["match"] is None and e["tour"] == 1
+    mien = [f for f in json.loads(SO.en_cours(jeu, "2025/26", 1)["resultats"]) if f["mien"]]
+    assert len(mien) == 1
+    feuille = json.loads(jeu.execute("SELECT feuille FROM rencontre WHERE rencontre_id=?", (rid,)).fetchone()[0])
+    place = e["place"]
+    attendu = feuille["score"] if mien[0]["a"] == place else feuille["score"][::-1]
+    assert mien[0]["score"] == attendu
+    assert any(x["type"] == "changement" for x in feuille["evenements"])
+    # and the rest of the round was played too
+    tour0 = [f for f in json.loads(SO.en_cours(jeu, "2025/26", 1)["resultats"]) if f["tour"] == 0]
+    assert len(tour0) == 3                       # six clubs, three fixtures
+
+
+def test_a_live_campaign_match_never_touches_the_ranked_ladder():
+    from jeu import lobby as LB
+    jeu = base_solo()
+    SO.demarrer(jeu, "2025/26", 1, "ligue1", 11, graine=33)
+    SO.lancer_tour(jeu, "2025/26", 1, ONZE, None)
+    _reculer(jeu, LB.DUREE_REELLE + 5)
+    SO.etat(jeu, "2025/26", 1)
+    assert jeu.execute("SELECT elo_classe, classees FROM equipe WHERE equipe_id=1").fetchone()[0] == 1000
+    assert LB.classement(jeu, "2025/26") == []
+
+
+def test_an_exempt_round_has_nothing_to_kick_off():
+    """An odd field rests one club a round.  There is a journée to play,
+    but not for you, so the round resolves at once."""
+    jeu = base_solo(n_clubs=7)
+    n = len(SO.clubs_competition(jeu, "2025/26", "ligue1"))
+    SO.demarrer(jeu, "2025/26", 1, "ligue1", 11, graine=8)
+    camp = SO.en_cours(jeu, "2025/26", 1)
+    cal = json.loads(camp["calendrier"])
+    moi = camp["place"]
+    exempts = [t for t, tour in enumerate(cal) if not any(moi in d for d in tour["duels"])]
+    if not exempts:
+        pytest.skip("ce champ ne laisse personne au repos")
+    for _ in range(exempts[0]):
+        SO.lancer_tour(jeu, "2025/26", 1, ONZE, None)
+        from jeu import lobby as LB
+        _reculer(jeu, LB.DUREE_REELLE + 5)
+        SO.etat(jeu, "2025/26", 1)
+    assert SO.lancer_tour(jeu, "2025/26", 1, ONZE, None) == 0

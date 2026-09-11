@@ -261,6 +261,10 @@ CREATE TABLE IF NOT EXISTS rencontre (
     score_a          INTEGER, score_b INTEGER,
     resultat         TEXT,                          -- 'A' | 'B' | 'N', NULL while running
     feuille          TEXT,                          -- JSON of the final sheet
+    campagne_id      INTEGER REFERENCES campagne(campagne_id),  -- NULL: a lobby match
+    tour             INTEGER,                       -- ... else the campaign round it plays
+    nom_adverse      TEXT,                          -- the club you face in a campaign
+    domicile         INTEGER,                       -- 1 if you are at home in that fixture
     cree_le          TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_rencontre_attente ON rencontre(saison, equipe_b, debut);

@@ -762,12 +762,44 @@ def solo_demarrer(d: DemarrageSolo, u=Depends(exiger), jeu=Depends(bd)):
 
 @app.post("/api/solo/jouer")
 def solo_jouer(t: TourSolo, u=Depends(exiger), jeu=Depends(bd)):
+    """Kick your match of the round off, live.  An exempt round has nothing
+    to kick off, so it is played straight through."""
     e = equipe_de(jeu, u)
     try:
-        r = SO.jouer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique, t.formation, banc=t.banc)
+        rid = SO.lancer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique, t.formation, banc=t.banc)
+        r = None if rid else SO.jouer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique,
+                                           t.formation, banc=t.banc)
     except (SO.ErreurSolo, LB.ErreurLobby) as err:
         raise HTTPException(400, str(err))
     return {"tour_joue": r} | SO.etat(jeu, SAISON, e["equipe_id"])
+
+
+def _match_solo(jeu, equipe_id: int):
+    camp = SO.en_cours(jeu, SAISON, equipe_id)
+    r = SO.match_en_cours(jeu, camp)
+    if r is None:
+        raise HTTPException(409, "Aucun match de campagne en cours")
+    return r
+
+
+@app.post("/api/solo/tactique")
+def solo_tactique(a: Ajustement, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    try:
+        minute = LB.ajuster(jeu, SAISON, e["equipe_id"], a.tactique, _match_solo(jeu, e["equipe_id"]))
+    except LB.ErreurLobby as err:
+        raise HTTPException(409, str(err))
+    return {"minute": minute} | SO.etat(jeu, SAISON, e["equipe_id"])
+
+
+@app.post("/api/solo/changement")
+def solo_changement(c: Changement, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    try:
+        minute = LB.changer(jeu, SAISON, e["equipe_id"], c.sortant, c.entrant, _match_solo(jeu, e["equipe_id"]))
+    except LB.ErreurLobby as err:
+        raise HTTPException(409, str(err))
+    return {"minute": minute} | SO.etat(jeu, SAISON, e["equipe_id"])
 
 
 @app.post("/api/solo/abandonner")

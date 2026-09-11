@@ -87,7 +87,8 @@ async function montrer(ecran) {
     await rafraichir(ecran === "marche" || !G.cartes.length);
     await ({packs: rendrePacks, encheres: rendreEncheres, marche: rendreMarche, equipe: rendreEquipe, lobby: rendreLobby, solo: rendreSolo, journee: rendreJournee, classement: rendreClassement, admin: rendreAdmin}[ecran] || (async () => {}))();
   } catch (e) { if (e.status === 401) { connecte(null); } else toast(e.message); }
-  finally { if (ecran !== "lobby") arreterLobby(); }
+  finally { if (ecran !== "lobby") arreterLobby(); if (ecran !== "solo") arreterBoucleSolo();
+    if (ecran !== "lobby" && ecran !== "solo") arreterTerrain(true); }
 }
 async function vitrine() {
   const V = $("#vitrine"); if (!V || V.childElementCount) return;
@@ -615,7 +616,8 @@ const EVT_ICONE = {but: "⚽", arret: "🧤", occasion: "✗", tactique: "⇄", 
   jaune: "🟨", rouge: "🟥", horsjeu: "🚩", changement: "🔁", blessure: "🚑"};
 let LOBBY = {timer: null, tac: {tempo: "equilibre", bloc: "median", risque: "equilibre"}, vus: 0};
 
-function arreterLobby() { if (LOBBY.timer) { clearInterval(LOBBY.timer); LOBBY.timer = null; } }
+function arreterLobby() {
+  if (G.ecran !== "solo") arreterTerrain(true); if (LOBBY.timer) { clearInterval(LOBBY.timer); LOBBY.timer = null; } }
 
 async function rendreLobby(donnees) {
   const d = donnees || await api("/lobby");
@@ -684,7 +686,10 @@ function panneauAttente(d) {
 
 function panneauMatch(d) {
   const m = d.match, moi = d.cote === "b" ? 1 : 0, lui = 1 - moi;
+  const bloc = el("div", {});
+  bloc.append(panneauTerrain(d, d.cote === "b" ? "b" : "a"));
   const p = el("div", {class: "panneau match-live"});
+  bloc.append(p);
   p.append(el("div", {class: "live-tete"},
     el("div", {class: "live-eq"}, el("div", {class: "nom anton"}, m.noms[0]), el("div", {class: "style"}, m.style.a)),
     el("div", {class: "live-score anton"}, `${m.score[0]} – ${m.score[1]}`),
@@ -722,7 +727,7 @@ function panneauMatch(d) {
       de === null ? el("span", {}, m.defi ? " · défi, hors classement" : "") : el("span", {}, ` · Elo ${de > 0 ? "+" : ""}${de.toFixed(1)}`),
       el("button", {class: "primaire", onclick: () => rendreLobby()}, "Rejouer")));
   }
-  return p;
+  return bloc;
 }
 
 // ---------------------------------------------------------------------------
@@ -731,7 +736,7 @@ function panneauMatch(d) {
 // sur leurs cartes.  Les récompenses dépendent de la place ou du tour
 // atteint (jeu/solo.py).
 // ---------------------------------------------------------------------------
-let SOLO = {cle: null};
+let SOLO = {cle: null, timer: null};
 
 async function rendreSolo(donnees) {
   const d = donnees || await api("/solo");
@@ -742,6 +747,7 @@ async function rendreSolo(donnees) {
     : "Prends la place d'un club et joue sa saison";
   B.append(d.campagne ? panneauCampagne(d) : panneauChoixSolo(d));
   B.append(panneauPalmares(d));
+  if (d.campagne?.match && !d.campagne.match.fini) lancerBoucleSolo();
 }
 
 function panneauChoixSolo(d) {
@@ -797,6 +803,7 @@ function panneauCampagne(d) {
       if (!confirm("Abandonner la campagne ? Elle ne rapportera rien.")) return;
       try { await rendreSolo(await api("/solo/abandonner", {})); } catch (e) { toast(e.message); }
     }}, "Abandonner")));
+  if (c.match) { p.append(panneauMatchSolo(c)); return p; }
   const onze = C.slots.every(x => x !== null) ? C.slots.slice() : null;
   if (!onze) p.append(el("div", {class: "avert"}, "Ton onze n'est pas complet : va dans Équipe le compléter, c'est lui qui joue ici."));
   else if (c.prochain) {
@@ -837,6 +844,45 @@ function panneauCampagne(d) {
       tableauClassement(c.classement, c.qualification));
   if (c.tableau?.length) p.append(el("div", {class: "etiq"}, "Tableau final"), tableauCoupe(c.tableau));
   return p;
+}
+
+// A campaign match is played LIVE, on the same clock and the same pitch as
+// a lobby match: you watch it, you adjust, you make your changes.
+function panneauMatchSolo(c) {
+  const d = {match: c.match, cote: "a", duree: c.match.duree, minutes: c.match.minutes};
+  const b = el("div", {});
+  b.append(panneauTerrain(d, "a"));
+  const m = c.match;
+  const p = el("div", {class: "panneau match-live"});
+  const stats = el("div", {class: "live-stats"});
+  for (const [lib, va, vb] of [["Possession", m.possession[0] + " %", m.possession[1] + " %"],
+                               ["Tirs", m.tirs[0], m.tirs[1]], ["xG", m.xg[0].toFixed(2), m.xg[1].toFixed(2)],
+                               ["Corners", m.corners?.[0] ?? 0, m.corners?.[1] ?? 0],
+                               ["Fautes", m.fautes?.[0] ?? 0, m.fautes?.[1] ?? 0],
+                               ["Cartons", cartons(m, 0), cartons(m, 1)]])
+    stats.append(el("div", {class: "sl"}, el("b", {}, String(va)), el("span", {}, lib), el("b", {}, String(vb))));
+  p.append(stats);
+  const fil = el("div", {class: "fil"});
+  for (const e of [...m.evenements].reverse())
+    fil.append(el("div", {class: "evt " + e.type + (e.cote === "A" ? " mien" : "")},
+      el("span", {class: "min"}, e.minute + "'"), el("span", {class: "ico"}, EVT_ICONE[e.type] || "•"),
+      el("span", {class: "txt"}, e.texte)));
+  if (!m.evenements.length) fil.append(el("p", {class: "compteur"}, "Le match vient de commencer."));
+  p.append(fil);
+  if (!m.fini) {
+    const tac = {...(m.tactique.a || LOBBY.tac)};
+    const bloc = el("div", {class: "panneau interne"}, el("h3", {class: "anton"}, "Ajuster"),
+      el("p", {class: "compteur"}, "Un changement prend effet à la minute suivante : il ne touche jamais ce qui est déjà joué."));
+    bloc.append(selecteurTactique(tac, async () => {
+      try { await rendreSolo(await api("/solo/tactique", {tactique: tac})); } catch (e) { toast(e.message); }
+    }));
+    bloc.append(blocChangements(d, "/solo/changement", rendreSolo));
+    p.append(bloc);
+  } else {
+    p.append(el("p", {class: "compteur"}, "Match terminé, la journée se clôture…"));
+  }
+  b.append(p);
+  return b;
 }
 
 // V / N / D and the score seen from your side: `a` and `b` are PLACES in
@@ -899,12 +945,46 @@ async function jouerSolo(onze) {
   catch (e) { toast(e.message); return; }
   await rafraichir(false);
   await rendreSolo(r);
+  // your match kicks off live; only an exempt round resolves at once
+  if (!r.tour_joue) { lancerBoucleSolo(); return; }
   const mien = (r.tour_joue.feuilles || []).find(f => f.mien);
-  if (mien) montrerFeuilleSolo(mien, r, place);
+  if (mien) montrerFeuilleSolo(mien, r.tour_joue.fini ? r.tour_joue.bilan : null, place);
   else if (r.tour_joue.fini) montrerBilanSolo(r.tour_joue.bilan);
 }
 
-function montrerFeuilleSolo(f, r, place) {
+// The campaign screen polls like the lobby while a match is running: the
+// clock belongs to the server, so the page asks it rather than counting.
+function lancerBoucleSolo() {
+  if (SOLO.timer) return;
+  SOLO.timer = setInterval(async () => {
+    if (G.ecran !== "solo") { arreterBoucleSolo(); return; }
+    try {
+      const avant = SOLO.d?.campagne?.tour;
+      const d = await api("/solo");
+      const fini = !d.campagne?.match;
+      await rendreSolo(d);
+      if (fini) {
+        arreterBoucleSolo();
+        await rafraichir(false);
+        const c = d.campagne;
+        const dernier = c?.mes_matchs?.[c.mes_matchs.length - 1];
+        if (!c) {
+          // the campaign is over: its summary is the newest line of the palmarès
+          const fini = d.palmares?.[0];
+          if (fini) montrerBilanSolo(fini);
+        } else if (c.tour !== avant && dernier) {
+          montrerFeuilleSolo(dernier, null, c.place);
+        }
+      }
+    } catch (e) { arreterBoucleSolo(); }
+  }, 2500);
+}
+function arreterBoucleSolo() { if (SOLO.timer) { clearInterval(SOLO.timer); SOLO.timer = null; } }
+
+// `bilan` is the campaign's closing summary when this match ended it, and
+// null otherwise.  It used to be dug out of the play response, which the
+// live path does not have: the dialog threw and never opened at all.
+function montrerFeuilleSolo(f, bilan, place) {
   const dlg = $("#fiche"); dlg.replaceChildren();
   const chez_moi = f.a === place;
   const box = el("div", {class: "fiche"}, el("h3", {class: "anton"}, scoreSolo(f, place)),
@@ -920,7 +1000,7 @@ function montrerFeuilleSolo(f, r, place) {
   if (!f.evenements.length) fil.append(el("p", {class: "compteur"}, "Match sans fait marquant."));
   box.append(fil);
   const acts = el("div", {class: "actions"});
-  if (r.tour_joue.fini) acts.append(el("button", {class: "primaire", onclick: () => { dlg.close(); montrerBilanSolo(r.tour_joue.bilan); }}, "Voir le bilan"));
+  if (bilan) acts.append(el("button", {class: "primaire", onclick: () => { dlg.close(); montrerBilanSolo(bilan); }}, "Voir le bilan"));
   else acts.append(el("button", {class: "primaire", onclick: () => dlg.close()}, "Journée suivante"));
   box.append(acts); dlg.append(box); dlg.showModal();
 }
@@ -953,6 +1033,189 @@ function panneauPalmares(d) {
   return p;
 }
 
+// ---------------------------------------------------------------------------
+// Le terrain 2D : les vingt-deux cartes jouent le match.
+//
+// Le moteur donne `fil`, une ligne par minute — qui a le ballon, jusqu'où
+// il est monté, qui le porte, quel événement.  Le terrain n'invente donc
+// aucun match : il place les onze de chaque camp dans leur formation, fait
+// coulisser les deux blocs selon la zone, pose le ballon sur le porteur, et
+// annonce l'événement au moment où il arrive.  L'horloge est celle du
+// serveur : on avance d'une minute toutes les `duree / 90` secondes, et on
+// se recale à chaque réponse.
+// ---------------------------------------------------------------------------
+const T2D = {timer: null, m: 0, fil: [], evts: [], cle: null, cible: 0, noeud: null, dernier: null};
+
+// Formation slots in pitch coordinates: x is depth (0 = own goal line,
+// 1 = the other one), y across.  The block slides along x with the zone.
+const PLACES_2D = {
+  GK: [[0.05, 0.50]],
+  DEF: [[0.20, 0.14], [0.20, 0.38], [0.20, 0.62], [0.20, 0.86]],
+  MID: [[0.40, 0.22], [0.40, 0.50], [0.40, 0.78]],
+  FWD: [[0.60, 0.18], [0.62, 0.50], [0.60, 0.82]],
+};
+const GLISSE_2D = 0.13;        // how far a block moves per zone
+
+function placesDe(joueurs) {
+  const pris = {GK: 0, DEF: 0, MID: 0, FWD: 0};
+  return joueurs.map(j => {
+    const fam = PLACES_2D[j.fam] ? j.fam : "MID";
+    const liste = PLACES_2D[fam];
+    const p = liste[Math.min(pris[fam]++, liste.length - 1)];
+    // more players than slots on a line: fan them out rather than stack
+    const n = pris[fam] - liste.length;
+    return n > 0 ? [p[0] - 0.05 * n, p[1]] : p;
+  });
+}
+
+function terrain2d() {
+  const t = el("div", {class: "terrain2d"});
+  t.append(el("div", {class: "t2d-fond"},
+    el("div", {class: "t2d-ligne-mediane"}), el("div", {class: "t2d-rond"}),
+    el("div", {class: "t2d-surface gauche"}), el("div", {class: "t2d-surface droite"})));
+  t.append(el("div", {class: "t2d-jeu"}), el("div", {class: "t2d-ballon"}),
+    el("div", {class: "t2d-bandeau", hidden: true}));
+  return t;
+}
+
+// Draw the twenty-two cards once; afterwards only their transform changes,
+// so a minute costs one style write per player and nothing is rebuilt.
+function peuplerTerrain(t, m, moi) {
+  const jeu = t.querySelector(".t2d-jeu");
+  jeu.replaceChildren();
+  T2D.pions = {};
+  for (const cote of ["a", "b"]) {
+    const sur = new Set(m.sur_le_terrain?.[cote] || []);
+    const tous = [...(m.onze?.[cote] || []), ...(m.banc?.[cote] || [])];
+    const joueurs = (m.sur_le_terrain?.[cote] || []).map(pid => tous.find(j => j.pid === pid)).filter(Boolean);
+    const places = placesDe(joueurs);
+    joueurs.forEach((j, i) => {
+      const p = el("div", {class: "t2d-pion " + (cote === moi ? "mien" : "adverse"), title: `${j.nom} · ${j.ovr}`});
+      p.append(carteDessinee(j, 120), el("span", {class: "t2d-nom"}, (j.nom || "").split(" ").slice(-1)[0]));
+      p.dataset.pid = j.pid; p.dataset.cote = cote;
+      p._base = places[i];
+      jeu.append(p);
+      T2D.pions[cote + ":" + j.pid] = p;
+    });
+  }
+}
+
+function bougerTerrain(t, ligne, moi) {
+  if (!T2D.pions) return;
+  // the side with the ball pushes forward, the other drops off
+  const dec = {a: 0, b: 0};
+  if (ligne) {
+    const avance = (ligne.z - 1) * GLISSE_2D;
+    dec[ligne.c === 0 ? "a" : "b"] = avance;
+    dec[ligne.c === 0 ? "b" : "a"] = -avance * 0.55;
+  }
+  for (const [cle, p] of Object.entries(T2D.pions)) {
+    const cote = cle.slice(0, 1);
+    const [x, y] = p._base;
+    const xx = Math.max(0.02, Math.min(0.98, x + dec[cote]));
+    // side A attacks left to right, side B the other way; you are always
+    // shown attacking to the right, whichever side of the sheet you are.
+    // The two sides are nudged apart across the pitch: mirrored formations
+    // put the two central midfielders on the very same spot, and their
+    // names ran into each other.
+    const gauche = (cote === moi) ? xx : 1 - xx;
+    const haut = ((cote === moi) ? y : 1 - y) + (cote === moi ? -0.035 : 0.035);
+    p.style.left = (gauche * 100) + "%";
+    p.style.top = (Math.max(0.04, Math.min(0.96, haut)) * 100) + "%";
+    p.classList.toggle("ballon", !!ligne && ligne.p === +p.dataset.pid);
+  }
+  const b = t.querySelector(".t2d-ballon");
+  const porteur = ligne ? T2D.pions[(ligne.c === 0 ? "a" : "b") + ":" + ligne.p] : null;
+  if (porteur) { b.style.left = porteur.style.left; b.style.top = porteur.style.top; b.hidden = false; }
+  else b.hidden = true;
+}
+
+function annoncer(t, evt) {
+  const bandeau = t.querySelector(".t2d-bandeau");
+  if (!evt) { bandeau.hidden = true; return; }
+  bandeau.replaceChildren(el("span", {class: "ico"}, EVT_ICONE[evt.type] || "•"),
+    el("span", {class: "txt"}, evt.texte));
+  bandeau.className = "t2d-bandeau " + evt.type;
+  bandeau.hidden = false;
+}
+
+// One tick: advance a virtual minute, move everybody, announce what happened.
+function tickTerrain(t, moi) {
+  if (T2D.m >= T2D.cible) { reAnnoncer(t); return; }
+  T2D.m += 1;
+  const ligne = T2D.fil[T2D.m - 1];
+  bougerTerrain(t, ligne, moi);
+  const evt = ligne && ligne.e !== null && ligne.e !== undefined ? T2D.evts[ligne.e] : null;
+  if (evt) T2D.dernier = {evt, quand: Date.now()};
+  reAnnoncer(t);
+  const h = T2D.noeud && T2D.noeud.querySelector(".t2d-minute");
+  if (h) h.textContent = T2D.m + "'";
+}
+
+function arreterTerrain(oublier) {
+  if (T2D.timer) { clearInterval(T2D.timer); T2D.timer = null; }
+  if (oublier) { T2D.noeud = null; T2D.cle = null; T2D.m = 0; T2D.dernier = null; }
+}
+
+// The panel is REUSED between polls, not rebuilt: rebuilding twenty-two
+// cards every two and a half seconds restarted every CSS transition, and
+// wiped the event banner a moment after it appeared.  The node is detached
+// and re-appended, which keeps its transitions; only the score, the clock
+// and the positions are written again.
+function panneauTerrain(d, moi) {
+  const m = d.match;
+  const cle = JSON.stringify([m.rencontre_id, moi, m.sur_le_terrain?.a, m.sur_le_terrain?.b]);
+  let p = T2D.noeud;
+  if (!p || T2D.cle !== cle) {
+    arreterTerrain();                       // a new match, or a new eleven
+    p = el("div", {class: "panneau terrain-live"});
+    p.append(el("div", {class: "t2d-tete"},
+      el("div", {class: "eq"}, el("b", {class: "anton"}, m.noms[moi === "a" ? 0 : 1])),
+      el("div", {class: "t2d-score anton"}, ""),
+      el("div", {class: "eq droite"}, el("b", {class: "anton"}, m.noms[moi === "a" ? 1 : 0])),
+      el("div", {class: "t2d-minute anton"}, "")));
+    const t = terrain2d();
+    p.append(t);
+    peuplerTerrain(t, m, moi);
+    T2D.noeud = p; T2D.cle = cle;
+    if (T2D.m > m.minute) T2D.m = Math.max(0, m.minute - 1);
+  }
+  const t = p.querySelector(".terrain2d");
+  p.querySelector(".t2d-score").textContent =
+    `${m.score[moi === "a" ? 0 : 1]} – ${m.score[moi === "a" ? 1 : 0]}`;
+  T2D.fil = m.fil || [];
+  T2D.cible = m.minute;
+  T2D.evts = m.evenements || [];
+  if (T2D.m === 0) T2D.m = Math.max(0, T2D.cible - 1);
+  if (T2D.m > T2D.cible) T2D.m = T2D.cible;
+  bougerTerrain(t, T2D.fil[Math.max(0, T2D.m - 1)], moi);
+  p.querySelector(".t2d-minute").textContent = T2D.m + "'";
+  reAnnoncer(t);
+  // The tick is SLOWER than the poll (one virtual minute every 2.7 s
+  // against a poll every 2.5 s): restarting the interval on every poll
+  // cleared it before it ever fired, and the pitch never moved on its own.
+  T2D.t = t; T2D.moi = moi;
+  if (!m.fini && !T2D.timer) {
+    const pas = Math.max(250, (d.duree * 1000) / (d.minutes || 90));
+    T2D.timer = setInterval(() => tickTerrain(T2D.t, T2D.moi), pas);
+  }
+  if (m.fini) {
+    arreterTerrain();
+    T2D.m = m.minute;
+    bougerTerrain(t, T2D.fil[T2D.fil.length - 1], moi);
+    p.querySelector(".t2d-minute").textContent = "Terminé";
+  }
+  return p;
+}
+
+// An announcement stays up for a few seconds, across polls.
+const DUREE_BANDEAU = 5000;
+function reAnnoncer(t) {
+  const e = T2D.dernier;
+  if (e && Date.now() - e.quand < DUREE_BANDEAU) annoncer(t, e.evt);
+  else annoncer(t, null);
+}
+
 // Five changes over three stoppages, like the laws.  The rules themselves
 // live in the simulation — it is the only place that knows who is still on
 // after a red card or an injury — so the screen only offers the players.
@@ -961,7 +1224,7 @@ function cartons(m, c) {
   return r ? `${j} · ${r} 🟥` : String(j);
 }
 
-function blocChangements(d) {
+function blocChangements(d, route = "/lobby/changement", rendre = rendreLobby) {
   const m = d.match, cote = d.cote === "b" ? "b" : "a";
   // Who is ON THE PITCH, not who started: a substitute can be taken off
   // again, and a sent-off player cannot. The eleven and the bench together
@@ -994,7 +1257,7 @@ function blocChangements(d) {
     return c;
   };
   const valider = el("button", {class: "primaire", disabled: true, onclick: async () => {
-    try { await rendreLobby(await api("/lobby/changement", {sortant, entrant})); toast("Changement enregistré"); }
+    try { await rendre(await api(route, {sortant, entrant})); toast("Changement enregistré"); }
     catch (e) { toast(e.message); }
   }}, "Faire le changement");
   choix.append(colonne("Il sort", surTerrain, "out"), colonne("Il entre", banc, "in"));

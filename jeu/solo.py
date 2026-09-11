@@ -551,6 +551,67 @@ def _clubs_du(jeu, saison, camp) -> list[dict]:
     return out
 
 
+def match_en_cours(jeu, camp):
+    """The live match of the campaign's current round, if one is running."""
+    if camp is None:
+        return None
+    return jeu.execute("""SELECT * FROM rencontre WHERE campagne_id=? AND tour=? AND resultat IS NULL
+                          ORDER BY rencontre_id DESC LIMIT 1""",
+                       (camp["campagne_id"], camp["tour"])).fetchone()
+
+
+def lancer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict | None,
+                formation: str = "4-3-3", banc: list[int] | None = None) -> int:
+    """Kick YOUR match of the round off, live.
+
+    It is an ordinary `rencontre` row tied to the campaign, so it uses the
+    lobby's own machinery — the server's clock, the sheet replayed from the
+    seed, tactical changes and substitutions stamped by that clock.  There
+    is one live match in the game, not two.  The rest of the round is
+    played when this one ends (`cloturer_tour`)."""
+    from jeu import lobby as LB
+    camp = en_cours(jeu, saison, equipe_id)
+    if not camp:
+        raise ErreurSolo("Aucune campagne en cours")
+    if match_en_cours(jeu, camp):
+        raise ErreurSolo("Ton match est déjà en cours")
+    cal = json.loads(camp["calendrier"])
+    tour = camp["tour"]
+    if tour >= len(cal):
+        raise ErreurSolo("La campagne est terminée")
+    onze = LB.verifier_onze(jeu, saison, equipe_id, onze, formation)
+    banc = LB.verifier_banc(jeu, saison, equipe_id, onze, banc)
+    moi = camp["place"]
+    duels = _duels_de(cal, tour)
+    mien = next(((i, d) for i, d in enumerate(duels) if moi in d), None)
+    if mien is None:
+        return 0                            # exempt this round: nothing to kick off
+    i, (a, b) = mien
+    clubs = _clubs_du(jeu, saison, camp)
+    adv = b if a == moi else a
+    eq_adv = equipe_club(jeu, saison, clubs[adv])
+    g = _graine(camp, tour, i)
+    plan = changements_club(eq_adv, g)
+    # You are always side A of the live match, whoever is at home in the
+    # fixture: the sheet then reads from your side without anyone having to
+    # flip it, and `domicile` keeps the fixture's own truth.
+    rempl = {str(m): ([], [[s, e] for s, e in paires]) for m, paires in plan.items()}
+    cur = jeu.execute("""INSERT INTO rencontre(saison, equipe_a, equipe_b, defi, onze_a, banc_a, tactique_a,
+                            onze_b, banc_b, tactique_b, remplacements, graine, debut, campagne_id, tour,
+                            nom_adverse, domicile, cree_le)
+                         VALUES (?,?,?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                      (saison, equipe_id, None,
+                       json.dumps(onze), json.dumps(banc),
+                       json.dumps(vars(SM.Tactique(**(tactique or {})).valide())),
+                       json.dumps([j["pid"] for j in eq_adv.joueurs]),
+                       json.dumps([j["pid"] for j in eq_adv.banc]),
+                       json.dumps(vars(eq_adv.tactique)),
+                       json.dumps(rempl), g, LB.maintenant(), camp["campagne_id"], tour,
+                       clubs[adv]["nom"], int(a == moi), maintenant()))
+    jeu.commit()
+    return cur.lastrowid
+
+
 def jouer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict | None,
                formation: str = "4-3-3", banc: list[int] | None = None) -> dict:
     """Play your next match, and with it the rest of the round.
@@ -587,15 +648,26 @@ def jouer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict
     resultats = json.loads(camp["resultats"] or "[]")
     phase = cal[tour]["phase"]
     duels = _duels_de(cal, tour)
+    # your match may already have been PLAYED LIVE: its sheet is the one
+    # that counts, or you would watch one match and be scored on another
+    jouee = jeu.execute("""SELECT feuille FROM rencontre WHERE campagne_id=? AND tour=?
+                           AND feuille IS NOT NULL ORDER BY rencontre_id DESC LIMIT 1""",
+                        (camp["campagne_id"], tour)).fetchone()
+    feuille_live = json.loads(jouee[0]) if jouee and jouee[0] else None
     feuilles = []
     for i, (a, b) in enumerate(duels):
         g = _graine(camp, tour, i)
-        chg: dict[int, tuple[list, list]] = {}
-        for cote, place in ((0, a), (1, b)):
-            for minute, paires in plan(place, g).items():
-                courant = chg.setdefault(minute, ([], []))
-                courant[cote].extend(paires)
-        f = SM.jouer(eq(a), eq(b), g, changements=chg)
+        if feuille_live is not None and moi in (a, b):
+            # the live sheet is written from YOUR side; the fixture records
+            # home first, so it is flipped back when you played away
+            f = feuille_live if a == moi else _retourner(feuille_live)
+        else:
+            chg: dict[int, tuple[list, list]] = {}
+            for cote, place in ((0, a), (1, b)):
+                for minute, paires in plan(place, g).items():
+                    courant = chg.setdefault(minute, ([], []))
+                    courant[cote].extend(paires)
+            f = SM.jouer(eq(a), eq(b), g, changements=chg)
         feuilles.append({"tour": tour, "phase": phase, "manche": cal[tour]["manche"],
                          "a": a, "b": b, "score": f["score"], "resultat": f["resultat"],
                          "possession": f["possession"], "tirs": f["tirs"],
@@ -619,6 +691,38 @@ def jouer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict
     jeu.commit()
     bilan = cloturer(jeu, saison, camp["campagne_id"]) if fini else None
     return {"tour": tour - 1, "phase": phase, "feuilles": feuilles, "fini": fini, "bilan": bilan}
+
+
+def _retourner(f: dict) -> dict:
+    """The same sheet seen from the other side."""
+    ech = ("score", "possession", "tirs", "xg", "corners", "fautes", "jaunes", "rouges", "horsjeu",
+           "changements")
+    out = dict(f)
+    for cle in ech:
+        if isinstance(f.get(cle), list) and len(f[cle]) == 2:
+            out[cle] = [f[cle][1], f[cle][0]]
+    out["resultat"] = {"A": "B", "B": "A"}.get(f.get("resultat"), f.get("resultat"))
+    out["evenements"] = [e | {"cote": {"A": "B", "B": "A"}.get(e.get("cote"), e.get("cote"))}
+                         for e in f.get("evenements", [])]
+    out["fil"] = [x | {"c": 1 - x["c"]} for x in f.get("fil", [])]
+    return out
+
+
+def cloturer_tour(jeu, saison: str, equipe_id: int) -> dict | None:
+    """Close the round once your live match's ninety minutes are up: freeze
+    its sheet, play the rest of the round, advance the campaign."""
+    from jeu import lobby as LB
+    camp = en_cours(jeu, saison, equipe_id)
+    if not camp:
+        return None
+    r = match_en_cours(jeu, camp)
+    if r is None:
+        return None
+    if LB.minute_courante(r["debut"]) < SM.MINUTES:
+        return None
+    LB.cloturer(jeu, saison, r)
+    onze, banc, tac = json.loads(r["onze_a"]), json.loads(r["banc_a"] or "[]"), json.loads(r["tactique_a"])
+    return jouer_tour(jeu, saison, equipe_id, onze, tac, banc=banc)
 
 
 def _encore_en_lice(camp, resultats: list[dict], cal: list[dict], moi: int, tour: int) -> bool:
@@ -784,6 +888,17 @@ def etat(jeu, saison: str, equipe_id: int) -> dict:
         return base | {"campagne": None,
                        "competitions": [{"cle": k, "nom": v["nom"], "format": v["format"]}
                                         for k, v in COMPETITIONS.items()]}
+    # A live match whose ninety minutes are up closes the round HERE, before
+    # anything else is read: otherwise the screen shows last round's fixture
+    # for one more poll.
+    from jeu import lobby as LB
+    r = match_en_cours(jeu, camp)
+    if r is not None and LB.minute_courante(r["debut"]) >= SM.MINUTES:
+        cloturer_tour(jeu, saison, equipe_id)
+        return etat(jeu, saison, equipe_id)
+    live = (LB.feuille(jeu, saison, r) | {"duree": LB.DUREE_REELLE, "minutes": SM.MINUTES,
+                                          "cote": "a", "domicile": bool(r["domicile"])}
+            if r is not None else None)
     clubs = _clubs_du(jeu, saison, camp)
     cal = json.loads(camp["calendrier"])
     comp = COMPETITIONS[camp["cle"]]
@@ -804,6 +919,7 @@ def etat(jeu, saison: str, equipe_id: int) -> dict:
                                                 (cumul["buts"].get(camp["place"], 0), cumul["buts"].get(adv, 0))))
                                        if cumul and t["manche"] == 2 else None)}
     c = {"campagne_id": camp["campagne_id"], "cle": camp["cle"], "nom": comp["nom"], "format": comp["format"],
+         "match": live,
          "club_remplace": next((x["nom"] for x in clubs_competition(jeu, saison, camp["cle"])
                                 if x["team_id"] == camp["club_remplace"]), ""),
          "place": camp["place"], "tour": tour, "tours": len(cal), "prochain": prochain,
