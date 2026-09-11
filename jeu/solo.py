@@ -1,21 +1,32 @@
 """solo.py — la campagne solo : ta place dans une vraie compétition.
 
 Tu choisis une compétition, tu choisis le club dont tu prends la place, et
-tu joues son calendrier contre les onze réels des autres clubs, construits
-à partir des cartes du jeu.  Chaque adversaire vaut exactement ce que
-valent ses joueurs cette saison : quand Hakimi baisse, le PSG que tu
-affrontes baisse avec lui.
+tu joues SON calendrier — le vrai, celui de la base — contre les onze
+réels des autres clubs, bâtis sur les cartes du jeu.  Chaque adversaire
+vaut exactement ce que valent ses joueurs cette saison : quand Hakimi
+baisse, le PSG que tu affrontes baisse avec lui.  Tout suit la saison de
+la base : importe 2026/27 et la campagne se joue en 2026/27.
 
-Deux formats, parce que les compétitions n'ont pas la même forme.
+Deux formats, et ce sont les vrais.
 
-  championnat   aller-retour contre tous les autres clubs.  Les autres
-                matchs de la journée sont joués eux aussi, donc le
-                classement est un vrai classement et pas un décor.  La
-                récompense dépend de la place finale.
-  coupe         un tableau à seize, à élimination directe, tête de série
-                par la valeur de l'effectif.  Un nul se décide aux tirs au
-                but.  La récompense dépend du tour atteint : « en fonction
-                de là où tu es éliminé ».
+  championnat        le calendrier réel de la compétition, journée par
+                     journée.  Les autres matchs de la journée sont joués
+                     eux aussi, donc le classement est un vrai classement
+                     et pas un décor.  La récompense dépend de la place.
+  ligue_puis_coupe   la Ligue des champions telle qu'elle est depuis 2024 :
+                     une phase de ligue à 36 où chacun joue huit adversaires
+                     différents (le vrai tirage, lu dans la base), un seul
+                     classement, puis
+                       1-8    qualifiés directement pour les huitièmes
+                       9-24   barrages en aller-retour (9-16 reçoivent au
+                              retour), les huit vainqueurs rejoignent les
+                              huitièmes
+                       25-36  éliminés
+                     huitièmes, quarts et demies en aller-retour, finale
+                     sur un match.  Une double confrontation se joue au
+                     cumul des deux manches, et un cumul à égalité se
+                     décide aux tirs au but — plus de but à l'extérieur,
+                     comme l'UEFA depuis 2021.
 
 Tout est déterministe.  La graine de la campagne fixe la graine de chaque
 match (`_graine`), donc rejouer la même campagne donne la même chose, et
@@ -37,19 +48,35 @@ from jeu import scoring as S
 from jeu import simulation as SM
 
 # The competitions you can take a place in.  `cid` is the competition_id of
-# the game base; a cup keeps only its `taille` strongest clubs, so the
-# bracket is the one everybody has in mind (a last sixteen) and not the
-# league phase.
+# the game base, and everything else about the shape of the competition is
+# read from the base's own fixture list.
 COMPETITIONS = {
     "ligue1":  {"nom": "Ligue 1", "cid": 53, "format": "championnat"},
     "premier": {"nom": "Premier League", "cid": 47, "format": "championnat"},
     "liga":    {"nom": "LaLiga", "cid": 87, "format": "championnat"},
     "seriea":  {"nom": "Serie A", "cid": 55, "format": "championnat"},
     "bundes":  {"nom": "Bundesliga", "cid": 54, "format": "championnat"},
-    "ldc":     {"nom": "Ligue des champions", "cid": 42, "format": "coupe", "taille": 16},
+    "ldc":     {"nom": "Ligue des champions", "cid": 42, "format": "ligue_puis_coupe"},
 }
 
-TOURS_COUPE = {16: "Huitièmes", 8: "Quarts", 4: "Demi-finales", 2: "Finale"}
+# The knockout ladder of the European format, in order.  `aller_retour`
+# says whether the tie is two legs; the final never is.
+PHASES = {
+    "ligue": "Phase de ligue",
+    "barrage": "Barrages",
+    "8": "Huitièmes de finale",
+    "4": "Quarts de finale",
+    "2": "Demi-finales",
+    "F": "Finale",
+}
+SUITE = {"barrage": "8", "8": "4", "4": "2", "2": "F"}
+ALLER_RETOUR = {"barrage": True, "8": True, "4": True, "2": True, "F": False}
+
+# Who survives the league phase, as UEFA has it since 2024.
+DIRECTS = 8           # ranks 1-8 go straight to the last sixteen
+BARRAGISTES = 24      # ranks 9-24 play off for the other eight places
+TAILLE_LIGUE = 36     # clubs in the league phase
+MATCHS_LIGUE = 8      # ... each playing eight different opponents
 
 # What a campaign pays.  `credits` in M€, `packs` by type.  A league pays on
 # the final position (as a share of the field), a cup on the round reached.
@@ -62,12 +89,16 @@ RECOMPENSES_CHAMPIONNAT = {
     "maintenu": ("Maintenu", 5.0, {"bronze": 1}),
     "relegue": ("Relégué", 2.0, {"bronze": 1}),
 }
-RECOMPENSES_COUPE = {
-    1: ("Vainqueur", 80.0, {"or": 2, "argent": 1}),
-    2: ("Finaliste", 45.0, {"or": 1}),
-    4: ("Demi-finaliste", 28.0, {"argent": 2}),
-    8: ("Quart de finaliste", 16.0, {"argent": 1}),
-    16: ("Éliminé en huitièmes", 8.0, {"bronze": 1}),
+# A European campaign pays by how far you went, and going out in the
+# league phase still pays something: eight matches is a campaign.
+RECOMPENSES_EUROPE = {
+    "vainqueur": ("Vainqueur", 90.0, {"or": 3}),
+    "F": ("Finaliste", 55.0, {"or": 2}),
+    "2": ("Demi-finaliste", 36.0, {"or": 1}),
+    "4": ("Quart de finaliste", 24.0, {"argent": 2}),
+    "8": ("Huitième de finaliste", 15.0, {"argent": 1}),
+    "barrage": ("Éliminé en barrages", 9.0, {"bronze": 1}),
+    "ligue": ("Éliminé en phase de ligue", 5.0, {"bronze": 1}),
 }
 
 
@@ -107,8 +138,28 @@ def clubs_competition(jeu, saison: str, cle: str) -> list[dict]:
         out.append({"team_id": tid, "nom": nom, "couleur": couleur or "#14161E",
                     "force": round(sum(ovrs) / len(ovrs), 1)})
     out.sort(key=lambda c: -c["force"])
-    taille = comp.get("taille")
-    return out[:taille] if taille else out
+    if comp["format"] != "ligue_puis_coupe":
+        return out
+    # The European field is thirty-six.  A base that covers only the big
+    # five has cards for maybe twenty of the clubs that really qualified —
+    # the rest play in leagues it never imported — and a knockout built on
+    # twenty is not the competition.  The field is therefore completed with
+    # the strongest clubs the game DOES have cards for, so the format is
+    # the real one and every club in it is a real club with real cards.
+    if len(out) < TAILLE_LIGUE:
+        deja = {c["team_id"] for c in out}
+        for tid, nom, couleur in jeu.execute(
+                "SELECT team_id, nom, couleur FROM club ORDER BY nom"):
+            if tid in deja:
+                continue
+            ovrs = [r[0] for r in jeu.execute(
+                """SELECT c.ovr FROM carte c JOIN joueur j ON j.player_id=c.player_id
+                   WHERE c.saison=? AND j.team_id=? ORDER BY c.ovr DESC LIMIT 8""", (saison, tid))]
+            if len(ovrs) == 8:
+                out.append({"team_id": tid, "nom": nom, "couleur": couleur or "#14161E",
+                            "force": round(sum(ovrs) / len(ovrs), 1), "invite": True})
+        out.sort(key=lambda c: -c["force"])
+    return out[:TAILLE_LIGUE]
 
 
 def onze_club(jeu, saison: str, team_id: int, formation: str = "4-3-3") -> list[dict]:
@@ -245,7 +296,8 @@ def equipe_club(jeu, saison: str, club: dict) -> SM.Equipe:
 # --------------------------------------------------------------------------
 
 def calendrier_championnat(n: int) -> list[list[tuple[int, int]]]:
-    """A double round robin over `n` places, by the circle method.
+    """A double round robin over `n` places, by the circle method — the
+    fallback when the base has no fixture list for the competition.
 
     Returns the rounds, each a list of (home, away) pairs; the second leg
     mirrors the first, so everybody plays everybody twice, once each way.
@@ -266,14 +318,50 @@ def calendrier_championnat(n: int) -> list[list[tuple[int, int]]]:
     return aller + [[(b, a) for a, b in tour] for tour in aller]
 
 
-def bracket_coupe(n: int) -> list[tuple[int, int]]:
-    """The first round of a seeded bracket over `n` seeds: 1-16, 8-9, ...
-    so the two strongest can only meet in the final."""
-    ordre = [0]
-    while len(ordre) < n:
-        taille = len(ordre) * 2
-        ordre = [x for i in ordre for x in (i, taille - 1 - i)]
-    return [(ordre[i], ordre[i + 1]) for i in range(0, n, 2)]
+PHASE_REGULIERE = "Phase reguliere"
+
+
+def calendrier_reel(jeu, saison: str, cle: str, clubs: list[int]) -> list[list[tuple[int, int]]]:
+    """The competition's REAL fixture list, gameweek by gameweek.
+
+    This is what makes a campaign the competition and not a generated
+    imitation: the eight opponents a club really drew in the league phase,
+    the real order of a league season.  Fixtures involving a club the game
+    has no squad for are dropped — it cannot be played — and a base with
+    no fixtures at all returns nothing, so the caller falls back on the
+    circle method."""
+    cid = COMPETITIONS[cle]["cid"]
+    place = {tid: i for i, tid in enumerate(clubs)}
+    tours: dict[int, list[tuple[int, int]]] = {}
+    for numero, a, b in jeu.execute("""
+            SELECT j.numero, m.home_team_id, m.away_team_id FROM match m
+            JOIN journee j ON j.journee_id = m.journee_id
+            WHERE m.competition_id = ? AND j.saison = ? AND COALESCE(m.phase, ?) = ?
+            ORDER BY j.numero, m.date_utc""", (cid, saison, PHASE_REGULIERE, PHASE_REGULIERE)):
+        if a in place and b in place and a != b:
+            tours.setdefault(numero, []).append((place[a], place[b]))
+    return [tours[k] for k in sorted(tours) if tours[k]]
+
+
+def _complet(tours: list[list[tuple[int, int]]], n: int, attendus: int) -> bool:
+    """Whether a fixture list really covers the field: every club playing
+    the expected number of matches.  A base that covers only some of the
+    competition's clubs gives a calendar full of holes — half a league
+    phase, a club with two matches and another with nine — and a generated
+    draw is then closer to the competition than the real fragments."""
+    if not tours:
+        return False
+    joues = {i: 0 for i in range(n)}
+    for tour in tours:
+        for a, b in tour:
+            joues[a] = joues.get(a, 0) + 1
+            joues[b] = joues.get(b, 0) + 1
+    return all(v == attendus for v in joues.values())
+
+
+def _tour(phase: str, manche: int, duels: list[tuple[int, int]]) -> dict:
+    return {"phase": phase, "libelle": PHASES.get(phase, phase), "manche": manche,
+            "duels": [list(d) for d in duels]}
 
 
 def demarrer(jeu, saison: str, equipe_id: int, cle: str, club_remplace: int,
@@ -284,20 +372,21 @@ def demarrer(jeu, saison: str, equipe_id: int, cle: str, club_remplace: int,
     clubs = clubs_competition(jeu, saison, cle)
     if club_remplace not in {c["team_id"] for c in clubs}:
         raise ErreurSolo("Ce club ne joue pas cette compétition")
-    comp = COMPETITIONS[cle]
     graine = graine if graine is not None else random.SystemRandom().randrange(1, 10 ** 9)
-    # your place in the field is the one you took, seeding included
     place = next(i for i, c in enumerate(clubs) if c["team_id"] == club_remplace)
-    autres = [c["team_id"] for c in clubs]
-    if comp["format"] == "championnat":
-        cal = calendrier_championnat(len(clubs))
-    else:
-        cal = [bracket_coupe(len(clubs))]
+    tids = [c["team_id"] for c in clubs]
+    europe = COMPETITIONS[cle]["format"] == "ligue_puis_coupe"
+    reel = calendrier_reel(jeu, saison, cle, tids)
+    attendus = MATCHS_LIGUE if europe else 2 * (len(tids) - 1)
+    tours = reel if _complet(reel, len(tids), attendus) else (
+        calendrier_championnat(len(tids))[:MATCHS_LIGUE] if europe else calendrier_championnat(len(tids)))
+    phase = "ligue" if europe else "championnat"
+    cal = [_tour(phase, 0, t) for t in tours]
     cur = jeu.execute("""INSERT INTO campagne(saison, equipe_id, cle, club_remplace, place, graine,
                             clubs, calendrier, cree_le)
                          VALUES (?,?,?,?,?,?,?,?,?)""",
                       (saison, equipe_id, cle, club_remplace, place, graine,
-                       json.dumps(autres), json.dumps(cal), maintenant()))
+                       json.dumps(tids), json.dumps(cal), maintenant()))
     jeu.commit()
     return cur.lastrowid
 
@@ -312,11 +401,144 @@ def _graine(camp, tour: int, i: int = 0) -> int:
 
 
 # --------------------------------------------------------------------------
+# The ladder: what the league phase leaves, and what each tie decides
+# --------------------------------------------------------------------------
+
+def _duels_de(cal: list[dict], tour: int) -> list[tuple[int, int]]:
+    return [tuple(d) for d in cal[tour]["duels"]]
+
+
+def _cumul(resultats: list[dict], phase: str) -> dict[frozenset, dict]:
+    """Each tie of a phase, with its aggregate over the legs played."""
+    ties: dict[frozenset, dict] = {}
+    for f in resultats:
+        if f.get("phase") != phase:
+            continue
+        cle = frozenset((f["a"], f["b"]))
+        t = ties.setdefault(cle, {"buts": {}, "manches": 0, "duel": (f["a"], f["b"])})
+        t["buts"][f["a"]] = t["buts"].get(f["a"], 0) + f["score"][0]
+        t["buts"][f["b"]] = t["buts"].get(f["b"], 0) + f["score"][1]
+        t["manches"] += 1
+    return ties
+
+
+def vainqueurs_phase(camp, resultats: list[dict], phase: str) -> list[int] | None:
+    """The winners of a phase once every tie has been played out, or None
+    while one is still open.
+
+    The aggregate decides; level on aggregate goes to penalties — there is
+    no away-goals rule any more, and there has not been since 2021."""
+    cal = json.loads(camp["calendrier"])
+    manches = sum(1 for t in cal if t["phase"] == phase)
+    if not manches:
+        return None
+    ties = _cumul(resultats, phase)
+    attendus = len(_duels_de(cal, next(i for i, t in enumerate(cal) if t["phase"] == phase)))
+    if len(ties) != attendus or any(t["manches"] < manches for t in ties.values()):
+        return None
+    out = []
+    for cle, t in ties.items():
+        x, y = t["duel"]
+        bx, by = t["buts"].get(x, 0), t["buts"].get(y, 0)
+        if bx != by:
+            out.append(x if bx > by else y)
+        else:
+            g = camp["graine"] * 7919 + min(x, y) * 131 + max(x, y)
+            out.append(x if random.Random(g).random() < 0.5 else y)
+    # keep the order of the bracket, so the next round is drawn from it
+    ordre = {frozenset(d): i for i, d in enumerate(
+        _duels_de(cal, next(i for i, t in enumerate(cal) if t["phase"] == phase)))}
+    return [v for _, v in sorted(zip([ordre[frozenset((x, y))] for x, y in
+                                      [(t["duel"]) for t in ties.values()]], out))]
+
+
+def seuils_qualification(n: int) -> tuple[int, int]:
+    """(how many go straight through, how many reach the play-off) for a
+    league phase of `n` clubs.
+
+    The real competition is 8 and 24 out of 36.  A base that has no squad
+    for some clubs gives a smaller field, and the shape has to hold: the
+    play-off must produce exactly as many winners as there are seeds, so
+    the number going through is a power of two and the play-off is three
+    times it."""
+    if n >= 36:
+        return DIRECTS, BARRAGISTES
+    directs = 1
+    while directs * 2 <= DIRECTS and directs * 6 <= n:
+        directs *= 2
+    return directs, min(n, directs * 3)
+
+
+def tableau_apres_ligue(rangs: list[int]) -> tuple[list[tuple[int, int]], list[int], list[int]]:
+    """What the league phase decides: (play-off ties, the seeded clubs that
+    go straight to the last sixteen, the clubs knocked out).
+
+    `rangs` are the places in finishing order.  UEFA seeds the play-off
+    9-16 against 17-24 — ninth plays twenty-fourth — and the seeded side
+    hosts the second leg."""
+    n_directs, n_barrages = seuils_qualification(len(rangs))
+    directs = rangs[:n_directs]
+    barrages = rangs[n_directs:n_barrages]
+    sortis = rangs[n_barrages:]
+    n = len(barrages) // 2
+    # (lower seed, higher seed): the first leg is at the lower seed's
+    duels = [(barrages[n + i], barrages[n - 1 - i]) for i in range(n)]
+    return duels, directs, sortis
+
+
+def tableau_huitiemes(directs: list[int], qualifies: list[int]) -> list[tuple[int, int]]:
+    """The last sixteen: the eight seeded clubs meet the eight play-off
+    winners, best against weakest, and host the second leg."""
+    return [(qualifies[len(qualifies) - 1 - i] if i < len(qualifies) else directs[i], directs[i])
+            for i in range(len(directs))]
+
+
+def _prochaine_phase(camp, resultats: list[dict]) -> tuple[str, list[tuple[int, int]]] | None:
+    """The round to play after the one just finished, or None if the
+    campaign is over for everybody."""
+    cal = json.loads(camp["calendrier"])
+    phase = cal[-1]["phase"]
+    if phase == "championnat":
+        return None
+    if phase == "ligue":
+        clubs = json.loads(camp["clubs"])
+        table = _table(camp, resultats, "ligue", len(clubs))
+        rangs = [l["place"] for l in table]
+        duels, _directs, _sortis = tableau_apres_ligue(rangs)
+        return ("barrage", duels) if duels else None
+    gagnants = vainqueurs_phase(camp, resultats, phase)
+    if gagnants is None:
+        return None
+    if phase == "barrage":
+        clubs = json.loads(camp["clubs"])
+        table = _table(camp, resultats, "ligue", len(clubs))
+        rangs = [l["place"] for l in table]
+        _duels, directs, _sortis = tableau_apres_ligue(rangs)
+        return "8", tableau_huitiemes(directs, gagnants)
+    if len(gagnants) <= 1:
+        return None
+    suite = SUITE.get(phase)
+    if suite is None:
+        return None
+    return suite, [(gagnants[i], gagnants[i + 1]) for i in range(0, len(gagnants) - 1, 2)]
+
+
+def _ajouter_phase(cal: list[dict], phase: str, duels: list[tuple[int, int]]) -> None:
+    """Append a phase's rounds: one leg, or two with the ends swapped."""
+    if ALLER_RETOUR.get(phase):
+        cal.append(_tour(phase, 1, duels))
+        cal.append(_tour(phase, 2, [(b, a) for a, b in duels]))
+    else:
+        cal.append(_tour(phase, 0, duels))
+
+
+# --------------------------------------------------------------------------
 # Playing a round
 # --------------------------------------------------------------------------
 
 def _clubs_du(jeu, saison, camp) -> list[dict]:
-    """The field, in seeding order, with your place held by your team."""
+    """The field, in the order the campaign froze, with your place held by
+    your team."""
     tids = json.loads(camp["clubs"])
     par_id = {c["team_id"]: c for c in clubs_competition(jeu, saison, camp["cle"])}
     nom_equipe = jeu.execute("SELECT nom FROM equipe WHERE equipe_id=?", (camp["equipe_id"],)).fetchone()[0]
@@ -363,7 +585,8 @@ def jouer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict
         return {} if place == moi else changements_club(eq(place), g)
 
     resultats = json.loads(camp["resultats"] or "[]")
-    duels = cal[tour]
+    phase = cal[tour]["phase"]
+    duels = _duels_de(cal, tour)
     feuilles = []
     for i, (a, b) in enumerate(duels):
         g = _graine(camp, tour, i)
@@ -373,32 +596,39 @@ def jouer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict
                 courant = chg.setdefault(minute, ([], []))
                 courant[cote].extend(paires)
         f = SM.jouer(eq(a), eq(b), g, changements=chg)
-        tirs_au_but = None
-        if COMPETITIONS[camp["cle"]]["format"] == "coupe" and f["resultat"] == "N":
-            tirs_au_but = _penalties(eq(a), eq(b), g)
-        feuilles.append({"tour": tour, "a": a, "b": b, "score": f["score"],
-                         "resultat": tirs_au_but or f["resultat"],
-                         "tab": tirs_au_but is not None,
+        feuilles.append({"tour": tour, "phase": phase, "manche": cal[tour]["manche"],
+                         "a": a, "b": b, "score": f["score"], "resultat": f["resultat"],
                          "possession": f["possession"], "tirs": f["tirs"],
+                         "corners": f["corners"], "fautes": f["fautes"],
+                         "jaunes": f["jaunes"], "rouges": f["rouges"],
                          "evenements": f["evenements"] if moi in (a, b) else [],
+                         "fil": f["fil"] if moi in (a, b) else [],
                          "mien": moi in (a, b)})
     resultats += feuilles
     tour += 1
-    fini, bilan = False, None
-    if COMPETITIONS[camp["cle"]]["format"] == "coupe":
-        vainqueurs = [d[0] if f["resultat"] == "A" else d[1] for d, f in zip(duels, feuilles)]
-        if moi not in vainqueurs or len(vainqueurs) == 1:
-            fini = True
-        else:
-            cal.append([(vainqueurs[i], vainqueurs[i + 1]) for i in range(0, len(vainqueurs), 2)])
-    else:
-        fini = tour >= len(cal)
+
+    # the round that follows, once this phase has played itself out
+    if tour >= len(cal) and cal[-1]["phase"] != "championnat":
+        suite = _prochaine_phase(camp, resultats)
+        if suite:
+            _ajouter_phase(cal, suite[0], suite[1])
+
+    fini = tour >= len(cal) or not _encore_en_lice(camp, resultats, cal, moi, tour)
     jeu.execute("UPDATE campagne SET tour=?, resultats=?, calendrier=? WHERE campagne_id=?",
                 (tour, json.dumps(resultats), json.dumps(cal), camp["campagne_id"]))
     jeu.commit()
-    if fini:
-        bilan = cloturer(jeu, saison, camp["campagne_id"])
-    return {"tour": tour - 1, "feuilles": feuilles, "fini": fini, "bilan": bilan}
+    bilan = cloturer(jeu, saison, camp["campagne_id"]) if fini else None
+    return {"tour": tour - 1, "phase": phase, "feuilles": feuilles, "fini": fini, "bilan": bilan}
+
+
+def _encore_en_lice(camp, resultats: list[dict], cal: list[dict], moi: int, tour: int) -> bool:
+    """Whether you still have a match to play: a league season always does,
+    a knockout only while you are in the next round."""
+    if tour >= len(cal):
+        return False
+    if cal[tour]["phase"] in ("championnat", "ligue"):
+        return True
+    return any(moi in d for d in _duels_de(cal, tour))
 
 
 def _penalties(a: SM.Equipe, b: SM.Equipe, graine: int) -> str:
@@ -412,11 +642,13 @@ def _penalties(a: SM.Equipe, b: SM.Equipe, graine: int) -> str:
 # The table, the bracket, the rewards
 # --------------------------------------------------------------------------
 
-def classement(camp, clubs: list[dict]) -> list[dict]:
-    """The league table as the played rounds leave it."""
-    t = {i: {"place": i, "nom": c["nom"], "couleur": c.get("couleur"), "toi": bool(c.get("toi")),
-             "j": 0, "g": 0, "n": 0, "p": 0, "bp": 0, "bc": 0, "pts": 0} for i, c in enumerate(clubs)}
-    for f in json.loads(camp["resultats"] or "[]"):
+def _table(camp, resultats: list[dict], phase: str, n: int) -> list[dict]:
+    """The standing of one phase, places only — what the ranking rules need
+    without any club name."""
+    t = {i: {"place": i, "j": 0, "g": 0, "n": 0, "p": 0, "bp": 0, "bc": 0, "pts": 0} for i in range(n)}
+    for f in resultats:
+        if f.get("phase") not in (phase, None) or f["a"] not in t or f["b"] not in t:
+            continue
         a, b = t[f["a"]], t[f["b"]]
         ba, bb = f["score"]
         for x, pour, contre in ((a, ba, bb), (b, bb, ba)):
@@ -427,10 +659,18 @@ def classement(camp, clubs: list[dict]) -> list[dict]:
             b["g"] += 1; b["pts"] += 3; a["p"] += 1
         else:
             a["n"] += 1; b["n"] += 1; a["pts"] += 1; b["pts"] += 1
-    lignes = sorted(t.values(), key=lambda x: (-x["pts"], -(x["bp"] - x["bc"]), -x["bp"], x["nom"]))
+    lignes = sorted(t.values(), key=lambda x: (-x["pts"], -(x["bp"] - x["bc"]), -x["bp"], x["place"]))
     for k, l in enumerate(lignes, 1):
         l["rang"] = k
     return lignes
+
+
+def classement(camp, clubs: list[dict], phase: str | None = None) -> list[dict]:
+    """The table as the played rounds leave it, with the clubs' names."""
+    phase = phase or json.loads(camp["calendrier"])[0]["phase"]
+    lignes = _table(camp, json.loads(camp["resultats"] or "[]"), phase, len(clubs))
+    return [l | {"nom": clubs[l["place"]]["nom"], "couleur": clubs[l["place"]].get("couleur"),
+                 "toi": bool(clubs[l["place"]].get("toi"))} for l in lignes]
 
 
 def recompense_championnat(rang: int, n: int) -> tuple[str, float, dict]:
@@ -454,6 +694,27 @@ def recompense_championnat(rang: int, n: int) -> tuple[str, float, dict]:
     return libelle, credits, dict(packs)
 
 
+def _sortie_europe(camp, resultats: list[dict], cal: list[dict], moi: int) -> str:
+    """Where a European campaign ended for you: the key of RECOMPENSES_EUROPE."""
+    phases = [t["phase"] for t in cal]
+    if "barrage" not in phases:            # the league phase did not send you through
+        return "ligue"
+    derniere = None
+    for phase in ("barrage", "8", "4", "2", "F"):
+        if phase not in phases:
+            break
+        joues = [f for f in resultats if f.get("phase") == phase and moi in (f["a"], f["b"])]
+        if not joues:
+            return derniere or "ligue"
+        gagnants = vainqueurs_phase(camp, resultats, phase)
+        if gagnants is None:
+            return phase                   # eliminated before the phase resolved
+        if moi not in gagnants:
+            return phase
+        derniere = phase
+    return "vainqueur" if derniere == "F" else (SUITE.get(derniere) or "vainqueur")
+
+
 def cloturer(jeu, saison: str, campagne_id: int) -> dict:
     """Close a finished campaign and pay it.  Closing twice pays once."""
     camp = jeu.execute("SELECT * FROM campagne WHERE campagne_id=?", (campagne_id,)).fetchone()
@@ -461,33 +722,24 @@ def cloturer(jeu, saison: str, campagne_id: int) -> dict:
         raise ErreurSolo("Campagne inconnue")
     if camp["statut"] == "fini":
         return json.loads(camp["recompenses"] or "{}")
-    clubs = _clubs_du(jeu, saison, camp)
+    clubs = json.loads(camp["clubs"])
+    cal = json.loads(camp["calendrier"])
     moi = camp["place"]
     resultats = json.loads(camp["resultats"] or "[]")
     miens = [f for f in resultats if f["mien"]]
     victoires = sum(1 for f in miens if (f["resultat"] == "A") == (f["a"] == moi))
     nuls = sum(1 for f in miens if f["resultat"] == "N")
     if COMPETITIONS[camp["cle"]]["format"] == "championnat":
-        table = classement(camp, clubs)
+        table = _table(camp, resultats, "championnat", len(clubs))
         rang = next(l["rang"] for l in table if l["place"] == moi)
         libelle, credits, packs = recompense_championnat(rang, len(clubs))
         detail = {"rang": rang, "sur": len(clubs)}
     else:
-        # the round you went out in, counted by how many clubs were still
-        # in when it was played: sixteen for the last sixteen, two for the
-        # final, one if you won it
-        restants = len(clubs)
-        for t in range(camp["tour"]):
-            mien = next((f for f in resultats if f["tour"] == t and f["mien"]), None)
-            if mien is None:
-                break
-            engages = len([f for f in resultats if f["tour"] == t]) * 2
-            if (mien["resultat"] == "A") != (mien["a"] == moi):
-                restants = engages          # beaten with that many still in
-                break
-            restants = engages // 2 if engages > 2 else 1
-        libelle, credits, packs = RECOMPENSES_COUPE[restants]
-        detail = {"tour": TOURS_COUPE.get(restants, f"Tour à {restants}")}
+        cle = _sortie_europe(camp, resultats, cal, moi)
+        libelle, credits, packs = RECOMPENSES_EUROPE[cle]
+        table = _table(camp, resultats, "ligue", len(clubs))
+        rang = next((l["rang"] for l in table if l["place"] == moi), None)
+        detail = {"tour": libelle, "rang_ligue": rang, "sur": len(clubs)}
     credits += PRIME_VICTOIRE * victoires + PRIME_NUL * nuls
     credits = round(credits, 1)
     bilan = {"libelle": libelle, "credits": credits, "packs": packs,
@@ -535,33 +787,58 @@ def etat(jeu, saison: str, equipe_id: int) -> dict:
     clubs = _clubs_du(jeu, saison, camp)
     cal = json.loads(camp["calendrier"])
     comp = COMPETITIONS[camp["cle"]]
+    resultats = json.loads(camp["resultats"] or "[]")
+    tour = camp["tour"]
     prochain = None
-    if camp["tour"] < len(cal):
-        # an odd field rests one club a round: there is a journée to play,
-        # but not for you
-        prochain = {"exempt": True, "tour": camp["tour"] + 1, "tours": len(cal)}
-        for a, b in cal[camp["tour"]]:
+    if tour < len(cal):
+        t = cal[tour]
+        prochain = {"exempt": True, "tour": tour + 1, "tours": len(cal),
+                    "phase": t["phase"], "libelle": t["libelle"], "manche": t["manche"]}
+        for a, b in _duels_de(cal, tour):
             if camp["place"] in (a, b):
                 adv = b if a == camp["place"] else a
-                prochain = {"exempt": False, "adversaire": clubs[adv], "domicile": a == camp["place"],
-                            "tour": camp["tour"] + 1, "tours": len(cal)}
-    resultats = json.loads(camp["resultats"] or "[]")
+                cumul = _cumul(resultats, t["phase"]).get(frozenset((a, b)))
+                prochain |= {"exempt": False, "adversaire": clubs[adv],
+                             "domicile": a == camp["place"],
+                             "aller": (dict(zip(("moi", "lui"),
+                                                (cumul["buts"].get(camp["place"], 0), cumul["buts"].get(adv, 0))))
+                                       if cumul and t["manche"] == 2 else None)}
     c = {"campagne_id": camp["campagne_id"], "cle": camp["cle"], "nom": comp["nom"], "format": comp["format"],
-         "club_remplace": next((x["nom"] for i, x in enumerate(clubs_competition(jeu, saison, camp["cle"]))
+         "club_remplace": next((x["nom"] for x in clubs_competition(jeu, saison, camp["cle"])
                                 if x["team_id"] == camp["club_remplace"]), ""),
-         "place": camp["place"], "tour": camp["tour"], "tours": len(cal), "prochain": prochain,
+         "place": camp["place"], "tour": tour, "tours": len(cal), "prochain": prochain,
+         "phase": cal[min(tour, len(cal) - 1)]["phase"],
          "mes_matchs": [f | {"adversaire": clubs[f["b"] if f["a"] == camp["place"] else f["a"]]["nom"]}
-                        for f in resultats if f["mien"]][-8:]}
-    if comp["format"] == "championnat":
-        c["classement"] = classement(camp, clubs)
-    else:
-        c["tableau"] = [[{"a": clubs[a]["nom"], "b": clubs[b]["nom"],
-                          "score": next((f["score"] for f in resultats if f["tour"] == t and f["a"] == a), None),
-                          "resultat": next((f["resultat"] for f in resultats if f["tour"] == t and f["a"] == a), None),
-                          "toi": camp["place"] in (a, b)}
-                         for a, b in cal[t]] for t in range(len(cal))]
-        c["reste"] = TOURS_COUPE.get(len(cal[camp["tour"]]) * 2 if camp["tour"] < len(cal) else 1, "")
+                        for f in resultats if f["mien"]][-10:]}
+    phase_table = "championnat" if comp["format"] == "championnat" else "ligue"
+    c["classement"] = classement(camp, clubs, phase_table)
+    if comp["format"] != "championnat":
+        c["qualification"] = {"directs": DIRECTS, "barrages": BARRAGISTES}
+        c["tableau"] = _tableau_ko(camp, clubs, cal, resultats)
     return base | {"campagne": c}
+
+
+def _tableau_ko(camp, clubs: list[dict], cal: list[dict], resultats: list[dict]) -> list[dict]:
+    """The knockout bracket as it stands: one entry per phase, each tie with
+    its aggregate and, once both legs are in, its winner."""
+    out = []
+    for phase in ("barrage", "8", "4", "2", "F"):
+        tours = [i for i, t in enumerate(cal) if t["phase"] == phase]
+        if not tours:
+            continue
+        ties = _cumul(resultats, phase)
+        gagnants = vainqueurs_phase(camp, resultats, phase)
+        duels = _duels_de(cal, tours[0])
+        lignes = []
+        for i, (a, b) in enumerate(duels):
+            t = ties.get(frozenset((a, b)))
+            lignes.append({"a": clubs[a]["nom"], "b": clubs[b]["nom"],
+                           "cumul": [t["buts"].get(a, 0), t["buts"].get(b, 0)] if t else None,
+                           "manches": t["manches"] if t else 0,
+                           "vainqueur": (clubs[gagnants[i]]["nom"] if gagnants and i < len(gagnants) else None),
+                           "toi": camp["place"] in (a, b)})
+        out.append({"phase": phase, "libelle": PHASES[phase], "ties": lignes})
+    return out
 
 
 def palmares(jeu, saison: str, equipe_id: int) -> list[dict]:

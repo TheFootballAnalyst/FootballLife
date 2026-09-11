@@ -130,16 +130,42 @@ quelqu'un.
 ## Le mode solo
 
 Tu choisis une compétition — les cinq championnats ou la Ligue des
-champions — puis **le club dont tu prends la place**. Tu joues son
-calendrier avec ton onze, contre les vrais clubs : leur équipe est bâtie
-sur les cartes de leurs joueurs, donc elle vaut ce qu'ils valent cette
-saison. Quand Hakimi baisse, le PSG que tu affrontes baisse avec lui.
+champions — puis **le club dont tu prends la place**. Tu joues **son**
+calendrier, le vrai, lu dans la base : les huit adversaires qu'un club a
+réellement tirés en phase de ligue, l'ordre réel d'une saison de
+championnat. Les adversaires sont les vrais clubs, alignés avec les
+cartes de leurs joueurs, donc ils valent ce qu'ils valent cette saison.
+Quand Hakimi baisse, le PSG que tu affrontes baisse avec lui. Tout suit
+la saison de la base : importe 2026/27 et la campagne se joue en
+2026/27.
 
-Un championnat se joue en aller-retour. Les autres matchs de la journée
-sont joués eux aussi, donc le classement est un vrai classement, et c'est
-la place finale qui paie. Une coupe est un tableau à seize, à élimination
-directe, tête de série par la valeur de l'effectif ; un nul se décide aux
-tirs au but, et la récompense dépend du tour où tu sors.
+Un **championnat** se joue en aller-retour. Les autres matchs de la
+journée sont joués eux aussi, donc le classement est un vrai classement,
+et c'est la place finale qui paie.
+
+La **Ligue des champions** est au format réel depuis 2024 :
+
+- une phase de ligue à 36, chacun contre huit adversaires différents, un
+  seul classement ;
+- les 8 premiers vont directement en huitièmes ;
+- du 9ᵉ au 24ᵉ, barrages en aller-retour (les 9-16 reçoivent au retour) ;
+- du 25ᵉ au 36ᵉ, éliminés ;
+- huitièmes, quarts et demies en aller-retour, finale sur un match.
+
+Une double confrontation se joue au cumul des deux manches, et un cumul à
+égalité se décide aux tirs au but — plus de but à l'extérieur, comme
+l'UEFA depuis 2021.
+
+Le champ européen est de trente-six. Une base qui ne couvre que les cinq
+grands championnats n'a de cartes que pour une vingtaine des clubs qui se
+sont vraiment qualifiés — les autres jouent dans des championnats qu'elle
+n'a jamais importés — et un tableau bâti sur vingt n'est pas la
+compétition. Le champ est donc complété par les clubs les plus forts dont
+le jeu A des cartes : le format est le vrai, et chaque club dedans est un
+vrai club avec de vraies cartes. Le calendrier réel n'est utilisé que
+s'il couvre tout le champ ; sinon le tirage est engendré, parce qu'une
+demi-phase de ligue avec des clubs à deux matchs et d'autres à neuf est
+plus loin de la compétition qu'un tirage complet.
 
 Les récompenses sont des crédits (M€) et des **packs offerts**, qui
 s'ouvrent depuis l'écran Packs sans rien coûter — ils tirent dans le même
@@ -151,7 +177,8 @@ contrôle bien plus qu'il ne finit garde le ballon, un autre joue direct,
 une défense faible s'assoit bas. Ce n'est pas tiré au sort — la même
 équipe joue toujours pareil — et les seuils sont les terciles des 96
 onze des cinq championnats, sinon tout le monde jouait direct et offensif
-en même temps.
+en même temps. Les clubs tenus par la machine font aussi leurs
+changements.
 
 Tout est rejouable : la graine de la campagne fixe celle de chaque match,
 et un résultat est écrit dès qu'il est calculé.

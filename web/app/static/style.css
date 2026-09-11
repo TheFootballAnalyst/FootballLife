@@ -560,3 +560,10 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 .chg-j .num{color:var(--or2)}
 .evt.jaune .ico,.evt.rouge .ico{filter:none}
 @media (max-width:640px){.chg-choix{grid-template-columns:1fr}}
+
+/* La phase de ligue sert aussi de tableau de qualification */
+.tl.direct{border-left:3px solid #2E7D5B}
+.tl.barrage{border-left:3px solid var(--or3,#8a6c2e)}
+.tl.dehors{border-left:3px solid #8C3A36;opacity:.75}
+.btie.fini b{color:var(--encre)}
+.btie .gagne{font-weight:700;color:var(--or2)}

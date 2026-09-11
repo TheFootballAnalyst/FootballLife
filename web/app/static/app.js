@@ -783,11 +783,16 @@ async function demarrerSolo(r, club) {
 function panneauCampagne(d) {
   const c = d.campagne;
   const p = el("div", {class: "panneau"});
+  const pr = c.prochain;
+  // A league round is a journée; a knockout round has a name of its own,
+  // and which leg it is matters more than its number in the calendar.
+  const ou = !pr ? "campagne terminée"
+    : (pr.phase === "ligue" || pr.phase === "championnat")
+      ? `journée ${pr.tour} sur ${c.format === "championnat" ? c.tours : 8}`
+      : (PHASES_SOLO[pr.phase] || pr.libelle || "") + (pr.manche ? ` · match ${pr.manche === 1 ? "aller" : "retour"}` : "");
   p.append(el("div", {class: "tete-campagne"},
     el("div", {}, el("h3", {class: "anton"}, c.nom),
-      el("div", {class: "compteur"}, `À la place de ${c.club_remplace} · `
-        + (c.format === "coupe" ? (c.reste || "tour suivant")
-           : `journée ${Math.min(c.tour + 1, c.tours)} sur ${c.tours}`))),
+      el("div", {class: "compteur"}, `À la place de ${c.club_remplace} · ${ou}`)),
     el("button", {class: "discret", onclick: async () => {
       if (!confirm("Abandonner la campagne ? Elle ne rapportera rien.")) return;
       try { await rendreSolo(await api("/solo/abandonner", {})); } catch (e) { toast(e.message); }
@@ -805,11 +810,13 @@ function panneauCampagne(d) {
       ligne.append(el("img", {src: `/images/logos/${a.team_id}.png`, alt: "", onerror: e => e.target.remove()}),
         el("div", {}, el("div", {class: "etiq"}, c.prochain.domicile ? "À domicile contre" : "En déplacement à"),
           el("div", {class: "nom anton"}, a.nom),
-          el("div", {class: "compteur"}, `effectif ${a.force}`)));
+          el("div", {class: "compteur"}, `effectif ${a.force}`
+            + (c.prochain.aller ? ` · aller ${c.prochain.aller.moi} – ${c.prochain.aller.lui}` : ""))));
       p.append(ligne);
       p.append(selecteurTactique(LOBBY.tac, () => {}));
       p.append(el("div", {class: "actions"},
-        el("button", {class: "primaire", onclick: () => jouerSolo(onze)}, "Jouer la journée")));
+        el("button", {class: "primaire", onclick: () => jouerSolo(onze)},
+          c.prochain.manche === 2 ? "Jouer le match retour" : "Jouer le match")));
     }
   }
   if (c.mes_matchs?.length) {
@@ -819,12 +826,16 @@ function panneauCampagne(d) {
       p.append(el("div", {class: "ligne simple"},
         el("span", {class: "res " + r}, r),
         el("div", {class: "qui"}, el("div", {class: "nom"}, (chez_moi ? "" : "à ") + m.adversaire),
-          el("div", {class: "sous"}, `journée ${m.tour + 1}${m.tab ? " · aux tirs au but" : ""}`)),
+          el("div", {class: "sous"}, PHASES_SOLO[m.phase]
+            ? PHASES_SOLO[m.phase] + (m.manche ? (m.manche === 1 ? " · aller" : " · retour") : "")
+            : `journée ${m.tour + 1}`)),
         el("b", {class: "num"}, scoreSolo(m, c.place))));
     }
   }
-  if (c.classement) p.append(el("div", {class: "etiq"}, "Classement"), tableauClassement(c.classement));
-  if (c.tableau) p.append(el("div", {class: "etiq"}, "Tableau"), tableauCoupe(c.tableau));
+  if (c.classement?.length)
+    p.append(el("div", {class: "etiq"}, c.format === "championnat" ? "Classement" : "Phase de ligue"),
+      tableauClassement(c.classement, c.qualification));
+  if (c.tableau?.length) p.append(el("div", {class: "etiq"}, "Tableau final"), tableauCoupe(c.tableau));
   return p;
 }
 
@@ -839,31 +850,41 @@ function scoreSolo(m, place) {
   return `${x} – ${y}`;
 }
 
-function tableauClassement(lignes) {
+// The league-phase table doubles as the qualification board: the top eight
+// go straight to the last sixteen, nine to twenty-four to the play-off,
+// the rest are out.  Colouring the rows says it without a legend.
+function tableauClassement(lignes, qual) {
   const t = el("div", {class: "table-solo"});
   t.append(el("div", {class: "tl tete"}, el("span", {}, "#"), el("span", {}, "Club"),
     el("b", {}, "J"), el("b", {}, "G"), el("b", {}, "N"), el("b", {}, "P"), el("b", {}, "Diff"), el("b", {}, "Pts")));
-  for (const l of lignes)
-    t.append(el("div", {class: "tl" + (l.toi ? " moi" : "")}, el("span", {}, String(l.rang)),
+  for (const l of lignes) {
+    const zone = qual ? (l.rang <= qual.directs ? " direct" : l.rang <= qual.barrages ? " barrage" : " dehors") : "";
+    t.append(el("div", {class: "tl" + (l.toi ? " moi" : "") + zone}, el("span", {}, String(l.rang)),
       el("span", {class: "nom"}, l.nom), el("b", {}, String(l.j)), el("b", {}, String(l.g)),
       el("b", {}, String(l.n)), el("b", {}, String(l.p)),
       el("b", {}, (l.bp - l.bc > 0 ? "+" : "") + (l.bp - l.bc)), el("b", {class: "pts"}, String(l.pts))));
+  }
+  if (qual) t.append(el("p", {class: "compteur"},
+    `Les ${qual.directs} premiers passent directement en huitièmes, du ${qual.directs + 1}ᵉ au ${qual.barrages}ᵉ par les barrages, les autres sont éliminés.`));
   return t;
 }
 
-// The round's name comes from how many ties it holds, not from its index:
-// a bracket that has only played its first round still knows that eight
-// ties are the last sixteen.
-const NOMS_TOUR = {8: "Huitièmes de finale", 4: "Quarts de finale", 2: "Demi-finales", 1: "Finale"};
-function tableauCoupe(tours) {
+const PHASES_SOLO = {barrage: "Barrages", "8": "Huitièmes de finale", "4": "Quarts de finale",
+  "2": "Demi-finales", F: "Finale"};
+
+// One column per phase, each tie with its AGGREGATE over the two legs —
+// that is what decides it, so that is what the bracket shows.
+function tableauCoupe(phases) {
   const t = el("div", {class: "bracket"});
-  tours.forEach((tour, i) => {
-    const col = el("div", {class: "bcol"}, el("div", {class: "etiq"}, NOMS_TOUR[tour.length] || `Tour à ${tour.length * 2}`));
-    for (const d of tour)
-      col.append(el("div", {class: "btie" + (d.toi ? " moi" : "")},
-        el("span", {}, d.a), el("b", {}, d.score ? `${d.score[0]}–${d.score[1]}` : "—"), el("span", {}, d.b)));
+  for (const ph of phases) {
+    const col = el("div", {class: "bcol"}, el("div", {class: "etiq"}, ph.libelle));
+    for (const d of ph.ties)
+      col.append(el("div", {class: "btie" + (d.toi ? " moi" : "") + (d.vainqueur ? " fini" : "")},
+        el("span", {class: d.vainqueur === d.a ? "gagne" : ""}, d.a),
+        el("b", {}, d.cumul ? `${d.cumul[0]}–${d.cumul[1]}` : "—"),
+        el("span", {class: d.vainqueur === d.b ? "gagne" : ""}, d.b)));
     t.append(col);
-  });
+  }
   return t;
 }
 
@@ -888,7 +909,7 @@ function montrerFeuilleSolo(f, r, place) {
   const chez_moi = f.a === place;
   const box = el("div", {class: "fiche"}, el("h3", {class: "anton"}, scoreSolo(f, place)),
     el("p", {class: "compteur"},
-      `${{V: "Victoire", N: "Match nul", D: "Défaite"}[resSolo(f, place)]}${f.tab ? " aux tirs au but" : ""}`
+      `${{V: "Victoire", N: "Match nul", D: "Défaite"}[resSolo(f, place)]}`
       + ` · possession ${chez_moi ? f.possession[0] : f.possession[1]} %`
       + ` · tirs ${chez_moi ? f.tirs[0] : f.tirs[1]} contre ${chez_moi ? f.tirs[1] : f.tirs[0]}`));
   const fil = el("div", {class: "fil"});
