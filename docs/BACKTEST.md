@@ -232,7 +232,16 @@ puis stable) au lieu de sauter d'un coup. Effet de bord mesuré sur le
 rejeu J25→J34 : l'amplitude se resserre (p5 −7 contre −8, p95 +9 contre
 +10) et la prédiction de la suite de saison **monte de 0,47 à 0,52**.
 
-## Le match en face à face (J18–J34, 40 équipes, 340 matchs)
+## Le match en face à face sur actions réelles (retiré)
+
+Ce match — deux onze qui s'affrontaient chaque journée sur les actions
+réelles de leurs joueurs — a été retiré une fois le lobby classé en
+place : deux matchs compétitifs divisaient l'attention et les classements
+pour rien, et celui-là ne pouvait que se regarder. Sa calibration est
+conservée ici pour mémoire, les seuils ayant servi à régler le moteur du
+lobby.
+
+<details><summary>Calibration d'origine</summary>
 
 Quarante effectifs tirés comme la foule (OVR bruité, 100 M€), appariés
 au hasard chaque journée, leurs onze passés par les remplacements
@@ -255,6 +264,8 @@ que « Duel au sol gagné » l'a quittée (travail défensif moyen par onze
 passé de 98 à 77 points), pour garder la défense décisive sur un match
 sur cinq. Le football réel fait 1,4 but par équipe et 25 % de nuls ; ici
 un défenseur central rapporte quelque chose au-delà de sa note.
+
+</details>
 
 ## Résultats en euros, ligue globale (J18–J34, budget 100 M€, demande 1,0)
 

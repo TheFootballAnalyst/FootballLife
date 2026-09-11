@@ -19,10 +19,14 @@ One command turns a finished gameweek into frozen results:
   3. score    every composition submitted before the lock is scored
               (scoring.score_equipe) -> resultat; the payout goes to
               equipe.budget and the points to equipe.points_total
-  4. matches  the head-to-head fixtures of the gameweek are resolved from
-              the real actions of both elevens (match.feuille_de_match),
-              the Elo of both teams moves; the next gameweek is paired
-  5. close    journee.calculee = 1, lineups carried over
+  4. close    journee.calculee = 1, lineups carried over
+
+The gameweek used to also resolve a head-to-head between two managers'
+elevens from the real actions of their starters.  That match is gone: the
+cards have one of their own in the ranked lobby (jeu/lobby.py), and one
+competitive match was enough.  What the gameweek still decides is the
+whole point of it — what every card is now worth, and where you stand in
+the league on the week's score.
 
 Prices are in M€: a card starts the season at the player's market value
 known at the seed date (valeur_marche, from the match sheets; estimated
@@ -59,7 +63,6 @@ from jeu import bareme as B  # noqa: E402
 from jeu import evolution as E  # noqa: E402
 from jeu import importer as I  # noqa: E402
 from jeu import marche as MA  # noqa: E402
-from jeu import match as M  # noqa: E402
 from jeu import scoring as S  # noqa: E402
 
 TOP5 = (47, 87, 55, 54, 53)
@@ -422,9 +425,7 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
     if importer and fot is not None:
         resume["prestations"] = I.importer_journee(fot, jeu, saison, dict(numero=numero, du=du, au=au, cloture=cloture))
     prestas = prestations_journee(jeu, jid)
-    # teams that joined after the pairing get their fixture now; auctions past their end close
-    apparier_journee(jeu, saison, numero)
-    MA.resoudre_encheres(jeu)
+    MA.resoudre_encheres(jeu)          # auctions past their end close with the gameweek
     jeu.commit()
 
     # 2. evolve, from the state after the previous gameweek
@@ -519,80 +520,12 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
                      r["gain"], r["rang"]))
         jeu.execute("UPDATE equipe SET budget=budget+?, points_total=points_total+? WHERE equipe_id=?",
                     (r["gain"], r["score"], r["equipe_id"]))
-    resume["matchs"] = resoudre_matchs(jeu, saison, numero, {r["equipe_id"]: r for r in resultats})
     jeu.execute("UPDATE journee SET calculee=1 WHERE journee_id=?", (jid,))
     reconduire_compositions(jeu, saison, numero)
-    apparier_journee(jeu, saison, numero + 1)
     jeu.commit()
     # the current-card table must reflect the LAST computed gameweek: if an
     # earlier one was recomputed, later states are stale until re-run
     return resume
-
-
-def apparier_journee(jeu, saison, numero) -> int:
-    """Give every team of every game league a head-to-head fixture on
-    gameweek `numero` if it has none yet (Swiss pairing on Elo, rematches
-    avoided when possible).  Returns the number of matches created."""
-    row = jeu.execute("SELECT journee_id, calculee FROM journee WHERE saison=? AND numero=?", (saison, numero)).fetchone()
-    if not row or row[1]:
-        return 0
-    jid = row[0]
-    n = 0
-    for (lid,) in jeu.execute("SELECT ligue_jeu_id FROM ligue_jeu WHERE saison=?", (saison,)).fetchall():
-        pris = {r[0] for r in jeu.execute("SELECT equipe_a FROM match_h2h WHERE journee_id=? AND ligue_jeu_id=?", (jid, lid))}
-        pris |= {r[0] for r in jeu.execute("SELECT equipe_b FROM match_h2h WHERE journee_id=? AND ligue_jeu_id=?", (jid, lid))}
-        libres = [(eid, elo) for eid, elo in jeu.execute("SELECT equipe_id, elo FROM equipe WHERE ligue_jeu_id=?", (lid,)) if eid not in pris]
-        if len(libres) < 2:
-            continue
-        deja = {frozenset((a, b)) for a, b in jeu.execute("""
-            SELECT m.equipe_a, m.equipe_b FROM match_h2h m JOIN journee j ON j.journee_id = m.journee_id
-            WHERE m.ligue_jeu_id=? AND j.saison=? AND j.numero < ?""", (lid, saison, numero))}
-        elo = dict(libres)
-        for a, b in M.apparier(libres, deja):
-            jeu.execute("""INSERT INTO match_h2h(journee_id, ligue_jeu_id, equipe_a, equipe_b, elo_a_avant, elo_b_avant)
-                           VALUES (?,?,?,?,?,?)""", (jid, lid, a, b, elo[a], elo[b]))
-            n += 1
-    return n
-
-
-def onze_pour_match(jeu, jid, onze_ids, detail):
-    """The eleven of a team as match.py wants it: real actions of each starter."""
-    out = []
-    for pid in onze_ids:
-        nom, poste = jeu.execute("SELECT nom, poste FROM joueur WHERE player_id=?", (pid,)).fetchone() or (str(pid), "Milieu relayeur")
-        ps = [dict(note=n, minutes=m, stats=json.loads(st or "{}"), lignes=json.loads(li or "{}"))
-              for n, m, st, li in jeu.execute("""SELECT p.note, p.minutes, p.stats, p.lignes FROM prestation p
-                  JOIN match mt ON mt.match_id = p.match_id WHERE p.player_id=? AND mt.journee_id=? AND p.note IS NOT NULL""", (pid, jid))]
-        out.append(dict(pid=pid, nom=nom, poste=poste, prestations=ps))
-    return out
-
-
-def resoudre_matchs(jeu, saison, numero, resultats_par_equipe) -> int:
-    """Resolve the head-to-head fixtures of the gameweek from the scored
-    elevens (auto-subs applied).  A team without a scored lineup fields
-    nobody.  Idempotent: a match already resolved first gives both teams
-    their Elo back."""
-    jid = journee_id(jeu, saison, numero)
-    caps = {eid: cap for eid, cap in jeu.execute("SELECT equipe_id, capitaine FROM composition WHERE journee_id=?", (jid,))}
-    n = 0
-    for mid, a, b, res, ea0, eb0, ea1, eb1 in jeu.execute("""SELECT match_h2h_id, equipe_a, equipe_b, resultat,
-            elo_a_avant, elo_b_avant, elo_a_apres, elo_b_apres FROM match_h2h WHERE journee_id=?""", (jid,)).fetchall():
-        if res is not None:                                   # recompute: undo the Elo move
-            jeu.execute("UPDATE equipe SET elo = elo - ? WHERE equipe_id=?", (ea1 - ea0, a))
-            jeu.execute("UPDATE equipe SET elo = elo - ? WHERE equipe_id=?", (eb1 - eb0, b))
-        ra = jeu.execute("SELECT elo FROM equipe WHERE equipe_id=?", (a,)).fetchone()[0]
-        rb = jeu.execute("SELECT elo FROM equipe WHERE equipe_id=?", (b,)).fetchone()[0]
-        onze_a = onze_pour_match(jeu, jid, resultats_par_equipe.get(a, {}).get("onze", []), None)
-        onze_b = onze_pour_match(jeu, jid, resultats_par_equipe.get(b, {}).get("onze", []), None)
-        f = M.feuille_de_match(onze_a, onze_b, caps.get(a), caps.get(b))
-        ra2, rb2 = M.elo_maj(ra, rb, f["resultat"])
-        jeu.execute("""UPDATE match_h2h SET score_a=?, score_b=?, resultat=?, elo_a_avant=?, elo_b_avant=?,
-                       elo_a_apres=?, elo_b_apres=?, feuille=? WHERE match_h2h_id=?""",
-                    (f["score"][0], f["score"][1], f["resultat"], ra, rb, ra2, rb2, json.dumps(f, ensure_ascii=False), mid))
-        jeu.execute("UPDATE equipe SET elo=? WHERE equipe_id=?", (ra2, a))
-        jeu.execute("UPDATE equipe SET elo=? WHERE equipe_id=?", (rb2, b))
-        n += 1
-    return n
 
 
 def reconduire_compositions(jeu, saison, numero):

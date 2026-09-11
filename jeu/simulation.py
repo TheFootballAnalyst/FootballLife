@@ -1,13 +1,10 @@
 """simulation.py — the ranked lobby match, played with the cards.
 
-The game has two readings of a match, and they must not be confused.
-
-  jeu/match.py      the WEEKLY head-to-head.  Its sheet is made of the real
-                    actions of your starters over the gameweek: nothing is
-                    drawn, the same gameweek always gives the same match.
-  this module       the RANKED LOBBY match.  It is played with the CARDS —
-                    their six attributes — against an opponent's eleven,
-                    with tactics you set and change while it runs.
+This is the game's only match.  It is played with the CARDS — their six
+attributes — against an opponent's eleven, with tactics you set and
+change while it runs (jeu/lobby.py).  A weekly head-to-head resolved from
+the real actions of a gameweek used to sit beside it; it was retired once
+the cards had a match of their own.
 
 The repeatability rule of the project applies to the CARDS, not to this
 match.  The real weekend fixes what a card is worth (jeu/bareme.py): an

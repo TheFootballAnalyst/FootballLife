@@ -18,7 +18,6 @@
       <button data-ecran="marche">Cartes</button>
       <button data-ecran="equipe">Équipe</button>
       <button data-ecran="lobby">Lobby</button>
-      <button data-ecran="match">Match</button>
       <button data-ecran="journee">Journée</button>
       <button data-ecran="classement">Classement</button>
       <button data-ecran="admin" id="nav-admin" hidden>Admin</button>
@@ -30,7 +29,7 @@
       <div><span>Patrimoine</span><b id="st-val" class="num">—</b></div>
       <div><span>Points</span><b id="st-pts" class="num">—</b></div>
       <div><span>Rang</span><b id="st-rang" class="num">—</b></div>
-      <div><span>Elo</span><b id="st-elo" class="num">—</b></div>
+      <div><span>Elo classé</span><b id="st-elo" class="num">—</b></div>
     </div>
   </div>
 </header>
@@ -126,26 +125,6 @@
   <section id="ecran-lobby" hidden>
     <div class="tete"><h2 class="anton">Lobby classé</h2><span class="compteur" id="lobby-info"></span></div>
     <div id="lobby-corps"></div>
-  </section>
-
-  <section id="ecran-match" hidden>
-    <div class="grille2">
-      <div>
-        <div class="pan" id="match-prochain"></div>
-        <div class="pan" id="match-dernier" style="margin-top:20px"></div>
-      </div>
-      <div>
-        <div class="pan">
-          <h2 class="anton">Ligue Elo</h2>
-          <p class="compteur">Chaque journée, un adversaire de ton niveau. Le match se joue sur les vraies actions de vos onze.</p>
-          <div class="tableau"><table id="elo"><thead><tr><th>#</th><th>Équipe</th><th class="num">Elo</th><th class="num">V·N·D</th><th class="num">Buts</th></tr></thead><tbody></tbody></table></div>
-        </div>
-        <div class="pan" style="margin-top:20px">
-          <h2 class="anton">Mes matchs</h2>
-          <div class="tableau"><table id="mes-matchs"><thead><tr><th>J</th><th>Adversaire</th><th class="num">Score</th><th class="num">Elo</th></tr></thead><tbody></tbody></table></div>
-        </div>
-      </div>
-    </div>
   </section>
 
   <section id="ecran-journee" hidden>

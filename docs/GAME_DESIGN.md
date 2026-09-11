@@ -52,7 +52,7 @@ This is the structuring decision. The card is read from the engine's
 every action of every match, weighted by the competition, the round and
 the opponent, summed per player and read per 90 minutes) through
 `jeu/bareme.py`. The per-match note of `topsflops.py` keeps its job — the
-fantasy score and the head-to-head match — but it no longer makes the
+fantasy score of a gameweek — but it no longer makes the
 card: two readings, two uses.
 
 **Start of season.** A card's OVR is last season's **hybrid Ballon d'or
@@ -228,14 +228,17 @@ into a position he has never held.
 
 ## The ranked lobby — the cards play the match
 
-There are two matches in the game and they must not be confused.
+The game has one match, and it is played with the **cards** and their six
+attributes (`jeu/simulation.py`), against an opponent's eleven, with
+tactics you set and change while it runs.
 
-| | `jeu/match.py` — the weekly head-to-head | `jeu/simulation.py` — the ranked lobby |
-|---|---|---|
-| made of | the real actions of your starters over the gameweek | the six attributes of the cards you field |
-| when | once, at the close | whenever you want, against a matched opponent |
-| drawn | nothing | the dice of each minute, fixed by the seed |
-| decides | the Elo ladder of the game league | the ranked ladder |
+A second match used to sit beside it: a weekly head-to-head whose sheet
+was made of the real actions of both elevens over the gameweek. It was
+retired once the cards had a match of their own. Two competitive matches
+split the attention and the ladders for no gain, and the one built on
+real actions could only ever be watched, never played. What the gameweek
+still decides is the part only it can: **what every card is now worth**,
+and where you stand in the league on the week's score.
 
 The repeatability rule protects the **cards**, not the lobby match. The
 real weekend fixes what a card is worth: an injured Barcola stops
@@ -289,8 +292,7 @@ and you adjust as it goes. Three rules make that honest:
   says, so it only ever touches what has not been played. You cannot read
   the eighty-fifth minute and then change something at the sixtieth.
 
-Ranked matches move `elo_classe`, the lobby's own ladder, and never the
-gameweek Elo of `jeu/match.py`. When nobody is waiting you can play a
+Ranked matches move `elo_classe`, the game's only ladder. When nobody is waiting you can play a
 **défi** against an eleven the game assembles around your own level: it
 kicks off at once, it is deterministic in its seed, and it leaves the
 ladder alone, so the ranking only ever records what happened against a
@@ -323,30 +325,6 @@ value.
 
 The first store (buy at the cote, demand multiplier) is gone; its backtest
 stays in `BACKTEST.md` as the calibration of the cote.
-
-## The match — head-to-head, resolved from real actions
-
-Every gameweek pairs each team with an opponent of its level (Swiss
-pairing on Elo, rematches avoided), and the two elevens play a virtual
-match whose sheet is made of the **real actions** of their players over
-the gameweek (`jeu/match.py`). Nothing is random: the same gameweek
-always gives the same match.
-
-1. Every real goal of one of your starters is a chance, carried by its
-   scorer with the note he got that match. The shots on target your
-   players did not convert add one more chance per three of them, carried
-   by your best shooters, a notch weaker than a goal.
-2. The opposing back line cancels chances with its defensive work of the
-   gameweek, measured in the engine's own points (DEF lines of the
-   outfield players, ARR/EVI/SOR lines of the keeper): one cancellation
-   per 70 points. Cancellations hit the weakest chances first; the
-   captain's goals cannot be cancelled.
-3. What is left is the score. Win 3, draw 1, Elo K = 32.
-
-The sheet shows possession (real completed passes), shots, xG, big
-chances, passes into the final third, tackles, interceptions, saves,
-goals prevented, and who scored, who missed, who cancelled what. The
-calibration, on 340 simulated matches of 2025/26, is in `BACKTEST.md`.
 
 ## Rules fixed in code (proposals)
 

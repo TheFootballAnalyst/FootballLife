@@ -74,7 +74,7 @@ function majStatut() {
   $("#st-val").textContent = fM(patrimoine());
   $("#st-pts").textContent = f1(G.equipe?.points);
   $("#st-rang").textContent = G.equipe ? `${G.equipe.rang}/${G.saison.equipes}` : "—";
-  $("#st-elo").textContent = G.equipe?.elo ?? "—";
+  $("#st-elo").textContent = G.equipe?.elo_classe ?? "—";
 }
 async function montrer(ecran) {
   G.ecran = ecran;
@@ -84,7 +84,7 @@ async function montrer(ecran) {
   if (ecran === "connexion") return;
   try {
     await rafraichir(ecran === "marche" || !G.cartes.length);
-    await ({packs: rendrePacks, encheres: rendreEncheres, marche: rendreMarche, equipe: rendreEquipe, lobby: rendreLobby, match: rendreMatch, journee: rendreJournee, classement: rendreClassement, admin: rendreAdmin}[ecran] || (async () => {}))();
+    await ({packs: rendrePacks, encheres: rendreEncheres, marche: rendreMarche, equipe: rendreEquipe, lobby: rendreLobby, journee: rendreJournee, classement: rendreClassement, admin: rendreAdmin}[ecran] || (async () => {}))();
   } catch (e) { if (e.status === 401) { connecte(null); } else toast(e.message); }
   finally { if (ecran !== "lobby") arreterLobby(); }
 }
@@ -689,59 +689,6 @@ function panneauHistorique(d) {
   return p;
 }
 
-// ---- match en face à face ----
-const RES_TXT = {V: "Victoire", N: "Match nul", D: "Défaite"};
-function scoreLigne(m) { return m.score ? `${m.score[0]} – ${m.score[1]}` : "—"; }
-async function rendreMatch() {
-  const d = await api("/match");
-  const j = G.saison.courante;
-  const P1 = $("#match-prochain"); P1.replaceChildren();
-  if (d.a_venir) {
-    const a = d.a_venir;
-    P1.append(el("div", {class: "tete"}, el("h2", {class: "anton"}, `Journée ${a.journee}`), el("span", {class: "compteur"}, j && j.verrouillee ? "verrouillée, les matchs se jouent" : "à venir")),
-      el("div", {class: "affiche"},
-        el("div", {class: "equipe-aff moi"}, el("div", {class: "etiq"}, "Toi"), el("b", {}, G.equipe.nom), el("span", {class: "elo-chip"}, "Elo " + d.elo)),
-        el("div", {class: "vs anton"}, "VS"),
-        el("div", {class: "equipe-aff"}, el("div", {class: "etiq"}, a.adversaire.pseudo), el("b", {}, a.adversaire.equipe), el("span", {class: "elo-chip"}, "Elo " + a.adversaire.elo))),
-      el("p", {class: "info"}, "Le match se joue sur les vraies actions de vos deux onze pendant la journée : chaque but réel est une occasion, trois tirs cadrés non convertis en font une de plus, et la défense adverse en annule une tous les 70 points défensifs. Les buts de ton capitaine ne s'annulent jamais."));
-  } else {
-    P1.append(el("div", {class: "tete"}, el("h2", {class: "anton"}, j ? `Journée ${j.numero}` : "Saison terminée")),
-      el("p", {class: "info"}, d.equipes < 2 ? "Tu es seul dans la ligue pour l'instant : le premier autre manager inscrit sera ton adversaire." : "Pas d'adversaire cette journée (nombre impair d'équipes) : tu es exempt."));
-  }
-  const P2 = $("#match-dernier"); P2.replaceChildren();
-  const dernier = d.joues[0];
-  if (dernier) {
-    const m = await api("/match/" + dernier.journee);
-    const f = m.feuille;
-    P2.append(el("div", {class: "tete"}, el("h2", {class: "anton"}, `Journée ${m.journee}`), el("span", {class: "badge-res " + m.resultat}, RES_TXT[m.resultat]),
-        el("span", {class: "compteur"}, `Elo ${m.elo_avant} → ${m.elo_apres}`)),
-      el("div", {class: "tableau-score"},
-        el("div", {class: "eq"}, el("b", {}, G.equipe.nom)),
-        el("div", {class: "score anton"}, `${m.score[0]} – ${m.score[1]}`),
-        el("div", {class: "eq droite"}, el("b", {}, m.adversaire.equipe), el("div", {class: "compteur"}, m.adversaire.pseudo))));
-    if (f) {
-      P2.append(el("div", {class: "poss"}, el("span", {}, f.possession[0] + " %"), el("div", {class: "barre-poss"}, el("i", {style: `width:${f.possession[0]}%`})), el("span", {}, f.possession[1] + " %")), el("div", {class: "etiq", style: "text-align:center"}, "Possession"));
-      const chances = (c, coteCls) => el("div", {class: "chances " + coteCls}, ...(c.length ? c.map(x => el("div", {class: "chance" + (x.annule ? " annulee" : "")},
-        el("span", {class: "ico"}, x.annule ? "✖" : x.but ? "⚽" : "◎"), el("span", {}, `${x.nom} (${f1(x.note)})`, x.annule ? el("i", {}, ` annulé${x.par ? " par " + x.par : ""}`) : x.but ? null : el("i", {}, " occasion")))) : [el("span", {class: "compteur"}, "aucune occasion")]));
-      P2.append(el("div", {class: "deux-cotes"}, chances(f.a.chances, "g"), chances(f.b.chances, "d")));
-      const t = el("table", {class: "totaux"}); const tb = el("tbody");
-      const LAB = Object.fromEntries([["buts","Buts réels"],["tirs","Tirs"],["cadres","Tirs cadrés"],["xg","xG"],["gom","Grosses occasions manquées"],["occ","Occasions créées"],["passes","Passes réussies"],["p3","Passes dernier tiers"],["surf","Ballons dans la surface"],["drib","Dribbles réussis"],["tacles","Tacles"],["int","Interceptions"],["deg","Dégagements"],["blocs","Tirs bloqués"],["arrets","Arrêts"],["evites","Buts évités (xGOT)"],["enc","Buts encaissés (réels)"]]);
-      for (const k of Object.keys(LAB)) tb.append(el("tr", {}, el("td", {class: "num g"}, String(f.a.totaux[k] ?? 0)), el("td", {class: "lib"}, LAB[k]), el("td", {class: "num d"}, String(f.b.totaux[k] ?? 0))));
-      tb.append(el("tr", {class: "def"}, el("td", {class: "num g"}, `${f.a.defense} pts · ${f.b.annulations} annulation${f.b.annulations > 1 ? "s" : ""} subie${f.b.annulations > 1 ? "s" : ""}`), el("td", {class: "lib"}, "Travail défensif"), el("td", {class: "num d"}, `${f.b.defense} pts · ${f.a.annulations} subie${f.a.annulations > 1 ? "s" : ""}`)));
-      t.append(tb); P2.append(el("div", {class: "etiq", style: "margin-top:14px"}, "La feuille de match"), el("div", {class: "tableau"}, t));
-      const onze = (jrs, cls) => el("div", {class: "onze-liste " + cls}, ...jrs.map(x => el("div", {class: "ligne-onze", tabindex: "0", onclick: () => ouvrirFiche(x.pid)},
-        vignette(x.pid), el("div", {class: "qui"}, el("div", {class: "nom"}, x.nom + (x.capitaine ? " ©" : "")), el("div", {class: "sous"}, `${x.buts ? x.buts + " but" + (x.buts > 1 ? "s" : "") + " · " : ""}${x.pd ? x.pd + " passe" + (x.pd > 1 ? "s" : "") + " déc. · " : ""}xG ${f1(x.xg)} · déf. ${Math.round(x.defense)}`)),
-        el("div", {class: "notes"}, ...x.notes.map(n => el("span", {class: "note " + (n >= 7 ? "b" : n < 5 ? "m" : "")}, f1(n)))))));
-      P2.append(el("div", {class: "etiq", style: "margin-top:14px"}, "Les deux onze"), el("div", {class: "deux-cotes"}, onze(f.a.joueurs, "g"), onze(f.b.joueurs, "d")));
-    }
-  } else P2.append(el("p", {class: "info"}, "Aucun match joué pour l'instant. Le premier se jouera à la clôture de la journée."));
-  const tb = $("#elo tbody"); tb.replaceChildren();
-  for (const r of await api("/elo")) tb.append(el("tr", {class: r.equipe_id === G.equipe.equipe_id ? "moi" : ""}, el("td", {class: r.rang <= 3 ? "podium p" + r.rang : ""}, String(r.rang)), el("td", {}, r.equipe, el("div", {class: "compteur"}, r.pseudo)), el("td", {class: "num"}, String(r.elo)), el("td", {class: "num"}, `${r.v}·${r.n}·${r.d}`), el("td", {class: "num"}, `${r.bp}:${r.bc}`)));
-  const tm = $("#mes-matchs tbody"); tm.replaceChildren();
-  for (const m of d.joues) tm.append(el("tr", {}, el("td", {}, "J" + m.journee), el("td", {}, m.adversaire.equipe), el("td", {class: "num res-" + m.resultat}, scoreLigne(m)), el("td", {class: "num"}, `${m.elo_apres > m.elo_avant ? "+" : ""}${m.elo_apres - m.elo_avant}`)));
-  if (!d.joues.length) tm.append(el("tr", {}, el("td", {colspan: "4", class: "compteur"}, "—")));
-}
-
 // ---- journée ----
 async function rendreJournee() {
   const P = $("#journee-pan"); P.replaceChildren();
@@ -837,6 +784,15 @@ $("#btn-envoyer").addEventListener("click", envoyer);
 $("#fiche").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
 
 // ---- fiche ----
+// What the player actually did that week.  The raw actions were collected
+// for the weekly head-to-head sheet; that match is gone and they belong
+// here, next to the note they produced.
+const FAIT_ICONE = {buts: "⚽", pd: "🅰", tirs: "↗", arrets: "🧤", enc: "↘"};
+function faits(p) {
+  const f = p.faits || {};
+  const bouts = ["buts", "pd", "arrets"].filter(k => f[k]).map(k => ` ${FAIT_ICONE[k]}${f[k]}`);
+  return bouts.join("");
+}
 async function ouvrirFiche(id) {
   let d; try { d = await api("/cartes/" + id); } catch (e) { toast(e.message); return; }
   const dlg = $("#fiche"); dlg.replaceChildren();
@@ -856,7 +812,7 @@ async function ouvrirFiche(id) {
   const axes = d.fam === "GK" ? AXES.gardien : AXES.champ; const A = el("div", {class: "attrs"});
   for (const ax of axes) { const val = d.attributs[ax] ?? 40; A.append(el("div", {class: "attr"}, el("span", {}, (d.poste === "Gardien" && ATTR_NOMS_GARDIEN[ax]) || ATTR_NOMS[ax]), el("div", {class: "jauge"}, el("i", {class: val >= 80 ? "haut" : "", style: `width:${(val - 40) / 59 * 100}%`})), el("b", {class: "num"}, String(val)))); }
   box.append(el("div", {class: "etiq"}, "Attributs de la saison"), A);
-  box.append(el("div", {class: "etiq"}, "Dernières prestations"), el("div", {class: "notes"}, ...(d.prestations.length ? d.prestations.slice(0, 8).map(p => el("span", {class: "note " + (p.note >= 7 ? "b" : p.note < 5 ? "m" : ""), title: `J${p.numero} · ${p.competition}`}, `${f1(p.note)} · ${Math.round(p.minutes)}'`)) : [el("span", {class: "compteur"}, "aucun match noté cette saison")])));
+  box.append(el("div", {class: "etiq"}, "Dernières prestations"), el("div", {class: "notes"}, ...(d.prestations.length ? d.prestations.slice(0, 8).map(p => el("span", {class: "note " + (p.note >= 7 ? "b" : p.note < 5 ? "m" : ""), title: `J${p.numero} · ${p.competition}`}, `${f1(p.note)} · ${Math.round(p.minutes)}'${faits(p)}`)) : [el("span", {class: "compteur"}, "aucun match noté cette saison")])));
   if (d.historique.length > 1) box.append(el("div", {class: "etiq", style: "margin-top:10px"}, "Prix par journée"), sparkline(d.historique.map(h => h.prix), fM));
   const acts = el("div", {class: "actions"});
   const nv = ventesDe(id).length;

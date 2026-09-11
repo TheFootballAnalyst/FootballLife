@@ -23,11 +23,10 @@ minute the clock says, so it can only ever affect what has not been
 played yet.  You cannot look at the eighty-fifth minute and then change
 something at the sixtieth.
 
-Ranked matches move `equipe.elo_classe`, which is the lobby's own
-ladder: the gameweek head-to-head of jeu/match.py keeps `equipe.elo`, and
-the two never mix.  A `defi` — an eleven assembled by the game when
-nobody is waiting — is unranked, so the ladder only ever records what
-happened against a person.
+Ranked matches move `equipe.elo_classe`, the game's only ladder since the
+weekly head-to-head on real actions was retired.  A `defi` — an eleven
+assembled by the game when nobody is waiting — is unranked, so the
+ladder only ever records what happened against a person.
 """
 from __future__ import annotations
 
@@ -35,7 +34,7 @@ import json
 import random
 from datetime import datetime, timezone
 
-from jeu import match as M
+from jeu import elo as ELO
 from jeu import scoring as S
 from jeu import simulation as SM
 
@@ -263,7 +262,7 @@ def cloturer(jeu, saison: str, r) -> dict | None:
     if not r["defi"] and r["equipe_b"]:
         ra = jeu.execute("SELECT elo_classe FROM equipe WHERE equipe_id=?", (r["equipe_a"],)).fetchone()[0]
         rb = jeu.execute("SELECT elo_classe FROM equipe WHERE equipe_id=?", (r["equipe_b"],)).fetchone()[0]
-        ea, eb = M.elo_maj(ra, rb, f["resultat"], K_CLASSE)
+        ea, eb = ELO.elo_maj(ra, rb, f["resultat"], K_CLASSE)
         jeu.execute("UPDATE equipe SET elo_classe=?, classees=classees+1 WHERE equipe_id=?", (ea, r["equipe_a"]))
         jeu.execute("UPDATE equipe SET elo_classe=?, classees=classees+1 WHERE equipe_id=?", (eb, r["equipe_b"]))
     jeu.execute("""UPDATE rencontre SET score_a=?, score_b=?, resultat=?, feuille=?, elo_a_apres=?, elo_b_apres=?

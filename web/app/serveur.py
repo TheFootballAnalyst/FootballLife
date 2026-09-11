@@ -187,10 +187,6 @@ def inscription(ident: Identifiants, reponse: Response, jeu=Depends(bd)):
     jeu.execute("INSERT INTO equipe(utilisateur_id, ligue_jeu_id, nom, budget) VALUES (?,?,?,?)",
                 (uid, lm, (ident.equipe or f"Équipe de {pseudo}").strip()[:40], budget))
     jeu.commit()
-    j = journee_courante(jeu)
-    if j:                                  # a fixture right away if the gameweek is still open
-        P.apparier_journee(jeu, SAISON, j["numero"])
-        jeu.commit()
     poser_session(reponse, uid)
     return {"pseudo": pseudo, "admin": bool(admin)}
 
@@ -326,11 +322,15 @@ def carte(pid: int, jeu=Depends(bd)):
         (pid, SAISON))]
     row = jeu.execute("SELECT attributs FROM carte WHERE player_id=? AND saison=?", (pid, SAISON)).fetchone()
     attributs = json.loads(row["attributs"]) if row and row["attributs"] else {}
-    prestas = [dict(r) for r in jeu.execute("""
-        SELECT j.numero, p.note, p.minutes, cp.nom AS competition, m.date_utc
-        FROM prestation p JOIN match m ON m.match_id = p.match_id JOIN journee j ON j.journee_id = m.journee_id
-        JOIN competition cp ON cp.competition_id = m.competition_id
-        WHERE p.player_id=? AND j.saison=? AND j.calculee=1 ORDER BY m.date_utc DESC LIMIT 12""", (pid, SAISON))]
+    prestas = []
+    for r in jeu.execute("""
+            SELECT j.numero, p.note, p.minutes, p.stats, cp.nom AS competition, m.date_utc
+            FROM prestation p JOIN match m ON m.match_id = p.match_id JOIN journee j ON j.journee_id = m.journee_id
+            JOIN competition cp ON cp.competition_id = m.competition_id
+            WHERE p.player_id=? AND j.saison=? AND j.calculee=1 ORDER BY m.date_utc DESC LIMIT 12""", (pid, SAISON)):
+        st = json.loads(r["stats"] or "{}")
+        prestas.append({k: r[k] for k in ("numero", "note", "minutes", "competition", "date_utc")}
+                       | {"faits": {k: st[k] for k in ("buts", "pd", "tirs", "arrets", "enc") if st.get(k)}})
     return c | {"historique": hist, "attributs": attributs, "prestations": prestas}
 
 
@@ -373,7 +373,8 @@ def equipe(u=Depends(exiger), jeu=Depends(bd)):
     rang = jeu.execute("SELECT COUNT(*)+1 FROM equipe WHERE ligue_jeu_id=? AND points_total > ?",
                        (e["ligue_jeu_id"], e["points_total"])).fetchone()[0]
     return {"equipe_id": e["equipe_id"], "nom": e["nom"], "budget": round(e["budget"], 2),
-            "points": round(e["points_total"], 2), "rang": rang, "elo": round(e["elo"]),
+            "points": round(e["points_total"], 2), "rang": rang,
+            "elo_classe": round(e["elo_classe"]), "classees": e["classees"],
             "effectif": effectif_de(jeu, e["equipe_id"]), "composition": compo,
             "marche_ouvert": marche_ouvert(jeu)}
 
@@ -595,78 +596,6 @@ def classement(jeu=Depends(bd)):
     return classement_equipes(jeu)[:200]
 
 
-# --------------------------------------------------------------------------
-# Head-to-head: fixtures, sheets, Elo ladder
-# --------------------------------------------------------------------------
-
-def bilan_h2h(jeu, eid):
-    v = n = d = bp = bc = 0
-    for a, b, sa, sb, res in jeu.execute("""SELECT equipe_a, equipe_b, score_a, score_b, resultat FROM match_h2h
-                                            WHERE resultat IS NOT NULL AND (equipe_a=? OR equipe_b=?)""", (eid, eid)):
-        moi_a = a == eid
-        pour, contre = (sa, sb) if moi_a else (sb, sa)
-        bp += pour; bc += contre
-        if res == "N":
-            n += 1
-        elif (res == "A") == moi_a:
-            v += 1
-        else:
-            d += 1
-    return {"v": v, "n": n, "d": d, "bp": bp, "bc": bc, "pts": 3 * v + n}
-
-
-def match_json(jeu, row, eid):
-    """One fixture as the site shows it, from my team's side."""
-    moi_a = row["equipe_a"] == eid
-    adv = row["equipe_b"] if moi_a else row["equipe_a"]
-    e = jeu.execute("SELECT e.nom, u.pseudo, e.elo FROM equipe e JOIN utilisateur u ON u.utilisateur_id=e.utilisateur_id WHERE e.equipe_id=?", (adv,)).fetchone()
-    feuille = json.loads(row["feuille"]) if row["feuille"] else None
-    if feuille and not moi_a:                       # show the sheet from my side
-        feuille = feuille | {"score": feuille["score"][::-1], "possession": feuille["possession"][::-1],
-                             "a": feuille["b"], "b": feuille["a"],
-                             "resultat": {"A": "B", "B": "A", "N": "N"}[feuille["resultat"]]}
-    score = None
-    if row["resultat"]:
-        score = [row["score_a"], row["score_b"]] if moi_a else [row["score_b"], row["score_a"]]
-    elo_avant = row["elo_a_avant"] if moi_a else row["elo_b_avant"]
-    elo_apres = row["elo_a_apres"] if moi_a else row["elo_b_apres"]
-    return {"journee": row["numero"], "adversaire": {"equipe_id": adv, "equipe": e["nom"], "pseudo": e["pseudo"], "elo": round(e["elo"])},
-            "score": score, "resultat": (None if not row["resultat"] else
-                                        "N" if row["resultat"] == "N" else "V" if (row["resultat"] == "A") == moi_a else "D"),
-            "elo_avant": round(elo_avant), "elo_apres": round(elo_apres) if elo_apres is not None else None,
-            "feuille": feuille}
-
-
-@app.get("/api/match")
-def match_courant(u=Depends(exiger), jeu=Depends(bd)):
-    """My fixture of the open gameweek (if paired), my last resolved match, my record."""
-    e = equipe_de(jeu, u)
-    eid = e["equipe_id"]
-    j = journee_courante(jeu)
-    if j:
-        P.apparier_journee(jeu, SAISON, j["numero"])
-        jeu.commit()
-    rows = jeu.execute("""SELECT m.*, j.numero FROM match_h2h m JOIN journee j ON j.journee_id = m.journee_id
-                          WHERE (m.equipe_a=? OR m.equipe_b=?) AND j.saison=? ORDER BY j.numero DESC""", (eid, eid, SAISON)).fetchall()
-    a_venir = next((match_json(jeu, r, eid) for r in rows if r["resultat"] is None), None)
-    joues = [match_json(jeu, r, eid) | {"feuille": None} for r in rows if r["resultat"] is not None]
-    return {"elo": round(e["elo"]), "bilan": bilan_h2h(jeu, eid), "a_venir": a_venir, "joues": joues,
-            "equipes": jeu.execute("SELECT COUNT(*) FROM equipe WHERE ligue_jeu_id=?", (e["ligue_jeu_id"],)).fetchone()[0]}
-
-
-@app.get("/api/match/{numero}")
-def match_journee(numero: int, u=Depends(exiger), jeu=Depends(bd)):
-    e = equipe_de(jeu, u)
-    row = jeu.execute("""SELECT m.*, j.numero FROM match_h2h m JOIN journee j ON j.journee_id = m.journee_id
-                         WHERE (m.equipe_a=? OR m.equipe_b=?) AND j.saison=? AND j.numero=?""",
-                      (e["equipe_id"], e["equipe_id"], SAISON, numero)).fetchone()
-    if not row:
-        raise HTTPException(404, "Pas de match cette journée")
-    out = match_json(jeu, row, e["equipe_id"])
-    out["moi"] = {"equipe": e["nom"], "elo": round(e["elo"])}
-    return out
-
-
 # ---- le lobby classé : un match joué avec les cartes -----------------------
 
 class EntreeLobby(BaseModel):
@@ -718,15 +647,6 @@ def lobby_quitter(u=Depends(exiger), jeu=Depends(bd)):
 def lobby_classement(u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     return {"classement": LB.classement(jeu, SAISON), "moi": e["equipe_id"]}
-
-
-@app.get("/api/elo")
-def classement_elo(u=Depends(exiger), jeu=Depends(bd)):
-    e = equipe_de(jeu, u)
-    rows = jeu.execute("""SELECT e.equipe_id, e.nom, u.pseudo, e.elo FROM equipe e JOIN utilisateur u ON u.utilisateur_id = e.utilisateur_id
-                          WHERE e.ligue_jeu_id=? ORDER BY e.elo DESC, e.nom LIMIT 200""", (e["ligue_jeu_id"],)).fetchall()
-    return [{"rang": i + 1, "equipe_id": r["equipe_id"], "equipe": r["nom"], "pseudo": r["pseudo"], "elo": round(r["elo"])} | bilan_h2h(jeu, r["equipe_id"])
-            for i, r in enumerate(rows)]
 
 
 class LigueCreation(BaseModel):

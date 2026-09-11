@@ -87,8 +87,7 @@ def journees_depuis_rounds(fot: sqlite3.Connection, ligue_id: int,
 
 MIGRATIONS = {                       # columns added after the first bases were written
     "prestation": [("stats", "TEXT")],
-    "equipe": [("elo", "REAL NOT NULL DEFAULT 1000"), ("elo_classe", "REAL NOT NULL DEFAULT 1000"),
-               ("classees", "INTEGER NOT NULL DEFAULT 0")],
+    "equipe": [("elo_classe", "REAL NOT NULL DEFAULT 1000"), ("classees", "INTEGER NOT NULL DEFAULT 0")],
     "joueur": [("valeur_marche", "REAL"), ("age", "INTEGER"), ("numero", "TEXT"), ("pays", "TEXT"),
                ("postes", "TEXT")],
     "carte": [("part", "REAL NOT NULL DEFAULT 0"), ("valeur_base", "REAL NOT NULL DEFAULT 1"),
@@ -101,9 +100,29 @@ MIGRATIONS = {                       # columns added after the first bases were 
 }
 
 
+# Tables of features the game no longer has.  Dropped only when EMPTY:
+# a base that still holds rows keeps them, and says so, rather than having
+# its history deleted by an upgrade.
+RETIREES = {"match_h2h": "le face-à-face hebdomadaire sur actions réelles, remplacé par le lobby classé"}
+
+
+def nettoyer_retirees(jeu: sqlite3.Connection) -> list[str]:
+    restes = []
+    for table, quoi in RETIREES.items():
+        if not jeu.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone():
+            continue
+        if jeu.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]:
+            restes.append(f"{table} ({quoi}) contient encore des lignes : table conservée, à supprimer à la main")
+        else:
+            jeu.execute(f"DROP TABLE {table}")
+    return restes
+
+
 def ouvrir_jeu(chemin: pathlib.Path) -> sqlite3.Connection:
     jeu = sqlite3.connect(chemin, check_same_thread=False)
     jeu.executescript(SCHEMA.read_text(encoding="utf-8"))
+    for reste in nettoyer_retirees(jeu):
+        print(reste)
     for table, cols in MIGRATIONS.items():
         existantes = {r[1] for r in jeu.execute(f"PRAGMA table_info({table})")}
         for nom, typ in cols:
@@ -113,8 +132,9 @@ def ouvrir_jeu(chemin: pathlib.Path) -> sqlite3.Connection:
     return jeu
 
 
-# Raw match actions kept on every performance, for the head-to-head match
-# sheet (jeu/match.py): FotMob stat key -> short key.  Counts, not points.
+# Raw match actions kept on every performance: FotMob stat key -> short
+# key, counts and not points.  They are what the card sheet shows next to
+# the note — the goals, assists and saves the player really produced.
 STATS = {
     "goals": "buts", "assists": "pd", "total_shots": "tirs", "ShotsOnTarget": "cadres",
     "expected_goals": "xg", "expected_assists": "xa", "chances_created": "occ",

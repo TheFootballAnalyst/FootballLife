@@ -136,9 +136,11 @@ is waiting, and the ranked standing. Nine tests in
 `jeu/tests/test_lobby.py`, plus an end-to-end run of two managers in
 Chromium.
 
-Left to decide: whether the weekly head-to-head of `jeu/match.py`, which
-is resolved from the real actions, stays alongside the lobby or is
-retired now that the cards have a match of their own.
+The weekly head-to-head resolved from real actions has been retired: the
+cards have a match of their own, and two competitive matches split the
+attention and the ladders for no gain. `jeu/match.py` is gone, its Elo
+maths live on in `jeu/elo.py`, and the gameweek keeps what only it can
+do — moving every card and ranking the week's scores.
 
 ## Not before season two
 

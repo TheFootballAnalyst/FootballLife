@@ -211,41 +211,11 @@ CREATE TABLE IF NOT EXISTS equipe (
     nom              TEXT NOT NULL,
     budget           REAL NOT NULL,                 -- M€ not tied up in cards
     points_total     REAL NOT NULL DEFAULT 0,
-    elo              REAL NOT NULL DEFAULT 1000,   -- the game league's ladder
-    elo_classe       REAL NOT NULL DEFAULT 1000,   -- the ranked lobby's own ladder
+    elo_classe       REAL NOT NULL DEFAULT 1000,   -- the ranked lobby's ladder, the game's only one
     classees         INTEGER NOT NULL DEFAULT 0,    -- head-to-head ladder (jeu/match.py)
     UNIQUE (utilisateur_id, ligue_jeu_id)
 );
 
--- One head-to-head match per team per gameweek, paired Swiss-style on Elo
--- when the previous gameweek closes, resolved from the real actions of
--- both elevens when this one closes (jeu/match.feuille_de_match).
-CREATE TABLE IF NOT EXISTS match_h2h (
-    match_h2h_id     INTEGER PRIMARY KEY AUTOINCREMENT,
-    journee_id       INTEGER NOT NULL REFERENCES journee(journee_id),
-    ligue_jeu_id     INTEGER NOT NULL REFERENCES ligue_jeu(ligue_jeu_id),
-    equipe_a         INTEGER NOT NULL REFERENCES equipe(equipe_id),
-    equipe_b         INTEGER NOT NULL REFERENCES equipe(equipe_id),
-    score_a          INTEGER,
-    score_b          INTEGER,
-    resultat         TEXT,                          -- 'A', 'B', 'N'; NULL until resolved
-    elo_a_avant      REAL NOT NULL,
-    elo_b_avant      REAL NOT NULL,
-    elo_a_apres      REAL,
-    elo_b_apres      REAL,
-    feuille          TEXT                           -- JSON match sheet
-);
-CREATE INDEX IF NOT EXISTS ix_h2h_journee ON match_h2h(journee_id);
-
--- A COPY of a card (jeu/marche.py).  Copies only come out of packs; a
--- copy sits in the squad (dans_effectif=1, quotas of marche.py) or in the
--- reserve; it is destroyed when sold back to the bank.
--- ------------------------------------------------------- the ranked lobby
--- A match played with the CARDS (jeu/simulation.py), not with the real
--- actions of the gameweek: the manager picks an eleven, sets his tactics
--- and adjusts them while it runs.  Everything needed to replay it exactly
--- is stored — the two elevens, the seed, the tactical timeline — so a
--- result can always be audited.
 CREATE TABLE IF NOT EXISTS rencontre (
     rencontre_id     INTEGER PRIMARY KEY AUTOINCREMENT,
     saison           TEXT NOT NULL,

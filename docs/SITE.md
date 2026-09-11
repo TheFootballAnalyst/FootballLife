@@ -13,7 +13,7 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 | Cartes | toutes les cartes (écussons ou liste), filtres par poste, ligue, tri (OVR, prix, OVR par M€, forme, âge, popularité), fiche joueur, et le nombre de ventes en cours par joueur |
 | Packs | la boutique de la banque : quinze packs (trois niveaux, mixte ou par poste), ouverture animée, les cartes vont en réserve |
 | Enchères | l'hôtel des ventes : mises à prix, achat immédiat, offres (argent bloqué), fin de vente ; tes ventes et tes offres |
-| Match | ton adversaire de la journée (appariement Elo), la feuille du dernier match (score, possession, occasions annulées, statistiques des deux onze), la ligue Elo et ton bilan |
+| Lobby | le match classé : ton onze contre celui d'un autre manager, joué avec les cartes, quatre minutes pour quatre-vingt-dix, tactiques ajustables en direct ; ton Elo classé et tes derniers matchs |
 | Équipe | formation, onze sur le terrain, capitaine, ordre du banc, **Envoyer la composition** avant le premier coup d'envoi ; **Mon club** : effectif et réserve, aligner, mettre en vente, vendre à la banque |
 | Journée | le résultat de la dernière journée (détail par joueur, entrants du banc, rang), l'état de la journée en cours, l'historique |
 | Classement | mondial, plus les ligues privées : créer une ligue donne un code, le partager suffit |
