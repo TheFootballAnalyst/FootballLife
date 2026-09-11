@@ -751,7 +751,13 @@ def portrait(pid: int):
     return FileResponse(f, headers={"Cache-Control": "public, max-age=604800"})
 
 
-def carte_dessinee(jeu, pid: int) -> pathlib.Path | None:
+# The widths the site asks for: the pitch and the bench want a small card,
+# the sheet a big one.  A fixed list so a caller cannot make the server
+# render an arbitrary size on demand.
+LARGEURS_CARTE = (120, 170, 240, 420)
+
+
+def carte_dessinee(jeu, pid: int, largeur: int = 420) -> pathlib.Path | None:
     """The player's season card as the game trades it (OVR in the token,
     season attributes), rendered by moteur/carte_design and cached on disk
     until the card changes."""
@@ -771,21 +777,24 @@ def carte_dessinee(jeu, pid: int) -> pathlib.Path | None:
                                   WHERE p.player_id=? AND j.saison=? AND j.calculee=1""", (pid, SAISON)):
         comps[comp] = comps.get(comp, 0) + 1
     competition = max(comps, key=comps.get) if comps else "Ligue 1"
-    cle = f"{pid}_{ovr}_{sum(attributs.values())}_s2"      # s2: barème attributes, escutcheon
+    largeur = largeur if largeur in LARGEURS_CARTE else 420
+    cle = f"{pid}_{ovr}_{sum(attributs.values())}_s2_{largeur}"   # s2: barème attributes, escutcheon
     CACHE_CARTES.mkdir(parents=True, exist_ok=True)
     f = CACHE_CARTES / f"{cle}.png"
     if not f.exists():
-        for vieux in CACHE_CARTES.glob(f"{pid}_*.png"):
-            vieux.unlink()
+        etat = f"{ovr}_{sum(attributs.values())}_s2"
+        for vieux in CACHE_CARTES.glob(f"{pid}_*.png"):       # the card changed: every width is stale
+            if not vieux.name.startswith(f"{pid}_{etat}_"):
+                vieux.unlink()
         d = dict(pid=pid, nom=nom, note=int(ovr), ovr=int(ovr), attributs=attributs, poste=poste,
                  minutes=None, competition=competition, couleur=couleur, team_id=tid)
-        CARTES.dessiner(d, 420).save(f)
+        CARTES.dessiner(d, largeur).save(f)
     return f
 
 
 @app.get("/images/cartes/{pid}.png")
-def image_carte(pid: int, jeu=Depends(bd)):
-    f = carte_dessinee(jeu, pid)
+def image_carte(pid: int, l: int = 420, jeu=Depends(bd)):
+    f = carte_dessinee(jeu, pid, l)
     if f is None:
         raise HTTPException(404, "Carte indisponible")
     return FileResponse(f, headers={"Cache-Control": "public, max-age=3600"})

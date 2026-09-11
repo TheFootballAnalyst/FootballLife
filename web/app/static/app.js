@@ -90,7 +90,7 @@ async function montrer(ecran) {
 }
 async function vitrine() {
   const V = $("#vitrine"); if (!V || V.childElementCount) return;
-  try { for (const c of await api("/vitrine")) V.append(carteMarche(c, {vitrine: true})); } catch (e) {}
+  try { for (const c of await api("/vitrine")) V.append(carteMarche(c, {vitrine: true, largeur: 240})); } catch (e) {}
 }
 function connecte(moi) {
   G.moi = moi;
@@ -149,7 +149,7 @@ async function ouvrirPack(p) {
   const dlg = $("#fiche"); dlg.replaceChildren();
   const box = el("div", {class: "fiche ouverture"}, el("h3", {class: "anton"}, `${p.nom}`), el("p", {class: "compteur"}, `${fM(p.prix)} · il te reste ${fM(r.budget)}`));
   const grille = el("div", {class: "cartes-grille ouverture-grille"});
-  r.cartes.forEach((x, i) => { const c = x.carte; const k = carteMarche(c, {vitrine: true}); k.classList.add("revele"); k.style.animationDelay = (i * 0.25) + "s";
+  r.cartes.forEach((x, i) => { const c = x.carte; const k = carteMarche(c, {vitrine: true, largeur: 240}); k.classList.add("revele"); k.style.animationDelay = (i * 0.25) + "s";
     k.append(el("div", {class: "cj-cote"}, `cote ${fM(x.cote)} · n° ${x.numero}`)); grille.append(k); });
   box.append(grille, el("div", {class: "actions"}, el("button", {onclick: () => { dlg.close(); montrer("equipe"); }}, "Gérer mon club"), el("button", {class: "primaire", onclick: () => { dlg.close(); rendrePacks(); }}, "Encore un pack")));
   dlg.append(box); dlg.showModal();
@@ -252,11 +252,17 @@ function carteMarche(c, opts = {}) {
   const corps = el("div", {class: "cj-corps"},
     el("div", {class: "nom", title: c.nom}, c.nom),
     el("div", {class: "sous"}, `${c.club} · ${POSTE_COURT[c.poste] || c.poste}`),
-    el("div", {class: "cj-milieu"}, barresForme(c), c.part > 0 ? el("span", {class: "part"}, Math.round(c.part * 100) + " %") : null),
-    el("div", {class: "cj-pied"}, el("span", {class: "prix num"}, fM(c.prix)),
-      mien && Math.abs(delta) >= 0.005 ? el("span", {class: "delta " + (delta > 0 ? "plus" : "moins")}, fM(delta, true)) : null),
-    opts.vitrine ? null : boutonAchatVente(c, mien));
-  k.append(el("div", {class: "crest-bord"}, el("div", {class: "crest-corps"}, haut, corps)));
+    el("div", {class: "cj-milieu"}, barresForme(c), c.part > 0 ? el("span", {class: "part"}, Math.round(c.part * 100) + " %") : null));
+  // The drawn card IS the card.  The CSS escutcheon stays underneath as the
+  // fallback: it is what you see while the PNG loads, and what stays if the
+  // render is missing.  Price and button live under the drawing, since the
+  // drawing has no room for them.
+  const crest = el("div", {class: "crest-bord"}, el("div", {class: "crest-corps"}, haut, corps));
+  k.append(carteDessinee(c, opts.largeur || 170, crest),
+    el("div", {class: "cj-bas"},
+      el("div", {class: "cj-pied"}, el("span", {class: "prix num"}, fM(c.prix)),
+        mien && Math.abs(delta) >= 0.005 ? el("span", {class: "delta " + (delta > 0 ? "plus" : "moins")}, fM(delta, true)) : null),
+      opts.vitrine ? null : boutonAchatVente(c, mien)));
   return k;
 }
 // A card that entered the game during the season (mercato): shown for the
@@ -264,6 +270,20 @@ function carteMarche(c, opts = {}) {
 function recrue(c) {
   const j = G.saison?.derniere?.numero ?? 0;
   return c.arrivee > 0 && j - c.arrivee < 3;
+}
+// The drawn card (moteur/carte_design), the one the game trades, with the
+// light HTML box as a fallback while it loads or if the render is missing.
+function carteDessinee(c, largeur = 170, secours = null) {
+  const d = el("div", {class: "dessin"});
+  secours = secours || el("div", {class: "mini"}, el("div", {},
+    el("div", {class: "mh"}, el("div", {class: "o num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)), vignetteDe(c)),
+    el("div", {class: "n"}, (c.nom || "").split(" ").slice(-1)[0])));
+  const img = el("img", {src: `/images/cartes/${c.id ?? c.pid}.png?l=${largeur}&v=${c.ovr}`,
+    alt: c.nom || "", loading: "lazy", draggable: "false"});
+  img.addEventListener("load", () => secours.remove());
+  img.addEventListener("error", () => img.remove());
+  d.append(secours, img);
+  return d;
 }
 function vignetteDe(c) {
   const v = el("div", {class: "vign"});
@@ -276,7 +296,7 @@ function ligneCarte(c) {
   const l = el("div", {class: "ligne", tabindex: "0", role: "button", onclick: () => ouvrirFiche(c.id), onkeydown: e => { if (e.key === "Enter") ouvrirFiche(c.id); }});
   l.style.setProperty("--clubc", c.couleur);
   const delta = mien ? c.prix - G.equipe.effectif[c.id] : 0;
-  l.append(vignette(c.id),
+  l.append(carteDessinee(c, 120),
     el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, `${c.club} · ${POSTE_COURT[c.poste] || c.poste}${c.age ? " · " + c.age + " ans" : ""}${c.part > 0 ? " · " + Math.round(c.part * 100) + " % des équipes" : ""}`)),
     barresForme(c),
     el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)),
@@ -373,7 +393,7 @@ async function rendreClub() {
   const ligne = x => {
     const c = x.carte; const l = el("div", {class: "ligne club-ligne" + (x.enchere_id ? " en-vente" : "")}); l.style.setProperty("--clubc", c.couleur);
     const delta = (x.cote || 0) - x.prix_achat;
-    l.append(vignette(c.id), el("div", {class: "qui", tabindex: "0", onclick: () => ouvrirFiche(c.id)}, el("div", {class: "nom"}, c.nom, el("span", {class: "compteur"}, ` n° ${x.numero}`)), el("div", {class: "sous"}, `${c.club} · acheté ${fM(x.prix_achat)} · cote ${fM(x.cote)} `, el("span", {class: "delta " + (delta >= 0 ? "plus" : "moins")}, fM(delta, true)))),
+    l.append(carteDessinee(c, 120), el("div", {class: "qui", tabindex: "0", onclick: () => ouvrirFiche(c.id)}, el("div", {class: "nom"}, c.nom, el("span", {class: "compteur"}, ` n° ${x.numero}`)), el("div", {class: "sous"}, `${c.club} · acheté ${fM(x.prix_achat)} · cote ${fM(x.cote)} `, el("span", {class: "delta " + (delta >= 0 ? "plus" : "moins")}, fM(delta, true)))),
       el("span", {class: "fam " + c.fam}, FAM_COURT[c.fam]), el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)));
     const acts = el("div", {class: "club-actions"});
     if (x.enchere_id) acts.append(el("span", {class: "compteur"}, "en vente"), el("button", {onclick: () => montrer("encheres")}, "Voir"));
@@ -526,9 +546,7 @@ function slotEl(s, fam) {
   const c = carte(i);
   zonePrise(d, {type: "slot", i: s});
   d.style.setProperty("--clubc", c.couleur);
-  d.append(el("div", {class: "mini"}, el("div", {},
-    el("div", {class: "mh"}, el("div", {class: "o num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)), vignette(i)),
-    el("div", {class: "n"}, c.nom.split(" ").slice(-1)[0]))));
+  d.append(carteDessinee(c, 170));
   if (C.cap === i) d.append(el("div", {class: "cap"}, "C"));
   d.append(el("button", {class: "slot-menu", title: "Options", onclick: e => { e.stopPropagation(); PRISE = null; menuSlot(s); }}, "···"));
   return d;
@@ -556,7 +574,7 @@ function ligneBanc(i, r) {
   const ord = el("div", {class: "ordre"},
     el("button", {title: "Monter", disabled: r === 0, onclick: e => { e.stopPropagation(); [C.banc[r - 1], C.banc[r]] = [C.banc[r], C.banc[r - 1]]; rendreEquipe(false); }}, "▲"),
     el("button", {title: "Descendre", disabled: r === C.banc.length - 1, onclick: e => { e.stopPropagation(); [C.banc[r + 1], C.banc[r]] = [C.banc[r], C.banc[r + 1]]; rendreEquipe(false); }}, "▼"));
-  l.append(ord, vignette(i), el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, c.club)),
+  l.append(ord, carteDessinee(c, 120), el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, c.club)),
     el("span", {class: "fams"}, ...famillesDe(c).map(f => el("span", {class: "fam " + f}, f))),
     el("div", {class: "ovr num"}, String(c.ovr)));
   return l;
@@ -614,7 +632,15 @@ function panneauEntree(d) {
     p.append(el("div", {class: "avert"}, "Ton onze n'est pas complet : va dans Équipe le compléter, il sert aussi ici."));
     return p;
   }
-  p.append(el("p", {class: "compteur"}, "Onze aligné : " + onze.map(i => carte(i).nom.split(" ").slice(-1)[0]).join(", ")));
+  const strip = el("div", {class: "onze-strip"});
+  for (const i of onze) {
+    const c = carte(i);
+    const t = el("div", {class: "onze-carte", title: c.nom, onclick: () => ouvrirFiche(i)});
+    t.style.setProperty("--clubc", c.couleur);
+    t.append(carteDessinee(c, 120), el("div", {class: "n"}, c.nom.split(" ").slice(-1)[0]));
+    strip.append(t);
+  }
+  p.append(el("div", {class: "etiq"}, "Le onze que tu alignes"), strip);
   const maj = () => { const n = panneauEntree(d); p.replaceWith(n); };
   p.append(selecteurTactique(LOBBY.tac, maj));
   const acts = el("div", {class: "actions", style: "justify-content:flex-start"});
