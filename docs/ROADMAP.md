@@ -121,19 +121,24 @@ league and on his position's rotation-player median otherwise, priced on
 his real market value, with the wide bound of `bareme.borne`. See
 `GAME_DESIGN.md` and the replay in `BACKTEST.md`.
 
-## Phase 3c — the ranked lobby (engine done)
+## Phase 3c — the ranked lobby (done)
 
 `jeu/simulation.py` plays a match from the CARDS: six team traits read
 from the attributes, three tactical axes that form a cycle, minute-by-
 minute dice fixed by the seed so the match is reproducible and the live
 view can advance without rewriting itself. Calibrated in `BACKTEST.md`.
 
-What remains, in order: matchmaking and a ranked Elo separate from the
-game league's; the lobby screen (pick the eleven from the squad and the
-reserve, set the tactics, launch); the live view that advances the match
-over a few minutes and takes tactical changes while it runs; and the
-decision of whether the weekly head-to-head of `jeu/match.py` stays
-alongside it or is retired.
+`jeu/lobby.py` and the Lobby screen add the rest: pairing within 250
+points of a ranked Elo of its own, a server clock that plays the ninety
+minutes over four real ones, a live feed, tactical adjustments stamped at
+the minute the clock says, a défi against a generated eleven when nobody
+is waiting, and the ranked standing. Nine tests in
+`jeu/tests/test_lobby.py`, plus an end-to-end run of two managers in
+Chromium.
+
+Left to decide: whether the weekly head-to-head of `jeu/match.py`, which
+is resolved from the real actions, stays alongside the lobby or is
+retired now that the cards have a match of their own.
 
 ## Not before season two
 

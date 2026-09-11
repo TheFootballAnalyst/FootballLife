@@ -84,8 +84,9 @@ async function montrer(ecran) {
   if (ecran === "connexion") return;
   try {
     await rafraichir(ecran === "marche" || !G.cartes.length);
-    await ({packs: rendrePacks, encheres: rendreEncheres, marche: rendreMarche, equipe: rendreEquipe, match: rendreMatch, journee: rendreJournee, classement: rendreClassement, admin: rendreAdmin}[ecran] || (async () => {}))();
+    await ({packs: rendrePacks, encheres: rendreEncheres, marche: rendreMarche, equipe: rendreEquipe, lobby: rendreLobby, match: rendreMatch, journee: rendreJournee, classement: rendreClassement, admin: rendreAdmin}[ecran] || (async () => {}))();
   } catch (e) { if (e.status === 401) { connecte(null); } else toast(e.message); }
+  finally { if (ecran !== "lobby") arreterLobby(); }
 }
 async function vitrine() {
   const V = $("#vitrine"); if (!V || V.childElementCount) return;
@@ -565,6 +566,127 @@ async function envoyer() {
     const r = await api("/equipe/composition", {formation: C.formation, titulaires: C.slots, banc: C.banc, capitaine: C.cap});
     toast(`Composition envoyée pour la journée ${r.journee}`); await rafraichir(false); rendreEquipe();
   } catch (e) { toast(e.message); }
+}
+
+// ---- lobby classé : un match joué avec les cartes -------------------------
+// The sheet is recomputed server-side from the seed and the tactical
+// timeline on every poll, so what we draw is never a local accumulation:
+// refreshing, or coming back after a while, shows the same match.
+const TEMPO_TXT = {possession: "Garder le ballon", equilibre: "Équilibré", direct: "Jouer direct"};
+const BLOC_TXT = {haut: "Bloc haut", median: "Bloc médian", bas: "Bloc bas"};
+const RISQUE_TXT = {offensif: "Offensif", equilibre: "Équilibré", prudent: "Prudent"};
+const AXE_TXT = {tempo: TEMPO_TXT, bloc: BLOC_TXT, risque: RISQUE_TXT};
+const EVT_ICONE = {but: "⚽", arret: "🧤", occasion: "✗", tactique: "⇄"};
+let LOBBY = {timer: null, tac: {tempo: "equilibre", bloc: "median", risque: "equilibre"}, vus: 0};
+
+function arreterLobby() { if (LOBBY.timer) { clearInterval(LOBBY.timer); LOBBY.timer = null; } }
+
+async function rendreLobby(donnees) {
+  const d = donnees || await api("/lobby");
+  LOBBY.etat = d;
+  $("#lobby-info").textContent = `Elo classé ${Math.round(d.elo)} · ${d.classees} match${d.classees > 1 ? "s" : ""} classé${d.classees > 1 ? "s" : ""}`;
+  const B = $("#lobby-corps"); B.replaceChildren();
+  if (d.etat === "libre") { arreterLobby(); B.append(panneauEntree(d)); B.append(panneauHistorique(d)); return; }
+  if (d.etat === "attente") { B.append(panneauAttente(d)); lancerBoucle(); return; }
+  B.append(panneauMatch(d));
+  if (d.etat === "fini") { arreterLobby(); B.append(panneauHistorique(d)); } else lancerBoucle();
+}
+function lancerBoucle() { if (!LOBBY.timer) LOBBY.timer = setInterval(() => { if (G.ecran === "lobby") rendreLobby().catch(() => {}); }, 2500); }
+
+function selecteurTactique(tac, onChange) {
+  const d = el("div", {class: "tactiques"});
+  for (const axe of ["tempo", "bloc", "risque"]) {
+    const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, {tempo: "Tempo", bloc: "Bloc", risque: "Risque"}[axe]));
+    for (const v of Object.keys(AXE_TXT[axe])) {
+      g.append(el("button", {class: "tac" + (tac[axe] === v ? " actif" : ""), onclick: () => { tac[axe] = v; onChange(); }}, AXE_TXT[axe][v]));
+    }
+    d.append(g);
+  }
+  return d;
+}
+
+function panneauEntree(d) {
+  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Lance un match"));
+  p.append(el("p", {class: "compteur"},
+    `Ton onze joue contre celui d'un autre manager, avec les attributs de tes cartes. ${Math.round(d.duree / 60)} minutes pour 90, tu ajustes en direct.`));
+  const onze = C.slots.every(x => x !== null) ? C.slots.slice() : null;
+  if (!onze) {
+    p.append(el("div", {class: "avert"}, "Ton onze n'est pas complet : va dans Équipe le compléter, il sert aussi ici."));
+    return p;
+  }
+  p.append(el("p", {class: "compteur"}, "Onze aligné : " + onze.map(i => carte(i).nom.split(" ").slice(-1)[0]).join(", ")));
+  const maj = () => { const n = panneauEntree(d); p.replaceWith(n); };
+  p.append(selecteurTactique(LOBBY.tac, maj));
+  const acts = el("div", {class: "actions", style: "justify-content:flex-start"});
+  acts.append(el("button", {class: "primaire", onclick: () => entrerLobby(onze, false)}, "Chercher un adversaire"),
+    el("button", {onclick: () => entrerLobby(onze, true)}, "Jouer un défi tout de suite"));
+  p.append(acts);
+  p.append(el("p", {class: "compteur"}, d.attente_file ? `${d.attente_file} manager(s) dans la file.` : "Personne dans la file : le défi te fait jouer contre un onze de ton niveau, hors classement."));
+  return p;
+}
+
+async function entrerLobby(onze, defi) {
+  try { await rendreLobby(await api("/lobby/rejoindre", {formation: C.formation, onze, tactique: LOBBY.tac, defi})); }
+  catch (e) { toast(e.message); }
+}
+
+function panneauAttente(d) {
+  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "En attente d'un adversaire"));
+  p.append(el("p", {class: "compteur"}, "Le match démarre dès qu'un manager de ton niveau entre dans la file."),
+    el("div", {class: "actions", style: "justify-content:flex-start"},
+      el("button", {onclick: async () => { try { await rendreLobby(await api("/lobby/quitter", {})); } catch (e) { toast(e.message); } }}, "Quitter la file")));
+  return p;
+}
+
+function panneauMatch(d) {
+  const m = d.match, moi = d.cote === "b" ? 1 : 0, lui = 1 - moi;
+  const p = el("div", {class: "panneau match-live"});
+  p.append(el("div", {class: "live-tete"},
+    el("div", {class: "live-eq"}, el("div", {class: "nom anton"}, m.noms[0]), el("div", {class: "style"}, m.style.a)),
+    el("div", {class: "live-score anton"}, `${m.score[0]} – ${m.score[1]}`),
+    el("div", {class: "live-eq droite"}, el("div", {class: "nom anton"}, m.noms[1]), el("div", {class: "style"}, m.style.b))));
+  const pct = Math.round(100 * m.minute / d.minutes);
+  p.append(el("div", {class: "horloge"}, el("i", {style: `width:${pct}%`}), el("b", {}, m.fini ? "Terminé" : `${m.minute}'`)));
+  const stats = el("div", {class: "live-stats"});
+  for (const [lib, va, vb] of [["Possession", m.possession[0] + " %", m.possession[1] + " %"],
+                               ["Tirs", m.tirs[0], m.tirs[1]], ["xG", m.xg[0].toFixed(2), m.xg[1].toFixed(2)]])
+    stats.append(el("div", {class: "sl"}, el("b", {}, String(va)), el("span", {}, lib), el("b", {}, String(vb))));
+  p.append(stats);
+  const fil = el("div", {class: "fil"});
+  for (const e of [...m.evenements].reverse())
+    fil.append(el("div", {class: "evt " + e.type + (e.cote === "AB"[moi] ? " mien" : "")},
+      el("span", {class: "min"}, e.minute + "'"), el("span", {class: "ico"}, EVT_ICONE[e.type] || "•"),
+      el("span", {class: "txt"}, e.texte)));
+  if (!m.evenements.length) fil.append(el("p", {class: "compteur"}, "Le match vient de commencer."));
+  p.append(fil);
+  if (!m.fini) {
+    const tac = {...(m.tactique[d.cote] || LOBBY.tac)};
+    const bloc = el("div", {class: "panneau interne"}, el("h3", {class: "anton"}, "Ajuster"),
+      el("p", {class: "compteur"}, "Un changement prend effet à la minute suivante : il ne touche jamais ce qui est déjà joué."));
+    bloc.append(selecteurTactique(tac, async () => {
+      try { await rendreLobby(await api("/lobby/tactique", {tactique: tac})); } catch (e) { toast(e.message); }
+    }));
+    p.append(bloc);
+  } else {
+    const r = m.resultat === "N" ? "Match nul" : ((m.resultat === "A") === (moi === 0) ? "Victoire" : "Défaite");
+    const de = m.elo_apres && m.elo_apres[moi] !== null ? m.elo_apres[moi] - m.elo_avant[moi] : null;
+    p.append(el("div", {class: "live-fin"}, el("b", {class: "anton"}, r),
+      de === null ? el("span", {}, m.defi ? " · défi, hors classement" : "") : el("span", {}, ` · Elo ${de > 0 ? "+" : ""}${de.toFixed(1)}`),
+      el("button", {class: "primaire", onclick: () => rendreLobby()}, "Rejouer")));
+  }
+  return p;
+}
+
+function panneauHistorique(d) {
+  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Tes derniers matchs classés"));
+  if (!d.historique?.length) { p.append(el("p", {class: "compteur"}, "Aucun match joué.")); return p; }
+  for (const h of d.historique)
+    p.append(el("div", {class: "ligne simple"},
+      el("span", {class: "res " + h.resultat}, h.resultat),
+      el("div", {class: "qui"}, el("div", {class: "nom"}, h.adversaire), el("div", {class: "sous"}, h.defi ? "défi" : "classé")),
+      el("b", {class: "num"}, `${h.score[0]} – ${h.score[1]}`),
+      el("span", {class: "compteur"}, h.elo === null ? "—" : (h.elo > 0 ? "+" : "") + h.elo)));
+  return p;
 }
 
 // ---- match en face à face ----

@@ -211,7 +211,9 @@ CREATE TABLE IF NOT EXISTS equipe (
     nom              TEXT NOT NULL,
     budget           REAL NOT NULL,                 -- M€ not tied up in cards
     points_total     REAL NOT NULL DEFAULT 0,
-    elo              REAL NOT NULL DEFAULT 1000,    -- head-to-head ladder (jeu/match.py)
+    elo              REAL NOT NULL DEFAULT 1000,   -- the game league's ladder
+    elo_classe       REAL NOT NULL DEFAULT 1000,   -- the ranked lobby's own ladder
+    classees         INTEGER NOT NULL DEFAULT 0,    -- head-to-head ladder (jeu/match.py)
     UNIQUE (utilisateur_id, ligue_jeu_id)
 );
 
@@ -238,6 +240,35 @@ CREATE INDEX IF NOT EXISTS ix_h2h_journee ON match_h2h(journee_id);
 -- A COPY of a card (jeu/marche.py).  Copies only come out of packs; a
 -- copy sits in the squad (dans_effectif=1, quotas of marche.py) or in the
 -- reserve; it is destroyed when sold back to the bank.
+-- ------------------------------------------------------- the ranked lobby
+-- A match played with the CARDS (jeu/simulation.py), not with the real
+-- actions of the gameweek: the manager picks an eleven, sets his tactics
+-- and adjusts them while it runs.  Everything needed to replay it exactly
+-- is stored — the two elevens, the seed, the tactical timeline — so a
+-- result can always be audited.
+CREATE TABLE IF NOT EXISTS rencontre (
+    rencontre_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    saison           TEXT NOT NULL,
+    equipe_a         INTEGER NOT NULL REFERENCES equipe(equipe_id),
+    equipe_b         INTEGER REFERENCES equipe(equipe_id),   -- NULL: waiting for an opponent
+    defi             INTEGER NOT NULL DEFAULT 0,    -- 1 = against a generated eleven, unranked
+    onze_a           TEXT NOT NULL,                 -- JSON [player_id x 11], slot order
+    onze_b           TEXT,
+    tactique_a       TEXT NOT NULL,                 -- JSON {tempo, bloc, risque} at kick-off
+    tactique_b       TEXT,
+    ajustements      TEXT NOT NULL DEFAULT '{}',    -- JSON {minute: [tactique A | null, tactique B | null]}
+    graine           INTEGER NOT NULL,
+    debut            TEXT,                          -- ISO kick-off; NULL while waiting
+    elo_a_avant      REAL, elo_b_avant REAL, elo_a_apres REAL, elo_b_apres REAL,
+    score_a          INTEGER, score_b INTEGER,
+    resultat         TEXT,                          -- 'A' | 'B' | 'N', NULL while running
+    feuille          TEXT,                          -- JSON of the final sheet
+    cree_le          TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_rencontre_attente ON rencontre(saison, equipe_b, debut);
+CREATE INDEX IF NOT EXISTS ix_rencontre_a ON rencontre(equipe_a, cree_le);
+CREATE INDEX IF NOT EXISTS ix_rencontre_b ON rencontre(equipe_b, cree_le);
+
 CREATE TABLE IF NOT EXISTS exemplaire (
     exemplaire_id    INTEGER PRIMARY KEY AUTOINCREMENT,
     player_id        INTEGER NOT NULL REFERENCES joueur(player_id),

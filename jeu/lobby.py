@@ -1,0 +1,330 @@
+"""lobby.py — the ranked lobby: find an opponent, kick off, adjust, resolve.
+
+The match itself is jeu/simulation.py; this module is everything around
+it — who plays whom, when the clock runs, what a tactical change is
+allowed to do, and what the result does to the ranked ladder.
+
+Three rules hold the whole thing together.
+
+**The clock is the server's.**  A match lasts DUREE_REELLE real seconds
+for the ninety virtual minutes, so the current minute is a pure function
+of `debut` and the wall clock.  Nobody can fast-forward, and a manager
+who closes his browser keeps playing: his kick-off tactics simply run to
+the end.
+
+**The sheet is recomputed, never accumulated.**  Every read replays the
+match from the seed and the tactical timeline up to the current minute
+(simulation.jouer, `jusqua`).  Ninety iterations cost nothing and the
+state cannot drift: the minute you watched is the minute that ends up in
+the archive.
+
+**A tactical change is stamped by the server.**  It is recorded at the
+minute the clock says, so it can only ever affect what has not been
+played yet.  You cannot look at the eighty-fifth minute and then change
+something at the sixtieth.
+
+Ranked matches move `equipe.elo_classe`, which is the lobby's own
+ladder: the gameweek head-to-head of jeu/match.py keeps `equipe.elo`, and
+the two never mix.  A `defi` — an eleven assembled by the game when
+nobody is waiting — is unranked, so the ladder only ever records what
+happened against a person.
+"""
+from __future__ import annotations
+
+import json
+import random
+from datetime import datetime, timezone
+
+from jeu import match as M
+from jeu import scoring as S
+from jeu import simulation as SM
+
+DUREE_REELLE = 240          # seconds of real time for the ninety minutes
+ECART_ELO_MAX = 250         # ranked pairing: never further apart than this
+K_CLASSE = 24               # ladder step, gentler than the gameweek's 32
+ATTENTE_MAX = 900           # a waiting entry older than this is stale
+
+
+def maintenant() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _t(iso: str) -> datetime:
+    return datetime.strptime(iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+
+
+def minute_courante(debut: str | None, maintenant_: datetime | None = None) -> int:
+    """The virtual minute a match kicked off at `debut` has reached."""
+    if not debut:
+        return 0
+    ecoule = ((maintenant_ or datetime.now(timezone.utc)) - _t(debut)).total_seconds()
+    return max(0, min(SM.MINUTES, int(ecoule / DUREE_REELLE * SM.MINUTES)))
+
+
+class ErreurLobby(Exception):
+    pass
+
+
+# --------------------------------------------------------------------------
+# An eleven, checked and loaded
+# --------------------------------------------------------------------------
+
+def verifier_onze(jeu, saison: str, equipe_id: int, onze: list[int], formation: str = "4-3-3") -> list[int]:
+    """The eleven a manager sends: eleven distinct cards of his squad, each
+    able to play the slot he put it in."""
+    if formation not in S.FORMATIONS:
+        raise ErreurLobby("Formation inconnue")
+    if len(onze) != S.TAILLE_ONZE or len(set(onze)) != S.TAILLE_ONZE or any(p is None for p in onze):
+        raise ErreurLobby("Il faut onze joueurs, tous différents")
+    effectif = {r[0] for r in jeu.execute(
+        "SELECT player_id FROM exemplaire WHERE equipe_id=? AND saison=? AND detruit=0 AND dans_effectif=1",
+        (equipe_id, saison))}
+    if not set(onze) <= effectif:
+        raise ErreurLobby("Un joueur du onze n'est pas dans ton effectif")
+    fams = SM.familles_formation(formation)
+    for pid, fam in zip(onze, fams):
+        row = jeu.execute("SELECT nom, poste, postes FROM joueur WHERE player_id=?", (pid,)).fetchone()
+        if not row:
+            raise ErreurLobby("Joueur inconnu")
+        elig = S.familles_eligibles(json.loads(row[2]) if row[2] else [row[1]]) or [S.FAMILLE_POSTE.get(row[1], "MID")]
+        if fam not in elig:
+            raise ErreurLobby(f"{row[0]} n'a jamais joué à ce poste")
+    return list(onze)
+
+
+def equipe_simulation(jeu, saison: str, onze: list[int], nom: str, tactique: dict | None) -> SM.Equipe:
+    e = SM.onze_depuis_cartes(jeu, saison, onze, nom)
+    e.tactique = SM.Tactique(**(tactique or {})).valide()
+    return e
+
+
+def onze_defi(jeu, saison: str, niveau: float, graine: int, formation: str = "4-3-3") -> list[int]:
+    """An eleven the game assembles around `niveau` (an average OVR), for a
+    manager who does not want to wait for a human.  Deterministic in the
+    seed, so the same challenge can be replayed."""
+    rng = random.Random(graine)
+    pris: list[int] = []
+    for fam, n in zip(("GK", "DEF", "MID", "FWD"), SM.FORMATIONS_COMPTES[formation]):
+        postes = [p for p, f in S.FAMILLE_POSTE.items() if f == fam]
+        marks = ",".join("?" * len(postes))
+        pool = [r[0] for r in jeu.execute(
+            f"""SELECT c.player_id FROM carte c JOIN joueur j ON j.player_id = c.player_id
+                WHERE c.saison = ? AND j.poste IN ({marks})
+                ORDER BY ABS(c.ovr - ?) LIMIT ?""", [saison] + postes + [niveau, n * 6])]
+        pool = [p for p in pool if p not in pris]
+        pris += rng.sample(pool, min(n, len(pool)))
+    return pris
+
+
+# --------------------------------------------------------------------------
+# Joining, pairing, kicking off
+# --------------------------------------------------------------------------
+
+def en_cours(jeu, saison: str, equipe_id: int):
+    """The manager's live entry: waiting, or a match still running."""
+    return jeu.execute("""SELECT * FROM rencontre WHERE saison=? AND (equipe_a=? OR equipe_b=?)
+                          AND resultat IS NULL ORDER BY rencontre_id DESC LIMIT 1""",
+                       (saison, equipe_id, equipe_id)).fetchone()
+
+
+def rejoindre(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict | None,
+              formation: str = "4-3-3", defi: bool = False, graine: int | None = None) -> int:
+    """Enter the lobby.  Pairs with whoever is waiting at a close ranked
+    Elo, else opens a waiting entry — or kicks off at once against a
+    generated eleven when `defi`.  Returns the rencontre_id."""
+    if en_cours(jeu, saison, equipe_id):
+        raise ErreurLobby("Tu as déjà un match en cours")
+    onze = verifier_onze(jeu, saison, equipe_id, onze, formation)
+    tac = json.dumps(vars(SM.Tactique(**(tactique or {})).valide()))
+    elo = jeu.execute("SELECT elo_classe FROM equipe WHERE equipe_id=?", (equipe_id,)).fetchone()[0]
+    graine = graine if graine is not None else random.SystemRandom().randrange(1, 10 ** 9)
+    if not defi:
+        limite = _borne_attente()
+        attente = jeu.execute("""SELECT r.rencontre_id, r.equipe_a, e.elo_classe FROM rencontre r
+                                 JOIN equipe e ON e.equipe_id = r.equipe_a
+                                 WHERE r.saison=? AND r.equipe_b IS NULL AND r.defi=0 AND r.resultat IS NULL
+                                   AND r.equipe_a <> ? AND r.cree_le >= ?
+                                 ORDER BY ABS(e.elo_classe - ?) LIMIT 1""",
+                              (saison, equipe_id, limite, elo)).fetchone()
+        if attente and abs(attente[2] - elo) <= ECART_ELO_MAX:
+            jeu.execute("""UPDATE rencontre SET equipe_b=?, onze_b=?, tactique_b=?, debut=?,
+                           elo_a_avant=(SELECT elo_classe FROM equipe WHERE equipe_id=equipe_a), elo_b_avant=?
+                           WHERE rencontre_id=?""",
+                        (equipe_id, json.dumps(onze), tac, maintenant(), elo, attente[0]))
+            jeu.commit()
+            return attente[0]
+    onze_b, tac_b = None, None
+    if defi:
+        # the challenge is built around the manager's own eleven, so it is a
+        # match and not a punishment, and around the seed so it can be replayed
+        niveau = jeu.execute(
+            "SELECT AVG(ovr) FROM carte WHERE saison=? AND player_id IN (%s)" % ",".join("?" * len(onze)),
+            [saison] + list(onze)).fetchone()[0] or 65
+        onze_b = json.dumps(onze_defi(jeu, saison, niveau, graine, formation))
+        tac_b = json.dumps(vars(SM.Tactique(**_tactique_defi(graine)).valide()))
+    cur = jeu.execute("""INSERT INTO rencontre(saison, equipe_a, equipe_b, defi, onze_a, onze_b, tactique_a,
+                            tactique_b, graine, debut, elo_a_avant, cree_le)
+                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                      (saison, equipe_id, None, int(defi), json.dumps(onze), onze_b, tac, tac_b, graine,
+                       maintenant() if defi else None, elo, maintenant()))
+    jeu.commit()
+    return cur.lastrowid
+
+
+def _tactique_defi(graine: int) -> dict:
+    """The challenge picks its own way of playing, from the seed."""
+    rng = random.Random(graine ^ 0x5EED)
+    return {"tempo": rng.choice(list(SM.TEMPO)), "bloc": rng.choice(list(SM.BLOC)),
+            "risque": rng.choice(list(SM.RISQUE))}
+
+
+def quitter(jeu, saison: str, equipe_id: int) -> bool:
+    """Leave the queue.  A match that has kicked off cannot be abandoned:
+    it plays itself out, which is the point of a manager mode."""
+    r = en_cours(jeu, saison, equipe_id)
+    if not r or r["debut"]:
+        return False
+    jeu.execute("DELETE FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],))
+    jeu.commit()
+    return True
+
+
+def _borne_attente() -> str:
+    from datetime import timedelta
+    return (datetime.now(timezone.utc) - timedelta(seconds=ATTENTE_MAX)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+# --------------------------------------------------------------------------
+# Playing it out
+# --------------------------------------------------------------------------
+
+def _tactiques(r) -> dict[int, tuple[SM.Tactique | None, SM.Tactique | None]]:
+    out = {}
+    for m, (a, b) in json.loads(r["ajustements"] or "{}").items():
+        out[int(m)] = (SM.Tactique(**a).valide() if a else None, SM.Tactique(**b).valide() if b else None)
+    return out
+
+
+def _cotes(jeu, saison: str, r) -> tuple[SM.Equipe, SM.Equipe]:
+    noms = {}
+    for cle, eid in (("a", r["equipe_a"]), ("b", r["equipe_b"])):
+        row = jeu.execute("SELECT nom FROM equipe WHERE equipe_id=?", (eid,)).fetchone() if eid else None
+        noms[cle] = row[0] if row else "Le défi"
+    a = equipe_simulation(jeu, saison, json.loads(r["onze_a"]), noms["a"], json.loads(r["tactique_a"]))
+    b = equipe_simulation(jeu, saison, json.loads(r["onze_b"] or "[]"), noms["b"],
+                          json.loads(r["tactique_b"]) if r["tactique_b"] else None)
+    return a, b
+
+
+def feuille(jeu, saison: str, r, minute: int | None = None) -> dict:
+    """The sheet of a match up to `minute` (the clock's minute by default)."""
+    a, b = _cotes(jeu, saison, r)
+    m = minute_courante(r["debut"]) if minute is None else minute
+    f = SM.jouer(a, b, r["graine"], _tactiques(r), jusqua=m)
+    f["rencontre_id"] = r["rencontre_id"]
+    f["defi"] = bool(r["defi"])
+    f["noms"] = [a.nom, b.nom]
+    f["onze"] = {"a": [dict(j, attributs=j["attributs"]) for j in a.joueurs],
+                 "b": [dict(j, attributs=j["attributs"]) for j in b.joueurs]}
+    f["style"] = {"a": SM.style(a.joueurs), "b": SM.style(b.joueurs)}
+    return f
+
+
+def ajuster(jeu, saison: str, equipe_id: int, tactique: dict) -> int:
+    """Record a tactical change AT THE CLOCK'S MINUTE, so it can only touch
+    what has not been played.  Returns that minute."""
+    r = en_cours(jeu, saison, equipe_id)
+    if not r or not r["debut"]:
+        raise ErreurLobby("Aucun match en cours")
+    m = minute_courante(r["debut"])
+    if m >= SM.MINUTES:
+        raise ErreurLobby("Le match est terminé")
+    cote = 0 if r["equipe_a"] == equipe_id else 1
+    aj = json.loads(r["ajustements"] or "{}")
+    # the next minute, never the one already being played
+    cle = str(min(SM.MINUTES, m + 1))
+    paire = aj.get(cle) or [None, None]
+    paire[cote] = vars(SM.Tactique(**tactique).valide())
+    aj[cle] = paire
+    jeu.execute("UPDATE rencontre SET ajustements=? WHERE rencontre_id=?", (json.dumps(aj), r["rencontre_id"]))
+    jeu.commit()
+    return int(cle)
+
+
+def cloturer(jeu, saison: str, r) -> dict | None:
+    """Freeze a match whose ninety minutes are up: score, sheet, ladder.
+    Idempotent — a match already closed is returned as it stands."""
+    if r["resultat"] is not None:
+        return json.loads(r["feuille"]) if r["feuille"] else None
+    if not r["debut"] or minute_courante(r["debut"]) < SM.MINUTES:
+        return None
+    f = feuille(jeu, saison, r, SM.MINUTES)
+    ea, eb = None, None
+    if not r["defi"] and r["equipe_b"]:
+        ra = jeu.execute("SELECT elo_classe FROM equipe WHERE equipe_id=?", (r["equipe_a"],)).fetchone()[0]
+        rb = jeu.execute("SELECT elo_classe FROM equipe WHERE equipe_id=?", (r["equipe_b"],)).fetchone()[0]
+        ea, eb = M.elo_maj(ra, rb, f["resultat"], K_CLASSE)
+        jeu.execute("UPDATE equipe SET elo_classe=?, classees=classees+1 WHERE equipe_id=?", (ea, r["equipe_a"]))
+        jeu.execute("UPDATE equipe SET elo_classe=?, classees=classees+1 WHERE equipe_id=?", (eb, r["equipe_b"]))
+    jeu.execute("""UPDATE rencontre SET score_a=?, score_b=?, resultat=?, feuille=?, elo_a_apres=?, elo_b_apres=?
+                   WHERE rencontre_id=?""",
+                (f["score"][0], f["score"][1], f["resultat"], json.dumps(f, ensure_ascii=False), ea, eb,
+                 r["rencontre_id"]))
+    jeu.commit()
+    return f
+
+
+def etat(jeu, saison: str, equipe_id: int) -> dict:
+    """What the lobby screen shows: waiting, running (with the sheet so
+    far) or nothing, plus the manager's ranked standing."""
+    out = {"duree": DUREE_REELLE, "minutes": SM.MINUTES, "etat": "libre", "match": None,
+           "tactiques": {"tempo": list(SM.TEMPO), "bloc": list(SM.BLOC), "risque": list(SM.RISQUE)}}
+    r = en_cours(jeu, saison, equipe_id)
+    if r and r["debut"]:
+        cloturer(jeu, saison, r)            # before reading the standing, or it shows last poll's
+        r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    ligne = jeu.execute("SELECT elo_classe, classees FROM equipe WHERE equipe_id=?", (equipe_id,)).fetchone()
+    out["elo"] = round(ligne[0], 1) if ligne else 1000.0
+    out["classees"] = ligne[1] if ligne else 0
+    if not r:
+        out["attente_file"] = jeu.execute(
+            "SELECT COUNT(*) FROM rencontre WHERE saison=? AND equipe_b IS NULL AND defi=0 AND resultat IS NULL AND cree_le >= ?",
+            (saison, _borne_attente())).fetchone()[0]
+        return out
+    if not r["debut"]:
+        out["etat"] = "attente"
+        out["match"] = {"rencontre_id": r["rencontre_id"], "depuis": r["cree_le"]}
+        return out
+    f = json.loads(r["feuille"]) if r["feuille"] else feuille(jeu, saison, r)
+    out["etat"] = "fini" if r["resultat"] else "en_cours"
+    out["cote"] = "a" if r["equipe_a"] == equipe_id else "b"
+    out["match"] = f | {"debut": r["debut"], "elo_avant": [r["elo_a_avant"], r["elo_b_avant"]],
+                        "elo_apres": [r["elo_a_apres"], r["elo_b_apres"]]}
+    return out
+
+
+def historique(jeu, saison: str, equipe_id: int, limite: int = 15) -> list[dict]:
+    out = []
+    for r in jeu.execute("""SELECT rencontre_id, equipe_a, equipe_b, defi, score_a, score_b, resultat,
+                                   elo_a_avant, elo_b_avant, elo_a_apres, elo_b_apres, cree_le
+                            FROM rencontre WHERE saison=? AND (equipe_a=? OR equipe_b=?) AND resultat IS NOT NULL
+                            ORDER BY rencontre_id DESC LIMIT ?""", (saison, equipe_id, equipe_id, limite)):
+        chez_a = r["equipe_a"] == equipe_id
+        adv = r["equipe_b"] if chez_a else r["equipe_a"]
+        nom = "Le défi" if r["defi"] else (jeu.execute("SELECT nom FROM equipe WHERE equipe_id=?", (adv,)).fetchone() or ["?"])[0]
+        avant = r["elo_a_avant"] if chez_a else r["elo_b_avant"]
+        apres = r["elo_a_apres"] if chez_a else r["elo_b_apres"]
+        out.append({"rencontre_id": r["rencontre_id"], "adversaire": nom, "defi": bool(r["defi"]),
+                    "score": [r["score_a"], r["score_b"]] if chez_a else [r["score_b"], r["score_a"]],
+                    "resultat": "N" if r["resultat"] == "N" else ("V" if (r["resultat"] == "A") == chez_a else "D"),
+                    "elo": round(apres - avant, 1) if (avant is not None and apres is not None) else None,
+                    "le": r["cree_le"]})
+    return out
+
+
+def classement(jeu, saison: str, limite: int = 50) -> list[dict]:
+    return [{"equipe_id": r[0], "nom": r[1], "elo": round(r[2], 1), "matchs": r[3]}
+            for r in jeu.execute("""SELECT e.equipe_id, e.nom, e.elo_classe, e.classees FROM equipe e
+                                    JOIN ligue_jeu l ON l.ligue_jeu_id = e.ligue_jeu_id
+                                    WHERE l.saison=? AND e.classees > 0
+                                    ORDER BY e.elo_classe DESC LIMIT ?""", (saison, limite))]

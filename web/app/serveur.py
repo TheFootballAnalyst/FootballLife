@@ -35,6 +35,7 @@ RACINE = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(RACINE))
 
 from jeu import evolution as E  # noqa: E402
+from jeu import lobby as LB  # noqa: E402
 from jeu import importer as I  # noqa: E402
 from jeu import marche as MA  # noqa: E402
 from jeu import pipeline as P  # noqa: E402
@@ -664,6 +665,59 @@ def match_journee(numero: int, u=Depends(exiger), jeu=Depends(bd)):
     out = match_json(jeu, row, e["equipe_id"])
     out["moi"] = {"equipe": e["nom"], "elo": round(e["elo"])}
     return out
+
+
+# ---- le lobby classé : un match joué avec les cartes -----------------------
+
+class EntreeLobby(BaseModel):
+    formation: str = "4-3-3"
+    onze: list[int]
+    tactique: Optional[dict] = None
+    defi: bool = False
+
+
+class Ajustement(BaseModel):
+    tactique: dict
+
+
+@app.get("/api/lobby")
+def lobby_etat(u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    return LB.etat(jeu, SAISON, e["equipe_id"]) | {"historique": LB.historique(jeu, SAISON, e["equipe_id"])}
+
+
+@app.post("/api/lobby/rejoindre")
+def lobby_rejoindre(c: EntreeLobby, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    try:
+        rid = LB.rejoindre(jeu, SAISON, e["equipe_id"], c.onze, c.tactique, c.formation, c.defi)
+    except LB.ErreurLobby as err:
+        raise HTTPException(400, str(err))
+    return {"rencontre_id": rid} | LB.etat(jeu, SAISON, e["equipe_id"])
+
+
+@app.post("/api/lobby/tactique")
+def lobby_tactique(a: Ajustement, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    try:
+        minute = LB.ajuster(jeu, SAISON, e["equipe_id"], a.tactique)
+    except LB.ErreurLobby as err:
+        raise HTTPException(409, str(err))
+    return {"minute": minute} | LB.etat(jeu, SAISON, e["equipe_id"])
+
+
+@app.post("/api/lobby/quitter")
+def lobby_quitter(u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    if not LB.quitter(jeu, SAISON, e["equipe_id"]):
+        raise HTTPException(409, "Rien à quitter : le match a déjà commencé")
+    return LB.etat(jeu, SAISON, e["equipe_id"])
+
+
+@app.get("/api/lobby/classement")
+def lobby_classement(u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    return {"classement": LB.classement(jeu, SAISON), "moi": e["equipe_id"]}
 
 
 @app.get("/api/elo")

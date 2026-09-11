@@ -271,6 +271,31 @@ better chances behind. Measured over 400 matches a case, no setting beats
 every other (`BACKTEST.md`), so the lobby cannot be solved by copying one
 build. The three axes can be changed while the match runs.
 
+**How a match runs** (`jeu/lobby.py`). You send the eleven you set on
+the Équipe pitch and your kick-off tactics, and the lobby pairs you with
+whoever is waiting within 250 points of ranked Elo. Ninety virtual
+minutes play out over four real ones, so the feed fills while you watch
+and you adjust as it goes. Three rules make that honest:
+
+- **The clock is the server's.** The current minute is a function of the
+  kick-off time and nothing else. Nobody fast-forwards, and a manager who
+  closes his browser keeps playing — his kick-off tactics simply run to
+  the end.
+- **The sheet is recomputed, never accumulated.** Every poll replays the
+  match from the seed and the tactical timeline up to the current minute.
+  The state cannot drift, and the minute you watched is the minute that
+  ends up in the archive.
+- **An adjustment is stamped by the server**, at the minute the clock
+  says, so it only ever touches what has not been played. You cannot read
+  the eighty-fifth minute and then change something at the sixtieth.
+
+Ranked matches move `elo_classe`, the lobby's own ladder, and never the
+gameweek Elo of `jeu/match.py`. When nobody is waiting you can play a
+**défi** against an eleven the game assembles around your own level: it
+kicks off at once, it is deterministic in its seed, and it leaves the
+ladder alone, so the ranking only ever records what happened against a
+person.
+
 ## The market — packs, copies, auction house
 
 The card of a player (OVR, attributes, cote) is a model; what a manager

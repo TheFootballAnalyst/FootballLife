@@ -104,6 +104,25 @@ copier après chaque clôture suffit.
 session ; ceux sous `/api/admin` demandent un compte administrateur
 (`FL_ADMINS=pseudo1,pseudo2` pour en nommer d'autres que le premier).
 
+## Le lobby classé
+
+L'écran Lobby joue un match avec tes **cartes**, pas avec les actions
+réelles de la journée. Tu y arrives avec le onze posé sur l'écran Équipe,
+tu choisis un tempo, une hauteur de bloc et un niveau de risque, puis tu
+cherches un adversaire. Quatre minutes réelles pour quatre-vingt-dix, le
+fil se remplit pendant que tu regardes, et tu peux changer tes réglages en
+cours de route : le changement prend effet à la minute suivante, jamais
+sur ce qui est déjà joué.
+
+Les trois réglages forment un cycle — garder le ballon bat un bloc bas,
+un bloc bas bat le jeu direct, le jeu direct bat un bloc haut, un bloc
+haut bat la possession — donc aucun n'est le bon choix par défaut.
+
+Si personne n'attend, le bouton « défi » te fait jouer tout de suite
+contre un onze assemblé à ton niveau. Un défi ne touche pas ton Elo
+classé : le classement n'enregistre que ce qui s'est joué contre
+quelqu'un.
+
 ## La composition
 
 Le onze se range en glissant une carte sur une case, ou en la touchant

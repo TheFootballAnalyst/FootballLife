@@ -185,6 +185,14 @@ contre un onze de même niveau il redescend à 41 % de victoires et 23 % de
 nuls. C'est ce qu'on veut : une attaque Haaland-Dembélé-Olise gagne
 beaucoup, sans jamais gagner à coup sûr.
 
+**Les réglages ne se cumulent pas sans fin.** Six multiplicateurs se
+croisent — mon tempo, mon bloc, mon risque et les trois d'en face. Laissés
+libres ils explosaient : deux équipes en jeu direct, bloc haut et tout
+offensif donnaient 4,06 buts par équipe et 24 tirs. La part tactique du
+taux de tir est bornée à [0,55 ; 1,60] et celle de la qualité à
+[0,70 ; 1,45]. Après quoi la palette va de 0,84 but par équipe (tout
+fermé des deux côtés) à 3,02 (tout ouvert), 1,31 au neutre.
+
 **Les tactiques forment un cycle.** Matrice de 400 matchs par case, à
 onzes équivalents, en pourcentage de victoires de la ligne :
 

@@ -60,9 +60,26 @@ EXP_TIR = 1.5             # how sharply percussion vs defence decides a shot
 EXP_XG = 1.1              # ... the quality of that shot
 EXP_FIN = 0.9             # ... and its conversion
 XG_MAX = 0.62             # a chance is never a certainty
+# Six settings multiply together — my tempo and block and risk, and the
+# opponent's — and left free they compounded: two sides going direct,
+# high and all-out produced four goals a side and twenty-four shots.
+# Football does not, however open the match gets, so the tactical part of
+# the shot rate and of the chance quality is held between these bounds.
+TAC_TIR_MIN, TAC_TIR_MAX = 0.55, 1.60
+TAC_XG_MIN, TAC_XG_MAX = 0.70, 1.45
 XG_NOTABLE = 0.13         # below this a shot is a statistic, not an event
 
 LIGNES = {"GK": ("GK",), "DEF": ("DEF",), "MID": ("MID",), "FWD": ("FWD",)}
+
+# The family of each slot of a formation, in the order a lineup is stored:
+# keeper, then the back line, the midfield and the attack.
+from jeu import scoring as _S  # noqa: E402
+FORMATIONS_COMPTES = _S.FORMATIONS
+
+
+def familles_formation(formation: str) -> list[str]:
+    g, d, m, f = _S.FORMATIONS[formation]
+    return ["GK"] * g + ["DEF"] * d + ["MID"] * m + ["FWD"] * f
 
 
 def _z(attr: int) -> float:
@@ -171,11 +188,13 @@ def _chance(ta: dict, tb: dict, tac_a: Tactique, tac_b: Tactique) -> tuple[float
     """(probability that a minute of possession becomes a shot, its xG) for
     side A attacking side B."""
     c_tir, c_xg = CONTRE.get((tac_a.tempo, tac_b.bloc), (1.0, 1.0))
-    tir = TIRS_BASE * _duel(ta["percussion"], tb["defense"], EXP_TIR)
-    tir *= TEMPO[tac_a.tempo][1] * BLOC[tac_a.bloc][0] * RISQUE[tac_a.risque][0]
-    tir *= BLOC[tac_b.bloc][1] * RISQUE[tac_b.risque][1] * c_tir
-    xg = XG_BASE * _duel(ta["creation"], tb["defense"], EXP_XG)
-    xg *= TEMPO[tac_a.tempo][2] * BLOC[tac_b.bloc][2] * c_xg
+    m_tir = (TEMPO[tac_a.tempo][1] * BLOC[tac_a.bloc][0] * RISQUE[tac_a.risque][0]
+             * BLOC[tac_b.bloc][1] * RISQUE[tac_b.risque][1] * c_tir)
+    m_xg = TEMPO[tac_a.tempo][2] * BLOC[tac_b.bloc][2] * c_xg
+    m_tir = max(TAC_TIR_MIN, min(TAC_TIR_MAX, m_tir))
+    m_xg = max(TAC_XG_MIN, min(TAC_XG_MAX, m_xg))
+    tir = TIRS_BASE * _duel(ta["percussion"], tb["defense"], EXP_TIR) * m_tir
+    xg = XG_BASE * _duel(ta["creation"], tb["defense"], EXP_XG) * m_xg
     return min(0.95, tir), min(XG_MAX, xg)
 
 
@@ -282,21 +301,38 @@ def _texte_tactique(nom: str, t: Tactique) -> str:
     return f"{nom} : {_MOTS.get(t.tempo, t.tempo)}, {_MOTS.get(t.bloc, t.bloc)}, {_MOTS.get(t.risque, t.risque)}"
 
 
+# The median of each trait over a real card pool (docs/BACKTEST.md), and
+# how much of a gap counts as a trait worth naming.
+REPERE = {"controle": 0.39, "percussion": 0.31, "creation": 0.40,
+          "finition": 0.50, "defense": 0.40, "gardien": 0.30}
+DITS = {
+    "controle": ("garde le ballon", "subit la possession"),
+    "percussion": ("casse les lignes", "bute sur le bloc"),
+    "creation": ("crée beaucoup", "crée peu"),
+    "finition": ("finit froidement", "gâche ses occasions"),
+    "defense": ("verrouille derrière", "laisse des espaces"),
+    "gardien": ("un gardien qui sauve", "un gardien fragile"),
+}
+ECART_STYLE = 0.06        # under this the trait is unremarkable
+TRAITS_DITS = 3           # naming every trait names none of them
+
+
 def style(joueurs: list[dict]) -> str:
-    """A one-line reading of how an eleven will play, for the lobby screen."""
+    """A one-line reading of how an eleven will play, for the lobby screen.
+
+    Only the traits that stand OUT, most distinctive first.  Listing every
+    trait above a threshold made two elite elevens read identically —
+    "garde le ballon, casse les lignes, crée beaucoup, finit froidement,
+    verrouille derrière" — which tells a manager nothing about either.
+    """
     t = traits(joueurs)
-    bouts = []
-    for cle, haut, bas, dit_haut, dit_bas in (
-            ("controle", 0.47, 0.34, "garde le ballon", "subit la possession"),
-            ("percussion", 0.38, 0.25, "casse les lignes", "joue devant le bloc"),
-            ("creation", 0.49, 0.32, "crée beaucoup", "crée peu"),
-            ("finition", 0.57, 0.44, "finit froidement", "gâche ses occasions"),
-            ("defense", 0.47, 0.35, "verrouille derrière", "laisse des espaces"),
-            ("gardien", 0.46, 0.20, "un gardien qui sauve", "un gardien fragile")):
-        if t[cle] >= haut:
-            bouts.append(dit_haut)
-        elif t[cle] <= bas:
-            bouts.append(dit_bas)
+    ecarts = sorted(((v - REPERE[k], k) for k, v in t.items() if k in REPERE), key=lambda x: -x[0])
+    forces = [DITS[k][0] for d, k in ecarts[:TRAITS_DITS - 1] if d >= ECART_STYLE]
+    # always name the worst flaw too: an eleven that leaks is what an
+    # opponent most needs to read, and it never wins a magnitude contest
+    # against three strengths at once.
+    faible = next((DITS[k][1] for d, k in reversed(ecarts) if d <= -ECART_STYLE), None)
+    bouts = forces + ([faible] if faible else [])
     return ", ".join(bouts) or "équipe équilibrée, sans trait dominant"
 
 
