@@ -230,3 +230,23 @@ def test_the_calendar_alternates_home_and_away():
             cote = [a == p for tour in cal for (a, b) in tour if p in (a, b)]
             assert sum(cote) == n - 1 and len(cote) == 2 * (n - 1)
             assert max(len(list(g)) for _, g in itertools.groupby(cote)) <= 2
+
+
+def test_a_machine_run_club_makes_its_changes():
+    """A club that never touches its bench plays eleven tired men against
+    a manager who uses his seven.  The plan is read from the seed, so a
+    campaign still replays identically."""
+    jeu = base_solo()
+    clubs = SO.clubs_competition(jeu, "2025/26", "ligue1")
+    e = SO.equipe_club(jeu, "2025/26", clubs[1])
+    assert 1 <= len(e.banc) <= 7 and not {j["pid"] for j in e.banc} & {j["pid"] for j in e.joueurs}
+    plan = SO.changements_club(e, 42)
+    assert plan and sum(len(v) for v in plan.values()) <= SO.SM.MAX_CHANGEMENTS
+    assert all(50 <= m <= 85 for m in plan)
+    sortants = [s for v in plan.values() for s, _ in v]
+    entrants = [x for v in plan.values() for _, x in v]
+    assert len(set(sortants)) == len(sortants) and len(set(entrants)) == len(entrants)
+    assert SO.changements_club(e, 42) == plan            # read, not drawn
+    # a keeper is never taken off by the machine
+    gk = {j["pid"] for j in e.joueurs if j["fam"] == "GK"}
+    assert not gk & set(sortants)

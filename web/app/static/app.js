@@ -611,7 +611,8 @@ const TEMPO_TXT = {possession: "Garder le ballon", equilibre: "Équilibré", dir
 const BLOC_TXT = {haut: "Bloc haut", median: "Bloc médian", bas: "Bloc bas"};
 const RISQUE_TXT = {offensif: "Offensif", equilibre: "Équilibré", prudent: "Prudent"};
 const AXE_TXT = {tempo: TEMPO_TXT, bloc: BLOC_TXT, risque: RISQUE_TXT};
-const EVT_ICONE = {but: "⚽", arret: "🧤", occasion: "✗", tactique: "⇄"};
+const EVT_ICONE = {but: "⚽", arret: "🧤", occasion: "✗", tactique: "⇄", corner: "⛳", faute: "⚠",
+  jaune: "🟨", rouge: "🟥", horsjeu: "🚩", changement: "🔁", blessure: "🚑"};
 let LOBBY = {timer: null, tac: {tempo: "equilibre", bloc: "median", risque: "equilibre"}, vus: 0};
 
 function arreterLobby() { if (LOBBY.timer) { clearInterval(LOBBY.timer); LOBBY.timer = null; } }
@@ -669,7 +670,7 @@ function panneauEntree(d) {
 }
 
 async function entrerLobby(onze, defi) {
-  try { await rendreLobby(await api("/lobby/rejoindre", {formation: C.formation, onze, tactique: LOBBY.tac, defi})); }
+  try { await rendreLobby(await api("/lobby/rejoindre", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac, defi})); }
   catch (e) { toast(e.message); }
 }
 
@@ -692,7 +693,10 @@ function panneauMatch(d) {
   p.append(el("div", {class: "horloge"}, el("i", {style: `width:${pct}%`}), el("b", {}, m.fini ? "Terminé" : `${m.minute}'`)));
   const stats = el("div", {class: "live-stats"});
   for (const [lib, va, vb] of [["Possession", m.possession[0] + " %", m.possession[1] + " %"],
-                               ["Tirs", m.tirs[0], m.tirs[1]], ["xG", m.xg[0].toFixed(2), m.xg[1].toFixed(2)]])
+                               ["Tirs", m.tirs[0], m.tirs[1]], ["xG", m.xg[0].toFixed(2), m.xg[1].toFixed(2)],
+                               ["Corners", m.corners?.[0] ?? 0, m.corners?.[1] ?? 0],
+                               ["Fautes", m.fautes?.[0] ?? 0, m.fautes?.[1] ?? 0],
+                               ["Cartons", cartons(m, 0), cartons(m, 1)]])
     stats.append(el("div", {class: "sl"}, el("b", {}, String(va)), el("span", {}, lib), el("b", {}, String(vb))));
   p.append(stats);
   const fil = el("div", {class: "fil"});
@@ -709,6 +713,7 @@ function panneauMatch(d) {
     bloc.append(selecteurTactique(tac, async () => {
       try { await rendreLobby(await api("/lobby/tactique", {tactique: tac})); } catch (e) { toast(e.message); }
     }));
+    bloc.append(blocChangements(d));
     p.append(bloc);
   } else {
     const r = m.resultat === "N" ? "Match nul" : ((m.resultat === "A") === (moi === 0) ? "Victoire" : "Défaite");
@@ -869,7 +874,7 @@ async function jouerSolo(onze) {
   // a victory.
   const place = SOLO.d?.campagne?.place;
   let r;
-  try { r = await api("/solo/jouer", {formation: C.formation, onze, tactique: LOBBY.tac}); }
+  try { r = await api("/solo/jouer", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac}); }
   catch (e) { toast(e.message); return; }
   await rafraichir(false);
   await rendreSolo(r);
@@ -926,6 +931,56 @@ function panneauPalmares(d) {
       el("span", {class: "compteur"}, Object.entries(c.packs || {}).map(([t, n]) => `${n} ${TIER_TXT[t]}`).join(", ") || "—")));
   return p;
 }
+
+// Five changes over three stoppages, like the laws.  The rules themselves
+// live in the simulation — it is the only place that knows who is still on
+// after a red card or an injury — so the screen only offers the players.
+function cartons(m, c) {
+  const j = m.jaunes?.[c] ?? 0, r = m.rouges?.[c] ?? 0;
+  return r ? `${j} · ${r} 🟥` : String(j);
+}
+
+function blocChangements(d) {
+  const m = d.match, cote = d.cote === "b" ? "b" : "a";
+  // Who is ON THE PITCH, not who started: a substitute can be taken off
+  // again, and a sent-off player cannot. The eleven and the bench together
+  // are the only place the cards themselves are described.
+  const sur = new Set(m.sur_le_terrain?.[cote] || []);
+  const tous = [...(m.onze?.[cote] || []), ...(m.banc?.[cote] || [])];
+  const surTerrain = (m.sur_le_terrain?.[cote] || []).map(pid => tous.find(j => j.pid === pid)).filter(Boolean);
+  const utilises = new Set(m.entres?.[cote] || []);
+  const banc = (m.banc?.[cote] || []).filter(j => !utilises.has(j.pid));
+  const b = el("div", {class: "changements"});
+  const restants = SM_MAX_CHG - (m.changements?.[cote === "a" ? 0 : 1] ?? 0);
+  b.append(el("div", {class: "etiq"}, `Remplacements — il t'en reste ${Math.max(0, restants)}`));
+  if (!banc.length) { b.append(el("p", {class: "compteur"}, "Personne sur le banc. Nomme des remplaçants sur l'écran Équipe avant de lancer un match.")); return b; }
+  if (restants <= 0) { b.append(el("p", {class: "compteur"}, "Tu as fait tous tes changements.")); return b; }
+  const choix = el("div", {class: "chg-choix"});
+  let sortant = null, entrant = null;
+  const maj = () => {
+    choix.querySelectorAll("[data-pid]").forEach(n => n.classList.toggle(
+      "choisi", (n.dataset.role === "out" && +n.dataset.pid === sortant) || (n.dataset.role === "in" && +n.dataset.pid === entrant)));
+    valider.disabled = !(sortant && entrant);
+  };
+  const colonne = (titre, ids, role) => {
+    const c = el("div", {}, el("div", {class: "etiq"}, titre));
+    for (const j of ids) {
+      const n = el("button", {class: "chg-j", "data-pid": j.pid, "data-role": role,
+        onclick: () => { if (role === "out") sortant = j.pid; else entrant = j.pid; maj(); }},
+        el("span", {class: "fam " + j.fam}, FAM_COURT[j.fam] || j.fam), el("span", {}, j.nom), el("b", {class: "num"}, String(j.ovr)));
+      c.append(n);
+    }
+    return c;
+  };
+  const valider = el("button", {class: "primaire", disabled: true, onclick: async () => {
+    try { await rendreLobby(await api("/lobby/changement", {sortant, entrant})); toast("Changement enregistré"); }
+    catch (e) { toast(e.message); }
+  }}, "Faire le changement");
+  choix.append(colonne("Il sort", surTerrain, "out"), colonne("Il entre", banc, "in"));
+  b.append(choix, valider);
+  return b;
+}
+const SM_MAX_CHG = 5;
 
 function panneauHistorique(d) {
   const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Tes derniers matchs classés"));

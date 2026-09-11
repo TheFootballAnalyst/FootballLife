@@ -249,9 +249,12 @@ CREATE TABLE IF NOT EXISTS rencontre (
     defi             INTEGER NOT NULL DEFAULT 0,    -- 1 = against a generated eleven, unranked
     onze_a           TEXT NOT NULL,                 -- JSON [player_id x 11], slot order
     onze_b           TEXT,
+    banc_a           TEXT,                          -- JSON [player_id], order of entry
+    banc_b           TEXT,
     tactique_a       TEXT NOT NULL,                 -- JSON {tempo, bloc, risque} at kick-off
     tactique_b       TEXT,
     ajustements      TEXT NOT NULL DEFAULT '{}',    -- JSON {minute: [tactique A | null, tactique B | null]}
+    remplacements    TEXT NOT NULL DEFAULT '{}',    -- JSON {minute: [[[out, in], ...] A, [...] B]}
     graine           INTEGER NOT NULL,
     debut            TEXT,                          -- ISO kick-off; NULL while waiting
     elo_a_avant      REAL, elo_b_avant REAL, elo_a_apres REAL, elo_b_apres REAL,

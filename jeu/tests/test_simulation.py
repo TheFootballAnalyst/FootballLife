@@ -32,6 +32,16 @@ def onze(niveau, decalage=0, **override):
     return j
 
 
+def banc(niveau, decalage=0, **override):
+    """Seven substitutes: a keeper, two defenders, two midfielders, two
+    forwards — the shape a manager really names."""
+    j = [joueur(decalage + 51, "GK", niveau, **override)]
+    j += [joueur(decalage + 52 + i, "DEF", niveau, **override) for i in range(2)]
+    j += [joueur(decalage + 54 + i, "MID", niveau, **override) for i in range(2)]
+    j += [joueur(decalage + 56 + i, "FWD", niveau, **override) for i in range(2)]
+    return j
+
+
 def test_the_same_match_always_replays_identically():
     a, b = SM.Equipe("A", onze(80)), SM.Equipe("B", onze(70, 20))
     f1 = SM.jouer(a, b, 42)
@@ -164,3 +174,93 @@ def test_a_rout_is_still_a_football_match():
     for i in range(60):
         f = SM.jouer(SM.Equipe("A", onze(62)), SM.Equipe("B", onze(60, 20)), 300 + i)
         assert max(f["tirs"]) <= 26
+
+
+def test_the_sheet_carries_fouls_corners_cards_and_offsides():
+    """A match is not only shots.  The rates are set on what football
+    really produces over a match, both sides together: about 22 fouls, 10
+    corners, 4 bookings, a red every five matches, 4 offsides."""
+    import statistics
+    f, c, j, r, h = [], [], [], [], []
+    for i in range(300):
+        m = SM.jouer(SM.Equipe("A", onze(random.Random(i).randint(50, 68))),
+                     SM.Equipe("B", onze(random.Random(i + 999).randint(50, 68), 20)), i)
+        f.append(sum(m["fautes"])); c.append(sum(m["corners"])); j.append(sum(m["jaunes"]))
+        r.append(sum(m["rouges"])); h.append(sum(m["horsjeu"]))
+    assert 18 <= statistics.mean(f) <= 26
+    assert 7 <= statistics.mean(c) <= 12
+    assert 3.0 <= statistics.mean(j) <= 5.5
+    assert 0.05 <= statistics.mean(r) <= 0.40      # a red is rare, and a second yellow rarer still
+    assert 2.5 <= statistics.mean(h) <= 5.5
+
+
+def test_a_sending_off_really_costs_the_side():
+    """Ten men is read as ten: the traits are recomputed on who is left,
+    so the match changes after the red and not only on the sheet."""
+    onze_a = onze(70)
+    complet = SM.traits(onze_a)
+    a_dix = SM.traits([x for x in onze_a if x["fam"] != "DEF" or x["pid"] != 2])
+    assert a_dix["defense"] < complet["defense"]
+    # over many matches a side that loses a man loses more often
+    rouges = 0
+    for i in range(400):
+        m = SM.jouer(SM.Equipe("A", onze(62)), SM.Equipe("B", onze(62, 20)), 5000 + i)
+        if sum(m["rouges"]):
+            rouges += 1
+    assert rouges > 0
+
+
+def test_a_substitution_changes_the_eleven_and_what_it_can_do():
+    a = SM.Equipe("A", onze(60), banc=banc(90))          # a much stronger bench
+    b = SM.Equipe("B", onze(70, 20), banc=banc(70, 20))
+    sortants = [j["pid"] for j in a.joueurs if j["fam"] == "FWD"][:2]
+    entrants = [j["pid"] for j in a.banc if j["fam"] == "FWD"][:2]
+    chg = {46: ([(sortants[0], entrants[0]), (sortants[1], entrants[1])], [])}
+    sans = SM.jouer(a, b, 21)
+    avec = SM.jouer(a, b, 21, changements=chg)
+    avant = lambda f: [e for e in f["evenements"] if e["minute"] < 46]
+    assert avant(sans) == avant(avec)                   # nothing before the change moves
+    assert [e for e in avec["evenements"] if e["type"] == "changement"]
+    assert set(entrants) <= set(avec["onze"]["a"]) and not set(sortants) & set(avec["onze"]["a"])
+    assert len(avec["onze"]["a"]) == 11 and avec["changements"] == [2, 0]
+    # and the eleven is really stronger afterwards: more goals over many seeds
+    apres = lambda ch: sum(SM.jouer(a, b, 600 + i, changements=ch)["score"][0] for i in range(150))
+    assert apres({1: ([(s, e) for s, e in zip(sortants, entrants)], [])}) > apres(None)
+
+
+def test_the_substitution_rules_are_enforced():
+    a = SM.Equipe("A", onze(60), banc=banc(60))
+    b = SM.Equipe("B", onze(60, 20), banc=banc(60, 20))
+    sortants = [j["pid"] for j in a.joueurs][:7]
+    entrants = [j["pid"] for j in a.banc][:7]
+    # six at once: only five are allowed
+    f = SM.jouer(a, b, 3, changements={30: ([(s, e) for s, e in zip(sortants, entrants)], [])})
+    assert f["changements"][0] == SM.MAX_CHANGEMENTS
+    # four separate windows: the fourth is refused
+    par_minute = {20 + 10 * k: ([(sortants[k], entrants[k])], []) for k in range(4)}
+    f = SM.jouer(a, b, 3, changements=par_minute)
+    assert f["changements"][0] == SM.FENETRE_CHANGEMENT
+    # an unknown player, or one not on the pitch, changes nothing
+    f = SM.jouer(a, b, 3, changements={30: ([(999, entrants[0]), (sortants[0], 999)], [])})
+    assert f["changements"] == [0, 0]
+
+
+def test_the_timeline_says_where_the_ball_is_every_minute():
+    """What the 2D pitch animates: one record a minute — the side with the
+    ball, how far up, who carries it, and the event if there is one."""
+    f = SM.jouer(SM.Equipe("A", onze(72)), SM.Equipe("B", onze(68, 20)), 17)
+    assert len(f["fil"]) == SM.MINUTES
+    assert [x["m"] for x in f["fil"]] == list(range(1, SM.MINUTES + 1))
+    for x in f["fil"]:
+        assert x["c"] in (0, 1) and 1 <= x["z"] <= 3
+        assert x["e"] is None or f["evenements"][x["e"]]["minute"] == x["m"]
+    # the side with the ball holds it for its share of the minutes
+    part = sum(1 for x in f["fil"] if x["c"] == 0) / SM.MINUTES
+    assert abs(round(100 * part) - f["possession"][0]) <= 1
+    # every shot minute is in the final third
+    for e in f["evenements"]:
+        if e["type"] in ("but", "arret", "occasion"):
+            assert next(x for x in f["fil"] if x["m"] == e["minute"])["z"] == 3
+    # and stopping early gives the beginning of the same timeline
+    moitie = SM.jouer(SM.Equipe("A", onze(72)), SM.Equipe("B", onze(68, 20)), 17, jusqua=45)
+    assert moitie["fil"] == f["fil"][:45]

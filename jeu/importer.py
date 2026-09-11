@@ -98,6 +98,8 @@ MIGRATIONS = {                       # columns added after the first bases were 
     "carte_historique": [("part", "REAL NOT NULL DEFAULT 0"), ("poids", "REAL NOT NULL DEFAULT 0"),
                          ("sommes", "TEXT"), ("min90", "REAL NOT NULL DEFAULT 0")],
     "utilisateur": [("mdp_hash", "TEXT"), ("mdp_sel", "TEXT"), ("est_admin", "INTEGER NOT NULL DEFAULT 0")],
+    "rencontre": [("banc_a", "TEXT"), ("banc_b", "TEXT"),
+                  ("remplacements", "TEXT NOT NULL DEFAULT '{}'")],
 }
 
 

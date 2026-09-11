@@ -549,3 +549,14 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
   .tl{grid-template-columns:22px 1fr repeat(6,26px);gap:3px;font-size:12.5px;padding:4px 5px}
   .clubs-solo{grid-template-columns:1fr 1fr}
 }
+
+/* Remplacements en direct : qui sort à gauche, qui entre à droite */
+.changements{margin-top:12px;border-top:1px solid var(--ligne);padding-top:10px}
+.chg-choix{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 10px}
+.chg-j{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;width:100%;
+  text-align:left;padding:5px 8px;margin-bottom:4px;background:var(--surface);border:1px solid var(--ligne)}
+.chg-j:hover{background:var(--surface2)}
+.chg-j.choisi{outline:2px solid var(--or2);background:rgba(216,180,90,.15)}
+.chg-j .num{color:var(--or2)}
+.evt.jaune .ico,.evt.rouge .ico{filter:none}
+@media (max-width:640px){.chg-choix{grid-template-columns:1fr}}

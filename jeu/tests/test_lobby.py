@@ -165,3 +165,58 @@ def test_far_apart_managers_are_not_paired():
     assert r1 != r2                                     # each waits in his own bracket
     assert LB.etat(jeu, "2025/26", 1)["etat"] == "attente"
     assert LB.etat(jeu, "2025/26", 2)["etat"] == "attente"
+
+
+BANC = [12, 13, 14, 15]
+
+
+def test_a_manager_names_a_bench_and_can_use_it_during_the_match():
+    jeu = base_avec_equipes(2)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, banc=BANC)
+    LB.rejoindre(jeu, "2025/26", 2, ONZE, None, banc=BANC)
+    r = LB.en_cours(jeu, "2025/26", 1)
+    f = LB.feuille(jeu, "2025/26", r, 10)
+    assert [j["pid"] for j in f["banc"]["a"]] == BANC
+    minute = LB.changer(jeu, "2025/26", 1, ONZE[10], BANC[0])
+    assert minute >= 1
+    r = LB.en_cours(jeu, "2025/26", 1)
+    apres = LB.feuille(jeu, "2025/26", r, 90)
+    assert BANC[0] in apres["sur_le_terrain"]["a"] and ONZE[10] not in apres["sur_le_terrain"]["a"]
+    assert any(e["type"] == "changement" and e["cote"] == "A" for e in apres["evenements"])
+    # the minutes before the change are untouched
+    sans = LB.feuille(jeu, "2025/26", LB.en_cours(jeu, "2025/26", 2), 90)
+    assert [e for e in sans["evenements"] if e["minute"] < minute] == \
+           [e for e in apres["evenements"] if e["minute"] < minute]
+
+
+def test_a_substitution_is_refused_when_it_is_not_legal():
+    jeu = base_avec_equipes(2)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, banc=BANC)
+    LB.rejoindre(jeu, "2025/26", 2, ONZE, None, banc=BANC)
+    with pytest.raises(LB.ErreurLobby):
+        LB.changer(jeu, "2025/26", 1, 999, BANC[0])          # not on the pitch
+    with pytest.raises(LB.ErreurLobby):
+        LB.changer(jeu, "2025/26", 1, ONZE[10], 999)         # not on the bench
+    LB.changer(jeu, "2025/26", 1, ONZE[10], BANC[0])
+    with pytest.raises(LB.ErreurLobby):
+        LB.changer(jeu, "2025/26", 1, ONZE[9], BANC[0])      # already came on
+
+
+def test_a_bench_is_checked_against_the_squad():
+    jeu = base_avec_equipes(1)
+    with pytest.raises(LB.ErreurLobby):
+        LB.verifier_banc(jeu, "2025/26", 1, ONZE, [ONZE[0]])          # already a starter
+    with pytest.raises(LB.ErreurLobby):
+        LB.verifier_banc(jeu, "2025/26", 1, ONZE, [12, 12])           # twice
+    with pytest.raises(LB.ErreurLobby):
+        LB.verifier_banc(jeu, "2025/26", 1, ONZE, list(range(12, 21)))  # more than seven
+    assert LB.verifier_banc(jeu, "2025/26", 1, ONZE, None) == []
+    assert LB.verifier_banc(jeu, "2025/26", 1, ONZE, BANC) == BANC
+
+
+def test_a_challenge_gets_a_bench_too():
+    jeu = base_avec_equipes(1)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True, banc=BANC)
+    r = LB.en_cours(jeu, "2025/26", 1)
+    f = LB.feuille(jeu, "2025/26", r, 5)
+    assert len(f["banc"]["b"]) >= 1 and not set(j["pid"] for j in f["banc"]["b"]) & set(f["sur_le_terrain"]["b"])

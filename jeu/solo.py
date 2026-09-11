@@ -175,9 +175,69 @@ def tactique_club(joueurs: list[dict]) -> SM.Tactique:
     ).valide()
 
 
+def banc_club(jeu, saison: str, team_id: int, onze: list[dict]) -> list[dict]:
+    """The seven best cards of the club that are not in its eleven, a
+    keeper first: a real bench, so the machine can make changes too."""
+    pris = {j["pid"] for j in onze}
+    reste = [{"pid": r[0], "nom": r[1], "poste": r[2], "ovr": r[3],
+              "attributs": json.loads(r[4] or "{}"),
+              "fam": (S.familles_eligibles(json.loads(r[5])) if r[5] else
+                      [S.FAMILLE_POSTE.get(r[2], "MID")])[0] or "MID"}
+             for r in jeu.execute(
+                 """SELECT c.player_id, j.nom, j.poste, c.ovr, c.attributs, j.postes FROM carte c
+                    JOIN joueur j ON j.player_id=c.player_id
+                    WHERE c.saison=? AND j.team_id=? ORDER BY c.ovr DESC""", (saison, team_id))
+             if r[0] not in pris]
+    banc, quotas = [], {"GK": 1, "DEF": 2, "MID": 2, "FWD": 2}
+    for j in reste:
+        if quotas.get(j["fam"], 0) > 0:
+            quotas[j["fam"]] -= 1
+            banc.append(j)
+    for j in reste:                       # a club short of a line fills up anyway
+        if len(banc) >= S.TAILLE_BANC:
+            break
+        if j not in banc:
+            banc.append(j)
+    return banc[:S.TAILLE_BANC]
+
+
+# When a real club makes its changes.  Three stoppages, like the laws, at
+# the hours a manager really uses them: just after the break, the usual
+# double change, and one to see the match out.
+MINUTES_CHANGEMENT = (58, 70, 80)
+
+
+def changements_club(e: SM.Equipe, graine: int) -> dict[int, list]:
+    """The changes a machine-run club makes: its tired outfield players for
+    the best of its bench, in the same line.  Deterministic in the seed, so
+    a campaign replays identically."""
+    rng = random.Random(graine ^ 0xC4A6)
+    banc = [j for j in e.banc if j["fam"] != "GK"]
+    sur = [j for j in e.joueurs if j["fam"] != "GK"]
+    plan: dict[int, list] = {}
+    utilises: set[int] = set()
+    for k, minute in enumerate(MINUTES_CHANGEMENT):
+        n = 2 if k == 1 else 1
+        paires = []
+        for _ in range(n):
+            entrant = next((j for j in banc if j["pid"] not in utilises), None)
+            if entrant is None:
+                break
+            memes = [j for j in sur if j["fam"] == entrant["fam"] and j["pid"] not in utilises]
+            sortant = min(memes or [j for j in sur if j["pid"] not in utilises],
+                          key=lambda j: j["ovr"], default=None)
+            if sortant is None:
+                break
+            utilises |= {entrant["pid"], sortant["pid"]}
+            paires.append((sortant["pid"], entrant["pid"]))
+        if paires:
+            plan[minute + rng.randrange(-3, 4)] = paires
+    return plan
+
+
 def equipe_club(jeu, saison: str, club: dict) -> SM.Equipe:
     j = onze_club(jeu, saison, club["team_id"])
-    return SM.Equipe(club["nom"], j, tactique_club(j))
+    return SM.Equipe(club["nom"], j, tactique_club(j), banc_club(jeu, saison, club["team_id"], j))
 
 
 # --------------------------------------------------------------------------
@@ -270,7 +330,7 @@ def _clubs_du(jeu, saison, camp) -> list[dict]:
 
 
 def jouer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict | None,
-               formation: str = "4-3-3") -> dict:
+               formation: str = "4-3-3", banc: list[int] | None = None) -> dict:
     """Play your next match, and with it the rest of the round.
 
     Your opponents' matches are played too: a table nobody else fills is
@@ -281,6 +341,7 @@ def jouer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict
     if not camp:
         raise ErreurSolo("Aucune campagne en cours")
     onze = LB.verifier_onze(jeu, saison, equipe_id, onze, formation)
+    banc = LB.verifier_banc(jeu, saison, equipe_id, onze, banc)
     cal = json.loads(camp["calendrier"])
     tour = camp["tour"]
     if tour >= len(cal):
@@ -292,16 +353,26 @@ def jouer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict
     def eq(place: int) -> SM.Equipe:
         if place not in equipes:
             equipes[place] = (SM.Equipe(clubs[moi]["nom"], SM.onze_depuis_cartes(jeu, saison, onze).joueurs,
-                                        SM.Tactique(**(tactique or {})).valide())
+                                        SM.Tactique(**(tactique or {})).valide(),
+                                        SM.onze_depuis_cartes(jeu, saison, banc).joueurs)
                               if place == moi else equipe_club(jeu, saison, clubs[place]))
         return equipes[place]
+
+    def plan(place: int, g: int) -> dict[int, list]:
+        """A machine-run club makes its changes; yours are yours to make."""
+        return {} if place == moi else changements_club(eq(place), g)
 
     resultats = json.loads(camp["resultats"] or "[]")
     duels = cal[tour]
     feuilles = []
     for i, (a, b) in enumerate(duels):
         g = _graine(camp, tour, i)
-        f = SM.jouer(eq(a), eq(b), g)
+        chg: dict[int, tuple[list, list]] = {}
+        for cote, place in ((0, a), (1, b)):
+            for minute, paires in plan(place, g).items():
+                courant = chg.setdefault(minute, ([], []))
+                courant[cote].extend(paires)
+        f = SM.jouer(eq(a), eq(b), g, changements=chg)
         tirs_au_but = None
         if COMPETITIONS[camp["cle"]]["format"] == "coupe" and f["resultat"] == "N":
             tirs_au_but = _penalties(eq(a), eq(b), g)

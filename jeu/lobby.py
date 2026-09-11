@@ -91,9 +91,31 @@ def verifier_onze(jeu, saison: str, equipe_id: int, onze: list[int], formation: 
     return list(onze)
 
 
-def equipe_simulation(jeu, saison: str, onze: list[int], nom: str, tactique: dict | None) -> SM.Equipe:
+def verifier_banc(jeu, saison: str, equipe_id: int, onze: list[int], banc: list[int] | None) -> list[int]:
+    """The substitutes a manager names: cards of his squad, none of them in
+    the eleven, at most TAILLE_BANC.  Unlike the eleven a bench has no shape
+    to respect — whoever comes on plays in his own line, and that is the
+    manager's problem."""
+    banc = [p for p in (banc or []) if p is not None]
+    if not banc:
+        return []
+    if len(set(banc)) != len(banc) or set(banc) & set(onze):
+        raise ErreurLobby("Un remplaçant est en double, ou déjà titulaire")
+    if len(banc) > S.TAILLE_BANC:
+        raise ErreurLobby(f"{S.TAILLE_BANC} remplaçants au plus")
+    effectif = {r[0] for r in jeu.execute(
+        "SELECT player_id FROM exemplaire WHERE equipe_id=? AND saison=? AND detruit=0 AND dans_effectif=1",
+        (equipe_id, saison))}
+    if not set(banc) <= effectif:
+        raise ErreurLobby("Un remplaçant n'est pas dans ton effectif")
+    return list(banc)
+
+
+def equipe_simulation(jeu, saison: str, onze: list[int], nom: str, tactique: dict | None,
+                      banc: list[int] | None = None) -> SM.Equipe:
     e = SM.onze_depuis_cartes(jeu, saison, onze, nom)
     e.tactique = SM.Tactique(**(tactique or {})).valide()
+    e.banc = SM.onze_depuis_cartes(jeu, saison, banc or [], nom).joueurs
     return e
 
 
@@ -127,13 +149,15 @@ def en_cours(jeu, saison: str, equipe_id: int):
 
 
 def rejoindre(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict | None,
-              formation: str = "4-3-3", defi: bool = False, graine: int | None = None) -> int:
+              formation: str = "4-3-3", defi: bool = False, graine: int | None = None,
+              banc: list[int] | None = None) -> int:
     """Enter the lobby.  Pairs with whoever is waiting at a close ranked
     Elo, else opens a waiting entry — or kicks off at once against a
     generated eleven when `defi`.  Returns the rencontre_id."""
     if en_cours(jeu, saison, equipe_id):
         raise ErreurLobby("Tu as déjà un match en cours")
     onze = verifier_onze(jeu, saison, equipe_id, onze, formation)
+    banc = verifier_banc(jeu, saison, equipe_id, onze, banc)
     tac = json.dumps(vars(SM.Tactique(**(tactique or {})).valide()))
     elo = jeu.execute("SELECT elo_classe FROM equipe WHERE equipe_id=?", (equipe_id,)).fetchone()[0]
     graine = graine if graine is not None else random.SystemRandom().randrange(1, 10 ** 9)
@@ -146,28 +170,47 @@ def rejoindre(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict 
                                  ORDER BY ABS(e.elo_classe - ?) LIMIT 1""",
                               (saison, equipe_id, limite, elo)).fetchone()
         if attente and abs(attente[2] - elo) <= ECART_ELO_MAX:
-            jeu.execute("""UPDATE rencontre SET equipe_b=?, onze_b=?, tactique_b=?, debut=?,
+            jeu.execute("""UPDATE rencontre SET equipe_b=?, onze_b=?, banc_b=?, tactique_b=?, debut=?,
                            elo_a_avant=(SELECT elo_classe FROM equipe WHERE equipe_id=equipe_a), elo_b_avant=?
                            WHERE rencontre_id=?""",
-                        (equipe_id, json.dumps(onze), tac, maintenant(), elo, attente[0]))
+                        (equipe_id, json.dumps(onze), json.dumps(banc), tac, maintenant(), elo, attente[0]))
             jeu.commit()
             return attente[0]
-    onze_b, tac_b = None, None
+    onze_b, tac_b, banc_b = None, None, None
     if defi:
         # the challenge is built around the manager's own eleven, so it is a
         # match and not a punishment, and around the seed so it can be replayed
         niveau = jeu.execute(
             "SELECT AVG(ovr) FROM carte WHERE saison=? AND player_id IN (%s)" % ",".join("?" * len(onze)),
             [saison] + list(onze)).fetchone()[0] or 65
-        onze_b = json.dumps(onze_defi(jeu, saison, niveau, graine, formation))
+        pris = onze_defi(jeu, saison, niveau, graine, formation)
+        onze_b = json.dumps(pris)
+        banc_b = json.dumps(banc_defi(jeu, saison, niveau, graine, pris))
         tac_b = json.dumps(vars(SM.Tactique(**_tactique_defi(graine)).valide()))
-    cur = jeu.execute("""INSERT INTO rencontre(saison, equipe_a, equipe_b, defi, onze_a, onze_b, tactique_a,
-                            tactique_b, graine, debut, elo_a_avant, cree_le)
-                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-                      (saison, equipe_id, None, int(defi), json.dumps(onze), onze_b, tac, tac_b, graine,
-                       maintenant() if defi else None, elo, maintenant()))
+    cur = jeu.execute("""INSERT INTO rencontre(saison, equipe_a, equipe_b, defi, onze_a, onze_b, banc_a, banc_b,
+                            tactique_a, tactique_b, graine, debut, elo_a_avant, cree_le)
+                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                      (saison, equipe_id, None, int(defi), json.dumps(onze), onze_b, json.dumps(banc), banc_b,
+                       tac, tac_b, graine, maintenant() if defi else None, elo, maintenant()))
     jeu.commit()
     return cur.lastrowid
+
+
+def banc_defi(jeu, saison: str, niveau: float, graine: int, pris: list[int]) -> list[int]:
+    """Seven substitutes for the generated eleven, so a challenge can make
+    changes like a manager would."""
+    rng = random.Random(graine ^ 0xBA0C)
+    out: list[int] = []
+    for fam, n in (("GK", 1), ("DEF", 2), ("MID", 2), ("FWD", 2)):
+        postes = [p for p, f in S.FAMILLE_POSTE.items() if f == fam]
+        marks = ",".join("?" * len(postes))
+        pool = [r[0] for r in jeu.execute(
+            f"""SELECT c.player_id FROM carte c JOIN joueur j ON j.player_id = c.player_id
+                WHERE c.saison = ? AND j.poste IN ({marks})
+                ORDER BY ABS(c.ovr - ?) LIMIT ?""", [saison] + postes + [niveau, n * 8])]
+        pool = [x for x in pool if x not in pris and x not in out]
+        out += rng.sample(pool, min(n, len(pool)))
+    return out
 
 
 def _tactique_defi(graine: int) -> dict:
@@ -204,14 +247,29 @@ def _tactiques(r) -> dict[int, tuple[SM.Tactique | None, SM.Tactique | None]]:
     return out
 
 
+def _remplacements(r) -> dict[int, tuple[list, list]]:
+    try:
+        brut = json.loads(r["remplacements"] or "{}")
+    except (TypeError, KeyError, json.JSONDecodeError):
+        return {}
+    return {int(m): ([tuple(x) for x in (paire[0] or [])], [tuple(x) for x in (paire[1] or [])])
+            for m, paire in brut.items()}
+
+
 def _cotes(jeu, saison: str, r) -> tuple[SM.Equipe, SM.Equipe]:
     noms = {}
     for cle, eid in (("a", r["equipe_a"]), ("b", r["equipe_b"])):
         row = jeu.execute("SELECT nom FROM equipe WHERE equipe_id=?", (eid,)).fetchone() if eid else None
         noms[cle] = row[0] if row else "Le défi"
-    a = equipe_simulation(jeu, saison, json.loads(r["onze_a"]), noms["a"], json.loads(r["tactique_a"]))
+    def banc_de(cle):
+        try:
+            return json.loads(r[f"banc_{cle}"] or "[]")
+        except (TypeError, KeyError, json.JSONDecodeError):
+            return []
+    a = equipe_simulation(jeu, saison, json.loads(r["onze_a"]), noms["a"], json.loads(r["tactique_a"]),
+                          banc_de("a"))
     b = equipe_simulation(jeu, saison, json.loads(r["onze_b"] or "[]"), noms["b"],
-                          json.loads(r["tactique_b"]) if r["tactique_b"] else None)
+                          json.loads(r["tactique_b"]) if r["tactique_b"] else None, banc_de("b"))
     return a, b
 
 
@@ -219,12 +277,16 @@ def feuille(jeu, saison: str, r, minute: int | None = None) -> dict:
     """The sheet of a match up to `minute` (the clock's minute by default)."""
     a, b = _cotes(jeu, saison, r)
     m = minute_courante(r["debut"]) if minute is None else minute
-    f = SM.jouer(a, b, r["graine"], _tactiques(r), jusqua=m)
+    f = SM.jouer(a, b, r["graine"], _tactiques(r), jusqua=m, changements=_remplacements(r))
     f["rencontre_id"] = r["rencontre_id"]
     f["defi"] = bool(r["defi"])
     f["noms"] = [a.nom, b.nom]
+    sur = f.pop("onze", {"a": [], "b": []})
     f["onze"] = {"a": [dict(j, attributs=j["attributs"]) for j in a.joueurs],
                  "b": [dict(j, attributs=j["attributs"]) for j in b.joueurs]}
+    f["banc"] = {"a": [dict(j, attributs=j["attributs"]) for j in a.banc],
+                 "b": [dict(j, attributs=j["attributs"]) for j in b.banc]}
+    f["sur_le_terrain"] = sur
     f["style"] = {"a": SM.style(a.joueurs), "b": SM.style(b.joueurs)}
     return f
 
@@ -246,6 +308,47 @@ def ajuster(jeu, saison: str, equipe_id: int, tactique: dict) -> int:
     paire[cote] = vars(SM.Tactique(**tactique).valide())
     aj[cle] = paire
     jeu.execute("UPDATE rencontre SET ajustements=? WHERE rencontre_id=?", (json.dumps(aj), r["rencontre_id"]))
+    jeu.commit()
+    return int(cle)
+
+
+def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int) -> int:
+    """Record a substitution AT THE CLOCK'S MINUTE, so it can only touch
+    what has not been played.  Returns that minute.
+
+    The rules themselves (five changes over three stoppages, the player has
+    to be on the pitch and the other on the bench) are the simulation's:
+    it is the only place that knows who is still on after a red card or an
+    injury, and a check here would have to guess."""
+    r = en_cours(jeu, saison, equipe_id)
+    if not r or not r["debut"]:
+        raise ErreurLobby("Aucun match en cours")
+    m = minute_courante(r["debut"])
+    if m >= SM.MINUTES:
+        raise ErreurLobby("Le match est terminé")
+    cote = 0 if r["equipe_a"] == equipe_id else 1
+    cle_cote = "ab"[cote]
+    f = feuille(jeu, saison, r, m)
+    if sortant not in f["sur_le_terrain"][cle_cote]:
+        raise ErreurLobby("Ce joueur n'est pas sur le terrain")
+    # f["banc"] is the bench as it was NAMED; whoever already came on is
+    # still in it, so the ones already used have to be taken out here.  The
+    # simulation's own `entres` is what to read: it also counts the man who
+    # came on for an injury, which no timeline of mine records.
+    # ... and the changes RECORDED but not yet played, since the sheet is
+    # read at the current minute and they take effect at the next one.
+    deja = set(f["entres"][cle_cote]) | {e for paire in _remplacements(r).values() for _s, e in paire[cote]}
+    if entrant not in [j["pid"] for j in f["banc"][cle_cote]] or entrant in deja:
+        raise ErreurLobby("Ce joueur n'est pas sur ton banc")
+    if f["changements"][cote] >= SM.MAX_CHANGEMENTS:
+        raise ErreurLobby(f"{SM.MAX_CHANGEMENTS} changements, c'est le maximum")
+    cle = str(min(SM.MINUTES, m + 1))
+    brut = json.loads(r["remplacements"] or "{}")
+    paire = brut.get(cle) or [[], []]
+    paire[cote] = list(paire[cote]) + [[sortant, entrant]]
+    brut[cle] = paire
+    jeu.execute("UPDATE rencontre SET remplacements=? WHERE rencontre_id=?",
+                (json.dumps(brut), r["rencontre_id"]))
     jeu.commit()
     return int(cle)
 

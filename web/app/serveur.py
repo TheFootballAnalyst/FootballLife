@@ -656,8 +656,14 @@ def classement(jeu=Depends(bd)):
 class EntreeLobby(BaseModel):
     formation: str = "4-3-3"
     onze: list[int]
+    banc: list[int] = []
     tactique: Optional[dict] = None
     defi: bool = False
+
+
+class Changement(BaseModel):
+    sortant: int
+    entrant: int
 
 
 class Ajustement(BaseModel):
@@ -674,7 +680,7 @@ def lobby_etat(u=Depends(exiger), jeu=Depends(bd)):
 def lobby_rejoindre(c: EntreeLobby, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     try:
-        rid = LB.rejoindre(jeu, SAISON, e["equipe_id"], c.onze, c.tactique, c.formation, c.defi)
+        rid = LB.rejoindre(jeu, SAISON, e["equipe_id"], c.onze, c.tactique, c.formation, c.defi, banc=c.banc)
     except LB.ErreurLobby as err:
         raise HTTPException(400, str(err))
     return {"rencontre_id": rid} | LB.etat(jeu, SAISON, e["equipe_id"])
@@ -685,6 +691,16 @@ def lobby_tactique(a: Ajustement, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     try:
         minute = LB.ajuster(jeu, SAISON, e["equipe_id"], a.tactique)
+    except LB.ErreurLobby as err:
+        raise HTTPException(409, str(err))
+    return {"minute": minute} | LB.etat(jeu, SAISON, e["equipe_id"])
+
+
+@app.post("/api/lobby/changement")
+def lobby_changement(c: Changement, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    try:
+        minute = LB.changer(jeu, SAISON, e["equipe_id"], c.sortant, c.entrant)
     except LB.ErreurLobby as err:
         raise HTTPException(409, str(err))
     return {"minute": minute} | LB.etat(jeu, SAISON, e["equipe_id"])
@@ -714,6 +730,7 @@ class DemarrageSolo(BaseModel):
 class TourSolo(BaseModel):
     formation: str = "4-3-3"
     onze: list[int]
+    banc: list[int] = []
     tactique: Optional[dict] = None
 
 
@@ -747,7 +764,7 @@ def solo_demarrer(d: DemarrageSolo, u=Depends(exiger), jeu=Depends(bd)):
 def solo_jouer(t: TourSolo, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     try:
-        r = SO.jouer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique, t.formation)
+        r = SO.jouer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique, t.formation, banc=t.banc)
     except (SO.ErreurSolo, LB.ErreurLobby) as err:
         raise HTTPException(400, str(err))
     return {"tour_joue": r} | SO.etat(jeu, SAISON, e["equipe_id"])
