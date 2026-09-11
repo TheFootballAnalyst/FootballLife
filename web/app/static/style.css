@@ -210,6 +210,22 @@ form button.primaire{width:100%;margin-top:14px;padding:11px;font-size:15px;font
 .slot.vide .o{position:static;font-size:26px;color:rgba(255,255,255,.7);text-shadow:none}
 .slot.vide .n{color:rgba(255,255,255,.85)}
 .slot.absent{opacity:.55}
+/* glisser-déposer de la composition : ce qu'on tient, où on peut le poser */
+.slot.prise{transform:translateY(-3px) scale(1.04);filter:drop-shadow(0 8px 14px rgba(0,0,0,.7))}
+.slot.cible .mini > div{outline:2px solid var(--or2,#d8b45a);outline-offset:2px}
+.slot.cible.vide .mini > div{border-color:var(--or2,#d8b45a);background:rgba(216,180,90,.14)}
+.slot.interdit{opacity:.4}
+.slot.faute .mini > div{outline:2px solid #E0564F;outline-offset:2px}
+.slot.survol .mini > div{outline:3px solid var(--or2,#d8b45a);outline-offset:2px}
+.slot-menu{position:absolute;right:2px;top:2px;z-index:3;width:22px;height:22px;padding:0;line-height:20px;border-radius:50%;
+  background:rgba(10,14,28,.72);color:#F2F4FA;border:1px solid rgba(255,255,255,.28);font-size:12px;cursor:pointer}
+.slot-menu:hover{background:rgba(10,14,28,.95)}
+.ligne.prise{outline:2px solid var(--or2,#d8b45a);outline-offset:2px}
+.fantome{position:fixed;z-index:99;pointer-events:none;opacity:.85;transform:translate(-50%,-50%) scale(.9);width:96px}
+.slot img,.ligne img{-webkit-user-drag:none;user-select:none}
+.slot,.ligne{touch-action:none}
+#banc.survol{outline:2px dashed var(--or2,#d8b45a);outline-offset:4px;border-radius:10px}
+.fams{display:flex;gap:3px;flex-wrap:wrap}
 .banc{display:flex;flex-direction:column;gap:6px;margin-top:10px}
 .banc .ligne{grid-template-columns:24px 44px 1fr auto auto;cursor:pointer}
 .ordre{display:flex;flex-direction:column;gap:2px}

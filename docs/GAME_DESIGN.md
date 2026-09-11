@@ -201,6 +201,31 @@ keepers (arrêts, buts évités, sorties, jeu long, imbattabilité, jeu
 court). Match cards (one performance) keep the per-match scales of
 `echelles_attributs.json`.
 
+## Positions — a card plays where the player really played
+
+One label per card was wrong twice over. Valverde spent sixteen matches
+at right back, fifteen on the right wing and twelve in midfield: calling
+him a winger is arguable, refusing him a midfield slot is not.
+
+`importer.postes_joues` therefore keeps **every position the player
+really held**, from a fifth of his minutes up. The threshold is on the
+FAMILY and not on the label, because the engine splits midfield into
+three (defensive, box-to-box, attacking) and Valverde's quarter-season
+in midfield is two eighths that each clear nothing. The displayed
+position is the first of the list, so it never contradicts it: Bellingham
+reads "milieu relayeur" again instead of "ailier". 313 of the 2 629 cards
+are eligible in more than one line.
+
+An eleven is legal as soon as **one** assignment of its cards to the
+formation works (`scoring.onze_legal`), which is what the pitch shows:
+each card sits in a slot of a family it really played. The lineup is
+stored slot by slot, so the manager's arrangement comes back as he left
+it. On the pitch a card is moved by dragging it, or by tapping it and
+tapping where it goes — the same gesture, since a drag under the
+threshold is a tap. Whoever it displaces takes its place when he can play
+there, and goes to the bench when he cannot, rather than being dropped
+into a position he has never held.
+
 ## The ranked lobby — the cards play the match
 
 There are two matches in the game and they must not be confused.

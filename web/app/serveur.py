@@ -273,12 +273,15 @@ def cartes_toutes(jeu):
     for r in jeu.execute("""
             SELECT c.player_id, c.ovr, c.prix, c.part, c.note_ovr, c.matchs, c.minutes,
                    c.valeur_base, c.ovr_base, c.arrivee, j.age, j.numero, j.pays,
-                   j.nom, j.poste, j.team_id, cl.nom AS club, cl.couleur
+                   j.nom, j.poste, j.postes, j.team_id, cl.nom AS club, cl.couleur
             FROM carte c JOIN joueur j ON j.player_id = c.player_id
             LEFT JOIN club cl ON cl.team_id = j.team_id WHERE c.saison = ?""", (SAISON,)):
         out.append({
             "id": r["player_id"], "nom": r["nom"], "poste": r["poste"],
             "fam": S.FAMILLE_POSTE.get(r["poste"], "MID"),
+            "postes": json.loads(r["postes"]) if r["postes"] else [r["poste"]],
+            "familles": (S.familles_eligibles(json.loads(r["postes"])) if r["postes"] else [])
+                        or [S.FAMILLE_POSTE.get(r["poste"], "MID")],
             "club": r["club"] or "", "couleur": r["couleur"] or "#14161E", "team_id": r["team_id"],
             "ligue": ligues.get(ligue_club.get(r["team_id"], (0,))[0], ""),
             "ovr": r["ovr"], "prix": r["prix"], "part": round(r["part"], 3),
@@ -513,10 +516,15 @@ def composition(c: Compo, u=Depends(exiger), jeu=Depends(bd)):
         raise HTTPException(400, "Composition : joueurs en double ou pas dans l'effectif")
     if c.capitaine is not None and c.capitaine not in c.titulaires:
         raise HTTPException(400, "Le capitaine doit être titulaire")
-    postes = dict(jeu.execute("SELECT player_id, poste FROM joueur"))
-    fams = [S.FAMILLE_POSTE[postes[p]] for p in c.titulaires]
-    if not S.formation_legale(fams):
-        raise HTTPException(400, "Onze illégal : 1 gardien, 3 à 5 défenseurs, 2 à 5 milieux, 1 à 3 attaquants")
+    # A card is eligible wherever the player really played, so the eleven is
+    # legal as soon as ONE assignment of its cards to the formation works.
+    elig = {}
+    for pid, poste, postes in jeu.execute("SELECT player_id, poste, postes FROM joueur"):
+        liste = json.loads(postes) if postes else [poste]
+        elig[pid] = S.familles_eligibles(liste) or [S.FAMILLE_POSTE.get(poste, "MID")]
+    if not S.onze_legal([elig.get(p, ["MID"]) for p in c.titulaires], c.formation):
+        raise HTTPException(400, "Onze illégal pour cette formation : 1 gardien, 3 à 5 défenseurs, "
+                                 "2 à 5 milieux, 1 à 3 attaquants, chacun à un poste qu'il a tenu")
     jeu.execute("INSERT OR REPLACE INTO composition VALUES (?,?,?,?,?,?,?)",
                 (e["equipe_id"], j["journee_id"], c.formation, json.dumps(c.titulaires), json.dumps(c.banc),
                  c.capitaine, P.maintenant()))

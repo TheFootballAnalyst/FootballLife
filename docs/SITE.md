@@ -104,6 +104,19 @@ copier après chaque clôture suffit.
 session ; ceux sous `/api/admin` demandent un compte administrateur
 (`FL_ADMINS=pseudo1,pseudo2` pour en nommer d'autres que le premier).
 
+## La composition
+
+Le onze se range en glissant une carte sur une case, ou en la touchant
+puis en touchant sa destination — c'est le même geste, un glissé trop
+court est une touche. Une carte ne peut aller que sur une case d'un poste
+que le joueur a vraiment tenu : Valverde peut jouer ailier, latéral ou
+milieu, un gardien ne peut aller nulle part ailleurs. Le joueur délogé
+prend la place laissée libre s'il peut y jouer, sinon il part sur le banc
+et la case reste vide, en rouge, jusqu'à ce que tu la combles.
+
+Le rangement est enregistré case par case : il revient tel que tu l'as
+laissé au rechargement.
+
 ## Ce que le site ne fait pas encore
 
 - Le verrouillage automatique repose sur l'horloge du serveur et l'heure

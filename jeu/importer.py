@@ -31,6 +31,7 @@ import topsflops as T  # noqa: E402
 import bareme_stats as B  # noqa: E402
 
 from jeu import notation as N  # noqa: E402
+from jeu import scoring as S  # noqa: E402
 
 # The engine resolves its side files relative to the working directory;
 # pin them to moteur/ so the importer runs from anywhere.
@@ -87,7 +88,8 @@ def journees_depuis_rounds(fot: sqlite3.Connection, ligue_id: int,
 MIGRATIONS = {                       # columns added after the first bases were written
     "prestation": [("stats", "TEXT")],
     "equipe": [("elo", "REAL NOT NULL DEFAULT 1000")],
-    "joueur": [("valeur_marche", "REAL"), ("age", "INTEGER"), ("numero", "TEXT"), ("pays", "TEXT")],
+    "joueur": [("valeur_marche", "REAL"), ("age", "INTEGER"), ("numero", "TEXT"), ("pays", "TEXT"),
+               ("postes", "TEXT")],
     "carte": [("part", "REAL NOT NULL DEFAULT 0"), ("valeur_base", "REAL NOT NULL DEFAULT 1"),
               ("ovr_base", "INTEGER NOT NULL DEFAULT 60"), ("poids", "REAL NOT NULL DEFAULT 0"),
               ("sommes", "TEXT"), ("min90", "REAL NOT NULL DEFAULT 0"), ("bareme", "TEXT"),
@@ -302,8 +304,45 @@ def importer_bareme(fot: sqlite3.Connection, jeu: sqlite3.Connection, saison: st
     return n
 
 
+def postes_joues(jeu: sqlite3.Connection, pid: int | None = None) -> dict[int, list[str]]:
+    """{player_id: positions played, most minutes first, keeping those worth
+    at least scoring.PART_POSTE_ELIGIBLE of the player's minutes}.
+
+    A card is eligible wherever the player really played.  Valverde spent
+    a third of his season at right back and a third on the wing: one label
+    cannot hold him, and refusing him a midfield slot is wrong.
+    """
+    cond, args = ("WHERE player_id = ?", (pid,)) if pid else ("", ())
+    par_joueur: dict[int, dict[str, float]] = {}
+    for p, poste, m in jeu.execute(
+            f"SELECT player_id, poste, SUM(minutes) FROM prestation {cond} GROUP BY player_id, poste", args):
+        par_joueur.setdefault(p, {})[poste] = m or 0.0
+    out = {}
+    for p, minutes in par_joueur.items():
+        total = sum(minutes.values()) or 1.0
+        # The threshold is on the FAMILY, not on the label: Valverde's
+        # midfield minutes are split between "Milieu defensif" and "Milieu
+        # relayeur" and neither half clears it, while the midfield as a
+        # whole is a quarter of his season.
+        par_fam: dict[str, float] = {}
+        for q, m in minutes.items():
+            fam = S.FAMILLE_POSTE.get(q)
+            if fam:
+                par_fam[fam] = par_fam.get(fam, 0.0) + m
+        familles = [f for f in sorted(par_fam, key=lambda f: -par_fam[f])
+                    if par_fam[f] / total >= S.PART_POSTE_ELIGIBLE]
+        gardes = []
+        for f in familles or sorted(par_fam, key=lambda f: -par_fam[f])[:1]:
+            dedans = [q for q in minutes if S.FAMILLE_POSTE.get(q) == f]
+            if dedans:
+                gardes.append(max(dedans, key=lambda q: minutes[q]))
+        out[p] = gardes or sorted(minutes, key=lambda q: -minutes[q])[:1]
+    return out
+
+
 def majorite_postes_et_clubs(jeu: sqlite3.Connection) -> None:
-    """Set joueur.poste / team_id to the season's majority (by minutes)."""
+    """Set joueur.poste / team_id to the season's majority (by minutes) and
+    joueur.postes to every position the player really held."""
     rows = jeu.execute("""
         SELECT player_id, poste, team_id, SUM(minutes) m
         FROM prestation GROUP BY player_id, poste, team_id""").fetchall()
@@ -311,8 +350,13 @@ def majorite_postes_et_clubs(jeu: sqlite3.Connection) -> None:
     for pid, poste, tid, m in rows:
         if pid not in best or m > best[pid][0]:
             best[pid] = (m, poste, tid)
+    eligibles = postes_joues(jeu)
     for pid, (_, poste, tid) in best.items():
-        jeu.execute("UPDATE joueur SET poste=?, team_id=? WHERE player_id=?", (poste, tid, pid))
+        liste = eligibles.get(pid) or [poste]
+        # the displayed position is the first of the list — the best position
+        # of the family he spent most minutes in — so it never contradicts it
+        jeu.execute("UPDATE joueur SET poste=?, team_id=?, postes=? WHERE player_id=?",
+                    (liste[0], tid, json.dumps(liste), pid))
     jeu.commit()
 
 

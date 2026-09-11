@@ -1,6 +1,7 @@
 import pytest
 
 from jeu import evolution as E
+from jeu import scoring as S
 from jeu.scoring import Composition, Prestation, score_equipe, formation_legale
 
 POSTE = {1: "Gardien", 2: "Defenseur central", 3: "Defenseur central", 4: "Lateral",
@@ -130,3 +131,39 @@ def test_scale_calibrates_on_the_perimeter():
         assert E.calibrer_echelle([6.0] * 5) == (b, h)
     finally:
         E.NOTE_OVR_BAS, E.NOTE_OVR_HAUT = bas, haut
+
+
+# --------------------------------------------------------------------------
+# Eligible positions: a card plays where the player really played
+# --------------------------------------------------------------------------
+
+def test_eligible_families_keep_the_order_and_drop_duplicates():
+    assert S.familles_eligibles(["Ailier", "Lateral", "Milieu defensif"]) == ["FWD", "DEF", "MID"]
+    assert S.familles_eligibles(["Lateral", "Defenseur central"]) == ["DEF"]
+    assert S.familles_eligibles([]) == [] and S.familles_eligibles(["Inconnu"]) == []
+
+
+def test_an_eleven_is_legal_as_soon_as_one_assignment_works():
+    mono = [["GK"]] + [["DEF"]] * 4 + [["MID"]] * 3 + [["FWD"]] * 3
+    assert S.onze_legal(mono) and S.onze_legal(mono, "4-3-3")
+    assert not S.onze_legal(mono, "3-5-2")            # four defenders, the formation wants three
+    # Valverde, who played winger, full-back and midfield, fills the hole
+    val = ["FWD", "DEF", "MID"]
+    avec = [["GK"]] + [["DEF"]] * 4 + [val] + [["MID"]] * 2 + [["FWD"]] * 3
+    assert S.onze_legal(avec, "4-3-3")                # he takes the midfield slot
+    # and 4-4-2 needs a fourth midfielder that nobody else can be
+    assert not S.onze_legal(avec, "4-4-2")
+    deux = [["GK"]] + [["DEF"]] * 4 + [val, val] + [["MID"]] * 2 + [["FWD"]] * 2
+    assert S.onze_legal(deux, "4-4-2")                # with a second one, it is
+    assert not S.onze_legal([["FWD"]] * 11)           # no keeper, no defence
+    assert not S.onze_legal(mono[:10])                # ten cards
+    assert not S.onze_legal([["GK"]] + [["DEF"]] * 4 + [["MID"]] * 3 + [["FWD"]] * 2 + [[]])
+
+
+def test_a_versatile_card_is_not_counted_twice():
+    """Eleven cards that can all play anywhere still make ONE legal eleven,
+    never two families at once."""
+    partout = [["GK", "DEF", "MID", "FWD"]] * 11
+    assert S.onze_legal(partout, "4-3-3")
+    # but eleven keepers cannot: only one GK slot exists
+    assert not S.onze_legal([["GK"]] * 11)

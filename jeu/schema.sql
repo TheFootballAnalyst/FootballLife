@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS joueur (
     nom              TEXT NOT NULL,
     nom_normalise    TEXT NOT NULL,                 -- accents stripped, lower
     team_id          INTEGER REFERENCES club(team_id),
-    poste            TEXT NOT NULL,                 -- engine position (majority)
+    poste            TEXT NOT NULL,                 -- main position: the first of `postes`
+    postes           TEXT,                          -- JSON, every position really held (importer.postes_joues)
     valeur_marche    REAL,                          -- M€, latest known (FotMob match sheets)
     age              INTEGER,                       -- from the latest match sheet
     numero           TEXT,                          -- shirt number

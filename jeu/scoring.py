@@ -47,6 +47,25 @@ FAMILLE_POSTE = {
 }
 LIMITES_FAMILLE = {"GK": (1, 1), "DEF": (3, 5), "MID": (2, 5), "FWD": (1, 3)}
 
+# A card is not one position.  Valverde played sixteen matches at right
+# back, fifteen on the right wing and twelve in midfield: calling him a
+# winger and refusing him a midfield slot is wrong twice over.  A card is
+# eligible wherever the player really played, from this share of his
+# minutes up; `joueur.poste` stays the main one, for display and for the
+# barème's shrink.
+PART_POSTE_ELIGIBLE = 0.20
+
+
+def familles_eligibles(postes) -> list[str]:
+    """The family codes a card may be fielded in, main one first.
+    `postes` is the ordered list stored on `joueur.postes`."""
+    out = []
+    for p in postes or []:
+        f = FAMILLE_POSTE.get(p)
+        if f and f not in out:
+            out.append(f)
+    return out
+
 
 @dataclass
 class Prestation:
@@ -85,6 +104,47 @@ def formation_legale(familles: list[str]) -> bool:
         if not lo <= n <= hi:
             return False
     return True
+
+
+def onze_legal(eligibles: list[list[str]], formation: str | None = None) -> bool:
+    """Can these eleven cards fill a legal formation at all?
+
+    Each card carries the list of families it may play.  The question is
+    whether one family can be picked per card so the counts land inside
+    LIMITES_FAMILLE (and match `formation` when given).  Eleven cards and
+    four families: solved by trying every legal count vector and matching
+    greedily from the most constrained card.
+    """
+    if len(eligibles) != TAILLE_ONZE or any(not e for e in eligibles):
+        return False
+    cibles = [FORMATIONS[formation]] if formation in FORMATIONS else None
+    if cibles is None:
+        cibles = [(g, d, m, f) for g in range(*_borne("GK")) for d in range(*_borne("DEF"))
+                  for m in range(*_borne("MID")) for f in range(*_borne("FWD")) if g + d + m + f == TAILLE_ONZE]
+    for cible in cibles:
+        besoin = dict(zip(("GK", "DEF", "MID", "FWD"), cible))
+        if _affecte(sorted(eligibles, key=len), besoin):
+            return True
+    return False
+
+
+def _borne(fam: str) -> tuple[int, int]:
+    lo, hi = LIMITES_FAMILLE[fam]
+    return lo, hi + 1
+
+
+def _affecte(restants: list[list[str]], besoin: dict[str, int]) -> bool:
+    if not restants:
+        return all(n == 0 for n in besoin.values())
+    tete, suite = restants[0], restants[1:]
+    for fam in tete:
+        if besoin.get(fam, 0) > 0:
+            besoin[fam] -= 1
+            if _affecte(suite, besoin):
+                besoin[fam] += 1
+                return True
+            besoin[fam] += 1
+    return False
 
 
 def remplacements(compo: Composition, prestas: dict[int, list[Prestation]],

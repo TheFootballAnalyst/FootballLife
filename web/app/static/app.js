@@ -288,12 +288,31 @@ function ligneCarte(c) {
 function compoVide() { return {formation: "4-3-3", titulaires: [], banc: [], capitaine: null}; }
 function slotsFam(formation) { const [g, d, m, f] = FORMATIONS[formation]; return [...Array(g).fill("GK"), ...Array(d).fill("DEF"), ...Array(m).fill("MID"), ...Array(f).fill("FWD")]; }
 function legal(fams) { if (fams.length !== 11 || fams.some(x => !x)) return false; return FAMS.every(f => { const n = fams.filter(x => x === f).length; return n >= LIMITES[f][0] && n <= LIMITES[f][1]; }); }
+// A card is eligible wherever the player really played, not only at the one
+// label the barème shows: Valverde spent a third of his season at right
+// back, a third on the wing and a quarter in midfield.
+function famillesDe(c) { return (c && c.familles && c.familles.length) ? c.familles : [c ? c.fam : "MID"]; }
+function peutJouer(id, fam) { const c = carte(id); return !!c && famillesDe(c).includes(fam); }
+function onzeLegal() { const fams = slotsFam(C.formation); return C.slots.every((id, s) => id !== null && peutJouer(id, fams[s])); }
 // composition locale : slots (11, null si vide), banc, capitaine
 let C = {formation: "4-3-3", slots: Array(11).fill(null), banc: [], cap: null};
 function compoVersSlots() {
   const cp = G.compo; const fams = slotsFam(cp.formation in FORMATIONS ? cp.formation : "4-3-3");
-  const slots = Array(11).fill(null); const reste = cp.titulaires.filter(id => carte(id));
-  for (let s = 0; s < 11; s++) { const k = reste.findIndex(id => carte(id).fam === fams[s]); if (k >= 0) { slots[s] = reste[k]; reste.splice(k, 1); } }
+  let slots = Array(11).fill(null);
+  // The lineup is stored slot by slot, so the manager's own arrangement —
+  // Valverde moved into midfield, the two centre-backs swapped — comes back
+  // exactly as he left it.  Re-matching by position would undo it.
+  const direct = cp.titulaires.length === 11 && cp.titulaires.every((id, s) => id !== null && carte(id) && peutJouer(id, fams[s]));
+  if (direct) slots = cp.titulaires.slice();
+  else {
+    const reste = cp.titulaires.filter(id => carte(id));
+    for (const exact of [true, false])
+      for (let s = 0; s < 11; s++) {
+        if (slots[s] !== null) continue;
+        const k = reste.findIndex(id => exact ? carte(id).fam === fams[s] : peutJouer(id, fams[s]));
+        if (k >= 0) { slots[s] = reste[k]; reste.splice(k, 1); }
+      }
+  }
   const tous = new Set(idsEffectif());
   const banc = cp.banc.filter(id => tous.has(id) && !slots.includes(id));
   for (const id of tous) if (!slots.includes(id) && !banc.includes(id)) banc.push(id);
@@ -301,23 +320,38 @@ function compoVersSlots() {
 }
 function auto(formation) {
   C.formation = formation; const fams = slotsFam(formation);
-  const tri = idsEffectif().sort((a, b) => ovr(b) - ovr(a)); const pris = new Set(); const slots = [];
-  for (const fam of fams) { const i = tri.find(x => carte(x).fam === fam && !pris.has(x)); slots.push(i ?? null); if (i !== undefined) pris.add(i); }
+  const tri = idsEffectif().sort((a, b) => ovr(b) - ovr(a)); const pris = new Set(); const slots = fams.map(() => null);
+  for (const exact of [true, false])
+    fams.forEach((fam, s) => {
+      if (slots[s] !== null) return;
+      const i = tri.find(x => !pris.has(x) && (exact ? carte(x).fam === fam : peutJouer(x, fam)));
+      if (i !== undefined) { slots[s] = i; pris.add(i); }
+    });
   C.slots = slots; C.banc = tri.filter(x => !pris.has(x));
   if (!slots.includes(C.cap)) C.cap = slots.find(x => x !== null) ?? null;
   rendreEquipe(false);
 }
 function rendreEquipe(recalc = true) {
-  if (recalc) compoVersSlots();
+  if (recalc) {
+    compoVersSlots();
+    // a squad with no lineup yet opens on its best eleven rather than on
+    // eleven empty boxes and a bench of sixteen
+    if (!G.compo?.titulaires?.length && idsEffectif().length >= 11) return auto(C.formation);
+  }
   const sel = $("#formation"); if (!sel.options.length) for (const f of Object.keys(FORMATIONS)) sel.append(el("option", {value: f}, f));
   sel.value = C.formation;
   const fams = slotsFam(C.formation); const [g, d, m, f] = FORMATIONS[C.formation];
   const T = $("#terrain"); T.replaceChildren();
   let k = 0;
   for (const n of [f, m, d, g]) { const rang = el("div", {class: "rang"}); const debut = 11 - (k + n); k += n; for (let s = debut; s < debut + n; s++) rang.append(slotEl(s, fams[s])); T.append(rang); }
-  const ok = legal(C.slots.map(i => i === null ? null : carte(i).fam));
+  const ok = onzeLegal();
   const A = $("#avert-compo"); A.replaceChildren();
-  if (!ok) A.append(el("div", {class: "avert"}, "Le onze n'est pas complet ou pas légal : 1 gardien, 3 à 5 défenseurs, 2 à 5 milieux, 1 à 3 attaquants."));
+  if (!ok) {
+    const trous = C.slots.filter(i => i === null).length;
+    A.append(el("div", {class: "avert"}, trous
+      ? `Il manque ${trous} joueur${trous > 1 ? "s" : ""} : glisse une carte du banc sur une case vide.`
+      : "Un joueur occupe un poste qu'il n'a jamais tenu. Les cases en rouge sont à corriger."));
+  }
   const j = G.saison.courante;
   const etat = $("#compo-etat"); etat.replaceChildren();
   if (!j) etat.append("Saison terminée.");
@@ -325,6 +359,7 @@ function rendreEquipe(recalc = true) {
   else etat.append(`Journée ${j.numero}, du ${j.du} au ${j.au}. Verrouillage au premier coup d'envoi : ${new Date(j.cloture).toLocaleString("fr-FR")}. `, G.equipe.composition ? el("b", {}, `Composition envoyée le ${new Date(G.equipe.composition.soumise_le).toLocaleString("fr-FR")}.`) : el("b", {class: "rouge"}, "Aucune composition envoyée."));
   $("#btn-envoyer").disabled = !ok || !j || j.verrouillee;
   const B = $("#banc"); B.replaceChildren();
+  zoneDepot(B, {type: "banc"});
   C.banc.forEach((i, r) => B.append(ligneBanc(i, r)));
   if (!C.banc.length) B.append(el("p", {class: "compteur"}, "Banc vide. 4 remplaçants conseillés : un gardien et trois joueurs de champ."));
   rendreClub();
@@ -354,34 +389,175 @@ async function rendreClub() {
   R.append(el("div", {class: "etiq", style: "margin-top:12px"}, "Réserve"), ...(res.length ? res.map(ligne) : [el("p", {class: "compteur"}, "Réserve vide.")]));
   if (!G.packs) { try { G.packs = await api("/packs"); } catch (e) {} }
 }
+// What is being moved: a pitch slot or a bench line.  The same state serves
+// the drag (desktop) and the tap-tap (touch, and the keyboard).
+let PRISE = null;
+function prendre(src) { PRISE = (PRISE && PRISE.type === src.type && PRISE.i === src.i) ? null : src; marquerCibles(); }
+
+// Repainting the pitch while a finger or a button is down detaches the very
+// node the gesture started on, and Chromium then stops delivering pointer
+// events: the drag froze on its first pixel.  During a gesture we only
+// toggle classes on the nodes that are already there.
+function marquerCibles() {
+  const pris = PRISE ? carteDe(PRISE) : null;
+  const vise = pris !== null && pris !== undefined;
+  document.querySelectorAll("#terrain .slot").forEach(n => {
+    n.classList.remove("cible", "interdit", "prise");
+    if (PRISE && PRISE.type === "slot" && PRISE.i === n._slot) n.classList.add("prise");
+    else if (vise) n.classList.add(peutJouer(pris, n._fam) ? "cible" : "interdit");
+  });
+  document.querySelectorAll("#banc .ligne").forEach((n, r) =>
+    n.classList.toggle("prise", !!PRISE && PRISE.type === "banc" && PRISE.i === r));
+}
+function carteDe(src) { return src.type === "slot" ? C.slots[src.i] : C.banc[src.i]; }
+
+function deposer(src, cible) {
+  // cible = {type:"slot", i} or {type:"banc"}.  A card may only land on a
+  // slot of a family it really played; whoever it displaces goes to the
+  // bench rather than into a position he has never held.
+  const id = carteDe(src);
+  if (id === null || id === undefined) return;
+  if (cible.type === "banc") {
+    if (src.type === "slot") { C.slots[src.i] = null; C.banc.unshift(id); if (C.cap === id) C.cap = null; }
+    PRISE = null; rendreEquipe(false); return;
+  }
+  const fam = slotsFam(C.formation)[cible.i];
+  if (!peutJouer(id, fam)) { toast(`${carte(id).nom} n'a jamais joué ${NOM_FAM[fam].toLowerCase()}`); PRISE = null; rendreEquipe(false); return; }
+  const occupant = C.slots[cible.i];
+  if (src.type === "slot") {
+    if (src.i === cible.i) { PRISE = null; rendreEquipe(false); return; }
+    const famOrigine = slotsFam(C.formation)[src.i];
+    C.slots[cible.i] = id;
+    if (occupant !== null && peutJouer(occupant, famOrigine)) C.slots[src.i] = occupant;
+    else { C.slots[src.i] = null; if (occupant !== null) { C.banc.unshift(occupant); if (C.cap === occupant) C.cap = null; } }
+  } else {
+    C.banc.splice(src.i, 1);
+    C.slots[cible.i] = id;
+    if (occupant !== null) { C.banc.unshift(occupant); if (C.cap === occupant) C.cap = null; }
+  }
+  PRISE = null; rendreEquipe(false);
+}
+
+// Pointer events rather than HTML5 drag and drop: the latter does not
+// exist on mobile browsers, and the pitch has to work under a thumb.  One
+// gesture covers both ways of moving a card — drag it, or tap it and tap
+// where it goes — because a drag under the threshold IS a tap.
+const SEUIL_GLISSE = 7;          // pixels before a tap becomes a drag
+let FANTOME = null;
+
+function zoneDepot(d, cible) { d._cible = cible; }
+
+function cibleSous(x, y) {
+  for (let n = document.elementFromPoint(x, y); n; n = n.parentElement)
+    if (n._cible) return {cible: n._cible, noeud: n};
+  return null;
+}
+
+function zonePrise(d, src) {
+  // The portraits are <img>: Chromium starts its own native image drag on
+  // the first move and fires pointercancel, which killed the gesture on its
+  // first pixel.  Refusing dragstart keeps the pointer stream ours.
+  d.addEventListener("dragstart", e => e.preventDefault());
+  d.addEventListener("pointerdown", e => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    if (e.target.closest(".slot-menu, .ordre")) return;       // the options and the arrows keep their click
+    const depart = {x: e.clientX, y: e.clientY};
+    let glisse = false, dernier = null;
+    const bouge = ev => {
+      if (!glisse && Math.hypot(ev.clientX - depart.x, ev.clientY - depart.y) < SEUIL_GLISSE) return;
+      if (!glisse) {
+        glisse = true;
+        PRISE = src;
+        FANTOME = d.cloneNode(true);
+        FANTOME.className = (d.className || "") + " fantome";
+        document.body.append(FANTOME);
+        marquerCibles();
+      }
+      FANTOME.style.left = ev.clientX + "px";
+      FANTOME.style.top = ev.clientY + "px";
+      const sous = cibleSous(ev.clientX, ev.clientY);
+      if (dernier && dernier !== sous?.noeud) dernier.classList.remove("survol");
+      dernier = sous?.noeud || null;
+      if (dernier) dernier.classList.add("survol");
+    };
+    const fini = ev => {
+      window.removeEventListener("pointermove", bouge);
+      window.removeEventListener("pointerup", fini);
+      window.removeEventListener("pointercancel", fini);
+      if (FANTOME) { FANTOME.remove(); FANTOME = null; }
+      if (dernier) dernier.classList.remove("survol");
+      if (!glisse) return;                                     // a tap: the click handler takes it
+      const sous = cibleSous(ev.clientX, ev.clientY);
+      if (sous) deposer(src, sous.cible);
+      else { PRISE = null; rendreEquipe(false); }
+      ev.preventDefault();
+    };
+    window.addEventListener("pointermove", bouge);
+    window.addEventListener("pointerup", fini);
+    window.addEventListener("pointercancel", fini);
+  });
+}
+
 function slotEl(s, fam) {
   const i = C.slots[s];
-  if (i === null) return el("div", {class: "slot vide", tabindex: "0", onclick: () => { const cands = C.banc.filter(x => carte(x).fam === fam).sort((a, b) => ovr(b) - ovr(a)); if (!cands.length) { toast(`Aucun ${NOM_FAM[fam].toLowerCase()} sur le banc`); return; } C.banc = C.banc.filter(x => x !== cands[0]); C.slots[s] = cands[0]; rendreEquipe(false); }}, el("div", {class: "mini"}, el("div", {}, el("div", {class: "o"}, "+"), el("div", {class: "n"}, NOM_FAM[fam]))));
-  const c = carte(i); const d = el("div", {class: "slot", tabindex: "0", onclick: () => menuSlot(s), onkeydown: e => { if (e.key === "Enter") menuSlot(s); }});
+  const pris = PRISE ? carteDe(PRISE) : null;
+  const vise = pris !== null && pris !== undefined;
+  const classes = ["slot"];
+  if (i === null) classes.push("vide");
+  if (PRISE && PRISE.type === "slot" && PRISE.i === s) classes.push("prise");
+  else if (vise) classes.push(peutJouer(pris, fam) ? "cible" : "interdit");
+  if (i !== null && !peutJouer(i, fam)) classes.push("faute");
+  const titre = i === null ? `Case ${NOM_FAM[fam].toLowerCase()} vide`
+    : `${carte(i).nom} — ${NOM_FAM[fam]}. Glisse-le ailleurs, ou touche-le puis touche sa destination.`;
+  const d = el("div", {class: classes.join(" "), tabindex: "0", title: titre,
+    onclick: () => { if (PRISE) deposer(PRISE, {type: "slot", i: s}); else if (i !== null) prendre({type: "slot", i: s}); },
+    onkeydown: e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (PRISE) deposer(PRISE, {type: "slot", i: s}); else if (i !== null) prendre({type: "slot", i: s}); }
+      if (e.key === "Escape") { PRISE = null; rendreEquipe(false); }
+      if (e.key.toLowerCase() === "c" && i !== null) { C.cap = i; rendreEquipe(false); }
+    }});
+  d._slot = s; d._fam = fam;
+  zoneDepot(d, {type: "slot", i: s});
+  if (i === null) {
+    d.append(el("div", {class: "mini"}, el("div", {}, el("div", {class: "o"}, "+"), el("div", {class: "n"}, NOM_FAM[fam]))));
+    return d;
+  }
+  const c = carte(i);
+  zonePrise(d, {type: "slot", i: s});
   d.style.setProperty("--clubc", c.couleur);
   d.append(el("div", {class: "mini"}, el("div", {},
     el("div", {class: "mh"}, el("div", {class: "o num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)), vignette(i)),
     el("div", {class: "n"}, c.nom.split(" ").slice(-1)[0]))));
   if (C.cap === i) d.append(el("div", {class: "cap"}, "C"));
+  d.append(el("button", {class: "slot-menu", title: "Options", onclick: e => { e.stopPropagation(); PRISE = null; menuSlot(s); }}, "···"));
   return d;
 }
 function menuSlot(s) {
-  const i = C.slots[s]; const fam = carte(i).fam; const dlg = $("#fiche"); dlg.replaceChildren();
-  const box = el("div", {class: "fiche"}, el("h3", {class: "anton"}, carte(i).nom), el("p", {class: "compteur"}, `${NOM_FAM[fam]} · OVR ${ovr(i)}`));
+  const i = C.slots[s]; const fam = slotsFam(C.formation)[s]; const dlg = $("#fiche"); dlg.replaceChildren();
+  const box = el("div", {class: "fiche"}, el("h3", {class: "anton"}, carte(i).nom),
+    el("p", {class: "compteur"}, `${NOM_FAM[fam]} · OVR ${ovr(i)} · peut jouer ${famillesDe(carte(i)).map(f => NOM_FAM[f].toLowerCase()).join(", ")}`));
   const acts = el("div", {class: "actions", style: "justify-content:flex-start"});
   acts.append(el("button", {class: "primaire", onclick: () => { C.cap = i; dlg.close(); rendreEquipe(false); }}, "Nommer capitaine"));
-  for (const b of C.banc.filter(x => carte(x).fam === fam)) acts.append(el("button", {onclick: () => { C.banc = C.banc.map(x => x === b ? i : x); C.slots[s] = b; if (C.cap === i) C.cap = b; dlg.close(); rendreEquipe(false); }}, `Remplacer par ${carte(b).nom} (${ovr(b)})`));
+  for (const b of C.banc.filter(x => peutJouer(x, fam))) acts.append(el("button", {onclick: () => { C.banc = C.banc.map(x => x === b ? i : x); C.slots[s] = b; if (C.cap === i) C.cap = b; dlg.close(); rendreEquipe(false); }}, `Remplacer par ${carte(b).nom} (${ovr(b)})`));
   acts.append(el("button", {onclick: () => { C.slots[s] = null; C.banc.unshift(i); if (C.cap === i) C.cap = null; dlg.close(); rendreEquipe(false); }}, "Mettre sur le banc"));
   acts.append(el("button", {onclick: () => { dlg.close(); ouvrirFiche(i); }}, "Voir la fiche"), el("button", {class: "discret", onclick: () => dlg.close()}, "Fermer"));
   box.append(acts); dlg.append(box); dlg.showModal();
 }
 function ligneBanc(i, r) {
   const c = carte(i);
-  const l = el("div", {class: "ligne", tabindex: "0", onclick: () => ouvrirFiche(i)}); l.style.setProperty("--clubc", c.couleur);
+  const choisi = PRISE && PRISE.type === "banc" && PRISE.i === r;
+  const l = el("div", {class: "ligne" + (choisi ? " prise" : ""), tabindex: "0",
+    title: `${c.nom} — ${famillesDe(c).map(f => NOM_FAM[f]).join(", ")}. Glisse-le sur le terrain.`,
+    onclick: () => { if (PRISE && PRISE.type === "slot") deposer(PRISE, {type: "banc"}); else prendre({type: "banc", i: r}); },
+    onkeydown: e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (PRISE && PRISE.type === "slot") deposer(PRISE, {type: "banc"}); else prendre({type: "banc", i: r}); } }});
+  l.style.setProperty("--clubc", c.couleur);
+  zonePrise(l, {type: "banc", i: r});
   const ord = el("div", {class: "ordre"},
     el("button", {title: "Monter", disabled: r === 0, onclick: e => { e.stopPropagation(); [C.banc[r - 1], C.banc[r]] = [C.banc[r], C.banc[r - 1]]; rendreEquipe(false); }}, "▲"),
     el("button", {title: "Descendre", disabled: r === C.banc.length - 1, onclick: e => { e.stopPropagation(); [C.banc[r + 1], C.banc[r]] = [C.banc[r], C.banc[r + 1]]; rendreEquipe(false); }}, "▼"));
-  l.append(ord, vignette(i), el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, c.club)), el("span", {class: "fam " + c.fam}, c.fam), el("div", {class: "ovr num"}, String(c.ovr)));
+  l.append(ord, vignette(i), el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, c.club)),
+    el("span", {class: "fams"}, ...famillesDe(c).map(f => el("span", {class: "fam " + f}, f))),
+    el("div", {class: "ovr num"}, String(c.ovr)));
   return l;
 }
 async function envoyer() {
