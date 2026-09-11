@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 
 BONUS_CAPITAINE = 1.5
 TAILLE_ONZE = 11
-TAILLE_BANC = 4
+TAILLE_BANC = 7          # a real matchday squad: eleven and seven
 
 # Formation = counts of (GK, DEF, MID, FWD).  Position families map onto
 # the engine's positions; a card carries one family.

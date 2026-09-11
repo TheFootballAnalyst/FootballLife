@@ -115,11 +115,25 @@ def test_packs_club_and_auction_house(client):
 def test_composition_rules_and_lock(client):
     inscrire(client)
     donner(client, range(1, 15))
-    # 15 would be a fourth striker: quota
+    # the squad holds eighteen (eleven and seven), and the quota per line is
+    # there to stop a squad of nothing but strikers: 15, 90 and 91 are the
+    # fourth, fifth and sixth forward.
     from web.app import serveur as SV
-    j = SV.ouvrir(); j.execute("INSERT INTO exemplaire(player_id, saison, numero, equipe_id, dans_effectif, origine, prix_achat, achete_le) VALUES (15, '2025/26', 1, 1, 0, 'pack', 1.0, 'x')"); j.commit(); j.close()
-    x15 = [c for c in client.get("/api/club").json()["cartes"] if c["player_id"] == 15][0]["exemplaire_id"]
-    assert client.post("/api/club/aligner", json={"exemplaire_id": x15, "dans_effectif": True}).status_code == 409
+    j = SV.ouvrir()
+    j.execute("""INSERT INTO exemplaire(player_id, saison, numero, equipe_id, dans_effectif, origine, prix_achat,
+                 achete_le) VALUES (15, '2025/26', 1, 1, 0, 'pack', 1.0, 'x')""")
+    for pid in (90, 91):
+        j.execute("""INSERT INTO joueur(player_id, nom, nom_normalise, team_id, poste, postes)
+                     VALUES (?, ?, ?, 1, 'Buteur', '["Buteur"]')""", (pid, f"B{pid}", f"b{pid}"))
+        j.execute("""INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, attributs, matchs, minutes, maj)
+                     VALUES (?, '2025/26', 6.0, 60, 1.0, '{}', 1, 90, 'x')""", (pid,))
+        j.execute("""INSERT INTO exemplaire(player_id, saison, numero, equipe_id, dans_effectif, origine,
+                     prix_achat, achete_le) VALUES (?, '2025/26', 1, 1, 0, 'pack', 1.0, 'x')""", (pid,))
+    j.commit(); j.close()
+    exid = lambda pid: [c for c in client.get("/api/club").json()["cartes"] if c["player_id"] == pid][0]["exemplaire_id"]
+    for pid in (15, 90):
+        assert client.post("/api/club/aligner", json={"exemplaire_id": exid(pid), "dans_effectif": True}).status_code == 200
+    assert client.post("/api/club/aligner", json={"exemplaire_id": exid(91), "dans_effectif": True}).status_code == 409
     bonne = {"formation": "4-3-3", "titulaires": list(range(1, 12)), "banc": [12, 13, 14], "capitaine": 10}
     assert client.post("/api/equipe/composition", json=bonne).status_code == 200
     e = client.get("/api/equipe").json()

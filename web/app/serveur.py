@@ -55,8 +55,8 @@ IMAGES = RACINE / "moteur" / "images"
 CACHE_CARTES = pathlib.Path(os.environ.get("FL_CACHE", RACINE / "out" / "cartes_site"))
 STATIQUE = pathlib.Path(__file__).resolve().parent / "static"
 LIGUE_MONDE = "Monde"
-QUOTA = {"GK": 2, "DEF": 5, "MID": 5, "FWD": 3}
-TAILLE_EFFECTIF = 15
+QUOTA = MA.QUOTA
+TAILLE_EFFECTIF = MA.TAILLE_EFFECTIF
 SESSION_DUREE = 60 * 60 * 24 * 30
 
 app = FastAPI(title="FootballLife", docs_url="/api/docs", redoc_url=None)
@@ -234,7 +234,7 @@ def saison(jeu=Depends(bd)):
         "courante": dict(j) | {"verrouillee": verrouillee(j)} if j else None,
         "derniere": dict(d) if d else None,
         "economie": eco, "bareme": ech, "equipes": n_equipes,
-        "quotas": QUOTA, "taille_effectif": TAILLE_EFFECTIF,
+        "quotas": QUOTA, "taille_effectif": TAILLE_EFFECTIF, "taille_banc": S.TAILLE_BANC,
         "formations": S.FORMATIONS, "limites": S.LIMITES_FAMILLE,
     }
 
@@ -571,6 +571,8 @@ def composition(c: Compo, u=Depends(exiger), jeu=Depends(bd)):
         raise HTTPException(400, "Composition : joueurs en double ou pas dans l'effectif")
     if c.capitaine is not None and c.capitaine not in c.titulaires:
         raise HTTPException(400, "Le capitaine doit être titulaire")
+    if len(c.banc) > S.TAILLE_BANC:
+        raise HTTPException(400, f"{S.TAILLE_BANC} remplaçants au plus sur la feuille")
     # A card is eligible wherever the player really played, so the eleven is
     # legal as soon as ONE assignment of its cards to the formation works.
     elig = {}

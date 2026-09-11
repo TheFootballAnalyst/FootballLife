@@ -93,7 +93,7 @@ DEMANDE = 0.0
 
 # Budget (M€)
 BUDGET_INITIAL = 100.0       # a club's transfer budget for 15 cards
-TAILLE_EFFECTIF = 15         # 11 + 4 bench
+TAILLE_EFFECTIF = 18         # 11 + 7 bench
 SCORE_REFERENCE = 60.0       # a gameweek at 11 x 5.5 (or 66 at 11 x 6)
 TAUX_GAIN = 0.1              # M€ per point above the reference
 GAIN_MAX_SEMAINE = 5.0       # 5 % of the initial budget at most per gameweek

@@ -20,8 +20,11 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 | Classement | mondial, plus les ligues privées : créer une ligue donne un code, le partager suffit |
 | Admin | verrouiller ou rouvrir la journée, charger les prestations notées, clôturer |
 
-Règles appliquées côté serveur : 15 cartes au plus, 2 gardiens, 5
-défenseurs, 5 milieux, 3 attaquants ; onze légal (1 gardien, 3 à 5
+Règles appliquées côté serveur : 18 cartes sur la feuille (11 + 7), au
+plus 3 gardiens, 7 défenseurs, 7 milieux, 5 attaquants — les quotas
+dépassent volontairement dix-huit, ils sont là pour empêcher une équipe
+de huit attaquants, pas pour dicter sa forme ; la réserve du club n'a
+plus de plafond ; onze légal (1 gardien, 3 à 5
 défenseurs, 2 à 5 milieux, 1 à 3 attaquants) ; capitaine titulaire ;
 composition refusée après la clôture ; marché fermé entre la clôture et
 le calcul ; prix = prix OVR × (1 + part des équipes qui possèdent la

@@ -27,7 +27,7 @@ const FAM_COURT = {GK: "GB", DEF: "DÉF", MID: "MIL", FWD: "ATT"};
 // ---- état local (miroir de ce que le serveur a renvoyé) ----
 const G = {moi: null, saison: null, cartes: [], idx: new Map(), equipe: null, compo: null, ecran: "connexion", ventes: [], club: [], packs: null};
 const ventesDe = id => G.ventes.filter(v => v.player_id === id);
-let TAILLE = 15, FORMATIONS = {"4-3-3": [1,4,3,3]}, LIMITES = {GK: [1,1], DEF: [3,5], MID: [2,5], FWD: [1,3]};
+let TAILLE = 18, BANC_MAX = 7, FORMATIONS = {"4-3-3": [1,4,3,3]}, LIMITES = {GK: [1,1], DEF: [3,5], MID: [2,5], FWD: [1,3]};
 
 // ---- utilitaires ----
 const $ = s => document.querySelector(s);
@@ -133,7 +133,7 @@ const resteTxt = fin => { const ms = new Date(fin) - Date.now(); if (ms <= 0) re
 async function rendrePacks() {
   G.packs = await api("/packs");
   const P = $("#packs-liste"); P.replaceChildren();
-  $("#packs-info").textContent = `Une carte ne peut exister qu'en ${G.packs.plafond} exemplaires dans la ligue. Réserve : ${G.packs.reserve_max} cartes. La banque rachète à ${Math.round(G.packs.rachat * 100)} % de la cote.`;
+  $("#packs-info").textContent = `Une carte ne peut exister qu'en ${G.packs.plafond} exemplaires dans la ligue. Réserve ${G.packs.reserve_max == null ? "illimitée" : G.packs.reserve_max + " cartes"}. La banque rachète à ${Math.round(G.packs.rachat * 100)} % de la cote.`;
   const offerts = Object.entries(G.packs.offerts || {}).filter(([, n]) => n > 0);
   if (offerts.length) {
     const b = el("div", {class: "panneau offerts"}, el("h3", {class: "anton"}, "Packs offerts"),
@@ -399,14 +399,14 @@ function rendreEquipe(recalc = true) {
   const B = $("#banc"); B.replaceChildren();
   zoneDepot(B, {type: "banc"});
   C.banc.forEach((i, r) => B.append(ligneBanc(i, r)));
-  if (!C.banc.length) B.append(el("p", {class: "compteur"}, "Banc vide. 4 remplaçants conseillés : un gardien et trois joueurs de champ."));
+  if (!C.banc.length) B.append(el("p", {class: "compteur"}, `Banc vide. ${BANC_MAX} remplaçants : un gardien et six joueurs de champ, dans l’ordre où tu veux les faire entrer.`));
   rendreClub();
 }
 async function rendreClub() {
   const d = await api("/club"); G.club = d.cartes;
   const R = $("#club-liste"); R.replaceChildren();
   const eff = d.cartes.filter(x => x.dans_effectif), res = d.cartes.filter(x => !x.dans_effectif);
-  $("#club-compteur").textContent = `${eff.length} / ${d.effectif_max} dans l'effectif · ${res.length} / ${d.reserve_max} en réserve`;
+  $("#club-compteur").textContent = `${eff.length} / ${d.effectif_max} dans l'effectif · ${res.length}${d.reserve_max == null ? "" : " / " + d.reserve_max} en réserve`;
   const ligne = x => {
     const c = x.carte; const l = el("div", {class: "ligne club-ligne" + (x.enchere_id ? " en-vente" : "")}); l.style.setProperty("--clubc", c.couleur);
     const delta = (x.cote || 0) - x.prix_achat;
@@ -1167,7 +1167,7 @@ function sparkline(vals, fmt = f1) {
 
 (async () => {
   try {
-    const s = await api("/saison"); TAILLE = s.taille_effectif; FORMATIONS = s.formations; LIMITES = s.limites;
+    const s = await api("/saison"); TAILLE = s.taille_effectif; BANC_MAX = s.taille_banc ?? BANC_MAX; FORMATIONS = s.formations; LIMITES = s.limites;
     const moi = await api("/moi"); connecte(moi);
     if (moi.connecte) { const h = location.hash.replace("#", ""); await montrer(["packs", "encheres", "marche", "equipe", "lobby", "solo", "journee", "classement", "admin"].includes(h) ? h : (idsEffectif().length ? "equipe" : "packs")); }
   } catch (e) { toast("Serveur injoignable : " + e.message); }

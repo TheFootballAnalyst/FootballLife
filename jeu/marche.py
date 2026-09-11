@@ -34,9 +34,12 @@ from datetime import datetime, timedelta, timezone
 
 from jeu import scoring as S
 
-QUOTA = {"GK": 2, "DEF": 5, "MID": 5, "FWD": 3}
-TAILLE_EFFECTIF = 15
-RESERVE_MAX = 30
+# The matchday squad: eleven and seven.  The quotas add up to more than
+# eighteen on purpose — they exist to stop a squad of eight strikers, not
+# to dictate its shape; the legal eleven does the rest.
+QUOTA = {"GK": 3, "DEF": 7, "MID": 7, "FWD": 5}
+TAILLE_EFFECTIF = 18
+RESERVE_MAX = None          # no cap: a club may hold as many cards as it buys
 
 TIERS = {"bronze": (0, 59), "argent": (60, 74), "or": (75, 99)}
 CARTES_PAR_PACK = 3
@@ -142,7 +145,7 @@ def ouvrir_pack(jeu, saison: str, equipe_id: int, type_pack: str, fam: str | Non
     elif budget + 1e-9 < prix:
         raise ErreurMarche(f"Budget insuffisant : le pack coûte {prix:.1f} M€")
     reserve = _un(jeu, "SELECT COUNT(*) FROM exemplaire WHERE equipe_id=? AND detruit=0 AND dans_effectif=0", (equipe_id,))[0]
-    if reserve + CARTES_PAR_PACK > RESERVE_MAX:
+    if RESERVE_MAX is not None and reserve + CARTES_PAR_PACK > RESERVE_MAX:
         raise ErreurMarche(f"Réserve pleine ({RESERVE_MAX} cartes) : vends ou aligne avant d'ouvrir")
     rng = rng or random.SystemRandom()
     plafond = plafond_copies(jeu, lid)
@@ -220,7 +223,7 @@ def aligner(jeu, equipe_id: int, exemplaire_id: int, dans_effectif: bool) -> Non
             raise ErreurMarche(f"Déjà {QUOTA[fam]} à ce poste")
     else:
         reserve = _un(jeu, "SELECT COUNT(*) FROM exemplaire WHERE equipe_id=? AND detruit=0 AND dans_effectif=0", (equipe_id,))[0]
-        if reserve >= RESERVE_MAX:
+        if RESERVE_MAX is not None and reserve >= RESERVE_MAX:
             raise ErreurMarche(f"Réserve pleine ({RESERVE_MAX})")
         retirer_de_la_composition(jeu, equipe_id, pid)
     jeu.execute("UPDATE exemplaire SET dans_effectif=? WHERE exemplaire_id=?", (1 if dans_effectif else 0, exemplaire_id))
