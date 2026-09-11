@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS joueur (
     valeur_marche    REAL,                          -- M€, latest known (FotMob match sheets)
     age              INTEGER,                       -- from the latest match sheet
     numero           TEXT,                          -- shirt number
-    pays             TEXT                           -- ISO-3 country code
+    pays             TEXT,                          -- ISO-3 country code
+    pied             TEXT                           -- 'gauche' | 'droit' | 'deux'; NULL = inconnu (donnees/pieds.py)
 );
 CREATE INDEX IF NOT EXISTS ix_joueur_nom ON joueur(nom_normalise);
 

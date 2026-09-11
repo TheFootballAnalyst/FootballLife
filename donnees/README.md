@@ -29,6 +29,30 @@ notés dans `moteur/images/joueurs/absents.txt` pour ne pas être
 redemandés. À lancer depuis une machine qui atteint `images.fotmob.com`
 (la session distante de Claude Code ne le peut pas).
 
+## Pied fort
+
+Gaucher, droitier ou ambidextre : la donnée n'est nulle part dans ce qui
+est déjà là (ni dans `fotmob.db`, ni dans les feuilles de match en cache),
+il faut la demander au profil du joueur.
+
+```
+python3 donnees/pieds.py                     # tous les joueurs de jeu/jeu_2526.sqlite
+python3 donnees/pieds.py --fotmob moteur/fotmob.db
+python3 donnees/pieds.py --entete "x-mas: ..."   # si FotMob répond 403
+```
+
+Le résultat est `moteur/pieds.json`, que `jeu/importer.py` recopie dans
+`joueur.pied` (c'est aussi lui qui l'écrit à chaque import). Un joueur
+absent du fichier reste inconnu et sa carte n'affiche rien.
+
+Et non, on ne le déduit pas des tirs. Les feuilles en cache donnent bien un
+`shotType` (`LeftFoot` / `RightFoot`) ; mesuré sur les 3 963 matchs du
+cache, en exigeant dix tirs du pied et en appelant ambidextre toute part du
+droit entre 25 % et 75 %, on tombe sur 46 % de droitiers, 23 % de gauchers
+et 31 % d'ambidextres — la réalité est plutôt 75 / 22 / 3. Une reprise, un
+but de près ou une frappe déviée se prennent du pied qui se présente. C'est
+un fait sur des personnes réelles : on le récupère, ou on le laisse vide.
+
 ## Pourquoi pas dans Git
 
 GitHub refuse tout fichier de plus de 100 Mo et avertit dès 50 Mo. Git LFS

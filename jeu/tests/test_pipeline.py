@@ -339,3 +339,20 @@ def test_cards_carry_season_attributes_from_the_seed_onwards():
     assert apres["FIN"] > attrs[2]["FIN"] and apres["DEF"] <= attrs[2]["DEF"]
     s, m = jeu.execute("SELECT sommes, min90 FROM carte WHERE player_id=2").fetchone()
     assert json.loads(s)["axes"]["FIN"] == 100.0 and m == 1.0
+
+
+def test_the_preferred_foot_comes_from_the_file_or_stays_unknown(tmp_path):
+    """A fact about a real person: it is read from the source or left
+    blank.  Nothing infers it from the position or from the shots."""
+    jeu = base()
+    f = tmp_path / "pieds.json"
+    f.write_text(json.dumps({"1": "gauche", "2": "droit", "3": "deux",
+                             "4": "left",            # not normalised: refused
+                             "999": "droit",         # unknown player: no row to update
+                             "_sans_pied": [5, 6]}), encoding="utf-8")
+    assert I.importer_pieds(jeu, f) == 3
+    pieds = dict(jeu.execute("SELECT player_id, pied FROM joueur"))
+    assert (pieds[1], pieds[2], pieds[3]) == ("gauche", "droit", "deux")
+    assert pieds[4] is None and pieds[5] is None
+    # no file at all is not an error: every card simply reads "inconnu"
+    assert I.importer_pieds(jeu, tmp_path / "absent.json") == 0

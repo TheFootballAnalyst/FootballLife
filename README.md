@@ -78,6 +78,7 @@ The game layer's tests run without them.
 ```
 python3 donnees/telecharger.py <release asset url>   # fotmob.db + cache into moteur/
 python3 donnees/portraits.py                         # portraits into moteur/images/joueurs/
+python3 donnees/pieds.py                             # preferred foot -> moteur/pieds.json
 python3 -m jeu.importer                              # -> jeu/jeu_2526.sqlite
 python3 -m jeu.backtest                              # -> out/ (global league)
 python3 -m jeu.cartes --journee 34 --n 8             # -> out/cartes/*.png

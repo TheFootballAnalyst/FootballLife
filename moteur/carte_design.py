@@ -73,8 +73,13 @@ def logo_club(tid, taille):
     return Image.open(src).convert('RGBA').resize((taille, taille), Image.LANCZOS)
 
 
+# Pied fort : la valeur declaree par la source (donnees/pieds.py), jamais
+# deduite. Un joueur sans donnee n'affiche rien plutot qu'une supposition.
+PIEDS = {"gauche": "GAUCHER", "droit": "DROITIER", "deux": "AMBIDEXTRE"}
+
+
 def carte(pid, nom, note, club_couleur, competition, poste="", minutes=None,
-          attributs=None, larg=420, team_id=None):
+          attributs=None, larg=420, team_id=None, pied=None):
     haut = int(larg * 1.50)
     dec = DECORS.get(competition, DEFAUT)
     marge = 26
@@ -211,7 +216,8 @@ def carte(pid, nom, note, club_couleur, competition, poste="", minutes=None,
     while dc.textlength(nom_c, police) > larg*0.88 and police.size > 14:
         police = F('anton', police.size - 1)
     dc.text((larg*0.05, bas + int(haut*0.055)), nom_c, font=police, fill=BLANC, anchor='lm')
-    sous = poste.upper() + (f"  ·  {minutes:.0f} MIN" if minutes else "")
+    sous = poste.upper() + (f"  ·  {PIEDS[pied]}" if pied in PIEDS else "") \
+        + (f"  ·  {minutes:.0f} MIN" if minutes else "")
     dc.text((larg*0.05, bas + int(haut*0.115)), sous, font=F('bar', int(larg*0.058)),
             fill=rgb(dec["accent"]), anchor='lm')
     dc.line([(larg*0.05, bas + int(haut*0.15)), (larg*0.95, bas + int(haut*0.15))],

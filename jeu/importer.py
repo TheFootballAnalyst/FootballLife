@@ -89,7 +89,7 @@ MIGRATIONS = {                       # columns added after the first bases were 
     "prestation": [("stats", "TEXT")],
     "equipe": [("elo_classe", "REAL NOT NULL DEFAULT 1000"), ("classees", "INTEGER NOT NULL DEFAULT 0")],
     "joueur": [("valeur_marche", "REAL"), ("age", "INTEGER"), ("numero", "TEXT"), ("pays", "TEXT"),
-               ("postes", "TEXT")],
+               ("postes", "TEXT"), ("pied", "TEXT")],
     "carte": [("part", "REAL NOT NULL DEFAULT 0"), ("valeur_base", "REAL NOT NULL DEFAULT 1"),
               ("ovr_base", "INTEGER NOT NULL DEFAULT 60"), ("poids", "REAL NOT NULL DEFAULT 0"),
               ("sommes", "TEXT"), ("min90", "REAL NOT NULL DEFAULT 0"), ("bareme", "TEXT"),
@@ -381,6 +381,30 @@ def majorite_postes_et_clubs(jeu: sqlite3.Connection) -> None:
     jeu.commit()
 
 
+def importer_pieds(jeu: sqlite3.Connection, fichier: pathlib.Path = MOTEUR / "pieds.json") -> int:
+    """joueur.pied depuis moteur/pieds.json (donnees/pieds.py).
+
+    Le pied fort est un fait sur une personne réelle : il vient de la source
+    ou il reste inconnu.  Rien ici ne le déduit du poste ni des tirs — la
+    part de tirs du pied droit dit « ambidextre » pour un tiers des joueurs,
+    ce qui est faux (donnees/pieds.py explique la mesure).  Un joueur absent
+    du fichier garde pied NULL, et la carte n'affiche rien."""
+    if not fichier.exists():
+        return 0
+    try:
+        table = json.loads(fichier.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return 0
+    table.pop("_sans_pied", None)
+    n = 0
+    for pid, pied in table.items():
+        if pied not in ("gauche", "droit", "deux"):
+            continue
+        n += jeu.execute("UPDATE joueur SET pied=? WHERE player_id=?", (pied, int(pid))).rowcount
+    jeu.commit()
+    return n
+
+
 def importer_couleurs(jeu: sqlite3.Connection, cache: pathlib.Path = MOTEUR / "cache" / "matches") -> int:
     """club.couleur from the kit colours in the cached match sheets.
 
@@ -424,6 +448,7 @@ def main_import(fotmob: pathlib.Path, jeu_path: pathlib.Path, saison="2025/26", 
         print(f"J{j['numero']:>2}  {j['du']} -> {j['au']}  {n:>5} prestations")
     majorite_postes_et_clubs(jeu)
     importer_couleurs(jeu)
+    importer_pieds(jeu)
     print(f"barème de saison : {importer_bareme(fot, jeu, saison)} fenêtres joueur x journée")
     return total
 
@@ -476,8 +501,10 @@ def main():
         print(f"J{j['numero']:>2}  {j['du']} -> {j['au']}  {n:>5} prestations")
     majorite_postes_et_clubs(jeu)
     nc = importer_couleurs(jeu)
+    npd = importer_pieds(jeu)
     nb = importer_bareme(fot, jeu, a.saison)
-    print(f"{total} prestations, {len(js)} journees, {nc} couleurs de club, {nb} fenêtres de barème -> {a.jeu}")
+    print(f"{total} prestations, {len(js)} journees, {nc} couleurs de club, {npd} pieds forts, "
+          f"{nb} fenêtres de barème -> {a.jeu}")
 
 
 if __name__ == "__main__":

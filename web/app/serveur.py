@@ -270,7 +270,7 @@ def cartes_toutes(jeu):
     out = []
     for r in jeu.execute("""
             SELECT c.player_id, c.ovr, c.prix, c.part, c.note_ovr, c.matchs, c.minutes,
-                   c.valeur_base, c.ovr_base, c.arrivee, j.age, j.numero, j.pays,
+                   c.valeur_base, c.ovr_base, c.arrivee, j.age, j.numero, j.pays, j.pied,
                    j.nom, j.poste, j.postes, j.team_id, cl.nom AS club, cl.couleur
             FROM carte c JOIN joueur j ON j.player_id = c.player_id
             LEFT JOIN club cl ON cl.team_id = j.team_id WHERE c.saison = ?""", (SAISON,)):
@@ -284,7 +284,7 @@ def cartes_toutes(jeu):
             "ligue": ligues.get(ligue_club.get(r["team_id"], (0,))[0], ""),
             "ovr": r["ovr"], "prix": r["prix"], "part": round(r["part"], 3),
             "valeur_base": r["valeur_base"], "ovr_base": r["ovr_base"], "valeur_marche": valeurs.get(r["player_id"]),
-            "age": r["age"], "numero": r["numero"], "pays": r["pays"],
+            "age": r["age"], "numero": r["numero"], "pays": r["pays"], "pied": r["pied"],
             "matchs": r["matchs"], "minutes": int(r["minutes"] or 0), "arrivee": r["arrivee"],
             "notes": notes.get(r["player_id"], [])[-6:],
         })
@@ -812,13 +812,14 @@ def carte_dessinee(jeu, pid: int, largeur: int = 420) -> pathlib.Path | None:
     until the card changes."""
     if CARTES is None:
         return None
-    row = jeu.execute("""SELECT c.ovr, c.prix, j.nom, j.poste, j.team_id, COALESCE(cl.couleur, '#14161E'), c.attributs
+    row = jeu.execute("""SELECT c.ovr, c.prix, j.nom, j.poste, j.team_id, COALESCE(cl.couleur, '#14161E'),
+                                c.attributs, j.pied
                          FROM carte c JOIN joueur j ON j.player_id = c.player_id
                          LEFT JOIN club cl ON cl.team_id = j.team_id WHERE c.player_id=? AND c.saison=?""",
                       (pid, SAISON)).fetchone()
     if not row:
         return None
-    ovr, prix, nom, poste, tid, couleur, attrs = row
+    ovr, prix, nom, poste, tid, couleur, attrs, pied = row
     attributs = json.loads(attrs) if attrs else {}
     comps = {}
     for (comp,) in jeu.execute("""SELECT cp.nom FROM prestation p JOIN match m ON m.match_id = p.match_id
@@ -827,16 +828,16 @@ def carte_dessinee(jeu, pid: int, largeur: int = 420) -> pathlib.Path | None:
         comps[comp] = comps.get(comp, 0) + 1
     competition = max(comps, key=comps.get) if comps else "Ligue 1"
     largeur = largeur if largeur in LARGEURS_CARTE else 420
-    cle = f"{pid}_{ovr}_{sum(attributs.values())}_s2_{largeur}"   # s2: barème attributes, escutcheon
+    cle = f"{pid}_{ovr}_{sum(attributs.values())}_{pied or 'x'}_s3_{largeur}"   # s3: barème attributes, escutcheon, pied
     CACHE_CARTES.mkdir(parents=True, exist_ok=True)
     f = CACHE_CARTES / f"{cle}.png"
     if not f.exists():
-        etat = f"{ovr}_{sum(attributs.values())}_s2"
+        etat = f"{ovr}_{sum(attributs.values())}_{pied or 'x'}_s3"
         for vieux in CACHE_CARTES.glob(f"{pid}_*.png"):       # the card changed: every width is stale
             if not vieux.name.startswith(f"{pid}_{etat}_"):
                 vieux.unlink()
         d = dict(pid=pid, nom=nom, note=int(ovr), ovr=int(ovr), attributs=attributs, poste=poste,
-                 minutes=None, competition=competition, couleur=couleur, team_id=tid)
+                 minutes=None, competition=competition, couleur=couleur, team_id=tid, pied=pied)
         CARTES.dessiner(d, largeur).save(f)
     return f
 
