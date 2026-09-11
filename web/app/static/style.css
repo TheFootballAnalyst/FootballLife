@@ -500,3 +500,52 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 .res{font-family:Anton,sans-serif;width:24px;height:24px;line-height:24px;text-align:center;border-radius:6px;font-size:13px}
 .res.V{background:#2E7D5B;color:#fff}.res.N{background:#5A5F72;color:#fff}.res.D{background:#8C3A36;color:#fff}
 @media (max-width:640px){.live-score{font-size:32px}.live-eq .nom{font-size:16px}}
+
+
+/* ------------------------------------------------------------------ */
+/* Mode solo : le choix du club, la journée, le classement, le tableau */
+/* ------------------------------------------------------------------ */
+.onglets button.actif{background:var(--surface3);color:var(--encre)}
+#packs-liste > .offerts{grid-column:1 / -1}
+.offerts-liste{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.offert{display:grid;grid-template-columns:1fr;gap:4px;border:1px solid var(--ligne);border-radius:10px;
+  padding:10px 12px;background:var(--surface2);border-left:4px solid var(--or2)}
+.offert.bronze{border-left-color:#B07A4A}.offert.argent{border-left-color:#B9C0CC}.offert.or{border-left-color:var(--or2)}
+.offert b{font-size:19px}
+.clubs-solo{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:6px 0 4px}
+.club-solo{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;padding:8px 10px;cursor:pointer;
+  border:1px solid var(--ligne);border-radius:10px;background:var(--surface);border-left:4px solid var(--clubc,#777);
+  transition:background .12s,transform .12s}
+.club-solo:hover,.club-solo:focus-visible{background:var(--surface2);transform:translateY(-2px);outline:none}
+.club-solo img{width:34px;height:34px;object-fit:contain}
+.club-solo .nom{font-weight:600}
+.club-solo .sous{font-family:"Barlow Condensed",sans-serif;font-size:12.5px;color:var(--sourd)}
+.tete-campagne{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+.affiche{display:grid;grid-template-columns:56px 1fr;gap:14px;align-items:center;margin:10px 0;padding:12px 14px;
+  border:1px solid var(--ligne);border-radius:12px;background:var(--surface2);border-left:5px solid var(--clubc,#777)}
+.affiche img{width:56px;height:56px;object-fit:contain}
+.affiche .nom{font-size:26px;line-height:1.05}
+.table-solo{display:grid;gap:1px;margin:6px 0 4px;font-size:14px}
+.tl{display:grid;grid-template-columns:26px 1fr repeat(6,34px);gap:6px;align-items:center;padding:5px 8px;
+  border-radius:7px;background:var(--surface)}
+.tl.tete{background:transparent;color:var(--sourd);font-family:"Barlow Condensed",sans-serif;
+  text-transform:uppercase;letter-spacing:.06em;font-size:12px}
+.tl.moi{background:rgba(216,180,90,.14);outline:1px solid rgba(216,180,90,.45)}
+.tl b{text-align:right;font-variant-numeric:tabular-nums}
+.tl b.pts{color:var(--or2);font-weight:700}
+.tl .nom{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bracket{display:flex;gap:14px;overflow-x:auto;padding:4px 0 8px}
+.bcol{flex:1 0 200px;display:flex;flex-direction:column;gap:6px;justify-content:space-around}
+.btie{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;font-size:13px;
+  padding:6px 8px;border:1px solid var(--ligne);border-radius:8px;background:var(--surface)}
+.btie span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btie span:last-child{text-align:right}
+.btie b{font-variant-numeric:tabular-nums;color:var(--or2)}
+.btie.moi{outline:1px solid rgba(216,180,90,.5);background:rgba(216,180,90,.12)}
+.gains{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin:12px 0}
+.gains .tuile b{font-size:26px;color:var(--or2)}
+.fiche.bilan h3{color:var(--or2)}
+@media (max-width:640px){
+  .tl{grid-template-columns:22px 1fr repeat(6,26px);gap:3px;font-size:12.5px;padding:4px 5px}
+  .clubs-solo{grid-template-columns:1fr 1fr}
+}

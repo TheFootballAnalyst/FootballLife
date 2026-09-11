@@ -150,3 +150,17 @@ def test_an_unknown_tactic_falls_back_instead_of_crashing():
     assert (t.tempo, t.bloc, t.risque) == ("equilibre", "median", "equilibre")
     f = SM.jouer(SM.Equipe("A", onze(70), SM.Tactique(tempo="bizarre")), SM.Equipe("B", onze(70, 20)), 3)
     assert f["fini"] and f["resultat"] in ("A", "B", "N")
+
+
+def test_a_rout_is_still_a_football_match():
+    """Two ways of dominating compound: `controle` buys the minutes with
+    the ball, then percussion against defence multiplies the shots taken
+    in each of them.  An end-game eleven against a weak one reached
+    thirty-four shots, which is not football; TIR_PAR_MIN_MAX caps the
+    rate without touching an ordinary match."""
+    ecrase = SM.jouer(SM.Equipe("A", onze(95)), SM.Equipe("B", onze(45, 20)), 4)
+    assert max(ecrase["tirs"]) <= 34 and ecrase["resultat"] == "A"
+    # the cap is above anything two comparable elevens produce
+    for i in range(60):
+        f = SM.jouer(SM.Equipe("A", onze(62)), SM.Equipe("B", onze(60, 20)), 300 + i)
+        assert max(f["tirs"]) <= 26

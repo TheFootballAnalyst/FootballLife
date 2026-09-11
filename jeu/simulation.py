@@ -57,6 +57,14 @@ EXP_TIR = 1.5             # how sharply percussion vs defence decides a shot
 EXP_XG = 1.1              # ... the quality of that shot
 EXP_FIN = 0.9             # ... and its conversion
 XG_MAX = 0.62             # a chance is never a certainty
+# A shot every two and a half minutes of possession, and no more.  Without
+# a ceiling the two ways of dominating compound: `controle` already buys
+# the minutes, then percussion against defence multiplies the shots taken
+# in each of them.  Two real clubs never reach it (the shot duel tops out
+# at 1.41 over the 96 elevens of the five leagues), but an end-game squad
+# of the best cards in the game did — 34 shots in a match, which is not
+# football any more.
+TIR_PAR_MIN_MAX = 0.40
 # Six settings multiply together — my tempo and block and risk, and the
 # opponent's — and left free they compounded: two sides going direct,
 # high and all-out produced four goals a side and twenty-four shots.
@@ -192,7 +200,7 @@ def _chance(ta: dict, tb: dict, tac_a: Tactique, tac_b: Tactique) -> tuple[float
     m_xg = max(TAC_XG_MIN, min(TAC_XG_MAX, m_xg))
     tir = TIRS_BASE * _duel(ta["percussion"], tb["defense"], EXP_TIR) * m_tir
     xg = XG_BASE * _duel(ta["creation"], tb["defense"], EXP_XG) * m_xg
-    return min(0.95, tir), min(XG_MAX, xg)
+    return min(TIR_PAR_MIN_MAX, tir), min(XG_MAX, xg)
 
 
 def _tireur(joueurs: list[dict], rng: random.Random, axe: str = "FIN") -> dict:

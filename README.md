@@ -38,6 +38,7 @@ jeu/        the game layer: pure functions + schema, all tested
   bareme.py      the season barème (moteur/bareme_stats.py + palmares_zero.py) -> OVR, attributes, evolution
   simulation.py  the ranked lobby match: the cards play it, tactics decide the scenario
   lobby.py       pairing, the server clock, live adjustments, the ranked ladder
+  solo.py        the solo campaign: take a real club's place in a real competition
   elo.py         the ladder maths
   pipeline.py    the live weekly path: gameweeks, seed, close a gameweek (idempotent)
   rejouer.py     phase 2 exit check: a season through the live path = the backtest
@@ -45,7 +46,7 @@ jeu/        the game layer: pure functions + schema, all tested
   cartes.py      render match and season cards from the game base
   schema.sql     the game database
   tests/         incl. the reference performances in tests/donnees/
-donnees/    league logos; scripts to fetch the FotMob base and the portraits
+donnees/    league logos; scripts to fetch the FotMob base, the portraits, the preferred foot
 web/app/    the site: FastAPI server, single-page front-end, demo base builder (docs/SITE.md)
 web/        the earlier solo browser prototype (template + build scripts), see docs/PROTOTYPE.md
 Dockerfile  the site in one container

@@ -41,6 +41,7 @@ from jeu import importer as I  # noqa: E402
 from jeu import marche as MA  # noqa: E402
 from jeu import pipeline as P  # noqa: E402
 from jeu import scoring as S  # noqa: E402
+from jeu import solo as SO  # noqa: E402
 try:
     from jeu import cartes as CARTES  # noqa: E402  (needs Pillow and the fonts in moteur/)
 except Exception:  # noqa: BLE001
@@ -435,6 +436,7 @@ def equipe(u=Depends(exiger), jeu=Depends(bd)):
 class Pack(BaseModel):
     type: str
     fam: Optional[str] = None
+    offert: bool = False
 
 
 class Exemplaire(BaseModel):
@@ -475,15 +477,17 @@ def exemplaire_json(jeu, x):
 def packs(u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     return {"catalogue": MA.catalogue_packs(jeu, SAISON, e["ligue_jeu_id"]), "plafond": MA.plafond_copies(jeu, e["ligue_jeu_id"]),
+            "offerts": MA.packs_offerts(jeu, e["equipe_id"]),
             "reserve_max": MA.RESERVE_MAX, "rachat": MA.RACHAT_BANQUE, "commission": MA.COMMISSION, "durees": list(MA.DUREES_H)}
 
 
 @app.post("/api/packs/ouvrir")
 def ouvrir_pack(pk: Pack, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
-    cartes = marche_ou_409(MA.ouvrir_pack, jeu, SAISON, e["equipe_id"], pk.type, pk.fam)
+    cartes = marche_ou_409(MA.ouvrir_pack, jeu, SAISON, e["equipe_id"], pk.type, pk.fam, None, pk.offert)
     _CACHE["cle"] = None
-    return {"cartes": [exemplaire_json(jeu, c) for c in cartes], "budget": round(equipe_de(jeu, u)["budget"], 2)}
+    return {"cartes": [exemplaire_json(jeu, c) for c in cartes], "budget": round(equipe_de(jeu, u)["budget"], 2),
+            "offerts": MA.packs_offerts(jeu, e["equipe_id"])}
 
 
 @app.get("/api/club")
@@ -696,6 +700,63 @@ def lobby_quitter(u=Depends(exiger), jeu=Depends(bd)):
 def lobby_classement(u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     return {"classement": LB.classement(jeu, SAISON), "moi": e["equipe_id"]}
+
+
+# ---- le mode solo : prendre la place d'un club dans une vraie compétition --
+
+class DemarrageSolo(BaseModel):
+    cle: str
+    club: int
+
+
+class TourSolo(BaseModel):
+    formation: str = "4-3-3"
+    onze: list[int]
+    tactique: Optional[dict] = None
+
+
+@app.get("/api/solo")
+def solo_etat(u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    return SO.etat(jeu, SAISON, e["equipe_id"])
+
+
+@app.get("/api/solo/clubs/{cle}")
+def solo_clubs(cle: str, u=Depends(exiger), jeu=Depends(bd)):
+    try:
+        clubs = SO.clubs_competition(jeu, SAISON, cle)
+    except SO.ErreurSolo as err:
+        raise HTTPException(404, str(err))
+    comp = SO.COMPETITIONS[cle]
+    return {"cle": cle, "nom": comp["nom"], "format": comp["format"], "clubs": clubs}
+
+
+@app.post("/api/solo/demarrer")
+def solo_demarrer(d: DemarrageSolo, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    try:
+        SO.demarrer(jeu, SAISON, e["equipe_id"], d.cle, d.club)
+    except SO.ErreurSolo as err:
+        raise HTTPException(400, str(err))
+    return SO.etat(jeu, SAISON, e["equipe_id"])
+
+
+@app.post("/api/solo/jouer")
+def solo_jouer(t: TourSolo, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    try:
+        r = SO.jouer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique, t.formation)
+    except (SO.ErreurSolo, LB.ErreurLobby) as err:
+        raise HTTPException(400, str(err))
+    return {"tour_joue": r} | SO.etat(jeu, SAISON, e["equipe_id"])
+
+
+@app.post("/api/solo/abandonner")
+def solo_abandonner(u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    if not SO.abandonner(jeu, SAISON, e["equipe_id"]):
+        raise HTTPException(409, "Aucune campagne en cours")
+    return SO.etat(jeu, SAISON, e["equipe_id"])
 
 
 class LigueCreation(BaseModel):

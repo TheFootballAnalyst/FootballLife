@@ -14,6 +14,7 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 | Packs | la boutique de la banque : quinze packs (trois niveaux, mixte ou par poste), ouverture animée, les cartes vont en réserve |
 | Enchères | l'hôtel des ventes : mises à prix, achat immédiat, offres (argent bloqué), fin de vente ; tes ventes et tes offres |
 | Lobby | le match classé : ton onze contre celui d'un autre manager, joué avec les cartes, quatre minutes pour quatre-vingt-dix, tactiques ajustables en direct ; ton Elo classé et tes derniers matchs |
+| Solo | la campagne : tu prends la place d'un vrai club dans une vraie compétition et tu joues son calendrier contre les onze des autres clubs ; crédits et packs selon la place ou le tour atteint |
 | Équipe | formation, onze sur le terrain, capitaine, ordre du banc, **Envoyer la composition** avant le premier coup d'envoi ; **Mon club** : effectif et réserve, aligner, mettre en vente, vendre à la banque |
 | Journée | le résultat de la dernière journée (détail par joueur, entrants du banc, rang), l'état de la journée en cours, l'historique |
 | Classement | mondial, plus les ligues privées : créer une ligue donne un code, le partager suffit |
@@ -122,6 +123,35 @@ Si personne n'attend, le bouton « défi » te fait jouer tout de suite
 contre un onze assemblé à ton niveau. Un défi ne touche pas ton Elo
 classé : le classement n'enregistre que ce qui s'est joué contre
 quelqu'un.
+
+## Le mode solo
+
+Tu choisis une compétition — les cinq championnats ou la Ligue des
+champions — puis **le club dont tu prends la place**. Tu joues son
+calendrier avec ton onze, contre les vrais clubs : leur équipe est bâtie
+sur les cartes de leurs joueurs, donc elle vaut ce qu'ils valent cette
+saison. Quand Hakimi baisse, le PSG que tu affrontes baisse avec lui.
+
+Un championnat se joue en aller-retour. Les autres matchs de la journée
+sont joués eux aussi, donc le classement est un vrai classement, et c'est
+la place finale qui paie. Une coupe est un tableau à seize, à élimination
+directe, tête de série par la valeur de l'effectif ; un nul se décide aux
+tirs au but, et la récompense dépend du tour où tu sors.
+
+Les récompenses sont des crédits (M€) et des **packs offerts**, qui
+s'ouvrent depuis l'écran Packs sans rien coûter — ils tirent dans le même
+vivier que les autres. Chaque victoire rapporte en plus une petite prime,
+pour qu'aucun match ne soit pour rien. Abandonner ne rapporte rien.
+
+Chaque adversaire joue à sa façon, lue sur son propre onze : un club qui
+contrôle bien plus qu'il ne finit garde le ballon, un autre joue direct,
+une défense faible s'assoit bas. Ce n'est pas tiré au sort — la même
+équipe joue toujours pareil — et les seuils sont les terciles des 96
+onze des cinq championnats, sinon tout le monde jouait direct et offensif
+en même temps.
+
+Tout est rejouable : la graine de la campagne fixe celle de chaque match,
+et un résultat est écrit dès qu'il est calculé.
 
 ## La composition
 

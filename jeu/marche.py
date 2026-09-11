@@ -109,8 +109,23 @@ def catalogue_packs(jeu, saison: str, ligue_jeu_id: int) -> list[dict]:
     return out
 
 
-def ouvrir_pack(jeu, saison: str, equipe_id: int, type_pack: str, fam: str | None = None, rng=None) -> list[dict]:
-    """Buy and open a pack: the copies land in the reserve.  Returns them."""
+def packs_offerts(jeu, equipe_id: int) -> dict[str, int]:
+    """The free packs a team has won (solo campaigns)."""
+    row = _un(jeu, "SELECT COALESCE(packs_offerts, '{}') FROM equipe WHERE equipe_id=?", (equipe_id,))
+    try:
+        return {k: int(v) for k, v in json.loads(row[0]).items() if int(v) > 0}
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return {}
+
+
+def ouvrir_pack(jeu, saison: str, equipe_id: int, type_pack: str, fam: str | None = None, rng=None,
+                offert: bool = False) -> list[dict]:
+    """Buy and open a pack: the copies land in the reserve.  Returns them.
+
+    `offert` spends one of the team's free packs instead of its budget — a
+    campaign reward.  A free pack is always the plain one: it draws from
+    the same pool as a bought one, and its price (which is what the cards
+    are booked at) is the price of the pack it stands for."""
     if type_pack not in PACKS:
         raise ErreurMarche("Pack inconnu")
     if fam not in (None, "GK", "DEF", "MID", "FWD"):
@@ -118,7 +133,13 @@ def ouvrir_pack(jeu, saison: str, equipe_id: int, type_pack: str, fam: str | Non
     p = PACKS[type_pack]
     prix = round(p["prix"] * (1 + SUPPLEMENT_POSTE if fam else 1), 1)
     budget, lid = _un(jeu, "SELECT budget, ligue_jeu_id FROM equipe WHERE equipe_id=?", (equipe_id,))
-    if budget + 1e-9 < prix:
+    offerts = packs_offerts(jeu, equipe_id)
+    if offert:
+        if fam:
+            raise ErreurMarche("Un pack offert est un pack simple, sans poste choisi")
+        if offerts.get(type_pack, 0) < 1:
+            raise ErreurMarche("Tu n'as pas de pack de ce type offert")
+    elif budget + 1e-9 < prix:
         raise ErreurMarche(f"Budget insuffisant : le pack coûte {prix:.1f} M€")
     reserve = _un(jeu, "SELECT COUNT(*) FROM exemplaire WHERE equipe_id=? AND detruit=0 AND dans_effectif=0", (equipe_id,))[0]
     if reserve + CARTES_PAR_PACK > RESERVE_MAX:
@@ -136,7 +157,12 @@ def ouvrir_pack(jeu, saison: str, equipe_id: int, type_pack: str, fam: str | Non
         tirage.append(c)
     total_cote = sum(c[1] for c in tirage) or 1.0
     now = maintenant()
-    jeu.execute("UPDATE equipe SET budget = ROUND(budget - ?, 2) WHERE equipe_id=?", (prix, equipe_id))
+    if offert:
+        offerts[type_pack] -= 1
+        jeu.execute("UPDATE equipe SET packs_offerts=? WHERE equipe_id=?",
+                    (json.dumps({k: v for k, v in offerts.items() if v > 0}), equipe_id))
+    else:
+        jeu.execute("UPDATE equipe SET budget = ROUND(budget - ?, 2) WHERE equipe_id=?", (prix, equipe_id))
     out = []
     for pid, cote, ovr in tirage:
         numero = _un(jeu, "SELECT COUNT(*) FROM exemplaire WHERE saison=? AND player_id=?", (saison, pid))[0] + 1
@@ -145,7 +171,8 @@ def ouvrir_pack(jeu, saison: str, equipe_id: int, type_pack: str, fam: str | Non
                              VALUES (?,?,?,?,0,'pack',?,?)""", (pid, saison, numero, equipe_id, part, now))
         out.append({"exemplaire_id": cur.lastrowid, "player_id": pid, "numero": numero, "cote": cote, "ovr": ovr, "prix_achat": part})
     jeu.execute("INSERT INTO pack_ouvert(equipe_id, type, fam, prix, contenu, date) VALUES (?,?,?,?,?,?)",
-                (equipe_id, type_pack, fam, prix, json.dumps([e["player_id"] for e in out]), now))
+                (equipe_id, type_pack, fam, 0.0 if offert else prix,
+                 json.dumps([e["player_id"] for e in out]), now))
     jeu.commit()
     return out
 

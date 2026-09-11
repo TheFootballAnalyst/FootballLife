@@ -85,7 +85,7 @@ async function montrer(ecran) {
   if (ecran === "connexion") return;
   try {
     await rafraichir(ecran === "marche" || !G.cartes.length);
-    await ({packs: rendrePacks, encheres: rendreEncheres, marche: rendreMarche, equipe: rendreEquipe, lobby: rendreLobby, journee: rendreJournee, classement: rendreClassement, admin: rendreAdmin}[ecran] || (async () => {}))();
+    await ({packs: rendrePacks, encheres: rendreEncheres, marche: rendreMarche, equipe: rendreEquipe, lobby: rendreLobby, solo: rendreSolo, journee: rendreJournee, classement: rendreClassement, admin: rendreAdmin}[ecran] || (async () => {}))();
   } catch (e) { if (e.status === 401) { connecte(null); } else toast(e.message); }
   finally { if (ecran !== "lobby") arreterLobby(); }
 }
@@ -134,6 +134,22 @@ async function rendrePacks() {
   G.packs = await api("/packs");
   const P = $("#packs-liste"); P.replaceChildren();
   $("#packs-info").textContent = `Une carte ne peut exister qu'en ${G.packs.plafond} exemplaires dans la ligue. Réserve : ${G.packs.reserve_max} cartes. La banque rachète à ${Math.round(G.packs.rachat * 100)} % de la cote.`;
+  const offerts = Object.entries(G.packs.offerts || {}).filter(([, n]) => n > 0);
+  if (offerts.length) {
+    const b = el("div", {class: "panneau offerts"}, el("h3", {class: "anton"}, "Packs offerts"),
+      el("p", {class: "compteur"}, "Gagnés en campagne solo. Ils s'ouvrent sans rien coûter."));
+    const l = el("div", {class: "offerts-liste"});
+    for (const [type, n] of offerts) {
+      const p = G.packs.catalogue.find(x => x.type === type && !x.fam);
+      l.append(el("div", {class: "offert " + type},
+        el("b", {class: "anton"}, `${n} × ${TIER_TXT[type]}`),
+        el("span", {class: "compteur"}, p ? p.desc : ""),
+        el("button", {class: "primaire", disabled: !(p && p.disponible),
+          onclick: () => ouvrirPack({...(p || {type, nom: "Pack " + TIER_TXT[type], prix: 0}), offert: true})},
+          "Ouvrir gratuitement")));
+    }
+    b.append(l); P.append(b);
+  }
   for (const p of G.packs.catalogue) {
     const k = el("div", {class: "pack " + p.type + (p.disponible ? "" : " epuise")},
       el("div", {class: "pack-tier etiq"}, TIER_TXT[p.type] + (p.fam ? " · " + (p.fam === "GK" ? "Gardiens" : p.fam === "DEF" ? "Défenseurs" : p.fam === "MID" ? "Milieux" : "Attaquants") : " · Mixte")),
@@ -145,10 +161,10 @@ async function rendrePacks() {
   }
 }
 async function ouvrirPack(p) {
-  let r; try { r = await api("/packs/ouvrir", {type: p.type, fam: p.fam}); } catch (e) { toast(e.message); return; }
+  let r; try { r = await api("/packs/ouvrir", {type: p.type, fam: p.offert ? null : p.fam, offert: !!p.offert}); } catch (e) { toast(e.message); return; }
   await rafraichir(false);
   const dlg = $("#fiche"); dlg.replaceChildren();
-  const box = el("div", {class: "fiche ouverture"}, el("h3", {class: "anton"}, `${p.nom}`), el("p", {class: "compteur"}, `${fM(p.prix)} · il te reste ${fM(r.budget)}`));
+  const box = el("div", {class: "fiche ouverture"}, el("h3", {class: "anton"}, `${p.nom}`), el("p", {class: "compteur"}, `${p.offert ? "offert" : fM(p.prix)} · il te reste ${fM(r.budget)}`));
   const grille = el("div", {class: "cartes-grille ouverture-grille"});
   r.cartes.forEach((x, i) => { const c = x.carte; const k = carteMarche(c, {vitrine: true, largeur: 240}); k.classList.add("revele"); k.style.animationDelay = (i * 0.25) + "s";
     k.append(el("div", {class: "cj-cote"}, `cote ${fM(x.cote)} · n° ${x.numero}`)); grille.append(k); });
@@ -704,6 +720,213 @@ function panneauMatch(d) {
   return p;
 }
 
+// ---------------------------------------------------------------------------
+// Le mode solo : tu prends la place d'un vrai club dans une vraie
+// compétition et tu joues son calendrier contre les onze des autres, bâtis
+// sur leurs cartes.  Les récompenses dépendent de la place ou du tour
+// atteint (jeu/solo.py).
+// ---------------------------------------------------------------------------
+let SOLO = {cle: null};
+
+async function rendreSolo(donnees) {
+  const d = donnees || await api("/solo");
+  SOLO.d = d;
+  const B = $("#solo-corps"); B.replaceChildren();
+  const offerts = Object.values(d.packs_offerts || {}).reduce((a, b) => a + b, 0);
+  $("#solo-info").textContent = offerts ? `${offerts} pack${offerts > 1 ? "s" : ""} offert${offerts > 1 ? "s" : ""} à ouvrir`
+    : "Prends la place d'un club et joue sa saison";
+  B.append(d.campagne ? panneauCampagne(d) : panneauChoixSolo(d));
+  B.append(panneauPalmares(d));
+}
+
+function panneauChoixSolo(d) {
+  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Choisis ta compétition"),
+    el("p", {class: "compteur"},
+      "Tu remplaces un club de la compétition et tu joues son calendrier avec ton onze. "
+      + "Les adversaires sont les vrais clubs, alignés avec les cartes de leurs joueurs : "
+      + "quand un joueur baisse, son club baisse avec lui. Plus tu vas loin, plus tu gagnes."));
+  const onglets = el("div", {class: "onglets"});
+  for (const c of d.competitions)
+    onglets.append(el("button", {class: SOLO.cle === c.cle ? "actif" : "",
+      onclick: async () => { SOLO.cle = c.cle; await rendreSolo(SOLO.d); }},
+      c.nom + (c.format === "coupe" ? " · coupe" : "")));
+  p.append(onglets);
+  if (!SOLO.cle) { p.append(el("p", {class: "info"}, "Choisis une compétition pour voir les clubs.")); return p; }
+  const zone = el("div", {class: "clubs-solo"}, el("p", {class: "compteur"}, "Chargement…"));
+  p.append(el("div", {class: "etiq"}, "Quel club remplaces-tu ?"), zone);
+  api(`/solo/clubs/${SOLO.cle}`).then(r => {
+    zone.replaceChildren();
+    for (const c of r.clubs) {
+      const k = el("div", {class: "club-solo", tabindex: "0", role: "button",
+        onclick: () => demarrerSolo(r, c), onkeydown: e => { if (e.key === "Enter") demarrerSolo(r, c); }});
+      k.style.setProperty("--clubc", c.couleur);
+      k.append(el("img", {src: `/images/logos/${c.team_id}.png`, alt: "", loading: "lazy", onerror: e => e.target.remove()}),
+        el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom),
+          el("div", {class: "sous"}, `effectif ${c.force}`)));
+      zone.append(k);
+    }
+  }).catch(e => { zone.replaceChildren(el("p", {class: "avert"}, e.message)); });
+  return p;
+}
+
+async function demarrerSolo(r, club) {
+  if (!confirm(`Tu prends la place de ${club.nom} en ${r.nom}. C'est parti ?`)) return;
+  try { await rendreSolo(await api("/solo/demarrer", {cle: r.cle, club: club.team_id})); }
+  catch (e) { toast(e.message); }
+}
+
+function panneauCampagne(d) {
+  const c = d.campagne;
+  const p = el("div", {class: "panneau"});
+  p.append(el("div", {class: "tete-campagne"},
+    el("div", {}, el("h3", {class: "anton"}, c.nom),
+      el("div", {class: "compteur"}, `À la place de ${c.club_remplace} · `
+        + (c.format === "coupe" ? (c.reste || "tour suivant")
+           : `journée ${Math.min(c.tour + 1, c.tours)} sur ${c.tours}`))),
+    el("button", {class: "discret", onclick: async () => {
+      if (!confirm("Abandonner la campagne ? Elle ne rapportera rien.")) return;
+      try { await rendreSolo(await api("/solo/abandonner", {})); } catch (e) { toast(e.message); }
+    }}, "Abandonner")));
+  const onze = C.slots.every(x => x !== null) ? C.slots.slice() : null;
+  if (!onze) p.append(el("div", {class: "avert"}, "Ton onze n'est pas complet : va dans Équipe le compléter, c'est lui qui joue ici."));
+  else if (c.prochain) {
+    if (c.prochain.exempt) {
+      p.append(el("p", {class: "info"}, "Tu es exempt cette journée : les autres jouent, toi tu regardes."));
+      p.append(el("div", {class: "actions"}, el("button", {class: "primaire", onclick: () => jouerSolo(onze)}, "Passer la journée")));
+    } else {
+      const a = c.prochain.adversaire;
+      const ligne = el("div", {class: "affiche"});
+      ligne.style.setProperty("--clubc", a.couleur || "#14161E");
+      ligne.append(el("img", {src: `/images/logos/${a.team_id}.png`, alt: "", onerror: e => e.target.remove()}),
+        el("div", {}, el("div", {class: "etiq"}, c.prochain.domicile ? "À domicile contre" : "En déplacement à"),
+          el("div", {class: "nom anton"}, a.nom),
+          el("div", {class: "compteur"}, `effectif ${a.force}`)));
+      p.append(ligne);
+      p.append(selecteurTactique(LOBBY.tac, () => {}));
+      p.append(el("div", {class: "actions"},
+        el("button", {class: "primaire", onclick: () => jouerSolo(onze)}, "Jouer la journée")));
+    }
+  }
+  if (c.mes_matchs?.length) {
+    p.append(el("div", {class: "etiq"}, "Tes derniers matchs"));
+    for (const m of [...c.mes_matchs].reverse()) {
+      const r = resSolo(m, c.place), chez_moi = m.a === c.place;
+      p.append(el("div", {class: "ligne simple"},
+        el("span", {class: "res " + r}, r),
+        el("div", {class: "qui"}, el("div", {class: "nom"}, (chez_moi ? "" : "à ") + m.adversaire),
+          el("div", {class: "sous"}, `journée ${m.tour + 1}${m.tab ? " · aux tirs au but" : ""}`)),
+        el("b", {class: "num"}, scoreSolo(m, c.place))));
+    }
+  }
+  if (c.classement) p.append(el("div", {class: "etiq"}, "Classement"), tableauClassement(c.classement));
+  if (c.tableau) p.append(el("div", {class: "etiq"}, "Tableau"), tableauCoupe(c.tableau));
+  return p;
+}
+
+// V / N / D and the score seen from your side: `a` and `b` are PLACES in
+// the field, and `place` is the one the campaign holds for you.
+function resSolo(m, place) {
+  if (m.resultat === "N") return "N";
+  return (m.resultat === "A") === (m.a === place) ? "V" : "D";
+}
+function scoreSolo(m, place) {
+  const [x, y] = m.a === place ? m.score : [m.score[1], m.score[0]];
+  return `${x} – ${y}`;
+}
+
+function tableauClassement(lignes) {
+  const t = el("div", {class: "table-solo"});
+  t.append(el("div", {class: "tl tete"}, el("span", {}, "#"), el("span", {}, "Club"),
+    el("b", {}, "J"), el("b", {}, "G"), el("b", {}, "N"), el("b", {}, "P"), el("b", {}, "Diff"), el("b", {}, "Pts")));
+  for (const l of lignes)
+    t.append(el("div", {class: "tl" + (l.toi ? " moi" : "")}, el("span", {}, String(l.rang)),
+      el("span", {class: "nom"}, l.nom), el("b", {}, String(l.j)), el("b", {}, String(l.g)),
+      el("b", {}, String(l.n)), el("b", {}, String(l.p)),
+      el("b", {}, (l.bp - l.bc > 0 ? "+" : "") + (l.bp - l.bc)), el("b", {class: "pts"}, String(l.pts))));
+  return t;
+}
+
+// The round's name comes from how many ties it holds, not from its index:
+// a bracket that has only played its first round still knows that eight
+// ties are the last sixteen.
+const NOMS_TOUR = {8: "Huitièmes de finale", 4: "Quarts de finale", 2: "Demi-finales", 1: "Finale"};
+function tableauCoupe(tours) {
+  const t = el("div", {class: "bracket"});
+  tours.forEach((tour, i) => {
+    const col = el("div", {class: "bcol"}, el("div", {class: "etiq"}, NOMS_TOUR[tour.length] || `Tour à ${tour.length * 2}`));
+    for (const d of tour)
+      col.append(el("div", {class: "btie" + (d.toi ? " moi" : "")},
+        el("span", {}, d.a), el("b", {}, d.score ? `${d.score[0]}–${d.score[1]}` : "—"), el("span", {}, d.b)));
+    t.append(col);
+  });
+  return t;
+}
+
+async function jouerSolo(onze) {
+  // Read your place BEFORE playing: a campaign that ends on this round
+  // leaves no campagne in the answer, and reading the place from it then
+  // fell back to the home side — a defeat away from home was announced as
+  // a victory.
+  const place = SOLO.d?.campagne?.place;
+  let r;
+  try { r = await api("/solo/jouer", {formation: C.formation, onze, tactique: LOBBY.tac}); }
+  catch (e) { toast(e.message); return; }
+  await rafraichir(false);
+  await rendreSolo(r);
+  const mien = (r.tour_joue.feuilles || []).find(f => f.mien);
+  if (mien) montrerFeuilleSolo(mien, r, place);
+  else if (r.tour_joue.fini) montrerBilanSolo(r.tour_joue.bilan);
+}
+
+function montrerFeuilleSolo(f, r, place) {
+  const dlg = $("#fiche"); dlg.replaceChildren();
+  const chez_moi = f.a === place;
+  const box = el("div", {class: "fiche"}, el("h3", {class: "anton"}, scoreSolo(f, place)),
+    el("p", {class: "compteur"},
+      `${{V: "Victoire", N: "Match nul", D: "Défaite"}[resSolo(f, place)]}${f.tab ? " aux tirs au but" : ""}`
+      + ` · possession ${chez_moi ? f.possession[0] : f.possession[1]} %`
+      + ` · tirs ${chez_moi ? f.tirs[0] : f.tirs[1]} contre ${chez_moi ? f.tirs[1] : f.tirs[0]}`));
+  const fil = el("div", {class: "fil"});
+  for (const e of f.evenements)
+    fil.append(el("div", {class: "evt " + e.type},
+      el("span", {class: "min"}, e.minute + "'"), el("span", {class: "ico"}, EVT_ICONE[e.type] || "•"),
+      el("span", {class: "txt"}, e.texte)));
+  if (!f.evenements.length) fil.append(el("p", {class: "compteur"}, "Match sans fait marquant."));
+  box.append(fil);
+  const acts = el("div", {class: "actions"});
+  if (r.tour_joue.fini) acts.append(el("button", {class: "primaire", onclick: () => { dlg.close(); montrerBilanSolo(r.tour_joue.bilan); }}, "Voir le bilan"));
+  else acts.append(el("button", {class: "primaire", onclick: () => dlg.close()}, "Journée suivante"));
+  box.append(acts); dlg.append(box); dlg.showModal();
+}
+
+function montrerBilanSolo(b) {
+  if (!b) return;
+  const dlg = $("#fiche"); dlg.replaceChildren();
+  const box = el("div", {class: "fiche bilan"}, el("h3", {class: "anton"}, b.libelle),
+    el("p", {class: "compteur"}, b.rang ? `${b.rang}${b.rang === 1 ? "er" : "e"} sur ${b.sur} · ${b.victoires} victoires, ${b.nuls} nuls en ${b.matchs} matchs`
+      : `${b.tour || ""} · ${b.victoires} victoires en ${b.matchs} matchs`));
+  box.append(el("div", {class: "gains"},
+    el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Crédits"), el("b", {class: "anton"}, fM(b.credits))),
+    ...Object.entries(b.packs || {}).map(([t, n]) =>
+      el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Packs " + TIER_TXT[t]), el("b", {class: "anton"}, "× " + n)))));
+  box.append(el("div", {class: "actions"},
+    el("button", {onclick: () => { dlg.close(); montrer("packs"); }}, "Ouvrir mes packs"),
+    el("button", {class: "primaire", onclick: () => { dlg.close(); rendreSolo(); }}, "Nouvelle campagne")));
+  dlg.append(box); dlg.showModal();
+}
+
+function panneauPalmares(d) {
+  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Palmarès"));
+  if (!d.palmares?.length) { p.append(el("p", {class: "compteur"}, "Aucune campagne terminée.")); return p; }
+  for (const c of d.palmares)
+    p.append(el("div", {class: "ligne simple"},
+      el("div", {class: "qui"}, el("div", {class: "nom"}, c.competition),
+        el("div", {class: "sous"}, c.libelle + (c.rang ? ` · ${c.rang}${c.rang === 1 ? "er" : "e"} sur ${c.sur}` : c.tour ? ` · ${c.tour}` : ""))),
+      el("b", {class: "num"}, fM(c.credits || 0)),
+      el("span", {class: "compteur"}, Object.entries(c.packs || {}).map(([t, n]) => `${n} ${TIER_TXT[t]}`).join(", ") || "—")));
+  return p;
+}
+
 function panneauHistorique(d) {
   const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Tes derniers matchs classés"));
   if (!d.historique?.length) { p.append(el("p", {class: "compteur"}, "Aucun match joué.")); return p; }
@@ -946,6 +1169,6 @@ function sparkline(vals, fmt = f1) {
   try {
     const s = await api("/saison"); TAILLE = s.taille_effectif; FORMATIONS = s.formations; LIMITES = s.limites;
     const moi = await api("/moi"); connecte(moi);
-    if (moi.connecte) { const h = location.hash.replace("#", ""); await montrer(["packs", "encheres", "marche", "equipe", "match", "journee", "classement", "admin"].includes(h) ? h : (idsEffectif().length ? "equipe" : "packs")); }
+    if (moi.connecte) { const h = location.hash.replace("#", ""); await montrer(["packs", "encheres", "marche", "equipe", "lobby", "solo", "journee", "classement", "admin"].includes(h) ? h : (idsEffectif().length ? "equipe" : "packs")); }
   } catch (e) { toast("Serveur injoignable : " + e.message); }
 })();

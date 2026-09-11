@@ -213,9 +213,33 @@ CREATE TABLE IF NOT EXISTS equipe (
     budget           REAL NOT NULL,                 -- M€ not tied up in cards
     points_total     REAL NOT NULL DEFAULT 0,
     elo_classe       REAL NOT NULL DEFAULT 1000,   -- the ranked lobby's ladder, the game's only one
-    classees         INTEGER NOT NULL DEFAULT 0,    -- head-to-head ladder (jeu/match.py)
+    classees         INTEGER NOT NULL DEFAULT 0,    -- ranked matches played in the lobby
+    packs_offerts    TEXT,                          -- JSON {type: nombre}, gagnés en campagne solo
     UNIQUE (utilisateur_id, ligue_jeu_id)
 );
+
+-- Solo campaign: you take a real club's place in a real competition and
+-- play its calendar against the other clubs' elevens, built from the game's
+-- cards (jeu/solo.py).  The whole campaign is in this row: the field, the
+-- calendar and every result, so nothing is redrawn on a refresh.
+CREATE TABLE IF NOT EXISTS campagne (
+    campagne_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    saison           TEXT NOT NULL,
+    equipe_id        INTEGER NOT NULL REFERENCES equipe(equipe_id),
+    cle              TEXT NOT NULL,                 -- solo.COMPETITIONS key
+    club_remplace    INTEGER NOT NULL,              -- team_id whose place you took
+    place            INTEGER NOT NULL,              -- your index in `clubs` (seeding)
+    graine           INTEGER NOT NULL,              -- every match of the campaign derives from it
+    clubs            TEXT NOT NULL,                 -- JSON [team_id], seeding order, frozen at the start
+    calendrier       TEXT NOT NULL,                 -- JSON [[ [place, place], ... ], ...] per round
+    resultats        TEXT NOT NULL DEFAULT '[]',    -- JSON, one entry per fixture played
+    tour             INTEGER NOT NULL DEFAULT 0,    -- rounds played
+    statut           TEXT NOT NULL DEFAULT 'en_cours',
+    recompenses      TEXT,                          -- JSON, written once at the close
+    cree_le          TEXT NOT NULL,
+    fini_le          TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_campagne_equipe ON campagne(equipe_id, saison, statut);
 
 CREATE TABLE IF NOT EXISTS rencontre (
     rencontre_id     INTEGER PRIMARY KEY AUTOINCREMENT,
