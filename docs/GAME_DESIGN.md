@@ -280,6 +280,20 @@ better chances behind. Measured over 400 matches a case, no setting beats
 every other (`BACKTEST.md`), so the lobby cannot be solved by copying one
 build. The three axes can be changed while the match runs.
 
+**Instructions to the lines.** Besides the three axes, a manager says
+what he asks of each line — full-backs who stay home, overlap or tuck
+inside; wingers who hug the touchline or cut in; midfielders who join
+the attack, sit, or switch it wide; forwards who run in behind or hold
+it up; a back line that plays out or goes long (`CONSIGNES`). Every
+default is neutral, so a manager who touches nothing plays exactly the
+match the engine is calibrated on, and every other option moves two or
+three traits, one up and one down. Measured over seven hundred matches
+each, no instruction is worth more than a twentieth of a goal to the
+side that gives it — the side bias of the measurement itself is of the
+same size — and five instructions pulling the same way cannot compound:
+the product on any one trait is bounded. They are also drawn: what you
+ask of a line shows in how it moves on the pitch.
+
 **Legs are part of the decision.** Everyone on the pitch burns stamina
 minute after minute, at the cost of the line he plays in and of the way
 his manager makes him play: pressing high and going direct cost legs,

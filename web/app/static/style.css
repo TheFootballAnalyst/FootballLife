@@ -682,3 +682,14 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 /* Un réglage choisi mais pas encore joué : il prend effet à la minute
    suivante, on le montre allumé plutôt que de l'éteindre en attendant. */
 .tac.actif.attente{opacity:.8;border-style:dashed}
+
+/* Les consignes aux lignes : repliées par défaut, elles n'écrasent pas
+   les trois axes qui restent la décision principale. */
+.consignes{margin:10px 0 4px;border:1px solid rgba(255,255,255,.12);border-radius:10px;
+  background:rgba(255,255,255,.03);padding:0 12px}
+.consignes summary{cursor:pointer;padding:9px 0;font-family:"Barlow Condensed",sans-serif;
+  font-size:13.5px;letter-spacing:.06em;text-transform:uppercase;color:#cfd6e6}
+.consignes summary:hover{color:#fff}
+.consignes > p{margin:0 0 8px}
+.consignes-jeu{padding-bottom:10px}
+.consignes-jeu .tac-groupe{flex-wrap:wrap}

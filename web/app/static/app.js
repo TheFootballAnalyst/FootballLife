@@ -716,9 +716,63 @@ const TEMPO_TXT = {possession: "Garder le ballon", equilibre: "Équilibré", dir
 const BLOC_TXT = {haut: "Bloc haut", median: "Bloc médian", bas: "Bloc bas"};
 const RISQUE_TXT = {offensif: "Offensif", equilibre: "Équilibré", prudent: "Prudent"};
 const AXE_TXT = {tempo: TEMPO_TXT, bloc: BLOC_TXT, risque: RISQUE_TXT};
+
+// Les consignes individuelles : ce qu'on demande à une LIGNE, dans les
+// mots d'un entraîneur.  Chacune est un échange, jamais un bonus, et le
+// premier choix de chaque ligne est neutre (jeu/simulation.CONSIGNES).
+const CONSIGNE_TXT = {
+  lateraux: {titre: "Latéraux", opts: {
+    couloir: ["Monte dans son couloir", "Le latéral accompagne l'attaque sur son aile. Le réglage neutre."],
+    bas: ["Reste derrière", "Il ne dépasse pas le milieu : +défense, −percussion."],
+    axe: ["Rentre dans l'axe", "Latéral axial : un homme de plus au milieu. +contrôle, −défense."]}},
+  ailiers: {titre: "Ailiers", opts: {
+    equilibre: ["Équilibré", "Il alterne appel extérieur et intérieur. Le réglage neutre."],
+    ligne: ["Colle la ligne", "Il tient la largeur et étire le bloc adverse : +percussion, −création."],
+    interieur: ["Repique dans l'axe", "Ailier inversé, il rentre pour frapper : +création, +finition, −percussion."]}},
+  milieux: {titre: "Milieux", opts: {
+    equilibre: ["Équilibré", "Il monte et redescend avec le jeu. Le réglage neutre."],
+    projection: ["Rejoint l'attaque", "Il se projette dans la surface : +percussion, −défense (l'espace derrière)."],
+    bas: ["Reste derrière", "Il protège la ligne : +défense, +contrôle, −percussion."],
+    lateral: ["Organise sur les côtés", "Il décale le jeu vers les ailes : +création, −contrôle (l'axe se vide)."]}},
+  attaquants: {titre: "Attaquants", opts: {
+    equilibre: ["Équilibré", "Il joue entre les lignes et en profondeur. Le réglage neutre."],
+    profondeur: ["Cherche la profondeur", "Appels dans le dos : plus de ballons joués, moins bien : +percussion, −création."],
+    pivot: ["Joue en pivot", "Dos au but, il fixe et remise : +contrôle, +création, −percussion."]}},
+  relance: {titre: "Relance", opts: {
+    equilibre: ["Équilibrée", "On ressort comme on peut. Le réglage neutre."],
+    courte: ["Courte, par le bas", "On sort proprement mais on se découvre : +contrôle, −défense."],
+    longue: ["Jeu long", "On saute le milieu : +percussion, +défense, −contrôle."]}},
+};
+
+// Un dépliant dont l'état SURVIT au sondage : l'écran du lobby est
+// redessiné toutes les deux secondes et demie, et un <details> reconstruit
+// se referait sous le nez du manager au milieu d'un réglage.
+const DEPLIES = {};
+function depliant(cle, titre, ...enfants) {
+  const d = el("details", {class: "consignes"}, el("summary", {}, titre), ...enfants);
+  d.open = !!DEPLIES[cle];
+  d.addEventListener("toggle", () => { DEPLIES[cle] = d.open; });
+  return d;
+}
+
+function selecteurConsignes(tac, onChange) {
+  const d = el("div", {class: "tactiques consignes-jeu"});
+  for (const [axe, def] of Object.entries(CONSIGNE_TXT)) {
+    const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, def.titre));
+    for (const [v, [libelle, aide]] of Object.entries(def.opts))
+      g.append(el("button", {class: "tac" + (tac[axe] === v ? " actif" : ""),
+        "data-consigne": axe, "data-valeur": v, title: aide,
+        onclick: () => { tac[axe] = v; onChange(); }}, libelle));
+    d.append(g);
+  }
+  return d;
+}
 const EVT_ICONE = {but: "⚽", arret: "🧤", occasion: "✗", tactique: "⇄", corner: "⛳", faute: "⚠",
   jaune: "🟨", rouge: "🟥", horsjeu: "🚩", changement: "🔁", blessure: "🚑"};
-let LOBBY = {timer: null, tac: {tempo: "equilibre", bloc: "median", risque: "equilibre"}, vus: 0};
+let LOBBY = {timer: null, vus: 0,
+  tac: {tempo: "equilibre", bloc: "median", risque: "equilibre",
+        lateraux: "couloir", ailiers: "equilibre", milieux: "equilibre",
+        attaquants: "equilibre", relance: "equilibre"}};
 
 function arreterLobby() {
   if (G.ecran !== "solo") arreterTerrain(true); if (LOBBY.timer) { clearInterval(LOBBY.timer); LOBBY.timer = null; } }
@@ -771,6 +825,10 @@ function panneauEntree(d) {
   p.append(el("div", {class: "etiq"}, "Le onze que tu alignes"), strip);
   const maj = () => { const n = panneauEntree(d); p.replaceWith(n); };
   p.append(selecteurTactique(LOBBY.tac, maj));
+  p.append(depliant("entree", "Consignes aux lignes",
+    el("p", {class: "compteur"},
+      "Ce que tu demandes à chaque ligne, en plus des trois axes. Tu peux les changer en cours de match."),
+    selecteurConsignes(LOBBY.tac, maj)));
   const acts = el("div", {class: "actions", style: "justify-content:flex-start"});
   acts.append(el("button", {class: "primaire", onclick: () => entrerLobby(onze, false)}, "Chercher un adversaire"),
     el("button", {onclick: () => entrerLobby(onze, true)}, "Jouer un défi tout de suite"));
@@ -1208,6 +1266,7 @@ function peuplerTerrain(t, m, moi) {
         el("span", {class: "t2d-nom"}, (j.nom || "").split(" ").slice(-1)[0]));
       p.dataset.pid = j.pid; p.dataset.cote = cote;
       p._base = places[i] || [0.4, 0.5];
+      p._poste = j.slot || j.poste || "Milieu relayeur";
       jeu.append(p);
       T2D.pions[cote + ":" + j.pid] = p;
     });
@@ -1251,18 +1310,112 @@ function buts(cote, moi, t) {
   return [gauche, 0.5 + ((t === undefined ? 0.5 : t) - 0.5) * 0.30];
 }
 
-function bougerTerrain(t, cote, zone, moi) {
-  if (!T2D.pions) return;
-  const dec = {a: 0, b: 0};
-  if (cote !== null && cote !== undefined) {
-    const avance = ((zone === undefined ? 1 : zone) - 1) * GLISSE_2D;
-    dec["ab"[cote]] = avance;
-    dec["ab"[1 - cote]] = -avance * 0.55;
+// ---------------------------------------------------------------------------
+// Les déplacements sans ballon.
+//
+// Faire coulisser deux blocs rigides ne ressemble pas à du football : un
+// latéral qui monte dépasse son ailier, un ailier qui repique laisse le
+// couloir, les centraux se resserrent quand ils défendent, les
+// attaquants rentrent dans la surface sur une frappe.  Chaque poste a
+// donc sa façon de bouger quand son camp a le ballon et quand il ne
+// l'a pas, et les consignes du manager la modifient — ce qu'il demande
+// à ses latéraux se VOIT.
+//
+// C'est du dessin, pas du moteur : rien ici ne touche au résultat.  Le
+// résultat, lui, écoute les mêmes consignes par les traits d'équipe
+// (simulation.CONSIGNES).
+//
+//   av  — de combien il avance quand son camp attaque (en fraction de
+//         terrain, à pleine progression)
+//   rec — de combien il recule quand son camp défend (négatif)
+//   lar — positif : il s'écarte vers la touche ; négatif : il rentre
+//         dans l'axe.  Nul pour un joueur déjà axial.
+const JEU_POSTE = {
+  "Gardien":           {av: 0.030, rec: 0.000, lar: 0.00, surface: 0.00},
+  "Defenseur central": {av: 0.110, rec: -0.055, lar: -0.12, surface: 0.02},
+  "Lateral":           {av: 0.300, rec: -0.045, lar: 0.10, surface: 0.10},
+  "Milieu defensif":   {av: 0.120, rec: -0.120, lar: -0.18, surface: 0.05},
+  "Milieu relayeur":   {av: 0.210, rec: -0.165, lar: -0.06, surface: 0.20},
+  "Milieu offensif":   {av: 0.235, rec: -0.205, lar: -0.12, surface: 0.35},
+  "Ailier":            {av: 0.200, rec: -0.225, lar: 0.26, surface: 0.40},
+  "Ailier droit":      {av: 0.200, rec: -0.225, lar: 0.26, surface: 0.40},
+  "Ailier gauche":     {av: 0.200, rec: -0.225, lar: 0.26, surface: 0.40},
+  "Buteur":            {av: 0.160, rec: -0.265, lar: -0.16, surface: 0.55},
+};
+const JEU_DEFAUT = {av: 0.18, rec: -0.15, lar: 0.0, surface: 0.2};
+// Ce que les consignes changent au DESSIN, poste par poste.
+const CONSIGNE_JEU = {
+  lateraux:   {poste: ["Lateral"],
+               bas: {av: -0.20, lar: -0.02}, axe: {av: -0.07, lar: -0.26}},
+  ailiers:    {poste: ["Ailier", "Ailier droit", "Ailier gauche"],
+               ligne: {lar: 0.16}, interieur: {lar: -0.36, av: 0.05, surface: 0.12}},
+  milieux:    {poste: ["Milieu defensif", "Milieu relayeur", "Milieu offensif"],
+               projection: {av: 0.14, surface: 0.18}, bas: {av: -0.11, surface: -0.10},
+               lateral: {lar: 0.24}},
+  attaquants: {poste: ["Buteur"],
+               profondeur: {av: 0.12}, pivot: {av: -0.07, surface: -0.08}},
+  relance:    {poste: ["Gardien", "Defenseur central"],
+               courte: {av: 0.05}, longue: {av: -0.03}},
+};
+
+function consigneDe(poste, tac) {
+  const out = {av: 0, rec: 0, lar: 0, surface: 0};
+  if (!tac) return out;
+  for (const [axe, def] of Object.entries(CONSIGNE_JEU)) {
+    if (!def.poste.includes(poste)) continue;
+    const d = def[tac[axe]];
+    if (d) for (const k of Object.keys(out)) out[k] += d[k] || 0;
   }
+  return out;
+}
+
+// Où se place un joueur pour CETTE phase, dans son propre repère
+// (x = profondeur vers le but adverse, y = largeur).
+function placeJoueur(p, avecBallon, progression, ph, tac) {
+  const [bx, by] = p._base;
+  const r = JEU_POSTE[p._poste] || JEU_DEFAUT;
+  const c = consigneDe(p._poste, tac);
+  const ecart = by - 0.5;
+  const sens = ecart === 0 ? 0 : Math.sign(ecart);
+  // Se resserrer, oui ; se marcher dessus, non.  Deux centraux qui
+  // rentrent finissaient sur la même case : chacun garde au moins la
+  // moitié de son écart de départ à l'axe.
+  const garder = y => ecart >= 0 ? Math.max(0.5 + ecart * 0.55, y) : Math.min(0.5 + ecart * 0.55, y);
+  let x = bx, y = by;
+  if (avecBallon) {
+    x += (r.av + c.av) * progression;
+    y = garder(by + sens * (r.lar + c.lar) * progression * 0.42);
+    // Sur une frappe, ceux qui attaquent rentrent dans la surface : ils
+    // convergent vers le point de penalty au lieu de rester en ligne.
+    if (SUR_LE_BUT.has(ph.k)) {
+      const dans = Math.max(0, Math.min(1, r.surface + c.surface));
+      x += (0.86 - x) * dans;
+      y += (0.5 - y) * dans * 0.55;
+    }
+  } else {
+    x += (r.rec + c.rec * 0.4) * progression;
+    y = garder(by - sens * 0.22 * progression * 0.42);     // le bloc se resserre
+    if (SUR_LE_BUT.has(ph.k)) {
+      // on défend sa surface : la ligne et le gardien couvrent le but
+      const dans = p._poste === "Gardien" ? 0 : Math.max(0, 0.55 - r.surface);
+      x -= (x - 0.13) * dans;
+      y += (0.5 - y) * dans * 0.45;
+    }
+  }
+  return [Math.max(0.02, Math.min(0.96, x)), Math.max(0.04, Math.min(0.96, y))];
+}
+const SUR_LE_BUT = new Set(["tir", "but", "rate", "arret", "corner", "centre"]);
+
+function bougerTerrain(t, cote, zone, moi, ph) {
+  if (!T2D.pions) return;
+  const phase = ph || {k: "passe", z: zone};
+  // la progression : 0 devant son propre but, 1 dans la surface adverse
+  const progression = Math.max(0, Math.min(1, ((phase.z === undefined ? 1 : phase.z) - 0.5) / 2.5));
   for (const [cle, p] of Object.entries(T2D.pions)) {
     const c = cle.slice(0, 1);
-    const [x, y] = p._base;
-    const [g, h] = ecran(c, x + dec[c], y, moi);
+    const sien = cote !== null && cote !== undefined && c === "ab"[cote];
+    const [x, y] = placeJoueur(p, sien, progression, phase, T2D.consignes?.[c]);
+    const [g, h] = ecran(c, x, y, moi);
     p.style.left = (g * 100) + "%";
     p.style.top = (h * 100) + "%";
   }
@@ -1275,7 +1428,7 @@ function jouerPhase(t, ph, moi) {
   const jeu = t.querySelector(".t2d-jeu");
   if (!ph) { b.hidden = true; return; }
   const cote = "ab"[ph.c];
-  bougerTerrain(t, ph.c, ph.z, moi);
+  bougerTerrain(t, ph.c, ph.z, moi, ph);
   for (const p of Object.values(T2D.pions || {}))
     p.classList.toggle("ballon", p.dataset.cote === cote && +p.dataset.pid === ph.p);
   const porteur = T2D.pions?.[cote + ":" + ph.p];
@@ -1410,6 +1563,7 @@ function panneauTerrain(d, moi) {
   T2D.cible = m.minute;
   T2D.evts = m.evenements || [];
   T2D.t = t; T2D.moi = moi;
+  T2D.consignes = m.tactique || {};
   T2D.pas = Math.max(900, (d.duree * 1000) / (d.minutes || 90));
   if (T2D.m === 0) T2D.m = Math.max(0, T2D.cible - 1);
   if (T2D.m > T2D.cible) T2D.m = T2D.cible;
@@ -1675,12 +1829,19 @@ function construireAjuster(d, routeTac, routePause, rendre) {
     g.append(el("button", {class: "tac", "data-form": f,
       onclick: () => { tac.formation = f; envoyer(); }}, f));
   p.append(el("div", {class: "tactiques"}, g));
+  p.append(depliant("match", "Consignes aux lignes",
+    el("p", {class: "compteur"},
+      "Ce que tu demandes à chaque ligne. Chacune est un échange, jamais un bonus, "
+      + "et elle se voit sur le terrain : un latéral qui reste derrière ne monte plus, "
+      + "un ailier qui repique quitte le couloir."),
+    selecteurConsignes(tac, envoyer)));
   AJU.corps = el("div", {});
   p.append(AJU.corps);
   return p;
 }
 
-const AXES_TAC = ["tempo", "bloc", "risque", "formation"];
+const AXES_TAC = ["tempo", "bloc", "risque", "formation",
+                  "lateraux", "ailiers", "milieux", "attaquants", "relance"];
 
 function memeTactique(a, b) {
   return AXES_TAC.every(k => (a[k] || "") === (b[k] || ""));
@@ -1703,6 +1864,11 @@ function majAjuster(d, routePause, rendre) {
     const choisi = tac.formation === n.dataset.form;
     n.classList.toggle("actif", choisi);
     n.classList.toggle("attente", choisi && enAttente && serveur.formation !== n.dataset.form);
+  });
+  AJU.noeud.querySelectorAll(".tac[data-consigne]").forEach(n => {
+    const choisi = tac[n.dataset.consigne] === n.dataset.valeur;
+    n.classList.toggle("actif", choisi);
+    n.classList.toggle("attente", choisi && enAttente && serveur[n.dataset.consigne] !== n.dataset.valeur);
   });
   if (AJU.boutonPause) {
     AJU.boutonPause.textContent = m.pause ? "▶ Reprendre" : "⏸ Mettre en pause";

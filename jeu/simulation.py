@@ -186,13 +186,23 @@ class Tactique:
     # "whatever the eleven kicked off in", so an old stored tactic and a
     # manager who never touches it both keep their formation.
     formation: str = ""
+    # What each line is asked to do (CONSIGNES).  Every default is
+    # neutral, so a stored tactic written before they existed reads as a
+    # manager who has not touched them.
+    lateraux: str = "couloir"
+    ailiers: str = "equilibre"
+    milieux: str = "equilibre"
+    attaquants: str = "equilibre"
+    relance: str = "equilibre"
 
     def valide(self) -> "Tactique":
         t = self.tempo if self.tempo in TEMPO else "equilibre"
         b = self.bloc if self.bloc in BLOC else "median"
         r = self.risque if self.risque in RISQUE else "equilibre"
         f = self.formation if self.formation in _S.FORMATIONS_RANGS else ""
-        return Tactique(t, b, r, f)
+        c = {axe: (getattr(self, axe) if getattr(self, axe, None) in opts else CONSIGNE_DEFAUT[axe])
+             for axe, opts in CONSIGNES.items()}
+        return Tactique(t, b, r, f, **c)
 
 
 # Every setting is a TRADE, and the products below are balanced so that no
@@ -205,6 +215,73 @@ TEMPO = {"possession": (1.35, 0.70, 1.15), "equilibre": (1.0, 1.0, 1.0), "direct
 BLOC = {"haut": (1.12, 0.88, 1.25), "median": (1.0, 1.0, 1.0), "bas": (0.90, 1.14, 0.80)}
 # (own shot rate, opponent shot rate) — opens or closes the match for BOTH
 RISQUE = {"offensif": (1.22, 1.22), "equilibre": (1.0, 1.0), "prudent": (0.85, 0.85)}
+
+# --------------------------------------------------------------------------
+# Player instructions — what you ask of a LINE, not of the team
+# --------------------------------------------------------------------------
+# The three axes above say how the team plays.  These say what each line
+# is asked to do inside it, in the vocabulary a manager actually uses:
+# a full-back who stays home or overlaps or tucks into midfield, a winger
+# who hugs the touchline or cuts inside, midfielders who join the attack
+# or sit, forwards who run in behind or hold it up, a back line that
+# plays out or goes long.
+#
+# The same rule as everywhere else: NONE of them is a bonus.  Each one
+# moves two or three team traits, one up and one down, and the default of
+# every axis is neutral — a manager who touches nothing plays exactly the
+# match the engine is calibrated on.  They are deliberately smaller than
+# the three main axes: an instruction is a nuance, not a second tactic.
+CONSIGNES: dict[str, dict[str, dict[str, float]]] = {
+    # Les latéraux
+    "lateraux": {
+        "couloir": {},                                              # il monte dans son couloir
+        "bas": {"defense": 1.07, "percussion": 0.93},               # il reste derrière
+        "axe": {"controle": 1.07, "defense": 0.95},                 # il rentre dans l'axe
+    },
+    # Les ailiers
+    "ailiers": {
+        "equilibre": {},
+        "ligne": {"percussion": 1.08, "creation": 0.94},            # il colle la ligne de touche
+        "interieur": {"creation": 1.11, "finition": 1.07, "percussion": 0.94},   # il repique
+    },
+    # Les milieux
+    "milieux": {
+        "equilibre": {},
+        "projection": {"percussion": 1.10, "defense": 0.945},       # il rejoint l'attaque
+        "bas": {"defense": 1.06, "controle": 1.03, "percussion": 0.92},          # il reste derrière
+        "lateral": {"creation": 1.11, "controle": 0.97},            # il organise sur les côtés
+    },
+    # Les attaquants
+    "attaquants": {
+        "equilibre": {},
+        "profondeur": {"percussion": 1.09, "creation": 0.93},       # il cherche la profondeur
+        "pivot": {"controle": 1.06, "creation": 1.04, "percussion": 0.92},       # il joue dos au but
+    },
+    # La relance de la défense
+    "relance": {
+        "equilibre": {},
+        "courte": {"controle": 1.08, "defense": 0.94},              # on ressort par le bas
+        "longue": {"percussion": 1.07, "defense": 1.03, "controle": 0.95},       # on joue long
+    },
+}
+CONSIGNE_DEFAUT = {axe: next(iter(opts)) for axe, opts in CONSIGNES.items()}
+# Cinq consignes qui vont toutes dans le même sens ne font pas une équipe
+# deux fois meilleure sur un trait : le produit est borné.
+CONSIGNE_MIN, CONSIGNE_MAX = 0.88, 1.12
+
+
+def appliquer_consignes(t: dict[str, float], tac: "Tactique") -> dict[str, float]:
+    """The six traits as the instructions leave them."""
+    facteurs: dict[str, float] = {}
+    for axe in CONSIGNES:
+        choix = getattr(tac, axe, None)
+        for cle, m in CONSIGNES[axe].get(choix, {}).items():
+            facteurs[cle] = facteurs.get(cle, 1.0) * m
+    if not facteurs:
+        return t
+    return {k: max(0.0, min(1.0, v * max(CONSIGNE_MIN, min(CONSIGNE_MAX, facteurs.get(k, 1.0)))))
+            for k, v in t.items()}
+
 
 # The cycle, read the way football reads it: (my tempo, their block) ->
 # (my shot rate, my shot quality).  Holding the ball against a high press
@@ -286,6 +363,14 @@ def _poser(j: dict, slot: str) -> None:
     j["attributs"] = ({k: max(40, v - MALUS_HORS_POSTE) for k, v in brut.items()}
                       if dehors else dict(brut))
     j["fam"] = _S.FAMILLE_POSTE.get(slot, j.get("fam", "MID"))
+
+
+def traits_diriges(joueurs: list[dict], tac: "Tactique") -> dict[str, float]:
+    """An eleven's six traits, instructions included.
+
+    The only reading the match uses: the cards say what the eleven is,
+    the instructions say what it is being asked to do."""
+    return appliquer_consignes(traits(joueurs), tac)
 
 
 def _duel(a: float, b: float, exposant: float) -> float:
@@ -487,7 +572,7 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
         if tac[c].formation and tac[c].formation != forme[c]:
             forme[c] = tac[c].formation
             appliquer_formation(sur[c], forme[c])
-    t = [traits(sur[0]), traits(sur[1])]
+    t = [traits_diriges(sur[0], tac[0]), traits_diriges(sur[1], tac[1])]
     blesses: list[list[int]] = [[], []]    # off injured, nobody on for them yet
     score = [0, 0]
     tirs, xg_tot, minutes_ballon = [0, 0], [0.0, 0.0], [0, 0]
@@ -510,7 +595,7 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
         if rouge:
             rouges_n[cote] += 1
             sur[cote][:] = [j for j in sur[cote] if j["pid"] != joueur["pid"]]
-            t[cote] = traits(sur[cote])
+            t[cote] = traits_diriges(sur[cote], tac[cote])
             return ajoute(minute, cote, "rouge", f"{joueur['nom']} est expulsé", pid=joueur["pid"])
         jaunes[cote][joueur["pid"]] = jaunes[cote].get(joueur["pid"], 0) + 1
         jaunes_n[cote] += 1
@@ -524,8 +609,8 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                     if tac[c].formation and tac[c].formation != forme[c]:
                         forme[c] = tac[c].formation
                         appliquer_formation(sur[c], forme[c])
-                        t[c] = traits(sur[c])
                         ajoute(m, c, "formation", f"{eq[c].nom} passe en {forme[c]}")
+                    t[c] = traits_diriges(sur[c], tac[c])
                     ajoute(m, c, "tactique", _texte_tactique(eq[c].nom, tac[c]))
         if m in changements:
             for c, liste in enumerate(changements[m]):
@@ -561,7 +646,7 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                            pid=e["pid"], sortant=parti.get("pid"))
                 if fait:
                     fenetres_chg[c] += 1
-                    t[c] = traits(sur[c])
+                    t[c] = traits_diriges(sur[c], tac[c])
 
         rng = random.Random(graine * 1000 + m)
         pa = possession(t[0], t[1], tac[0], tac[1])
@@ -669,7 +754,7 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                         blesses[c_bless].append(blesse["pid"])
                     evt = ajoute(m, c_bless, "blessure", f"{blesse['nom']} sort sur blessure",
                                  pid=blesse["pid"], slot=sortant_slot)
-                t[c_bless] = traits(sur[c_bless])
+                t[c_bless] = traits_diriges(sur[c_bless], tac[c_bless])
 
         # The legs.  Everyone on the pitch loses a little of the minute,
         # each side at the cost of the way its manager makes it play, and
@@ -677,7 +762,7 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
         for c in (0, 1):
             for j in sur[c]:
                 j["endurance"] = max(0.0, j.get("endurance", ENDURANCE_MAX) - usure(j, tac[c]))
-            t[c] = traits(sur[c])
+            t[c] = traits_diriges(sur[c], tac[c])
 
         rs = random.Random(graine * 1000 + m + 7_000_003)
         fil.append({"m": m, "c": cote, "z": zone,
@@ -715,8 +800,23 @@ _MOTS = {"possession": "garde le ballon", "direct": "joue direct", "equilibre": 
          "offensif": "prend des risques", "prudent": "ferme le jeu"}
 
 
+# Ce qu'on dit d'une consigne dans le fil du match.
+_MOTS_CONSIGNE = {
+    ("lateraux", "bas"): "latéraux bas", ("lateraux", "axe"): "latéraux dans l'axe",
+    ("ailiers", "ligne"): "ailiers sur la ligne", ("ailiers", "interieur"): "ailiers qui repiquent",
+    ("milieux", "projection"): "milieux qui se projettent", ("milieux", "bas"): "milieux bas",
+    ("milieux", "lateral"): "jeu décalé sur les côtés",
+    ("attaquants", "profondeur"): "appels en profondeur", ("attaquants", "pivot"): "attaquant en pivot",
+    ("relance", "courte"): "relance courte", ("relance", "longue"): "jeu long",
+}
+
+
 def _texte_tactique(nom: str, t: Tactique) -> str:
-    return f"{nom} : {_MOTS.get(t.tempo, t.tempo)}, {_MOTS.get(t.bloc, t.bloc)}, {_MOTS.get(t.risque, t.risque)}"
+    bouts = [_MOTS.get(t.tempo, t.tempo), _MOTS.get(t.bloc, t.bloc), _MOTS.get(t.risque, t.risque)]
+    # les consignes ne sont nommées que si elles ne sont pas neutres : les
+    # citer toutes noierait ce que le manager vient vraiment de changer
+    bouts += [m for (axe, choix), m in _MOTS_CONSIGNE.items() if getattr(t, axe, None) == choix]
+    return f"{nom} : " + ", ".join(bouts)
 
 
 # The median of each trait over a real card pool — the 150 club elevens of

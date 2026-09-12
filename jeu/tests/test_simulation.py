@@ -375,3 +375,76 @@ def test_the_phases_never_move_the_result():
         g = SM.jouer(a, b, graine)
         assert f["score"] == g["score"] and f["tirs"] == g["tirs"]
         assert [l["s"] for l in f["fil"]] == [l["s"] for l in g["fil"]]
+
+
+# --------------------------------------------------------------------------
+# Les consignes aux lignes
+# --------------------------------------------------------------------------
+
+def test_every_instruction_is_a_trade_and_the_defaults_are_neutral():
+    """Aucune consigne n'est un bonus : chacune monte un trait et en
+    descend un autre, et le premier choix de chaque ligne ne touche à
+    rien — un manager qui n'y touche pas joue le match d'origine."""
+    for axe, options in SM.CONSIGNES.items():
+        defaut = SM.CONSIGNE_DEFAUT[axe]
+        assert SM.CONSIGNES[axe][defaut] == {}, f"{axe} : le défaut doit être neutre"
+        for choix, effets in options.items():
+            if choix == defaut:
+                continue
+            assert any(m > 1 for m in effets.values()), f"{axe}={choix} ne donne rien"
+            assert any(m < 1 for m in effets.values()), f"{axe}={choix} ne coûte rien"
+            assert all(0.85 <= m <= 1.15 for m in effets.values()), f"{axe}={choix} est trop fort"
+    # et le défaut complet laisse les traits exactement où ils sont
+    j = onze(74)
+    assert SM.traits_diriges(j, SM.Tactique().valide()) == SM.traits(j)
+
+
+def test_an_instruction_moves_the_traits_it_says_and_only_those():
+    j = onze(74)
+    base = SM.traits(j)
+    t = SM.traits_diriges(j, SM.Tactique(milieux="bas").valide())
+    assert t["defense"] > base["defense"]           # il protège la ligne
+    assert t["percussion"] < base["percussion"]     # et il ne se projette plus
+    assert t["finition"] == base["finition"]        # le reste ne bouge pas
+    assert t["gardien"] == base["gardien"]
+
+
+def test_instructions_never_compound_into_a_super_team():
+    j = onze(74)
+    base = SM.traits(j)
+    tout = SM.Tactique(lateraux="bas", milieux="bas", relance="longue",
+                       ailiers="interieur", attaquants="pivot").valide()
+    t = SM.traits_diriges(j, tout)
+    for cle, v in t.items():
+        assert v <= base[cle] * SM.CONSIGNE_MAX + 1e-9, f"{cle} explose"
+        assert v >= base[cle] * SM.CONSIGNE_MIN - 1e-9, f"{cle} s'effondre"
+
+
+def test_an_unknown_instruction_falls_back_to_the_neutral_one():
+    t = SM.Tactique(lateraux="n'importe quoi", milieux="projection").valide()
+    assert t.lateraux == SM.CONSIGNE_DEFAUT["lateraux"]
+    assert t.milieux == "projection"
+
+
+def test_instructions_ride_the_tactical_timeline_like_any_other_setting():
+    a, b = SM.Equipe("A", onze(74)), SM.Equipe("B", onze(74, 20))
+    f = SM.jouer(a, b, 21, tactiques={30: (SM.Tactique(milieux="projection", ailiers="ligne"), None)})
+    assert f["tactique"]["a"]["milieux"] == "projection"
+    dit = [e["texte"] for e in f["evenements"] if e["type"] == "tactique"]
+    assert dit and "milieux qui se projettent" in dit[-1] and "ailiers sur la ligne" in dit[-1]
+
+
+def test_a_match_with_instructions_is_still_football():
+    """Les deux camps donnent des consignes opposées : le match doit
+    rester dans les clous du football."""
+    import statistics as st
+    buts, tirs = [], []
+    off = SM.Tactique(lateraux="axe", ailiers="interieur", milieux="projection",
+                      attaquants="profondeur", relance="courte")
+    dur = SM.Tactique(lateraux="bas", ailiers="ligne", milieux="bas",
+                      attaquants="pivot", relance="longue")
+    for i in range(200):
+        f = SM.jouer(SM.Equipe("A", onze(64), off), SM.Equipe("B", onze(64, 20), dur), i)
+        buts += f["score"]; tirs += f["tirs"]
+    assert 0.9 <= st.mean(buts) <= 2.0, st.mean(buts)
+    assert 8 <= st.mean(tirs) <= 16, st.mean(tirs)

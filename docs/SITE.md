@@ -140,6 +140,13 @@ attendent la reprise. L'événement s'annonce au moment où il arrive :
 but, arrêt, occasion manquée, corner, faute, carton, hors-jeu, blessure,
 remplacement, changement de formation.
 
+**Les onze bougent, pas deux blocs.** Pendant chaque phase, chacun se
+déplace selon son poste : le latéral déborde, l'ailier tient la largeur
+ou rentre, le milieu se projette, les centraux se resserrent sans jamais
+se marcher dessus, et sur une frappe les attaquants rentrent dans la
+surface pendant que la défense adverse couvre son but. Les consignes du
+manager changent ces courses.
+
 Rien n'est inventé par la page : le moteur rend `fil`, une ligne par
 minute (quel camp a le ballon, dans quelle zone, quel joueur le porte,
 quel événement) et, dans chaque ligne, `s` — **les phases** de cette
@@ -163,6 +170,30 @@ plus fatigués en tête.
 humain — un défi, une campagne solo — se **met en pause** : le
 classement, lui, ne s'arrête pas, deux managers ne tiennent pas la même
 horloge.
+
+**Les consignes aux lignes.** En plus des trois axes, tu dis à chaque
+ligne ce que tu attends d'elle, et chaque consigne est un échange,
+jamais un bonus — le premier choix de chaque ligne ne touche à rien.
+
+| Ligne | Consignes |
+| --- | --- |
+| Latéraux | monte dans son couloir · **reste derrière** (+défense, −percussion) · **rentre dans l'axe** (+contrôle, −défense) |
+| Ailiers | équilibré · **colle la ligne** (+percussion, −création) · **repique dans l'axe** (+création, +finition, −percussion) |
+| Milieux | équilibré · **rejoint l'attaque** (+percussion, −défense) · **reste derrière** (+défense, +contrôle, −percussion) · **organise sur les côtés** (+création, −contrôle) |
+| Attaquants | équilibré · **cherche la profondeur** (+percussion, −création) · **joue en pivot** (+contrôle, +création, −percussion) |
+| Relance | équilibrée · **courte, par le bas** (+contrôle, −défense) · **jeu long** (+percussion, +défense, −contrôle) |
+
+Mesuré sur sept cents matchs par consigne, aucune ne vaut plus d'un
+vingtième de but à celui qui la donne : ce que tu gagnes d'un côté, tu
+le paies de l'autre. Cinq consignes qui vont toutes dans le même sens ne
+font pas non plus une équipe deux fois meilleure sur un trait — le
+produit est borné. Elles se voient aussi **sur le terrain** : un latéral
+à qui tu demandes de rester derrière ne monte plus (son amplitude passe
+de 31 % du terrain à 16 %), un ailier qui repique quitte le couloir.
+
+Les clubs que fait jouer la machine en ont aussi, lues dans leur propre
+onze : une équipe qui garde le ballon ressort par le bas et joue en
+pivot, une équipe directe joue long et cherche la profondeur.
 
 **La tactique** se change en direct (tempo, bloc, risque) et **la
 formation avec** : les dix formations sont là. Le onze reste sur le

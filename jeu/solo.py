@@ -241,17 +241,40 @@ def _tercile(valeur: float, seuils: tuple[float, float], bas: str, milieu: str, 
     return bas if valeur < seuils[0] else haut if valeur > seuils[1] else milieu
 
 
+def _ecart(t: dict, cle: str) -> float:
+    """Un trait lu contre la médiane du vivier, pas dans l'absolu."""
+    return t[cle] - SM.REPERE.get(cle, 0.4)
+
+
 def tactique_club(joueurs: list[dict]) -> SM.Tactique:
     """How a real club plays: read from its own eleven, never drawn.
 
     A side that controls far more than it finishes keeps the ball; one
     whose finishing is well ahead of its control goes direct; a weak
-    defence sits deep, a strong one presses high."""
+    defence sits deep, a strong one presses high.
+
+    Its instructions to the lines follow from the same reading, so a
+    machine-run club is coherent rather than neutral: a side that keeps
+    the ball plays out from the back and holds it up, a direct one goes
+    long and runs in behind, a side that defends better than it creates
+    leaves its midfield low.  No new threshold is needed for any of it —
+    they all fall out of the three axes and of traits already read."""
     t = SM.traits(joueurs)
+    tempo = _tercile(t["controle"] - t["finition"], SEUILS_TEMPO, "direct", "equilibre", "possession")
+    bloc = _tercile(t["defense"], SEUILS_BLOC, "bas", "median", "haut")
     return SM.Tactique(
-        tempo=_tercile(t["controle"] - t["finition"], SEUILS_TEMPO, "direct", "equilibre", "possession"),
-        bloc=_tercile(t["defense"], SEUILS_BLOC, "bas", "median", "haut"),
+        tempo=tempo,
+        bloc=bloc,
         risque=_tercile(t["finition"] - t["defense"], SEUILS_RISQUE, "prudent", "equilibre", "offensif"),
+        lateraux=("bas" if bloc == "bas" else "axe" if tempo == "possession" else "couloir"),
+        # Comparé aux MÉDIANES du vivier (SM.REPERE), jamais en valeur
+        # absolue : un onze de club finit mieux qu'il ne perce presque
+        # par construction, et la comparaison brute envoyait cent
+        # dix-neuf clubs sur cent vingt repiquer dans l'axe.
+        ailiers=("interieur" if _ecart(t, "finition") > _ecart(t, "percussion") else "ligne"),
+        milieux=("bas" if _ecart(t, "defense") > _ecart(t, "creation") else "projection"),
+        attaquants=({"possession": "pivot", "direct": "profondeur"}.get(tempo, "equilibre")),
+        relance=({"possession": "courte", "direct": "longue"}.get(tempo, "equilibre")),
     ).valide()
 
 
