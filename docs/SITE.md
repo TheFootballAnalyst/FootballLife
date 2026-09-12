@@ -13,7 +13,7 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 | Cartes | toutes les cartes (écussons ou liste), filtres par poste, ligue, tri (OVR, prix, OVR par M€, forme, âge, popularité), fiche joueur, et le nombre de ventes en cours par joueur |
 | Packs | la boutique de la banque : quinze packs (trois niveaux, mixte ou par poste), ouverture animée, les cartes vont en réserve |
 | Enchères | l'hôtel des ventes : mises à prix, achat immédiat, offres (argent bloqué), fin de vente ; tes ventes et tes offres |
-| Lobby | le match classé : ton onze contre celui d'un autre manager, joué avec les cartes sur un terrain 2D où elles bougent, quatre minutes pour quatre-vingt-dix, tactiques et remplacements en direct ; ton Elo classé et tes derniers matchs |
+| Lobby | le match classé : ton onze contre celui d'un autre manager, joué avec les cartes sur un terrain 2D où elles jouent vraiment les actions, six minutes pour quatre-vingt-dix, tactique, formation et remplacements en direct ; ton Elo classé et tes derniers matchs |
 | Solo | la campagne : tu prends la place d'un vrai club dans une vraie compétition et tu joues son calendrier contre les onze des autres clubs ; crédits et packs selon la place ou le tour atteint |
 | Équipe | formation, onze sur le terrain, capitaine, ordre du banc, **Envoyer la composition** avant le premier coup d'envoi ; **Mon club** : effectif et réserve, aligner, mettre en vente, vendre à la banque |
 | Journée | le résultat de la dernière journée (détail par joueur, entrants du banc, rang), l'état de la journée en cours, l'historique |
@@ -129,23 +129,60 @@ quelqu'un.
 
 ## Le terrain
 
-Le match se regarde. Les vingt-deux cartes sont posées dans leur
-formation sur un terrain 2D ; à chaque minute les deux blocs coulissent
-selon qui a le ballon et jusqu'où il est monté, le ballon se pose sur le
-porteur, et l'événement s'annonce au moment où il arrive — but, arrêt,
-occasion manquée, corner, faute, carton, hors-jeu, blessure,
-remplacement.
+Le match se regarde, action par action. Les vingt-deux cartes sont
+posées dans leur formation sur un terrain 2D — **les tiennes cerclées de
+bleu, celles d'en face de rouge**, le porteur du ballon en doré — et
+chaque minute se joue vraiment : la relance du gardien, les passes qui
+montent, la conduite dans la surface, **la frappe qui part du pied vers
+un point du but**, l'arrêt, le ballon qui file à côté, la perte de
+balle, le coup de sifflet sur une faute — les vingt-deux s'arrêtent et
+attendent la reprise. L'événement s'annonce au moment où il arrive :
+but, arrêt, occasion manquée, corner, faute, carton, hors-jeu, blessure,
+remplacement, changement de formation.
 
 Rien n'est inventé par la page : le moteur rend `fil`, une ligne par
 minute (quel camp a le ballon, dans quelle zone, quel joueur le porte,
-quel événement), et le terrain ne fait que la mettre en mouvement.
-L'horloge reste celle du serveur.
+quel événement) et, dans chaque ligne, `s` — **les phases** de cette
+minute. Elles tirent leur propre dé, séparé de celui du match : ajouter
+une passe au dessin ne déplace jamais un but. L'horloge reste celle du
+serveur.
+
+**L'endurance.** Chacun s'use minute après minute, selon la ligne où il
+joue et selon la façon dont tu le fais jouer : presser haut et jouer
+direct coûtent des jambes, garder le ballon et descendre le bloc en
+économisent. Un milieu finit un match normal autour de 45, un gardien
+ne se fatigue presque pas. À vide, un joueur vaut 88 % de lui-même —
+assez pour que la dernière demi-heure soit une décision, jamais assez
+pour transformer une bonne carte en mauvaise. Les barres se lisent sous
+chaque joueur sur le terrain, et dans le panneau des changements, les
+plus fatigués en tête.
+
+## Diriger le match
+
+**Six minutes réelles pour les quatre-vingt-dix.** Un match à un seul
+humain — un défi, une campagne solo — se **met en pause** : le
+classement, lui, ne s'arrête pas, deux managers ne tiennent pas la même
+horloge.
+
+**La tactique** se change en direct (tempo, bloc, risque) et **la
+formation avec** : les dix formations sont là. Le onze reste sur le
+terrain, on le redistribue sur les postes de la nouvelle forme comme le
+fait le bouton « meilleur onze » — le latéral droit d'un 4-3-3 devient
+piston dans un 3-5-2 s'il a déjà tenu le poste — et qui se retrouve hors
+de son poste perd dix points sur chaque attribut.
 
 Tu as **cinq remplacements en trois arrêts de jeu**, comme le règlement.
 Ils sont horodatés par la même horloge que les changements tactiques :
 ils ne touchent jamais ce qui est déjà joué. Un entrant peut ressortir,
-un expulsé ne rentre pas, et un blessé est remplacé automatiquement. Les
-remplaçants sont ceux que tu as nommés sur l'écran Équipe.
+un expulsé ne rentre pas, et **l'entrant prend le poste de celui qu'il
+remplace**. Les remplaçants sont ceux que tu as nommés sur l'écran
+Équipe.
+
+**Une blessure arrête le match.** Le moteur ne remplace plus à ta place :
+il sort le blessé, l'arbitre arrête l'horloge et l'écran te demande qui
+entre. Un seul coup de sifflet par blessure — si tu repars sans changer,
+tu joues à dix, et c'est ton choix. Les clubs que fait jouer la machine,
+eux, remplacent tout seuls.
 
 ## Le mode solo
 

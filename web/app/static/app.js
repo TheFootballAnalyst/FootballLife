@@ -1151,10 +1151,15 @@ function placesDe(joueurs, formation) {
   // retombe sur les familles.
   const rangs = formation && RANGS[formation] ? RANGS[formation] : null;
   if (rangs && rangs.flat().length === joueurs.length) {
+    // La profondeur d'une ligne vient de son RANG, pas de la famille de
+    // son premier poste : le milieu d'un 4-4-2 commence par un ailier,
+    // donc il se posait à la profondeur des attaquants et les deux
+    // lignes se superposaient.  Le gardien devant son but, les autres
+    // lignes réparties jusqu'au dernier tiers.
+    const n = rangs.length;
     const out = [];
     rangs.forEach((rang, r) => {
-      const fam = FAM_POSTE[rang[0]] || "MID";
-      const x = PROFONDEUR[fam] ?? (0.05 + r * 0.19);
+      const x = r === 0 ? PROFONDEUR.GK : 0.20 + (0.46 * (r - 1)) / Math.max(1, n - 2);
       rang.forEach((_, k) => out.push([x, (k + 1) / (rang.length + 1)]));
     });
     return out;

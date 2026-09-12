@@ -280,11 +280,32 @@ better chances behind. Measured over 400 matches a case, no setting beats
 every other (`BACKTEST.md`), so the lobby cannot be solved by copying one
 build. The three axes can be changed while the match runs.
 
+**Legs are part of the decision.** Everyone on the pitch burns stamina
+minute after minute, at the cost of the line he plays in and of the way
+his manager makes him play: pressing high and going direct cost legs,
+keeping the ball and dropping the block save them. A midfielder ends a
+normal match around 45 out of 100, a keeper barely tired, and an empty
+player is worth 88 % of himself. It applies to both sides, so it moves
+no average — it moves **who is on the pitch at the eightieth minute**,
+which is the point. No card carries a physical attribute (nothing in the
+real data says who can run for ninety minutes), so the wear is the same
+for everyone; only the line and the tactics separate them.
+
+**A match is watched action by action.** Besides the score the sheet
+carries the phases of every minute — the build-up, the shot leaving the
+boot towards a point of the goal, the save, the turnover, the whistle —
+drawn from a generator seeded apart from the match's, so the drawing can
+never move a goal. Injuries are not resolved behind the manager's back
+either: on a side a human runs, the player goes off and the sheet says
+so; the screen stops the clock and asks who comes on. Finishing a man
+short stays a choice.
+
 **How a match runs** (`jeu/lobby.py`). You send the eleven you set on
 the Équipe pitch and your kick-off tactics, and the lobby pairs you with
 whoever is waiting within 250 points of ranked Elo. Ninety virtual
-minutes play out over four real ones, so the feed fills while you watch
-and you adjust as it goes. Three rules make that honest:
+minutes play out over six real ones — four left no room to actually make
+a substitution — so the feed fills while you watch and you adjust as it
+goes, tactics and formation alike. Three rules make that honest:
 
 - **The clock is the server's.** The current minute is a function of the
   kick-off time and nothing else. Nobody fast-forwards, and a manager who
@@ -296,7 +317,16 @@ and you adjust as it goes. Three rules make that honest:
   ends up in the archive.
 - **An adjustment is stamped by the server**, at the minute the clock
   says, so it only ever touches what has not been played. You cannot read
-  the eighty-fifth minute and then change something at the sixtieth.
+  the eighty-fifth minute and then change something at the sixtieth. A
+  formation change is one of those adjustments: the eleven stays on the
+  pitch and is redistributed over the new shape's positions by the same
+  rule as the "best eleven" button, and whoever lands away from a
+  position he really held pays for it.
+
+A match with a single human in it — a challenge, a solo campaign — can
+also be **stopped**: an injury stops it by itself, and the manager can
+stop it himself. A ranked match between two managers cannot; neither of
+them holds the other's clock.
 
 Ranked matches move `elo_classe`, the game's only ladder. When nobody is waiting you can play a
 **défi** against an eleven the game assembles around your own level: it
