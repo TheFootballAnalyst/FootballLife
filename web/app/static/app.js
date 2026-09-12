@@ -740,7 +740,11 @@ function selecteurTactique(tac, onChange) {
   for (const axe of ["tempo", "bloc", "risque"]) {
     const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, {tempo: "Tempo", bloc: "Bloc", risque: "Risque"}[axe]));
     for (const v of Object.keys(AXE_TXT[axe])) {
-      g.append(el("button", {class: "tac" + (tac[axe] === v ? " actif" : ""), onclick: () => { tac[axe] = v; onChange(); }}, AXE_TXT[axe][v]));
+      // l'axe et la valeur sont posés sur le bouton : le panneau du match
+      // est réutilisé d'un sondage à l'autre et n'a plus qu'à remettre la
+      // classe `actif` au bon endroit, sans reconstruire les boutons
+      g.append(el("button", {class: "tac" + (tac[axe] === v ? " actif" : ""), "data-axe": axe, "data-valeur": v,
+        onclick: () => { tac[axe] = v; onChange(); }}, AXE_TXT[axe][v]));
     }
     d.append(g);
   }
@@ -1447,12 +1451,35 @@ function cartons(m, c) {
 // reconstruit toutes les deux secondes et demie ; tant que le choix
 // vivait dans une variable locale, il partait avec l'ancien panneau et
 // personne n'avait le temps de cliquer deux joueurs d'affilée.
-const CHG = {cle: null, sortant: null, entrant: null};
+// Le panneau de match est REDESSINÉ à chaque sondage, toutes les deux
+// secondes et demie.  Le panneau des changements, lui, ne doit pas
+// l'être : un bouton reconstruit perd la sélection ET le clic en cours,
+// si bien que « Faire le changement » ne restait allumé qu'une
+// demi-seconde et qu'un changement était quasiment infaisable.
+//
+// Il est donc construit UNE FOIS par situation (le match, ton camp, qui
+// est sur le terrain, qui reste sur le banc) et seulement rafraîchi
+// ensuite : le compteur de changements restants, les barres d'endurance,
+// la mise en évidence de la sélection.  Il n'est rebâti que lorsque la
+// liste des joueurs change vraiment — un changement fait, un expulsé, un
+// blessé sorti.
+const CHG = {cle: null, noeud: null, sortant: null, entrant: null, maj: null, refresh: null};
 
 function jaugeEndurance(v) {
   const n = v === undefined || v === null ? 100 : v;
-  return el("span", {class: "endu", title: `Endurance ${Math.round(n)} %`},
-    el("i", {class: n < 35 ? "vide" : n < 60 ? "basse" : "", style: `width:${Math.max(0, Math.min(100, n))}%`}));
+  const i = el("i", {});
+  const j = el("span", {class: "endu"}, i);
+  poserEndurance(j, n);
+  return j;
+}
+
+function poserEndurance(noeud, v) {
+  const n = v === undefined || v === null ? 100 : v;
+  const i = noeud.querySelector("i");
+  if (!i) return;
+  i.style.width = Math.max(0, Math.min(100, n)) + "%";
+  i.className = n < 35 ? "vide" : n < 60 ? "basse" : "";
+  noeud.title = `Endurance ${Math.round(n)} %`;
 }
 
 function ligneJoueur(j, endu, role, onclick) {
@@ -1464,60 +1491,93 @@ function ligneJoueur(j, endu, role, onclick) {
     el("b", {class: "num"}, String(j.ovr)));
 }
 
+// Qui est SUR LE TERRAIN, pas qui a commencé : un remplaçant peut
+// ressortir, un expulsé non.  Le onze et le banc réunis sont le seul
+// endroit où les cartes elles-mêmes sont décrites.
+function gensDuBanc(m, cote) {
+  const tous = [...(m.onze?.[cote] || []), ...(m.banc?.[cote] || [])];
+  const utilises = new Set(m.entres?.[cote] || []);
+  return {
+    tous,
+    surTerrain: (m.sur_le_terrain?.[cote] || []).map(pid => tous.find(j => j.pid === pid)).filter(Boolean),
+    banc: (m.banc?.[cote] || []).filter(j => !utilises.has(j.pid)),
+    blesses: (m.attente?.[cote] || []).map(pid => tous.find(j => j.pid === pid)).filter(Boolean),
+    endu: m.endurance?.[cote] || {},
+    restants: SM_MAX_CHG - (m.changements?.[cote === "a" ? 0 : 1] ?? 0),
+  };
+}
+
 function blocChangements(d, route = "/lobby/changement", rendre = rendreLobby) {
   const m = d.match, cote = d.cote === "b" ? "b" : "a";
-  // Qui est SUR LE TERRAIN, pas qui a commencé : un remplaçant peut
-  // ressortir, un expulsé non.  Le onze et le banc réunis sont le seul
-  // endroit où les cartes elles-mêmes sont décrites.
-  const tous = [...(m.onze?.[cote] || []), ...(m.banc?.[cote] || [])];
-  const surTerrain = (m.sur_le_terrain?.[cote] || []).map(pid => tous.find(j => j.pid === pid)).filter(Boolean);
-  const utilises = new Set(m.entres?.[cote] || []);
-  const banc = (m.banc?.[cote] || []).filter(j => !utilises.has(j.pid));
-  const endu = m.endurance?.[cote] || {};
-  const blesses = (m.attente?.[cote] || []).map(pid => tous.find(j => j.pid === pid)).filter(Boolean);
+  const g = gensDuBanc(m, cote);
+  // La signature ne retient que ce qui change la LISTE des boutons.  La
+  // minute, le score et l'endurance n'en font pas partie : ils ne
+  // justifient pas de reconstruire ce sur quoi on est en train de
+  // cliquer.
+  const cle = JSON.stringify([m.rencontre_id, cote, route,
+                              g.surTerrain.map(j => j.pid), g.banc.map(j => j.pid),
+                              g.blesses.map(j => j.pid), g.restants > 0]);
+  if (CHG.noeud && CHG.cle === cle) { CHG.refresh(d); return CHG.noeud; }
+  CHG.cle = cle;
+  CHG.sortant = null;
+  CHG.entrant = null;
+  CHG.noeud = construireChangements(d, route, rendre);
+  return CHG.noeud;
+}
+
+function construireChangements(d, route, rendre) {
+  const m = d.match, cote = d.cote === "b" ? "b" : "a";
+  const {surTerrain, banc, blesses, endu, restants} = gensDuBanc(m, cote);
   const b = el("div", {class: "changements"});
-  const restants = SM_MAX_CHG - (m.changements?.[cote === "a" ? 0 : 1] ?? 0);
 
   // Une blessure arrête le match : tant que le manager n'a pas dit qui
   // entre, l'horloge ne repart pas.  C'est la seule décision qui bloque.
+  const zoneBlessure = el("div", {});
+  b.append(zoneBlessure);
   if (blesses.length) {
     const bl = el("div", {class: "blessure-stop"},
-      el("div", {class: "titre anton"}, "🚑 " + blesses.map(j => j.nom).join(", ") + (blesses.length > 1 ? " sortent" : " sort") + " sur blessure"),
-      el("p", {}, m.pause ? "Le match est arrêté : choisis qui entre." : "Tu joues à " + (11 - blesses.length) + " tant que personne n'entre."));
+      el("div", {class: "titre anton"}, "🚑 " + blesses.map(j => j.nom).join(", ")
+        + (blesses.length > 1 ? " sortent" : " sort") + " sur blessure"),
+      el("p", {class: "etat"}, ""));
     if (!banc.length || restants <= 0) {
       bl.append(el("p", {class: "compteur"}, "Plus personne à faire entrer : il faut finir en infériorité."));
     } else {
       const liste = el("div", {class: "chg-liste"});
       for (const j of banc)
-        liste.append(ligneJoueur(j, endu, "in", async () => {
+        liste.append(ligneJoueur(j, endu, "bless", async () => {
           try { await rendre(await api(route, {sortant: blesses[0].pid, entrant: j.pid})); toast(j.nom + " entre"); }
           catch (e) { toast(e.message); }
         }));
       bl.append(liste);
     }
-    b.append(bl);
+    zoneBlessure.append(bl);
   }
 
-  b.append(el("div", {class: "etiq"}, `Remplacements — il t'en reste ${Math.max(0, restants)}`));
-  if (!banc.length) { b.append(el("p", {class: "compteur"}, "Personne sur le banc. Nomme des remplaçants sur l'écran Équipe avant de lancer un match.")); return b; }
-  if (restants <= 0) { b.append(el("p", {class: "compteur"}, "Tu as fait tous tes changements.")); return b; }
-
-  // La sélection est gardée entre deux sondages, à condition que le match
-  // et les joueurs disponibles n'aient pas changé.
-  const cle = JSON.stringify([m.rencontre_id, cote]);
-  if (CHG.cle !== cle) { CHG.cle = cle; CHG.sortant = null; CHG.entrant = null; }
-  if (!surTerrain.some(j => j.pid === CHG.sortant)) CHG.sortant = null;
-  if (!banc.some(j => j.pid === CHG.entrant)) CHG.entrant = null;
+  const compteur = el("div", {class: "etiq"}, "");
+  b.append(compteur);
+  if (!banc.length) {
+    b.append(el("p", {class: "compteur"}, "Personne sur le banc. Nomme des remplaçants sur l'écran Équipe avant de lancer un match."));
+    CHG.refresh = dd => majCompteur(dd, compteur, zoneBlessure, b);
+    CHG.refresh(d);
+    return b;
+  }
+  if (restants <= 0) {
+    b.append(el("p", {class: "compteur"}, "Tu as fait tous tes changements."));
+    CHG.refresh = dd => majCompteur(dd, compteur, zoneBlessure, b);
+    CHG.refresh(d);
+    return b;
+  }
 
   const choix = el("div", {class: "chg-choix"});
   const maj = () => {
-    choix.querySelectorAll("[data-pid]").forEach(n => n.classList.toggle(
-      "choisi", (n.dataset.role === "out" && +n.dataset.pid === CHG.sortant) || (n.dataset.role === "in" && +n.dataset.pid === CHG.entrant)));
+    choix.querySelectorAll("[data-pid]").forEach(n => n.classList.toggle("choisi",
+      (n.dataset.role === "out" && +n.dataset.pid === CHG.sortant)
+      || (n.dataset.role === "in" && +n.dataset.pid === CHG.entrant)));
     valider.disabled = !(CHG.sortant && CHG.entrant);
   };
-  const colonne = (titre, ids, role) => {
+  const colonne = (titre, gens, role) => {
     const c = el("div", {}, el("div", {class: "etiq"}, titre));
-    for (const j of ids)
+    for (const j of gens)
       c.append(ligneJoueur(j, endu, role, () => {
         if (role === "out") CHG.sortant = j.pid; else CHG.entrant = j.pid;
         maj();
@@ -1527,49 +1587,131 @@ function blocChangements(d, route = "/lobby/changement", rendre = rendreLobby) {
   const valider = el("button", {class: "primaire", disabled: true, onclick: async () => {
     const paire = {sortant: CHG.sortant, entrant: CHG.entrant};
     CHG.sortant = null; CHG.entrant = null;
+    maj();
     try { await rendre(await api(route, paire)); toast("Changement enregistré"); }
     catch (e) { toast(e.message); }
   }}, "Faire le changement");
   // Le plus fatigué d'abord : c'est lui qu'on cherche quand on ouvre ce
-  // panneau à la soixante-dixième minute.
+  // panneau à la soixante-dixième minute.  L'ordre est fixé à la
+  // construction, pas à chaque sondage : une liste qui se réordonne sous
+  // le curseur est pire qu'une liste mal triée.
   const parFatigue = [...surTerrain].sort((x, y) => (endu[x.pid] ?? 100) - (endu[y.pid] ?? 100));
   choix.append(colonne("Il sort", parFatigue, "out"), colonne("Il entre", banc, "in"));
   b.append(choix, valider);
-  maj();
+  CHG.maj = maj;
+  CHG.refresh = dd => { majCompteur(dd, compteur, zoneBlessure, b); maj(); };
+  CHG.refresh(d);
   return b;
 }
-const SM_MAX_CHG = 5;
-const MALUS_HORS_POSTE = 10;
 
-// Le panneau tactique du match : les trois axes, la formation, et — pour
-// un match à un seul humain — la pause.
+// Ce qui bouge d'un sondage à l'autre, écrit DANS les nœuds existants.
+function majCompteur(d, compteur, zoneBlessure, racine) {
+  const m = d.match, cote = d.cote === "b" ? "b" : "a";
+  const {endu, restants} = gensDuBanc(m, cote);
+  compteur.textContent = `Remplacements — il t'en reste ${Math.max(0, restants)}`;
+  racine.querySelectorAll(".chg-j").forEach(n => {
+    const j = n.querySelector(".endu");
+    if (j) poserEndurance(j, endu[+n.dataset.pid]);
+  });
+  const etat = zoneBlessure.querySelector(".etat");
+  if (etat) etat.textContent = m.pause
+    ? "Le match est arrêté : choisis qui entre."
+    : "Tu joues en infériorité tant que personne n'entre.";
+}
+
+// Le panneau tactique du match : les trois axes, la formation, la pause
+// pour un match à un seul humain, et les changements.  Réutilisé lui
+// aussi — un bouton de formation reconstruit sous le doigt perd le clic
+// exactement comme celui des changements.
+const AJU = {cle: null, noeud: null, tac: null};
+
 function blocAjuster(d, routeTac, routePause, rendre) {
   const m = d.match, cote = d.cote === "b" ? "b" : "a";
-  const tac = {...(m.tactique[cote] || LOBBY.tac)};
-  tac.formation = m.formation?.[cote] || tac.formation || "4-3-3";
+  const cle = JSON.stringify([m.rencontre_id, cote, routeTac, m.solitaire]);
+  if (!AJU.noeud || AJU.cle !== cle) {
+    AJU.cle = cle;
+    AJU.tac = {};
+    AJU.attendu = null;
+    AJU.noeud = construireAjuster(d, routeTac, routePause, rendre);
+  }
+  majAjuster(d, routePause, rendre);
+  const chg = blocChangements(d, routeTac === "/solo/tactique" ? "/solo/changement" : "/lobby/changement", rendre);
+  // et on ne le réinsère que s'il a VRAIMENT changé : détacher puis
+  // rattacher le même nœud pour rien, c'est le clic du manager qu'on
+  // risque de perdre
+  if (AJU.corps.firstChild !== chg) AJU.corps.replaceChildren(chg);
+  return AJU.noeud;
+}
+
+function construireAjuster(d, routeTac, routePause, rendre) {
   const p = el("div", {class: "panneau interne"}, el("h3", {class: "anton"}, "Ajuster"),
     el("p", {class: "compteur"}, "Un changement prend effet à la minute suivante : il ne touche jamais ce qui est déjà joué."));
+  const tac = AJU.tac;
   const envoyer = async () => {
-    try { await rendre(await api(routeTac, {tactique: tac})); } catch (e) { toast(e.message); }
+    // Un ajustement prend effet à la MINUTE SUIVANTE : d'ici là le
+    // serveur rend encore l'ancienne tactique, et remettre bêtement ce
+    // qu'il rend éteignait le bouton qu'on vient de choisir pendant
+    // plusieurs secondes.  On garde donc ce qui est en attente affiché,
+    // jusqu'à ce que le serveur le confirme.
+    AJU.attendu = {...tac};
+    try { await rendre(await api(routeTac, {tactique: {...tac}})); }
+    catch (e) { AJU.attendu = null; toast(e.message); }
   };
-  if (m.solitaire && routePause)
-    p.append(el("div", {class: "actions", style: "justify-content:flex-start;margin-bottom:8px"},
-      el("button", {class: m.pause ? "primaire" : "", onclick: async () => {
-        try { await rendre(await api(routePause, {pause: !m.pause})); } catch (e) { toast(e.message); }
-      }}, m.pause ? "▶ Reprendre" : "⏸ Mettre en pause")));
+  AJU.pause = el("div", {class: "actions", style: "justify-content:flex-start;margin-bottom:8px"});
+  if (d.match.solitaire && routePause) {
+    AJU.boutonPause = el("button", {onclick: async () => {
+      try { await rendre(await api(routePause, {pause: !d.match.pause})); } catch (e) { toast(e.message); }
+    }}, "");
+    AJU.pause.append(AJU.boutonPause);
+    p.append(AJU.pause);
+  }
   p.append(selecteurTactique(tac, envoyer));
   // La formation change EN COURS DE MATCH : les onze restent sur le
-  // terrain, on les redistribue sur les postes de la nouvelle forme comme
-  // le fait le meilleur onze, et ceux qui se retrouvent hors de leur
-  // poste le paient.
+  // terrain, on les redistribue sur les postes de la nouvelle forme
+  // comme le fait le meilleur onze, et ceux qui se retrouvent hors de
+  // leur poste le paient.
   const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, "Formation"));
   for (const f of Object.keys(RANGS))
-    g.append(el("button", {class: "tac" + (tac.formation === f ? " actif" : ""),
+    g.append(el("button", {class: "tac", "data-form": f,
       onclick: () => { tac.formation = f; envoyer(); }}, f));
   p.append(el("div", {class: "tactiques"}, g));
-  p.append(blocChangements(d, routeTac === "/solo/tactique" ? "/solo/changement" : "/lobby/changement", rendre));
+  AJU.corps = el("div", {});
+  p.append(AJU.corps);
   return p;
 }
+
+const AXES_TAC = ["tempo", "bloc", "risque", "formation"];
+
+function memeTactique(a, b) {
+  return AXES_TAC.every(k => (a[k] || "") === (b[k] || ""));
+}
+
+function majAjuster(d, routePause, rendre) {
+  const m = d.match, cote = d.cote === "b" ? "b" : "a";
+  const tac = AJU.tac;
+  const serveur = {...(m.tactique[cote] || LOBBY.tac)};
+  serveur.formation = m.formation?.[cote] || serveur.formation || "4-3-3";
+  if (AJU.attendu && memeTactique(serveur, AJU.attendu)) AJU.attendu = null;
+  Object.assign(tac, AJU.attendu || serveur);
+  const enAttente = !!AJU.attendu;
+  AJU.noeud.querySelectorAll(".tac[data-axe]").forEach(n => {
+    const choisi = tac[n.dataset.axe] === n.dataset.valeur;
+    n.classList.toggle("actif", choisi);
+    n.classList.toggle("attente", choisi && enAttente && serveur[n.dataset.axe] !== n.dataset.valeur);
+  });
+  AJU.noeud.querySelectorAll(".tac[data-form]").forEach(n => {
+    const choisi = tac.formation === n.dataset.form;
+    n.classList.toggle("actif", choisi);
+    n.classList.toggle("attente", choisi && enAttente && serveur.formation !== n.dataset.form);
+  });
+  if (AJU.boutonPause) {
+    AJU.boutonPause.textContent = m.pause ? "▶ Reprendre" : "⏸ Mettre en pause";
+    AJU.boutonPause.className = m.pause ? "primaire" : "";
+  }
+}
+
+const SM_MAX_CHG = 5;
+const MALUS_HORS_POSTE = 10;
 
 function panneauHistorique(d) {
   const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Tes derniers matchs classés"));

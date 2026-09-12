@@ -678,3 +678,7 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 .horloge.suspendue i{background:#E0564F}
 .horloge.suspendue b{color:#ffb3ad}
 @media (prefers-reduced-motion: reduce){.t2d-jauge i,.endu i{transition:none}}
+
+/* Un réglage choisi mais pas encore joué : il prend effet à la minute
+   suivante, on le montre allumé plutôt que de l'éteindre en attendant. */
+.tac.actif.attente{opacity:.8;border-style:dashed}
