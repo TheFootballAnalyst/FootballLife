@@ -116,6 +116,39 @@ def familles_formation(formation: str) -> list[str]:
 # becomes unplayable.  The eleven is still legal; it is simply worse.
 MALUS_HORS_POSTE = 10
 
+# --------------------------------------------------------------------------
+# Stamina
+# --------------------------------------------------------------------------
+# A card has no physical attribute — nothing in the real data says who can
+# run for ninety minutes — so the wear is the same for everyone, modulated
+# by the line he plays in and by how his manager makes him play: pressing
+# high and going direct cost legs, keeping the ball and sitting deep save
+# them.  A midfielder ends a normal match around 45, a keeper barely tired.
+ENDURANCE_MAX = 100.0
+USURE_BASE = 0.52             # stamina points lost per minute on the pitch
+USURE_FAM = {"GK": 0.22, "DEF": 0.92, "MID": 1.12, "FWD": 1.02}
+USURE_TEMPO = {"possession": 0.90, "equilibre": 1.0, "direct": 1.08}
+USURE_BLOC = {"haut": 1.12, "median": 1.0, "bas": 0.90}
+USURE_RISQUE = {"offensif": 1.06, "equilibre": 1.0, "prudent": 0.95}
+# What being empty costs: at zero a player is worth 88 % of himself.
+# Enough that the last half-hour is a real decision — take him off or live
+# with it — and never enough to turn a good card into a bad one on the
+# clock alone.  It applies to BOTH sides, so it does not move the match
+# averages; it moves WHO is on the pitch at the eightieth minute.
+COUT_FATIGUE = 0.12
+
+
+def _forme(j: dict) -> float:
+    """A player's fatigue multiplier, 1.0 when fresh."""
+    e = j.get("endurance", ENDURANCE_MAX)
+    return 1.0 - COUT_FATIGUE * (1.0 - max(0.0, min(1.0, e / ENDURANCE_MAX)))
+
+
+def usure(j: dict, tac: "Tactique") -> float:
+    """Stamina a player burns in one minute, given how his side plays."""
+    return (USURE_BASE * USURE_FAM.get(j.get("fam"), 1.0) * USURE_TEMPO.get(tac.tempo, 1.0)
+            * USURE_BLOC.get(tac.bloc, 1.0) * USURE_RISQUE.get(tac.risque, 1.0))
+
 
 def _z(attr: int) -> float:
     """A card attribute (40-99) on 0-1."""
@@ -125,7 +158,8 @@ def _z(attr: int) -> float:
 def _moyenne(joueurs: list[dict], familles: tuple[str, ...], axes: tuple[str, ...]) -> float:
     """Mean of `axes` over the players of those lines, 0-1.  An empty line
     reads as a weak one rather than as nothing."""
-    vals = [_z(j["attributs"].get(ax, 40)) for j in joueurs if j["fam"] in familles for ax in axes]
+    vals = [_z(j["attributs"].get(ax, 40)) * _forme(j)
+            for j in joueurs if j["fam"] in familles for ax in axes]
     return sum(vals) / len(vals) if vals else 0.25
 
 
@@ -148,12 +182,17 @@ class Tactique:
     tempo: str = "equilibre"      # possession | equilibre | direct
     bloc: str = "median"          # haut | median | bas
     risque: str = "equilibre"     # offensif | equilibre | prudent
+    # The shape, changed like any other setting: an empty string means
+    # "whatever the eleven kicked off in", so an old stored tactic and a
+    # manager who never touches it both keep their formation.
+    formation: str = ""
 
     def valide(self) -> "Tactique":
         t = self.tempo if self.tempo in TEMPO else "equilibre"
         b = self.bloc if self.bloc in BLOC else "median"
         r = self.risque if self.risque in RISQUE else "equilibre"
-        return Tactique(t, b, r)
+        f = self.formation if self.formation in _S.FORMATIONS_RANGS else ""
+        return Tactique(t, b, r, f)
 
 
 # Every setting is a TRADE, and the products below are balanced so that no
@@ -208,9 +247,45 @@ def traits(joueurs: list[dict]) -> dict[str, float]:
         "creation": _moyenne(joueurs, ("MID", "FWD"), ("CRE",)),
         "finition": _moyenne(joueurs, ("FWD",), ("FIN",)) * 0.75 + _moyenne(joueurs, ("MID",), ("FIN",)) * 0.25,
         "defense": _moyenne(joueurs, ("DEF", "MID"), ("DEF",)),
-        "gardien": (_z(gardien[0]["attributs"].get("ARR", 40)) * 0.6
-                    + _z(gardien[0]["attributs"].get("EVI", 40)) * 0.4) if gardien else 0.25,
+        "gardien": ((_z(gardien[0]["attributs"].get("ARR", 40)) * 0.6
+                     + _z(gardien[0]["attributs"].get("EVI", 40)) * 0.4)
+                    * _forme(gardien[0])) if gardien else 0.25,
     }
+
+
+def appliquer_formation(joueurs: list[dict], formation: str) -> None:
+    """Re-assign an eleven's slots to another shape, in place.
+
+    Nobody comes off: what changes is the position each player is asked to
+    fill, so the out-of-position penalty is recomputed from the raw card.
+    Going from 4-3-3 to 3-5-2 turns a full-back into a wing-back — which
+    he may well have held — and a winger into a second striker, which he
+    probably has not.  The eleven is REDISTRIBUTED over the new slots by
+    the same rule as the "best eleven" button (scoring.repartir): filling
+    the shape slot by slot in the kick-off order would have sent the
+    second full-back of a 4-3-3 into midfield just because he stood
+    fourth, when a real manager moves the men who fit.
+    """
+    postes = _S.postes_formation(formation)
+    ordre = _S.repartir([j.get("tenus") or [j.get("poste")] for j in joueurs], formation)
+    reste = [j for k, j in enumerate(joueurs) if k not in set(ordre)]
+    joueurs[:] = [joueurs[k] for k in ordre] + reste
+    for i, j in enumerate(joueurs):
+        if i < len(postes):
+            _poser(j, postes[i])
+
+
+def _poser(j: dict, slot: str) -> None:
+    """Put one player in one slot, penalty and line recomputed."""
+    brut = j.get("attributs_bruts") or j.get("attributs") or {}
+    j["attributs_bruts"] = dict(brut)
+    tenus = j.get("tenus") or ([j["poste"]] if j.get("poste") else [])
+    dehors = bool(slot) and _S.hors_poste(tenus, slot)
+    j["slot"] = slot
+    j["hors_poste"] = dehors
+    j["attributs"] = ({k: max(40, v - MALUS_HORS_POSTE) for k, v in brut.items()}
+                      if dehors else dict(brut))
+    j["fam"] = _S.FAMILLE_POSTE.get(slot, j.get("fam", "MID"))
 
 
 def _duel(a: float, b: float, exposant: float) -> float:
@@ -263,7 +338,97 @@ def _tireur(joueurs: list[dict], rng: random.Random, axe: str = "FIN") -> dict:
 # --------------------------------------------------------------------------
 
 def _sur_le_terrain(e: Equipe) -> list[dict]:
-    return [j for j in e.joueurs]
+    # A copy: the match writes stamina onto the players it plays, and an
+    # Equipe must be replayable — the live sheet rebuilds the same match
+    # from minute one on every poll.
+    return [dict(j) for j in e.joueurs]
+
+
+# --------------------------------------------------------------------------
+# What a minute LOOKS like
+# --------------------------------------------------------------------------
+# The dice above decide what HAPPENS in a minute; nothing below changes
+# it.  What this builds is how that outcome is reached — who plays the
+# ball out, through whom it goes, where it is lost, where the whistle
+# goes — so the pitch can show a build-up and a shot leaving a boot
+# instead of a card sliding forward.
+#
+# It draws from its OWN generator, seeded apart from the match's, for one
+# reason: adding a touch must never move a goal.  The sequence is still a
+# pure function of the seed and the minute, so a match replays down to
+# the pass that preceded the goal.
+ARRETS_DE_JEU = ("faute", "horsjeu", "but", "blessure", "carton")
+
+
+def _un(rs: random.Random, joueurs: list[dict], *familles: str) -> dict | None:
+    """One player of those lines, or of the eleven if that line is empty."""
+    cands = [j for j in joueurs if j["fam"] in familles] or joueurs
+    return rs.choice(cands) if cands else None
+
+
+def _pas(kind: str, j: dict | None, cote: int, zone: int, **extra) -> dict | None:
+    if j is None:
+        return None
+    return {"k": kind, "p": j["pid"], "c": cote, "z": zone} | extra
+
+
+def _construction(rs: random.Random, joueurs: list[dict], cote: int, jusqua: int) -> list[dict]:
+    """The build-up: two to four touches, from the back towards `jusqua`."""
+    out = []
+    if joueurs and rs.random() < 0.30:
+        out.append(_pas("relance", _un(rs, joueurs, "GK"), cote, 0))
+    out = [x for x in out if x]
+    out.append(_pas("passe" if out else "relance", _un(rs, joueurs, "DEF"), cote, 1))
+    out.append(_pas("passe", _un(rs, joueurs, "MID"), cote, min(2, max(1, jusqua))))
+    if jusqua >= 2 and rs.random() < 0.55:
+        out.append(_pas("passe", _un(rs, joueurs, "MID", "FWD"), cote, 2))
+    return [x for x in out if x]
+
+
+def sequence(rs: random.Random, sur: list[list[dict]], cote: int, zone: int, issue: dict) -> list[dict]:
+    """The phases of one minute, in the order they are played."""
+    adv = 1 - cote
+    q = issue.get("quoi", "rien")
+    pas = _construction(rs, sur[cote], cote, zone)
+    tireur, gk = issue.get("tireur"), issue.get("gardien")
+
+    if q in ("but", "arret", "rate"):
+        if tireur is not None:
+            pas.append(_pas("conduite", tireur, cote, 3))
+            # where he aims: the posts more often than the middle
+            cible = round(rs.choice([0.12, 0.22, 0.5, 0.78, 0.88]) + rs.uniform(-0.05, 0.05), 3)
+            pas.append(_pas("tir", tireur, cote, 3, t=max(0.05, min(0.95, cible))))
+        if q == "but":
+            pas.append(_pas("but", tireur, cote, 3, o=issue.get("passeur", {}).get("pid")
+                            if isinstance(issue.get("passeur"), dict) else None))
+            pas.append(_pas("engagement", _un(rs, sur[adv], "MID"), adv, 1))
+        elif q == "arret":
+            pas.append(_pas("arret", gk, adv, 0))
+        else:
+            pas.append(_pas("rate", tireur, cote, 3))
+            pas.append(_pas("degagement", _un(rs, sur[adv], "GK"), adv, 0))
+    elif q == "faute":
+        fauteur = issue.get("fauteur")
+        pas.append(_pas("duel", fauteur, adv, zone))
+        pas.append(_pas("faute", fauteur, adv, zone))
+        if issue.get("carton"):
+            pas.append(_pas("carton", fauteur, adv, zone, r=bool(issue.get("rouge"))))
+        pas.append(_pas("coupfranc", _un(rs, sur[cote], "MID", "DEF"), cote, zone))
+    elif q == "horsjeu":
+        pas.append(_pas("horsjeu", issue.get("porteur"), cote, 3))
+        pas.append(_pas("degagement", _un(rs, sur[adv], "GK"), adv, 0))
+    elif q == "corner":
+        pass                                  # the corner block below adds it
+    else:
+        pas.append(_pas("perte", _un(rs, sur[adv], "DEF", "MID"), adv, zone))
+
+    if issue.get("corner"):
+        pas.append(_pas("corner", _un(rs, sur[cote], "MID", "FWD"), cote, 3))
+        pas.append(_pas("centre", _un(rs, sur[cote], "DEF", "FWD"), cote, 3))
+        pas.append(_pas("degagement", _un(rs, sur[adv], "DEF"), adv, 3))
+    if issue.get("blesse") is not None:
+        pas.append(_pas("blessure", issue["blesse"], issue.get("cote_blesse", cote), zone))
+    return [x for x in pas if x]
 
 
 def _remplacer(sur: list[dict], banc: list[dict], sortant: int, entrant: int) -> dict | None:
@@ -280,7 +445,8 @@ def _remplacer(sur: list[dict], banc: list[dict], sortant: int, entrant: int) ->
 
 
 def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique | None, Tactique | None]] | None = None,
-          jusqua: int = MINUTES, changements: dict[int, tuple[list, list]] | None = None) -> dict:
+          jusqua: int = MINUTES, changements: dict[int, tuple[list, list]] | None = None,
+          auto_remplacement: tuple[bool, bool] = (True, True)) -> dict:
     """Play the match minute by minute and return its sheet.
 
     `tactiques` is the timeline of adjustments: {minute: (tactique A or
@@ -298,16 +464,31 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
 
     Besides the score the sheet carries `fil`, one entry per minute — which
     side has the ball, how far up the pitch, who carries it, which event if
-    any.  That is what the 2D pitch animates; it costs ninety small records
-    and saves the front-end from inventing a match of its own.
+    any, and `s`, the PHASES of that minute: the touches of the build-up,
+    the shot, the whistle, the turnover.  That is what the 2D pitch
+    animates; it costs ninety small records and saves the front-end from
+    inventing a match of its own.
+
+    `auto_remplacement` says, side by side, whether the machine replaces an
+    injured player on its own.  A side a human manages is left a man short
+    and the sheet reports it (`attente`): the screen stops and asks him who
+    comes on, which is what a manager would actually have to decide.
     """
     tactiques = tactiques or {}
     changements = changements or {}
     tac = [a.tactique.valide(), b.tactique.valide()]
     eq = [a, b]
     sur = [_sur_le_terrain(a), _sur_le_terrain(b)]
-    banc = [list(a.banc), list(b.banc)]
+    banc = [[dict(j) for j in a.banc], [dict(j) for j in b.banc]]
+    forme = [a.formation, b.formation]
+    for c in (0, 1):
+        for j in sur[c] + banc[c]:
+            j.setdefault("endurance", ENDURANCE_MAX)
+        if tac[c].formation and tac[c].formation != forme[c]:
+            forme[c] = tac[c].formation
+            appliquer_formation(sur[c], forme[c])
     t = [traits(sur[0]), traits(sur[1])]
+    blesses: list[list[int]] = [[], []]    # off injured, nobody on for them yet
     score = [0, 0]
     tirs, xg_tot, minutes_ballon = [0, 0], [0.0, 0.0], [0, 0]
     fautes, corners, jaunes_n, rouges_n, horsjeux = [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
@@ -340,6 +521,11 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
             for c, nouvelle in enumerate(tactiques[m]):
                 if nouvelle is not None:
                     tac[c] = nouvelle.valide()
+                    if tac[c].formation and tac[c].formation != forme[c]:
+                        forme[c] = tac[c].formation
+                        appliquer_formation(sur[c], forme[c])
+                        t[c] = traits(sur[c])
+                        ajoute(m, c, "formation", f"{eq[c].nom} passe en {forme[c]}")
                     ajoute(m, c, "tactique", _texte_tactique(eq[c].nom, tac[c]))
         if m in changements:
             for c, liste in enumerate(changements[m]):
@@ -351,16 +537,28 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                         break
                     i = next((k for k, j in enumerate(sur[c]) if j["pid"] == sortant), None)
                     e = next((j for j in banc[c] if j["pid"] == entrant), None)
-                    if i is None or e is None:
+                    if e is None:
                         continue
-                    parti = sur[c][i]
-                    sur[c][i] = e
+                    if i is None:
+                        # the man he replaces is already off injured: the
+                        # side goes back up to eleven rather than staying
+                        # a man short for the rest of the match.
+                        if sortant not in blesses[c]:
+                            continue
+                        blesses[c].remove(sortant)
+                        parti = {"nom": "le blessé", "slot": None}
+                        sur[c].append(e)
+                    else:
+                        parti = sur[c][i]
+                        sur[c][i] = e
                     banc[c].remove(e)
+                    if parti.get("slot"):
+                        _poser(e, parti["slot"])
                     faits_chg[c] += 1
                     fait = True
                     entres[c].append(e["pid"])
                     ajoute(m, c, "changement", f"{e['nom']} remplace {parti['nom']}",
-                           pid=e["pid"], sortant=parti["pid"])
+                           pid=e["pid"], sortant=parti.get("pid"))
                 if fait:
                     fenetres_chg[c] += 1
                     t[c] = traits(sur[c])
@@ -375,6 +573,7 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
         r_tir = rng.random()
         porteur = _tireur(sur[cote], rng, "CON") if sur[cote] else None
         evt = None
+        issue: dict = {"quoi": "rien", "porteur": porteur}
         zone = 1 + (1 if r_zone < min(0.85, 0.5 * _duel(t[cote]["percussion"], t[adv]["defense"], 1.0)) else 0)
 
         if r_tir < p_tir:
@@ -385,10 +584,12 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
             porteur = tireur
             conversion = min(XG_MAX, xg * _duel(_z(tireur["attributs"].get("FIN", 40)) + 0.15,
                                                 t[adv]["gardien"] + 0.15, EXP_FIN))
+            issue.update({"quoi": "rate", "tireur": tireur})
             if rng.random() < conversion:
                 score[cote] += 1
                 autres = [j for j in sur[cote] if j["pid"] != tireur["pid"]]
                 passeur = _tireur(autres, rng, "CRE") if autres else tireur
+                issue.update({"quoi": "but", "passeur": passeur})
                 evt = ajoute(m, cote, "but", f"But de {tireur['nom']}, servi par {passeur['nom']}",
                              pid=tireur["pid"], nom=tireur["nom"], passeur=passeur["nom"],
                              xg=round(xg, 2), score=list(score))
@@ -397,6 +598,7 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                 arret = rng.random() < 0.42 + 0.3 * t[adv]["gardien"]
                 r_corner = rng.random()
                 if arret and gk:
+                    issue.update({"quoi": "arret", "gardien": gk})
                     evt = ajoute(m, cote, "arret", f"Arrêt de {gk['nom']} devant {tireur['nom']}",
                                  pid=tireur["pid"], nom=tireur["nom"], gardien=gk["nom"], xg=round(xg, 2))
                 elif xg >= XG_NOTABLE:
@@ -404,6 +606,7 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                                  pid=tireur["pid"], nom=tireur["nom"], xg=round(xg, 2))
                 if r_corner < P_CORNER_TIR:
                     corners[cote] += 1
+                    issue["corner"] = True
                     if evt is None:
                         evt = ajoute(m, cote, "corner", f"Corner pour {eq[cote].nom}")
         else:
@@ -413,20 +616,26 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                 fauteur = _tireur(sur[adv], rng, "DEF")
                 deja = jaunes[adv].get(fauteur["pid"], 0) >= 1
                 r_second = rng.random()
+                issue.update({"quoi": "faute", "fauteur": fauteur})
                 if r_carton < P_ROUGE:
+                    issue.update({"carton": True, "rouge": True})
                     evt = carton(m, adv, fauteur, rouge=True)
                 elif r_carton < P_CARTON and deja and r_second < P_SECOND_JAUNE:
+                    issue.update({"carton": True, "rouge": True})
                     evt = carton(m, adv, fauteur, rouge=True)
                 elif r_carton < P_CARTON and not deja:
+                    issue["carton"] = True
                     evt = carton(m, adv, fauteur)
                 else:
                     evt = ajoute(m, adv, "faute", f"Faute de {fauteur['nom']}", pid=fauteur["pid"])
             elif r_corner < P_CORNER:
                 corners[cote] += 1
                 zone = 3
+                issue.update({"quoi": "corner", "corner": True})
                 evt = ajoute(m, cote, "corner", f"Corner pour {eq[cote].nom}")
             elif r_hj < P_HORSJEU and porteur is not None:
                 horsjeux[cote] += 1
+                issue["quoi"] = "horsjeu"
                 evt = ajoute(m, cote, "horsjeu", f"{porteur['nom']} est signalé hors-jeu", pid=porteur["pid"])
 
         if rng.random() < P_BLESSURE:
@@ -435,23 +644,45 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                 blesse = _tireur(sur[c_bless], rng, "DEF")
                 remplacant = next((j for j in banc[c_bless] if j["fam"] == blesse["fam"]), None) \
                     or (banc[c_bless][0] if banc[c_bless] else None)
-                if remplacant is not None and faits_chg[c_bless] < MAX_CHANGEMENTS:
+                issue["blesse"] = blesse
+                issue["cote_blesse"] = c_bless
+                sortant_slot = blesse.get("slot")
+                auto = auto_remplacement[c_bless] if c_bless < len(auto_remplacement) else True
+                if auto and remplacant is not None and faits_chg[c_bless] < MAX_CHANGEMENTS:
                     i = sur[c_bless].index(blesse)
                     sur[c_bless][i] = remplacant
                     banc[c_bless].remove(remplacant)
+                    if sortant_slot:
+                        _poser(remplacant, sortant_slot)
                     faits_chg[c_bless] += 1
                     entres[c_bless].append(remplacant["pid"])
                     evt = ajoute(m, c_bless, "blessure",
                                  f"{blesse['nom']} sort sur blessure, {remplacant['nom']} entre",
                                  pid=blesse["pid"], entrant=remplacant["pid"])
                 else:
+                    # A side its manager runs himself is left a man short:
+                    # the sheet says so, the screen stops the match and
+                    # asks him who comes on.  Football does not substitute
+                    # an injured player by itself either.
                     sur[c_bless][:] = [j for j in sur[c_bless] if j["pid"] != blesse["pid"]]
+                    if banc[c_bless] and faits_chg[c_bless] < MAX_CHANGEMENTS:
+                        blesses[c_bless].append(blesse["pid"])
                     evt = ajoute(m, c_bless, "blessure", f"{blesse['nom']} sort sur blessure",
-                                 pid=blesse["pid"])
+                                 pid=blesse["pid"], slot=sortant_slot)
                 t[c_bless] = traits(sur[c_bless])
 
+        # The legs.  Everyone on the pitch loses a little of the minute,
+        # each side at the cost of the way its manager makes it play, and
+        # the traits are read again from tired players.
+        for c in (0, 1):
+            for j in sur[c]:
+                j["endurance"] = max(0.0, j.get("endurance", ENDURANCE_MAX) - usure(j, tac[c]))
+            t[c] = traits(sur[c])
+
+        rs = random.Random(graine * 1000 + m + 7_000_003)
         fil.append({"m": m, "c": cote, "z": zone,
-                    "p": porteur["pid"] if porteur else None, "e": evt})
+                    "p": porteur["pid"] if porteur else None, "e": evt,
+                    "s": sequence(rs, sur, cote, zone, issue)})
 
     fini = jusqua >= MINUTES
     poss = [round(100 * minutes_ballon[0] / max(1, sum(minutes_ballon))),
@@ -463,6 +694,14 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
         "fautes": fautes, "corners": corners, "jaunes": jaunes_n, "rouges": rouges_n,
         "horsjeu": horsjeux, "changements": faits_chg,
         "entres": {"a": entres[0], "b": entres[1]},
+        "endurance": {"a": {j["pid"]: round(j.get("endurance", ENDURANCE_MAX)) for j in sur[0]},
+                      "b": {j["pid"]: round(j.get("endurance", ENDURANCE_MAX)) for j in sur[1]}},
+        "attente": {"a": list(blesses[0]), "b": list(blesses[1])},
+        "formation": {"a": forme[0], "b": forme[1]},
+        # the position each player is CURRENTLY filling, which a formation
+        # changed at half-time and a substitution both move
+        "postes": {"ab"[c]: {j["pid"]: {"slot": j.get("slot"), "hors_poste": bool(j.get("hors_poste"))}
+                             for j in sur[c]} for c in (0, 1)},
         "evenements": evenements, "fil": fil,
         "onze": {"a": [j["pid"] for j in sur[0]], "b": [j["pid"] for j in sur[1]]},
         "traits": {"a": {k: round(v, 3) for k, v in t[0].items()}, "b": {k: round(v, 3) for k, v in t[1].items()}},
@@ -541,11 +780,16 @@ def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
         attributs = json.loads(attrs or "{}")
         slot = postes_slots[i] if postes_slots and i < len(postes_slots) else None
         dehors = bool(slot) and S.hors_poste(tenus, slot)
-        if dehors:
-            attributs = {k: max(40, v - MALUS_HORS_POSTE) for k, v in attributs.items()}
         fam = S.FAMILLE_POSTE.get(slot or poste, S.FAMILLE_POSTE.get(poste, "MID"))
         joueurs.append({"pid": pid, "nom": nom_j, "poste": poste, "fam": fam, "ovr": ovr,
-                        "attributs": attributs, "slot": slot, "hors_poste": dehors})
+                        # the card as it is, kept apart from the card as it
+                        # is being played: a formation change mid-match
+                        # recomputes the penalty from the raw one.
+                        "attributs_bruts": dict(attributs), "tenus": tenus,
+                        "attributs": ({k: max(40, v - MALUS_HORS_POSTE) for k, v in attributs.items()}
+                                      if dehors else attributs),
+                        "slot": slot, "hors_poste": dehors,
+                        "endurance": ENDURANCE_MAX})
     return Equipe(nom, joueurs)
 
 

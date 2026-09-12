@@ -121,7 +121,11 @@ def test_the_better_eleven_wins_far_more_often():
 def test_the_tactics_form_a_cycle_and_none_is_free():
     """possession > bloc bas > direct > bloc haut > possession.  A setting
     that beat everything would make the lobby a solved game."""
-    def duel(ta, tb, n=150):
+    # Three hundred matches a leg, not a hundred and fifty: the press
+    # against possession is the tightest leg of the cycle (about four
+    # points), and stamina — a high block costs legs — narrowed it enough
+    # that a hundred and fifty matches read the noise instead of the leg.
+    def duel(ta, tb, n=300):
         return sum(SM.jouer(SM.Equipe("A", onze(74), ta), SM.Equipe("B", onze(74, 20), tb), 7000 + i)["resultat"] == "A"
                    for i in range(n)) / n
     poss, direct = SM.Tactique(tempo="possession"), SM.Tactique(tempo="direct")
@@ -264,3 +268,110 @@ def test_the_timeline_says_where_the_ball_is_every_minute():
     # and stopping early gives the beginning of the same timeline
     moitie = SM.jouer(SM.Equipe("A", onze(72)), SM.Equipe("B", onze(68, 20)), 17, jusqua=45)
     assert moitie["fil"] == f["fil"][:45]
+
+
+# --------------------------------------------------------------------------
+# Endurance, blessure, formation changée en cours de match
+# --------------------------------------------------------------------------
+
+def test_players_tire_and_a_keeper_tires_far_less():
+    f = SM.jouer(SM.Equipe("A", onze(74)), SM.Equipe("B", onze(74, 20)), 11)
+    restes = f["endurance"]["a"]
+    gk = restes[1]                                   # le gardien est le pid 1
+    champ = [v for pid, v in restes.items() if pid != 1]
+    assert 30 <= min(champ) <= max(champ) <= 70      # vidés, jamais à zéro
+    assert gk > max(champ) + 15                      # le gardien ne court pas
+    # et un joueur entré à l'heure de jeu finit plus frais que celui qu'il
+    # remplace aurait été
+    g = SM.jouer(SM.Equipe("A", onze(74), banc=banc(74)), SM.Equipe("B", onze(74, 20)), 11,
+                 changements={60: ([(10, 55)], [])})
+    assert g["endurance"]["a"][55] > max(champ) + 15
+
+
+def test_a_tired_eleven_plays_worse_than_a_fresh_one():
+    """La fatigue coûte vraiment : même onze, même graine, mais vidé."""
+    frais = onze(74)
+    vide = [dict(j, endurance=5.0) for j in onze(74)]
+    t_frais, t_vide = SM.traits(frais), SM.traits(vide)
+    for cle in ("controle", "percussion", "creation", "finition", "defense", "gardien"):
+        assert t_vide[cle] < t_frais[cle]
+        assert t_vide[cle] > t_frais[cle] * 0.85     # jamais un autre joueur
+
+
+def test_an_injury_on_a_side_nobody_answers_for_leaves_it_a_man_short(monkeypatch):
+    """Le moteur ne remplace pas à la place du manager : il signale.
+
+    C'est ce qui permet à l'écran d'arrêter le match et de demander qui
+    entre (jeu/lobby.arbitrer)."""
+    monkeypatch.setattr(SM, "P_BLESSURE", 1.0)       # une blessure par minute
+    a = SM.Equipe("A", onze(74), banc=banc(74))
+    b = SM.Equipe("B", onze(74, 20), banc=banc(74, 20))
+    f = SM.jouer(a, b, 3, jusqua=1, auto_remplacement=(False, True))
+    blesse = next(e for e in f["evenements"] if e["type"] == "blessure")
+    cote = "ab"["AB".index(blesse["cote"])]
+    if cote == "a":
+        assert f["attente"]["a"] == [blesse["pid"]]
+        assert len(f["onze"]["a"]) == 10             # on joue à dix en attendant
+    else:
+        assert f["attente"]["b"] == []               # la machine, elle, remplace
+        assert len(f["onze"]["b"]) == 11
+
+
+def test_a_substitution_brings_an_injured_side_back_to_eleven(monkeypatch):
+    monkeypatch.setattr(SM, "P_BLESSURE", 1.0)
+    a = SM.Equipe("A", onze(74), banc=banc(74))
+    b = SM.Equipe("B", onze(74, 20), banc=banc(74, 20))
+    for graine in range(30):
+        f = SM.jouer(a, b, graine, jusqua=1, auto_remplacement=(False, True))
+        if f["attente"]["a"]:
+            sortant = f["attente"]["a"][0]
+            g = SM.jouer(a, b, graine, jusqua=2, auto_remplacement=(False, True),
+                         changements={2: ([(sortant, 55)], [])})
+            # il est bien entré à la place d'un joueur qui n'était PLUS sur
+            # le terrain, et le onze redevient un onze
+            assert 55 in g["entres"]["a"]
+            assert sortant not in g["attente"]["a"]
+            assert any(e["type"] == "changement" and e["pid"] == 55 for e in g["evenements"])
+            return
+    raise AssertionError("aucune blessure côté A en trente graines")
+
+
+def test_a_formation_changed_during_the_match_moves_the_players():
+    a = SM.Equipe("A", onze(74), formation="4-3-3")
+    b = SM.Equipe("B", onze(74, 20))
+    f = SM.jouer(a, b, 5, tactiques={40: (SM.Tactique(formation="3-5-2"), None)})
+    assert f["formation"]["a"] == "3-5-2"
+    assert any(e["type"] == "formation" for e in f["evenements"])
+    slots = [p["slot"] for p in f["postes"]["a"].values()]
+    assert slots.count("Defenseur central") == 3     # on est bien passé à trois derrière
+    # et la feuille de départ, elle, n'a pas bougé : le onze reste le onze
+    assert f["formation"]["b"] == "4-3-3"
+
+
+def test_every_minute_carries_the_phases_that_produced_it():
+    f = SM.jouer(SM.Equipe("A", onze(74)), SM.Equipe("B", onze(74, 20)), 12)
+    assert len(f["fil"]) == SM.MINUTES
+    for ligne in f["fil"]:
+        assert ligne["s"], "une minute sans phase ne se dessine pas"
+        assert all(p["k"] and p["c"] in (0, 1) for p in ligne["s"])
+    # un but se voit : conduite, tir vers un point du but, ballon dedans
+    for ligne in f["fil"]:
+        e = f["evenements"][ligne["e"]] if ligne["e"] is not None else None
+        if e and e["type"] == "but":
+            kinds = [p["k"] for p in ligne["s"]]
+            assert "tir" in kinds and "but" in kinds
+            tir = next(p for p in ligne["s"] if p["k"] == "tir")
+            assert 0.0 <= tir["t"] <= 1.0
+            return
+    raise AssertionError("aucun but dans ce match")
+
+
+def test_the_phases_never_move_the_result():
+    """Les phases tirent leur propre dé : ajouter une passe ne déplace
+    jamais un but."""
+    a, b = SM.Equipe("A", onze(74)), SM.Equipe("B", onze(74, 20))
+    for graine in range(40):
+        f = SM.jouer(a, b, graine)
+        g = SM.jouer(a, b, graine)
+        assert f["score"] == g["score"] and f["tirs"] == g["tirs"]
+        assert [l["s"] for l in f["fil"]] == [l["s"] for l in g["fil"]]

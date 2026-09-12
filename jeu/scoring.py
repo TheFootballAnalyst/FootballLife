@@ -130,6 +130,39 @@ def hors_poste(postes_carte, poste_slot: str) -> bool:
     return not a_le_poste(postes_carte, poste_slot)
 
 
+def repartir(postes_par_joueur: list, formation: str) -> list[int]:
+    """Which player fills which slot of `formation`, best fit first.
+
+    `postes_par_joueur[i]` is the list of positions player i really held.
+    Returns one player index per slot, in slot order.  The scarcest slot
+    is served first — a squad with one keeper and ten midfielders must not
+    lose the keeper to a midfield slot — then each slot takes a player who
+    held that very position, failing that one of the line, failing that
+    whoever is left.  It is what the manager's "best eleven" button does,
+    and what a formation changed at half-time has to do as well.
+    """
+    postes = postes_formation(formation)
+    fams = familles_formation(formation)
+    place: list[int | None] = [None] * len(postes)
+    pris: set[int] = set()
+    rareté = lambda i: len([t for t in postes_par_joueur if a_le_poste(t, postes[i])])
+    ordre = sorted(range(len(postes)), key=rareté)
+    for tour in ("poste", "famille", "reste"):
+        for i in ordre:
+            if place[i] is not None:
+                continue
+            for k, tenus in enumerate(postes_par_joueur):
+                if k in pris:
+                    continue
+                if (tour == "poste" and a_le_poste(tenus, postes[i])) \
+                        or (tour == "famille" and fams[i] in (familles_eligibles(tenus) or [])) \
+                        or tour == "reste":
+                    place[i] = k
+                    pris.add(k)
+                    break
+    return [k for k in place if k is not None]
+
+
 def familles_eligibles(postes) -> list[str]:
     """The family codes a card may be fielded in, main one first.
     `postes` is the ordered list stored on `joueur.postes`."""

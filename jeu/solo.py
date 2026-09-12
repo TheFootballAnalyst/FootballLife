@@ -219,6 +219,9 @@ def onze_club(jeu, saison: str, team_id: int, formation: str = "4-3-3") -> list[
                     break
     sortis = [j for j in onze if j is not None]
     for j in sortis:
+        # the card as it is stays next to the card as it is played, so a
+        # formation changed during the match recomputes the penalty
+        j["attributs_bruts"] = dict(j["attributs"])
         if j["hors_poste"]:
             j["attributs"] = {k: max(40, v - SM.MALUS_HORS_POSTE) for k, v in j["attributs"].items()}
     return sortis
@@ -258,6 +261,8 @@ def banc_club(jeu, saison: str, team_id: int, onze: list[dict]) -> list[dict]:
     pris = {j["pid"] for j in onze}
     reste = [{"pid": r[0], "nom": r[1], "poste": r[2], "ovr": r[3],
               "attributs": json.loads(r[4] or "{}"),
+              "attributs_bruts": json.loads(r[4] or "{}"),
+              "tenus": json.loads(r[5]) if r[5] else [r[2]],
               "fam": (S.familles_eligibles(json.loads(r[5])) if r[5] else
                       [S.FAMILLE_POSTE.get(r[2], "MID")])[0] or "MID"}
              for r in jeu.execute(
@@ -312,9 +317,10 @@ def changements_club(e: SM.Equipe, graine: int) -> dict[int, list]:
     return plan
 
 
-def equipe_club(jeu, saison: str, club: dict) -> SM.Equipe:
-    j = onze_club(jeu, saison, club["team_id"])
-    return SM.Equipe(club["nom"], j, tactique_club(j), banc_club(jeu, saison, club["team_id"], j))
+def equipe_club(jeu, saison: str, club: dict, formation: str = "4-3-3") -> SM.Equipe:
+    j = onze_club(jeu, saison, club["team_id"], formation)
+    return SM.Equipe(club["nom"], j, tactique_club(j),
+                     banc_club(jeu, saison, club["team_id"], j), formation)
 
 
 # --------------------------------------------------------------------------
@@ -770,7 +776,7 @@ def cloturer_tour(jeu, saison: str, equipe_id: int) -> dict | None:
     r = match_en_cours(jeu, camp)
     if r is None:
         return None
-    if LB.minute_courante(r["debut"]) < SM.MINUTES:
+    if LB.minute_de(r) < SM.MINUTES:
         return None
     LB.cloturer(jeu, saison, r)
     onze, banc, tac = json.loads(r["onze_a"]), json.loads(r["banc_a"] or "[]"), json.loads(r["tactique_a"])
@@ -945,11 +951,12 @@ def etat(jeu, saison: str, equipe_id: int) -> dict:
     # for one more poll.
     from jeu import lobby as LB
     r = match_en_cours(jeu, camp)
-    if r is not None and LB.minute_courante(r["debut"]) >= SM.MINUTES:
+    if r is not None and LB.minute_de(r) >= SM.MINUTES:
         cloturer_tour(jeu, saison, equipe_id)
         return etat(jeu, saison, equipe_id)
-    live = (LB.feuille(jeu, saison, r) | {"duree": LB.DUREE_REELLE, "minutes": SM.MINUTES,
-                                          "cote": "a", "domicile": bool(r["domicile"])}
+    live = (LB.arbitrer(jeu, r, LB.feuille(jeu, saison, r))
+            | {"duree": LB.DUREE_REELLE, "minutes": SM.MINUTES,
+               "cote": "a", "domicile": bool(r["domicile"])}
             if r is not None else None)
     clubs = _clubs_du(jeu, saison, camp)
     cal = json.loads(camp["calendrier"])

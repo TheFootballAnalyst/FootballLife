@@ -588,18 +588,54 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 .t2d-surface{position:absolute;top:22%;height:56%;width:14%;border:2px solid rgba(255,255,255,.28)}
 .t2d-surface.gauche{left:2%;border-left:none}
 .t2d-surface.droite{right:2%;border-right:none}
+.t2d-but{position:absolute;top:41%;height:18%;width:1.6%;background:rgba(255,255,255,.5);
+  border:1px solid rgba(255,255,255,.7)}
+.t2d-but.gauche{left:0.4%} .t2d-but.droite{right:0.4%}
 .t2d-jeu{position:absolute;inset:0}
-.t2d-pion{position:absolute;width:4.8%;min-width:24px;max-width:52px;transform:translate(-50%,-50%);
+.t2d-jeu.arret .t2d-pion{filter:saturate(.7)}
+.t2d-jeu.arret::after{content:"⏸ arrêt de jeu";position:absolute;left:50%;top:8px;transform:translateX(-50%);
+  font-family:"Barlow Condensed",sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  padding:2px 10px;border-radius:10px;background:rgba(8,10,18,.8);color:#e6c977;z-index:5}
+.t2d-jeu.celebre::after{content:"⚽ but";color:#7ce2ad}
+.t2d-pion{position:absolute;width:4.1%;min-width:22px;max-width:44px;transform:translate(-50%,-50%);
   transition:left .55s cubic-bezier(.3,.7,.4,1),top .55s cubic-bezier(.3,.7,.4,1);text-align:center;line-height:0}
-.t2d-pion .dessin{filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))}
-.t2d-pion.adverse .dessin{filter:drop-shadow(0 2px 4px rgba(0,0,0,.6)) grayscale(.5) brightness(.8)}
-.t2d-pion.adverse .t2d-nom{color:#cdd3e0}
+.t2d-pion .dessin{filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));position:relative;z-index:1}
+.t2d-pion.adverse .dessin{filter:drop-shadow(0 2px 4px rgba(0,0,0,.6)) grayscale(.45) brightness(.85)}
+.t2d-pion.adverse .t2d-nom{color:#ffd9d4}
+.t2d-pion.ballon{z-index:2}
 .t2d-pion.ballon .dessin{filter:drop-shadow(0 0 6px var(--or2)) drop-shadow(0 2px 4px rgba(0,0,0,.6))}
-.t2d-nom{display:block;font-family:"Barlow Condensed",sans-serif;font-size:9px;line-height:1.1;margin-top:1px;
+/* Le contour de couleur : tes joueurs sont cerclés de bleu, l'adversaire
+   de rouge, et le halo au sol se voit même quand les cartes se croisent. */
+.t2d-anneau{position:absolute;inset:-4px -4px 15px -4px;border:2px solid;border-radius:9px;
+  z-index:0;pointer-events:none}
+.t2d-pion.mien .t2d-anneau{border-color:#4FC3F7;background:rgba(79,195,247,.22);box-shadow:0 0 8px rgba(79,195,247,.55)}
+.t2d-pion.adverse .t2d-anneau{border-color:#E0564F;background:rgba(224,86,79,.20);box-shadow:0 0 8px rgba(224,86,79,.45)}
+.t2d-pion.ballon .t2d-anneau{border-width:3px;border-color:var(--or2);background:rgba(216,180,90,.3)}
+/* La barre d'endurance, sous chaque joueur */
+.t2d-jauge{display:block;position:relative;z-index:1;height:3px;margin:2px auto 0;width:80%;border-radius:2px;background:rgba(0,0,0,.55);overflow:hidden}
+.t2d-jauge i{display:block;height:100%;width:100%;background:#4CAF7A;transition:width .4s linear}
+.t2d-jauge i.basse{background:#E0B23C} .t2d-jauge i.vide{background:#E0564F}
+.t2d-nom{display:block;position:relative;z-index:1;font-family:"Barlow Condensed",sans-serif;font-size:9px;line-height:1.1;margin-top:1px;
   color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.9);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.t2d-ballon{position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;
-  box-shadow:0 0 6px rgba(255,255,255,.9);transform:translate(-50%,-50%);margin-top:-14px;
-  transition:left .55s cubic-bezier(.3,.7,.4,1),top .55s cubic-bezier(.3,.7,.4,1);z-index:3}
+.t2d-ballon{position:absolute;width:11px;height:11px;border-radius:50%;background:#fff;
+  box-shadow:0 0 7px rgba(255,255,255,.95);transform:translate(-50%,-50%);margin-top:-14px;
+  transition:left .5s cubic-bezier(.3,.7,.4,1),top .5s cubic-bezier(.3,.7,.4,1);z-index:3}
+/* Un tir part vraiment du pied vers le but : rapide et en ligne droite. */
+.t2d-ballon.tir{transition:left .3s linear,top .3s linear;box-shadow:0 0 12px #fff,0 0 22px var(--or2)}
+.t2d-ballon.dedans{transition:none;box-shadow:0 0 14px #7ce2ad,0 0 26px #7ce2ad;background:#eafff4}
+.terrain2d.suspendu{filter:saturate(.55) brightness(.85)}
+.terrain2d.suspendu::after{content:"match arrêté";position:absolute;inset:auto 0 0 0;text-align:center;
+  padding:4px;background:rgba(8,10,18,.8);font-family:"Barlow Condensed",sans-serif;letter-spacing:.1em;
+  text-transform:uppercase;font-size:12px;color:#e6c977;z-index:6}
+.t2d-legende{display:flex;gap:14px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.t2d-legende .lg{font-family:"Barlow Condensed",sans-serif;font-size:12px;color:var(--sourd);display:flex;gap:5px;align-items:center}
+.t2d-legende .lg::before{content:"";width:11px;height:11px;border-radius:50%;border:2px solid}
+.t2d-legende .lg.mien::before{border-color:#4FC3F7;background:rgba(79,195,247,.3)}
+.t2d-legende .lg.adverse::before{border-color:#E0564F;background:rgba(224,86,79,.3)}
+.t2d-action{margin-left:auto;font-family:"Barlow Condensed",sans-serif;font-size:13px;color:#cfd6e6;
+  text-transform:uppercase;letter-spacing:.05em}
+.t2d-action.but{color:#7ce2ad;font-weight:700} .t2d-action.tir{color:var(--or2)}
+.t2d-action.faute,.t2d-action.carton,.t2d-action.blessure{color:#E0564F}
 .t2d-bandeau{position:absolute;left:50%;bottom:6%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;
   padding:6px 14px;border-radius:20px;background:rgba(8,10,18,.88);border:1px solid rgba(255,255,255,.18);
   font-size:14px;max-width:88%;z-index:4;animation:surgir .35s ease-out}
@@ -625,3 +661,20 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
   padding:1px 7px;border-radius:9px;background:rgba(8,10,18,.92);border:1px solid rgba(255,255,255,.22);color:#cfd6e6}
 .slot-poste.dephase{background:#D68A2E;color:#141414;border-color:#f0b75e}
 .slot{position:relative}
+
+/* ------------------------------------------------------------------ */
+/* Endurance, blessure, pause : ce qu'on regarde pour changer          */
+/* ------------------------------------------------------------------ */
+.chg-j .qui{display:flex;flex-direction:column;align-items:flex-start;min-width:0;flex:1}
+.chg-j .qui .nom{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chg-j .qui .sous{font-size:10.5px;color:var(--sourd);letter-spacing:.05em}
+.endu{display:block;width:46px;height:5px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden;flex:none}
+.endu i{display:block;height:100%;background:#4CAF7A}
+.endu i.basse{background:#E0B23C} .endu i.vide{background:#E0564F}
+.chg-liste{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.blessure-stop{border:1px solid #E0564F;background:rgba(224,86,79,.12);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.blessure-stop .titre{font-size:16px;color:#ffb3ad}
+.blessure-stop p{margin:4px 0 0;font-size:13px}
+.horloge.suspendue i{background:#E0564F}
+.horloge.suspendue b{color:#ffb3ad}
+@media (prefers-reduced-motion: reduce){.t2d-jauge i,.endu i{transition:none}}

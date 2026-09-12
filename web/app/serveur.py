@@ -710,6 +710,24 @@ def lobby_changement(c: Changement, u=Depends(exiger), jeu=Depends(bd)):
     return {"minute": minute} | LB.etat(jeu, SAISON, e["equipe_id"])
 
 
+class Pause(BaseModel):
+    pause: bool
+
+
+@app.post("/api/lobby/pause")
+def lobby_pause(c: Pause, u=Depends(exiger), jeu=Depends(bd)):
+    """Stop or restart the clock — a challenge only: two managers cannot
+    each hold the other's."""
+    e = equipe_de(jeu, u)
+    r = LB.en_cours(jeu, SAISON, e["equipe_id"])
+    if r is None or not r["debut"]:
+        raise HTTPException(409, "Aucun match en cours")
+    if not LB.solitaire(r):
+        raise HTTPException(409, "On ne met pas un match classé en pause")
+    LB.suspendre(jeu, r, c.pause)
+    return LB.etat(jeu, SAISON, e["equipe_id"])
+
+
 @app.post("/api/lobby/quitter")
 def lobby_quitter(u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
@@ -784,6 +802,13 @@ def _match_solo(jeu, equipe_id: int):
     if r is None:
         raise HTTPException(409, "Aucun match de campagne en cours")
     return r
+
+
+@app.post("/api/solo/pause")
+def solo_pause(c: Pause, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    LB.suspendre(jeu, _match_solo(jeu, e["equipe_id"]), c.pause)
+    return SO.etat(jeu, SAISON, e["equipe_id"])
 
 
 @app.post("/api/solo/tactique")

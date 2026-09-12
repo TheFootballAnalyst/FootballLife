@@ -38,7 +38,12 @@ from jeu import elo as ELO
 from jeu import scoring as S
 from jeu import simulation as SM
 
-DUREE_REELLE = 240          # seconds of real time for the ninety minutes
+# Six real minutes for the ninety, not four.  Four left no room to make
+# a substitution: picking who comes off and who comes on took longer than
+# the window the laws give, and the minute had moved on before the change
+# was recorded.  A single-player match can also be stopped outright
+# (`suspendre`), which is what an injury does.
+DUREE_REELLE = 360          # seconds of real time for the ninety minutes
 ECART_ELO_MAX = 250         # ranked pairing: never further apart than this
 K_CLASSE = 24               # ladder step, gentler than the gameweek's 32
 ATTENTE_MAX = 900           # a waiting entry older than this is stale
@@ -52,12 +57,62 @@ def _t(iso: str) -> datetime:
     return datetime.strptime(iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
 
 
-def minute_courante(debut: str | None, maintenant_: datetime | None = None) -> int:
-    """The virtual minute a match kicked off at `debut` has reached."""
+def minute_courante(debut: str | None, maintenant_: datetime | None = None,
+                    pause: str | None = None, cumul: int = 0) -> int:
+    """The virtual minute a match kicked off at `debut` has reached.
+
+    `pause` is the instant the clock was stopped, if it is stopped now, and
+    `cumul` the seconds already spent stopped earlier: a paused match sits
+    on its minute instead of running on without its manager."""
     if not debut:
         return 0
-    ecoule = ((maintenant_ or datetime.now(timezone.utc)) - _t(debut)).total_seconds()
+    fin = _t(pause) if pause else (maintenant_ or datetime.now(timezone.utc))
+    ecoule = (fin - _t(debut)).total_seconds() - max(0, cumul)
     return max(0, min(SM.MINUTES, int(ecoule / DUREE_REELLE * SM.MINUTES)))
+
+
+def _champ(r, cle, defaut=None):
+    try:
+        v = r[cle]
+    except (KeyError, IndexError):
+        return defaut
+    return defaut if v is None else v
+
+
+def minute_de(r, maintenant_: datetime | None = None) -> int:
+    """The minute of a stored match, its pauses taken out."""
+    return minute_courante(r["debut"], maintenant_, _champ(r, "pause"), _champ(r, "pause_cumul", 0) or 0)
+
+
+def en_pause(r) -> bool:
+    return bool(_champ(r, "pause"))
+
+
+def suspendre(jeu, r, oui: bool) -> bool:
+    """Stop or restart the clock of a single-player match.
+
+    Only a match with one human in it: two managers cannot each hold the
+    other's clock.  Restarting adds the time spent stopped to `pause_cumul`
+    so the minute picks up exactly where it was left."""
+    if not r["debut"] or minute_de(r) >= SM.MINUTES:
+        return False
+    if oui:
+        if en_pause(r):
+            return False
+        jeu.execute("UPDATE rencontre SET pause=? WHERE rencontre_id=?", (maintenant(), r["rencontre_id"]))
+    else:
+        if not en_pause(r):
+            return False
+        arret = int((datetime.now(timezone.utc) - _t(r["pause"])).total_seconds())
+        jeu.execute("UPDATE rencontre SET pause=NULL, pause_cumul=? WHERE rencontre_id=?",
+                    ((_champ(r, "pause_cumul", 0) or 0) + max(0, arret), r["rencontre_id"]))
+    jeu.commit()
+    return True
+
+
+def solitaire(r) -> bool:
+    """True when one human plays this match: a challenge or a campaign."""
+    return bool(r["defi"]) or _champ(r, "campagne_id") is not None
 
 
 class ErreurLobby(Exception):
@@ -300,16 +355,29 @@ def _cotes(jeu, saison: str, r) -> tuple[SM.Equipe, SM.Equipe]:
 def feuille(jeu, saison: str, r, minute: int | None = None) -> dict:
     """The sheet of a match up to `minute` (the clock's minute by default)."""
     a, b = _cotes(jeu, saison, r)
-    m = minute_courante(r["debut"]) if minute is None else minute
-    f = SM.jouer(a, b, r["graine"], _tactiques(r), jusqua=m, changements=_remplacements(r))
+    m = minute_de(r) if minute is None else minute
+    # Side A is the human's, always.  Side B is another manager in a
+    # ranked match — so it is nobody's to answer for and the machine
+    # replaces its injured players — and the machine's in a challenge or a
+    # campaign.  Side A's injuries are never replaced behind his back: the
+    # sheet reports them and the screen stops to ask.
+    f = SM.jouer(a, b, r["graine"], _tactiques(r), jusqua=m, changements=_remplacements(r),
+                 auto_remplacement=(False, True))
     f["rencontre_id"] = r["rencontre_id"]
+    f["pause"] = en_pause(r)
+    f["solitaire"] = solitaire(r)
     f["defi"] = bool(r["defi"])
     f["noms"] = [a.nom, b.nom]
     sur = f.pop("onze", {"a": [], "b": []})
-    f["onze"] = {"a": [dict(j, attributs=j["attributs"]) for j in a.joueurs],
-                 "b": [dict(j, attributs=j["attributs"]) for j in b.joueurs]}
-    f["banc"] = {"a": [dict(j, attributs=j["attributs"]) for j in a.banc],
-                 "b": [dict(j, attributs=j["attributs"]) for j in b.banc]}
+    # The position each card is filling RIGHT NOW, not the one it kicked
+    # off in: a formation changed at the hour and a substitution both move
+    # players, and the screen has to name the position they hold.
+    postes = f.get("postes", {})
+    def vu(j, cote):
+        p = (postes.get(cote) or {}).get(j["pid"])
+        return dict(j, attributs=j["attributs"]) | (p or {})
+    f["onze"] = {"a": [vu(j, "a") for j in a.joueurs], "b": [vu(j, "b") for j in b.joueurs]}
+    f["banc"] = {"a": [vu(j, "a") for j in a.banc], "b": [vu(j, "b") for j in b.banc]}
     f["sur_le_terrain"] = sur
     f["style"] = {"a": SM.style(a.joueurs), "b": SM.style(b.joueurs)}
     return f
@@ -321,7 +389,7 @@ def ajuster(jeu, saison: str, equipe_id: int, tactique: dict, r=None) -> int:
     r = r if r is not None else en_cours(jeu, saison, equipe_id)
     if not r or not r["debut"]:
         raise ErreurLobby("Aucun match en cours")
-    m = minute_courante(r["debut"])
+    m = minute_de(r)
     if m >= SM.MINUTES:
         raise ErreurLobby("Le match est terminé")
     cote = 0 if r["equipe_a"] == equipe_id else 1
@@ -347,13 +415,13 @@ def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int, r=None
     r = r if r is not None else en_cours(jeu, saison, equipe_id)
     if not r or not r["debut"]:
         raise ErreurLobby("Aucun match en cours")
-    m = minute_courante(r["debut"])
+    m = minute_de(r)
     if m >= SM.MINUTES:
         raise ErreurLobby("Le match est terminé")
     cote = 0 if r["equipe_a"] == equipe_id else 1
     cle_cote = "ab"[cote]
     f = feuille(jeu, saison, r, m)
-    if sortant not in f["sur_le_terrain"][cle_cote]:
+    if sortant not in f["sur_le_terrain"][cle_cote] and sortant not in f["attente"][cle_cote]:
         raise ErreurLobby("Ce joueur n'est pas sur le terrain")
     # f["banc"] is the bench as it was NAMED; whoever already came on is
     # still in it, so the ones already used have to be taken out here.  The
@@ -374,6 +442,10 @@ def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int, r=None
     jeu.execute("UPDATE rencontre SET remplacements=? WHERE rencontre_id=?",
                 (json.dumps(brut), r["rencontre_id"]))
     jeu.commit()
+    # The whistle: a match stopped because one of his players went off
+    # restarts as soon as the manager has named the man coming on.
+    if en_pause(r) and sortant in f["attente"][cle_cote]:
+        suspendre(jeu, r, False)
     return int(cle)
 
 
@@ -382,7 +454,7 @@ def cloturer(jeu, saison: str, r) -> dict | None:
     Idempotent — a match already closed is returned as it stands."""
     if r["resultat"] is not None:
         return json.loads(r["feuille"]) if r["feuille"] else None
-    if not r["debut"] or minute_courante(r["debut"]) < SM.MINUTES:
+    if not r["debut"] or minute_de(r) < SM.MINUTES:
         return None
     f = feuille(jeu, saison, r, SM.MINUTES)
     ea, eb = None, None
@@ -397,6 +469,35 @@ def cloturer(jeu, saison: str, r) -> dict | None:
                 (f["score"][0], f["score"][1], f["resultat"], json.dumps(f, ensure_ascii=False), ea, eb,
                  r["rencontre_id"]))
     jeu.commit()
+    return f
+
+
+def arbitrer(jeu, r, f: dict) -> dict:
+    """Stop the clock when one of the manager's players goes off injured.
+
+    Only a match with one human in it can be stopped; a ranked match
+    between two managers cannot, so there the machine has already replaced
+    the injured player.  The whistle goes ONCE per injury: `arrets_vus`
+    records who play was already stopped for, so a manager who restarts
+    without naming a replacement is not stopped again on the next poll —
+    he has chosen to play a man short, which is his to choose.
+    Restarting is always deliberate: the substitution does it (lobby.changer)
+    or the manager does it himself.
+    """
+    if not solitaire(r) or f.get("fini"):
+        return f
+    attente = f.get("attente", {}).get("a") or []
+    try:
+        vus = set(json.loads(_champ(r, "arrets_vus") or "[]"))
+    except (TypeError, json.JSONDecodeError):
+        vus = set()
+    neufs = [pid for pid in attente if pid not in vus]
+    if neufs and not en_pause(r):
+        suspendre(jeu, r, True)
+        jeu.execute("UPDATE rencontre SET arrets_vus=? WHERE rencontre_id=?",
+                    (json.dumps(sorted(vus | set(neufs))), r["rencontre_id"]))
+        jeu.commit()
+        f["pause"] = True
     return f
 
 
@@ -421,7 +522,7 @@ def etat(jeu, saison: str, equipe_id: int) -> dict:
         out["etat"] = "attente"
         out["match"] = {"rencontre_id": r["rencontre_id"], "depuis": r["cree_le"]}
         return out
-    f = json.loads(r["feuille"]) if r["feuille"] else feuille(jeu, saison, r)
+    f = json.loads(r["feuille"]) if r["feuille"] else arbitrer(jeu, r, feuille(jeu, saison, r))
     out["etat"] = "fini" if r["resultat"] else "en_cours"
     out["cote"] = "a" if r["equipe_a"] == equipe_id else "b"
     out["match"] = f | {"debut": r["debut"], "elo_avant": [r["elo_a_avant"], r["elo_b_avant"]],

@@ -220,3 +220,110 @@ def test_a_challenge_gets_a_bench_too():
     r = LB.en_cours(jeu, "2025/26", 1)
     f = LB.feuille(jeu, "2025/26", r, 5)
     assert len(f["banc"]["b"]) >= 1 and not set(j["pid"] for j in f["banc"]["b"]) & set(f["sur_le_terrain"]["b"])
+
+
+# --------------------------------------------------------------------------
+# L'horloge qu'on peut arrêter — et que la blessure arrête toute seule
+# --------------------------------------------------------------------------
+
+def _reculer(jeu, r, secondes):
+    """Faire comme si le coup d'envoi avait eu lieu il y a `secondes`."""
+    jeu.execute("UPDATE rencontre SET debut=? WHERE rencontre_id=?",
+                ((datetime.now(timezone.utc) - timedelta(seconds=secondes)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                 r["rencontre_id"]))
+    jeu.commit()
+    return jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+
+
+def test_a_single_player_match_can_be_stopped_and_restarted():
+    """Quatre minutes réelles ne laissaient pas le temps de faire un
+    changement : un match à un seul humain s'arrête."""
+    jeu = base_avec_equipes(1)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True)
+    r = _reculer(jeu, LB.en_cours(jeu, "2025/26", 1), LB.DUREE_REELLE / 3)
+    assert LB.solitaire(r)
+    m = LB.minute_de(r)
+    assert 25 <= m <= 35
+    assert LB.suspendre(jeu, r, True)
+    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    assert LB.en_pause(r)
+    # l'horloge ne bouge plus, même si le temps réel passe
+    plus_tard = datetime.now(timezone.utc) + timedelta(seconds=120)
+    assert LB.minute_de(r, plus_tard) == LB.minute_de(r) == m
+    # et à la reprise elle repart d'où elle en était, pas de là où le
+    # temps réel en serait : coup d'envoi il y a DUREE/3, arrêt il y a
+    # trente secondes, donc la minute reprend à (DUREE/3 - 30) secondes.
+    jeu.execute("UPDATE rencontre SET pause=?, pause_cumul=0 WHERE rencontre_id=?",
+                ((datetime.now(timezone.utc) - timedelta(seconds=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                 r["rencontre_id"]))
+    jeu.commit()
+    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    gelee = LB.minute_de(r)
+    assert LB.suspendre(jeu, r, False)
+    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    assert not LB.en_pause(r)
+    assert abs(LB.minute_de(r) - gelee) <= 1        # rien ne s'est joué pendant l'arrêt
+    assert r["pause_cumul"] >= 28
+
+
+def test_a_ranked_match_between_two_managers_cannot_be_stopped():
+    jeu = base_avec_equipes(2)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None)
+    LB.rejoindre(jeu, "2025/26", 2, ONZE, None)
+    r = LB.en_cours(jeu, "2025/26", 1)
+    assert not LB.solitaire(r)          # le serveur refuse la pause (web/app/serveur.py)
+
+
+def test_an_injury_stops_a_solo_match_once_and_the_substitution_restarts_it(monkeypatch):
+    monkeypatch.setattr(SM, "P_BLESSURE", 1.0)
+    jeu = base_avec_equipes(1)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True, banc=[12, 13, 14, 15])
+    r = LB.en_cours(jeu, "2025/26", 1)
+    jeu.execute("UPDATE rencontre SET graine=7 WHERE rencontre_id=?", (r["rencontre_id"],))
+    jeu.commit()
+    r = _reculer(jeu, r, LB.DUREE_REELLE / 4)
+    f = LB.arbitrer(jeu, r, LB.feuille(jeu, "2025/26", r))
+    assert f["attente"]["a"], "le moteur doit signaler le blessé au lieu de le remplacer"
+    assert f["pause"] is True
+    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    fige = LB.minute_de(r)
+    # l'arbitre ne siffle qu'une fois : s'il repart sans changer, on le
+    # laisse jouer à dix
+    LB.suspendre(jeu, r, False)
+    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    f2 = LB.arbitrer(jeu, r, LB.feuille(jeu, "2025/26", r))
+    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    assert not LB.en_pause(r), "un seul coup de sifflet par blessure"
+    # et un changement sur le blessé remet le onze à onze
+    LB.suspendre(jeu, r, True)
+    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    f3 = LB.feuille(jeu, "2025/26", r)
+    if f3["attente"]["a"]:
+        entrant = next(j["pid"] for j in f3["banc"]["a"] if j["pid"] not in f3["entres"]["a"])
+        LB.changer(jeu, "2025/26", 1, f3["attente"]["a"][0], entrant, r)
+        r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+        assert not LB.en_pause(r), "le changement rend le coup de sifflet de reprise"
+    assert fige >= 0
+
+
+def test_a_formation_changed_in_play_is_recorded_like_any_other_adjustment():
+    jeu = base_avec_equipes(1)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True)
+    r = LB.en_cours(jeu, "2025/26", 1)
+    # graine fixée : sans elle un carton rouge ou une blessure tirés au
+    # hasard laissent dix joueurs sur le terrain et le décompte des postes
+    # dépend du tirage
+    jeu.execute("UPDATE rencontre SET graine=7 WHERE rencontre_id=?", (r["rencontre_id"],))
+    jeu.commit()
+    r = _reculer(jeu, r, LB.DUREE_REELLE / 3)
+    LB.ajuster(jeu, "2025/26", 1, {"tempo": "direct", "bloc": "haut", "risque": "offensif",
+                                   "formation": "3-5-2"}, r)
+    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    r = _reculer(jeu, r, LB.DUREE_REELLE * 0.9)
+    f = LB.feuille(jeu, "2025/26", r)
+    assert f["formation"]["a"] == "3-5-2"
+    assert any(e["type"] == "formation" for e in f["evenements"])
+    # les postes rendus sont ceux qu'on tient MAINTENANT, pas ceux du
+    # coup d'envoi
+    postes = [j["slot"] for j in f["onze"]["a"] if j["pid"] in f["sur_le_terrain"]["a"]]
+    assert postes.count("Defenseur central") == 3
