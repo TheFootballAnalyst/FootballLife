@@ -22,16 +22,57 @@ BONUS_CAPITAINE = 1.5
 TAILLE_ONZE = 11
 TAILLE_BANC = 7          # a real matchday squad: eleven and seven
 
-# Formation = counts of (GK, DEF, MID, FWD).  Position families map onto
-# the engine's positions; a card carries one family.
-FORMATIONS = {
-    "4-3-3": (1, 4, 3, 3),
-    "4-4-2": (1, 4, 4, 2),
-    "4-2-3-1": (1, 4, 5, 1),
-    "3-5-2": (1, 3, 5, 2),
-    "3-4-3": (1, 3, 4, 3),
-    "5-3-2": (1, 5, 3, 2),
-    "4-5-1": (1, 4, 5, 1),
+# A formation is ELEVEN REAL POSITIONS laid out in rows, keeper first, back
+# to front.  It used to be four counts (one keeper, four defenders, three
+# midfielders, three forwards) and a slot only knew its family — which is
+# why Van Dijk came out at left back and Robertson in the middle, and why
+# "best eleven" put three centre-backs and one full-back in a back four.
+# A row is what the pitch draws; the flattened order is the slot index, so
+# a lineup stored before this still reads correctly.
+FORMATIONS_RANGS = {
+    "4-3-3": [("Gardien",),
+              ("Lateral", "Defenseur central", "Defenseur central", "Lateral"),
+              ("Milieu defensif", "Milieu relayeur", "Milieu offensif"),
+              ("Ailier", "Buteur", "Ailier")],
+    "4-4-2": [("Gardien",),
+              ("Lateral", "Defenseur central", "Defenseur central", "Lateral"),
+              ("Ailier", "Milieu relayeur", "Milieu defensif", "Ailier"),
+              ("Buteur", "Buteur")],
+    "4-2-3-1": [("Gardien",),
+                ("Lateral", "Defenseur central", "Defenseur central", "Lateral"),
+                ("Milieu defensif", "Milieu defensif"),
+                ("Ailier", "Milieu offensif", "Ailier"),
+                ("Buteur",)],
+    "4-1-4-1": [("Gardien",),
+                ("Lateral", "Defenseur central", "Defenseur central", "Lateral"),
+                ("Milieu defensif",),
+                ("Ailier", "Milieu relayeur", "Milieu relayeur", "Ailier"),
+                ("Buteur",)],
+    "4-5-1": [("Gardien",),
+              ("Lateral", "Defenseur central", "Defenseur central", "Lateral"),
+              ("Ailier", "Milieu offensif", "Milieu relayeur", "Milieu defensif", "Ailier"),
+              ("Buteur",)],
+    "3-5-2": [("Gardien",),
+              ("Defenseur central", "Defenseur central", "Defenseur central"),
+              ("Lateral", "Milieu defensif", "Milieu relayeur", "Milieu offensif", "Lateral"),
+              ("Buteur", "Buteur")],
+    "3-4-3": [("Gardien",),
+              ("Defenseur central", "Defenseur central", "Defenseur central"),
+              ("Lateral", "Milieu relayeur", "Milieu defensif", "Lateral"),
+              ("Ailier", "Buteur", "Ailier")],
+    "3-4-2-1": [("Gardien",),
+                ("Defenseur central", "Defenseur central", "Defenseur central"),
+                ("Lateral", "Milieu defensif", "Milieu relayeur", "Lateral"),
+                ("Milieu offensif", "Milieu offensif"),
+                ("Buteur",)],
+    "5-3-2": [("Gardien",),
+              ("Lateral", "Defenseur central", "Defenseur central", "Defenseur central", "Lateral"),
+              ("Milieu defensif", "Milieu relayeur", "Milieu offensif"),
+              ("Buteur", "Buteur")],
+    "5-4-1": [("Gardien",),
+              ("Lateral", "Defenseur central", "Defenseur central", "Defenseur central", "Lateral"),
+              ("Ailier", "Milieu relayeur", "Milieu defensif", "Ailier"),
+              ("Buteur",)],
 }
 FAMILLE_POSTE = {
     "Gardien": "GK",
@@ -45,7 +86,27 @@ FAMILLE_POSTE = {
     "Ailier gauche": "FWD",
     "Buteur": "FWD",
 }
-LIMITES_FAMILLE = {"GK": (1, 1), "DEF": (3, 5), "MID": (2, 5), "FWD": (1, 3)}
+LIMITES_FAMILLE = {"GK": (1, 1), "DEF": (3, 5), "MID": (2, 5), "FWD": (1, 4)}
+
+
+def postes_formation(formation: str) -> list[str]:
+    """The eleven positions of a formation, in slot order (keeper first,
+    then back to front, left to right inside a row)."""
+    return [p for rang in FORMATIONS_RANGS[formation] for p in rang]
+
+
+def familles_formation(formation: str) -> list[str]:
+    return [FAMILLE_POSTE[p] for p in postes_formation(formation)]
+
+
+def _comptes(formation: str) -> tuple[int, int, int, int]:
+    fams = familles_formation(formation)
+    return tuple(fams.count(f) for f in ("GK", "DEF", "MID", "FWD"))
+
+
+# The family counts, derived — what the legality check and the simulation
+# read.  Kept under the old name so nothing else has to change.
+FORMATIONS = {nom: _comptes(nom) for nom in FORMATIONS_RANGS}
 
 # A card is not one position.  Valverde played sixteen matches at right
 # back, fifteen on the right wing and twelve in midfield: calling him a
@@ -54,6 +115,19 @@ LIMITES_FAMILLE = {"GK": (1, 1), "DEF": (3, 5), "MID": (2, 5), "FWD": (1, 3)}
 # minutes up; `joueur.poste` stays the main one, for display and for the
 # barème's shrink.
 PART_POSTE_ELIGIBLE = 0.20
+
+
+def a_le_poste(postes_carte, poste_slot: str) -> bool:
+    """Whether the card really held THAT position — not merely a position
+    of the same family.  A centre-back and a full-back are both defenders
+    and are not interchangeable."""
+    return poste_slot in (postes_carte or ())
+
+
+def hors_poste(postes_carte, poste_slot: str) -> bool:
+    """Fielded in his line but not at his position: allowed, and it costs
+    something (simulation.MALUS_HORS_POSTE)."""
+    return not a_le_poste(postes_carte, poste_slot)
 
 
 def familles_eligibles(postes) -> list[str]:

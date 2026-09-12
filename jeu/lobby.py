@@ -91,6 +91,16 @@ def verifier_onze(jeu, saison: str, equipe_id: int, onze: list[int], formation: 
     return list(onze)
 
 
+def formation_de(r, cle: str) -> str:
+    """The formation a side lined up in, defaulting to 4-3-3 for a match
+    written before formations were stored."""
+    try:
+        f = r[f"formation_{cle}"]
+    except (KeyError, IndexError):
+        f = None
+    return f if f in S.FORMATIONS else "4-3-3"
+
+
 def verifier_banc(jeu, saison: str, equipe_id: int, onze: list[int], banc: list[int] | None) -> list[int]:
     """The substitutes a manager names: cards of his squad, none of them in
     the eleven, at most TAILLE_BANC.  Unlike the eleven a bench has no shape
@@ -112,10 +122,11 @@ def verifier_banc(jeu, saison: str, equipe_id: int, onze: list[int], banc: list[
 
 
 def equipe_simulation(jeu, saison: str, onze: list[int], nom: str, tactique: dict | None,
-                      banc: list[int] | None = None) -> SM.Equipe:
-    e = SM.onze_depuis_cartes(jeu, saison, onze, nom)
+                      banc: list[int] | None = None, formation: str = "4-3-3") -> SM.Equipe:
+    e = SM.onze_depuis_cartes(jeu, saison, onze, nom, S.postes_formation(formation))
     e.tactique = SM.Tactique(**(tactique or {})).valide()
     e.banc = SM.onze_depuis_cartes(jeu, saison, banc or [], nom).joueurs
+    e.formation = formation
     return e
 
 
@@ -175,10 +186,12 @@ def rejoindre(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict 
                                  ORDER BY ABS(e.elo_classe - ?) LIMIT 1""",
                               (saison, equipe_id, limite, elo)).fetchone()
         if attente and abs(attente[2] - elo) <= ECART_ELO_MAX:
-            jeu.execute("""UPDATE rencontre SET equipe_b=?, onze_b=?, banc_b=?, tactique_b=?, debut=?,
+            jeu.execute("""UPDATE rencontre SET equipe_b=?, onze_b=?, banc_b=?, tactique_b=?, formation_b=?,
+                           debut=?,
                            elo_a_avant=(SELECT elo_classe FROM equipe WHERE equipe_id=equipe_a), elo_b_avant=?
                            WHERE rencontre_id=?""",
-                        (equipe_id, json.dumps(onze), json.dumps(banc), tac, maintenant(), elo, attente[0]))
+                        (equipe_id, json.dumps(onze), json.dumps(banc), tac, formation, maintenant(),
+                         elo, attente[0]))
             jeu.commit()
             return attente[0]
     onze_b, tac_b, banc_b = None, None, None
@@ -193,10 +206,11 @@ def rejoindre(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict 
         banc_b = json.dumps(banc_defi(jeu, saison, niveau, graine, pris))
         tac_b = json.dumps(vars(SM.Tactique(**_tactique_defi(graine)).valide()))
     cur = jeu.execute("""INSERT INTO rencontre(saison, equipe_a, equipe_b, defi, onze_a, onze_b, banc_a, banc_b,
-                            tactique_a, tactique_b, graine, debut, elo_a_avant, cree_le)
-                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                            tactique_a, tactique_b, formation_a, formation_b, graine, debut, elo_a_avant, cree_le)
+                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                       (saison, equipe_id, None, int(defi), json.dumps(onze), onze_b, json.dumps(banc), banc_b,
-                       tac, tac_b, graine, maintenant() if defi else None, elo, maintenant()))
+                       tac, tac_b, formation, "4-3-3" if defi else None, graine,
+                       maintenant() if defi else None, elo, maintenant()))
     jeu.commit()
     return cur.lastrowid
 
@@ -276,9 +290,10 @@ def _cotes(jeu, saison: str, r) -> tuple[SM.Equipe, SM.Equipe]:
         except (TypeError, KeyError, json.JSONDecodeError):
             return []
     a = equipe_simulation(jeu, saison, json.loads(r["onze_a"]), noms["a"], json.loads(r["tactique_a"]),
-                          banc_de("a"))
+                          banc_de("a"), formation_de(r, "a"))
     b = equipe_simulation(jeu, saison, json.loads(r["onze_b"] or "[]"), noms["b"],
-                          json.loads(r["tactique_b"]) if r["tactique_b"] else None, banc_de("b"))
+                          json.loads(r["tactique_b"]) if r["tactique_b"] else None, banc_de("b"),
+                          formation_de(r, "b"))
     return a, b
 
 

@@ -174,40 +174,54 @@ def clubs_competition(jeu, saison: str, cle: str) -> list[dict]:
     return out
 
 
-def onze_club(jeu, saison: str, team_id: int, formation: str = "4-3-3") -> list[dict]:
-    """A real club's best eleven, as cards.
+def _cartes_club(jeu, saison: str, team_id: int) -> list[dict]:
+    out = []
+    for r in jeu.execute("""SELECT c.player_id, j.nom, j.poste, c.ovr, c.attributs, j.postes FROM carte c
+                            JOIN joueur j ON j.player_id=c.player_id
+                            WHERE c.saison=? AND j.team_id=? ORDER BY c.ovr DESC""", (saison, team_id)):
+        tenus = json.loads(r[5]) if r[5] else [r[2]]
+        out.append({"pid": r[0], "nom": r[1], "poste": r[2], "ovr": r[3],
+                    "attributs": json.loads(r[4] or "{}"), "tenus": tenus,
+                    "familles": S.familles_eligibles(tenus) or [S.FAMILLE_POSTE.get(r[2], "MID")]})
+    return out
 
-    The scarcest line is served first: filling greedily in slot order let a
-    club with two keepers and nineteen midfielders end up without a
-    defender.  A club short of a line is completed with its best remaining
-    cards rather than refused — the eleven is still eleven real players."""
-    cartes = [{"pid": r[0], "nom": r[1], "poste": r[2], "ovr": r[3],
-               "attributs": json.loads(r[4] or "{}"),
-               "familles": S.familles_eligibles(json.loads(r[5])) if r[5] else
-                           [S.FAMILLE_POSTE.get(r[2], "MID")]}
-              for r in jeu.execute(
-                  """SELECT c.player_id, j.nom, j.poste, c.ovr, c.attributs, j.postes FROM carte c
-                     JOIN joueur j ON j.player_id=c.player_id
-                     WHERE c.saison=? AND j.team_id=? ORDER BY c.ovr DESC""", (saison, team_id))]
-    for c in cartes:
-        c["familles"] = c["familles"] or [S.FAMILLE_POSTE.get(c["poste"], "MID")]
-    besoins = dict(zip(("GK", "DEF", "MID", "FWD"), S.FORMATIONS[formation]))
-    pris: list[dict] = []
-    utilises: set[int] = set()
-    for fam in sorted(besoins, key=lambda f: len([c for c in cartes if f in c["familles"]])):
-        for c in cartes:
-            if len([x for x in pris if x["fam"] == fam]) >= besoins[fam]:
-                break
-            if c["pid"] not in utilises and fam in c["familles"]:
-                utilises.add(c["pid"])
-                pris.append(c | {"fam": fam})
-    for c in cartes:                       # a line the club cannot fill
-        if len(pris) >= S.TAILLE_ONZE:
-            break
-        if c["pid"] not in utilises:
-            utilises.add(c["pid"])
-            pris.append(c | {"fam": c["familles"][0]})
-    return pris
+
+def onze_club(jeu, saison: str, team_id: int, formation: str = "4-3-3") -> list[dict]:
+    """A real club's best eleven, POSITION by position.
+
+    Filling by family put three centre-backs and a winger in a back four,
+    which is how the manager's own "best eleven" used to look too.  Each
+    slot is served by the best card that really held THAT position; if
+    nobody did, by the best of the line, and he takes the out-of-position
+    penalty like any other.  The scarcest slot is served first, or a club
+    with two keepers and nineteen midfielders ended up without a defender.
+    """
+    cartes = _cartes_club(jeu, saison, team_id)
+    postes = S.postes_formation(formation)
+    fams = S.familles_formation(formation)
+    pris: set[int] = set()
+    onze: list[dict | None] = [None] * len(postes)
+    ordre = sorted(range(len(postes)),
+                   key=lambda i: len([c for c in cartes if S.a_le_poste(c["tenus"], postes[i])]))
+    for tour in ("poste", "famille", "reste"):
+        for i in ordre:
+            if onze[i] is not None:
+                continue
+            for c in cartes:
+                if c["pid"] in pris:
+                    continue
+                if (tour == "poste" and S.a_le_poste(c["tenus"], postes[i])) \
+                        or (tour == "famille" and fams[i] in c["familles"]) \
+                        or tour == "reste":
+                    onze[i] = c | {"fam": fams[i], "slot": postes[i],
+                                   "hors_poste": not S.a_le_poste(c["tenus"], postes[i])}
+                    pris.add(c["pid"])
+                    break
+    sortis = [j for j in onze if j is not None]
+    for j in sortis:
+        if j["hors_poste"]:
+            j["attributs"] = {k: max(40, v - SM.MALUS_HORS_POSTE) for k, v in j["attributs"].items()}
+    return sortis
 
 
 # Tercile boundaries measured on the 150 club elevens of the eight leagues.
@@ -634,15 +648,15 @@ def lancer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dic
     # flip it, and `domicile` keeps the fixture's own truth.
     rempl = {str(m): ([], [[s, e] for s, e in paires]) for m, paires in plan.items()}
     cur = jeu.execute("""INSERT INTO rencontre(saison, equipe_a, equipe_b, defi, onze_a, banc_a, tactique_a,
-                            onze_b, banc_b, tactique_b, remplacements, graine, debut, campagne_id, tour,
-                            nom_adverse, domicile, cree_le)
-                         VALUES (?,?,?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                            onze_b, banc_b, tactique_b, formation_a, formation_b, remplacements, graine,
+                            debut, campagne_id, tour, nom_adverse, domicile, cree_le)
+                         VALUES (?,?,?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                       (saison, equipe_id, None,
                        json.dumps(onze), json.dumps(banc),
                        json.dumps(vars(SM.Tactique(**(tactique or {})).valide())),
                        json.dumps([j["pid"] for j in eq_adv.joueurs]),
                        json.dumps([j["pid"] for j in eq_adv.banc]),
-                       json.dumps(vars(eq_adv.tactique)),
+                       json.dumps(vars(eq_adv.tactique)), formation, eq_adv.formation,
                        json.dumps(rempl), g, LB.maintenant(), camp["campagne_id"], tour,
                        clubs[adv]["nom"], int(a == moi), maintenant()))
     jeu.commit()
@@ -672,9 +686,10 @@ def jouer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict
 
     def eq(place: int) -> SM.Equipe:
         if place not in equipes:
-            equipes[place] = (SM.Equipe(clubs[moi]["nom"], SM.onze_depuis_cartes(jeu, saison, onze).joueurs,
+            equipes[place] = (SM.Equipe(clubs[moi]["nom"],
+                                        SM.onze_depuis_cartes(jeu, saison, onze, postes_slots=S.postes_formation(formation)).joueurs,
                                         SM.Tactique(**(tactique or {})).valide(),
-                                        SM.onze_depuis_cartes(jeu, saison, banc).joueurs)
+                                        SM.onze_depuis_cartes(jeu, saison, banc).joueurs, formation)
                               if place == moi else equipe_club(jeu, saison, clubs[place]))
         return equipes[place]
 

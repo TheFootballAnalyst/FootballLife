@@ -101,7 +101,8 @@ MIGRATIONS = {                       # columns added after the first bases were 
     "rencontre": [("banc_a", "TEXT"), ("banc_b", "TEXT"),
                   ("remplacements", "TEXT NOT NULL DEFAULT '{}'"),
                   ("campagne_id", "INTEGER"), ("tour", "INTEGER"),
-                  ("nom_adverse", "TEXT"), ("domicile", "INTEGER")],
+                  ("nom_adverse", "TEXT"), ("domicile", "INTEGER"),
+                  ("formation_a", "TEXT"), ("formation_b", "TEXT")],
 }
 
 

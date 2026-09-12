@@ -27,7 +27,12 @@ const FAM_COURT = {GK: "GB", DEF: "DÉF", MID: "MIL", FWD: "ATT"};
 // ---- état local (miroir de ce que le serveur a renvoyé) ----
 const G = {moi: null, saison: null, cartes: [], idx: new Map(), equipe: null, compo: null, ecran: "connexion", ventes: [], club: [], packs: null};
 const ventesDe = id => G.ventes.filter(v => v.player_id === id);
-let TAILLE = 18, BANC_MAX = 7, FORMATIONS = {"4-3-3": [1,4,3,3]}, LIMITES = {GK: [1,1], DEF: [3,5], MID: [2,5], FWD: [1,3]};
+let TAILLE = 18, BANC_MAX = 7, FORMATIONS = {"4-3-3": [1,4,3,3]}, LIMITES = {GK: [1,1], DEF: [3,5], MID: [2,5], FWD: [1,4]};
+let RANGS = {"4-3-3": [["Gardien"], ["Lateral","Defenseur central","Defenseur central","Lateral"],
+  ["Milieu defensif","Milieu relayeur","Milieu offensif"], ["Ailier","Buteur","Ailier"]]};
+let FAM_POSTE = {"Gardien":"GK","Defenseur central":"DEF","Lateral":"DEF","Milieu defensif":"MID",
+  "Milieu relayeur":"MID","Milieu offensif":"MID","Ailier":"FWD","Ailier droit":"FWD",
+  "Ailier gauche":"FWD","Buteur":"FWD"};
 
 // ---- utilitaires ----
 const $ = s => document.querySelector(s);
@@ -325,7 +330,19 @@ function ligneCarte(c) {
 
 // ---- équipe ----
 function compoVide() { return {formation: "4-3-3", titulaires: [], banc: [], capitaine: null}; }
-function slotsFam(formation) { const [g, d, m, f] = FORMATIONS[formation]; return [...Array(g).fill("GK"), ...Array(d).fill("DEF"), ...Array(m).fill("MID"), ...Array(f).fill("FWD")]; }
+// A slot is a REAL POSITION, not a family.  A slot that only said
+// "defender" is why Van Dijk came out at left back and Robertson in the
+// middle, and why "best eleven" put three centre-backs in a back four.
+function rangsDe(formation) { return RANGS[formation] || RANGS["4-3-3"]; }
+function slotsPostes(formation) { return rangsDe(formation).flat(); }
+function slotsFam(formation) { return slotsPostes(formation).map(p => FAM_POSTE[p] || "MID"); }
+// exactly his position, or merely his line — the second is allowed and costs
+// MALUS_HORS_POSTE on every attribute in the match
+function aLePoste(id, poste) { const c = carte(id); return !!c && (c.postes || []).includes(poste); }
+function horsPoste(id, poste) { return !aLePoste(id, poste); }
+const POSTE_ABBR = {"Gardien": "GB", "Defenseur central": "DC", "Lateral": "LAT",
+  "Milieu defensif": "MDF", "Milieu relayeur": "MC", "Milieu offensif": "MO",
+  "Ailier": "AIL", "Ailier droit": "AD", "Ailier gauche": "AG", "Buteur": "BU"};
 function legal(fams) { if (fams.length !== 11 || fams.some(x => !x)) return false; return FAMS.every(f => { const n = fams.filter(x => x === f).length; return n >= LIMITES[f][0] && n <= LIMITES[f][1]; }); }
 // A card is eligible wherever the player really played, not only at the one
 // label the barème shows: Valverde spent a third of his season at right
@@ -357,16 +374,29 @@ function compoVersSlots() {
   for (const id of tous) if (!slots.includes(id) && !banc.includes(id)) banc.push(id);
   C = {formation: fams.length ? (cp.formation in FORMATIONS ? cp.formation : "4-3-3") : "4-3-3", slots, banc, cap: slots.includes(cp.capitaine) ? cp.capitaine : null};
 }
+// Best eleven, POSITION by position: the best card that really held that
+// position, then the best of the line, then whoever is left.  The scarcest
+// slot is served first — filling in slot order left a back four of three
+// centre-backs because the full-backs had already gone into the middle.
 function auto(formation) {
-  C.formation = formation; const fams = slotsFam(formation);
-  const tri = idsEffectif().sort((a, b) => ovr(b) - ovr(a)); const pris = new Set(); const slots = fams.map(() => null);
-  for (const exact of [true, false])
-    fams.forEach((fam, s) => {
-      if (slots[s] !== null) return;
-      const i = tri.find(x => !pris.has(x) && (exact ? carte(x).fam === fam : peutJouer(x, fam)));
+  C.formation = formation;
+  const postes = slotsPostes(formation), fams = slotsFam(formation);
+  const tri = idsEffectif().sort((a, b) => ovr(b) - ovr(a));
+  const pris = new Set(); const slots = postes.map(() => null);
+  const ordre = postes.map((_, s) => s)
+    .sort((x, y) => tri.filter(i => aLePoste(i, postes[x])).length - tri.filter(i => aLePoste(i, postes[y])).length);
+  for (const tour of ["poste", "famille", "reste"])
+    for (const s of ordre) {
+      if (slots[s] !== null) continue;
+      const i = tri.find(x => !pris.has(x) && (tour === "poste" ? aLePoste(x, postes[s])
+        : tour === "famille" ? peutJouer(x, fams[s]) : true));
       if (i !== undefined) { slots[s] = i; pris.add(i); }
-    });
-  C.slots = slots; C.banc = tri.filter(x => !pris.has(x));
+    }
+  C.slots = slots;
+  // the bench keeps a keeper first, then the best of what is left
+  const reste = tri.filter(x => !pris.has(x));
+  const gk = reste.find(x => peutJouer(x, "GK"));
+  C.banc = gk === undefined ? reste : [gk, ...reste.filter(x => x !== gk)];
   if (!slots.includes(C.cap)) C.cap = slots.find(x => x !== null) ?? null;
   rendreEquipe(false);
 }
@@ -379,18 +409,30 @@ function rendreEquipe(recalc = true) {
   }
   const sel = $("#formation"); if (!sel.options.length) for (const f of Object.keys(FORMATIONS)) sel.append(el("option", {value: f}, f));
   sel.value = C.formation;
-  const fams = slotsFam(C.formation); const [g, d, m, f] = FORMATIONS[C.formation];
+  const postes = slotsPostes(C.formation);
   const T = $("#terrain"); T.replaceChildren();
-  let k = 0;
-  for (const n of [f, m, d, g]) { const rang = el("div", {class: "rang"}); const debut = 11 - (k + n); k += n; for (let s = debut; s < debut + n; s++) rang.append(slotEl(s, fams[s])); T.append(rang); }
+  // the formation's own rows, drawn front to back
+  const rangs = rangsDe(C.formation);
+  let debut = 0; const bornes = rangs.map(r => { const b = [debut, debut + r.length]; debut += r.length; return b; });
+  for (const [d0, d1] of [...bornes].reverse()) {
+    const rang = el("div", {class: "rang"});
+    for (let s = d0; s < d1; s++) rang.append(slotEl(s, postes[s]));
+    T.append(rang);
+  }
   const ok = onzeLegal();
   const A = $("#avert-compo"); A.replaceChildren();
   if (!ok) {
     const trous = C.slots.filter(i => i === null).length;
     A.append(el("div", {class: "avert"}, trous
       ? `Il manque ${trous} joueur${trous > 1 ? "s" : ""} : glisse une carte du banc sur une case vide.`
-      : "Un joueur occupe un poste qu'il n'a jamais tenu. Les cases en rouge sont à corriger."));
+      : "Un joueur occupe une ligne qu'il n'a jamais tenue. Les cases en rouge sont à corriger."));
   }
+  // out of position is legal, and it costs: say how many and how much
+  const postesC = slotsPostes(C.formation);
+  const dephases = C.slots.filter((id, s) => id !== null && peutJouer(id, postesC[s]) === undefined ? false
+    : id !== null && horsPoste(id, postesC[s]) && peutJouer(id, FAM_POSTE[postesC[s]])).length;
+  if (dephases) A.append(el("div", {class: "info"},
+    `${dephases} joueur${dephases > 1 ? "s" : ""} hors poste (case orange) : −${MALUS_HORS_POSTE} sur chacun de leurs attributs pendant le match. C'est permis, ça coûte.`));
   const j = G.saison.courante;
   const etat = $("#compo-etat"); etat.replaceChildren();
   if (!j) etat.append("Saison terminée.");
@@ -537,17 +579,22 @@ function zonePrise(d, src) {
   });
 }
 
-function slotEl(s, fam) {
+function slotEl(s, poste) {
+  const fam = FAM_POSTE[poste] || "MID";
   const i = C.slots[s];
   const pris = PRISE ? carteDe(PRISE) : null;
   const vise = pris !== null && pris !== undefined;
   const classes = ["slot"];
   if (i === null) classes.push("vide");
   if (PRISE && PRISE.type === "slot" && PRISE.i === s) classes.push("prise");
-  else if (vise) classes.push(peutJouer(pris, fam) ? "cible" : "interdit");
+  else if (vise) classes.push(peutJouer(pris, fam) ? (aLePoste(pris, poste) ? "cible" : "cible-ligne") : "interdit");
   if (i !== null && !peutJouer(i, fam)) classes.push("faute");
-  const titre = i === null ? `Case ${NOM_FAM[fam].toLowerCase()} vide`
-    : `${carte(i).nom} — ${NOM_FAM[fam]}. Glisse-le ailleurs, ou touche-le puis touche sa destination.`;
+  else if (i !== null && horsPoste(i, poste)) classes.push("dephase");
+  const nomPoste = POSTE_COURT[poste] || poste;
+  const titre = i === null ? `Case ${nomPoste.toLowerCase()} vide`
+    : horsPoste(i, poste)
+      ? `${carte(i).nom} joue ${nomPoste.toLowerCase()}, un poste qu'il n'a pas tenu : −${MALUS_HORS_POSTE} sur chaque attribut.`
+      : `${carte(i).nom} — ${nomPoste}. Glisse-le ailleurs, ou touche-le puis touche sa destination.`;
   const d = el("div", {class: classes.join(" "), tabindex: "0", title: titre,
     onclick: () => { if (PRISE) deposer(PRISE, {type: "slot", i: s}); else if (i !== null) prendre({type: "slot", i: s}); },
     onkeydown: e => {
@@ -555,27 +602,38 @@ function slotEl(s, fam) {
       if (e.key === "Escape") { PRISE = null; rendreEquipe(false); }
       if (e.key.toLowerCase() === "c" && i !== null) { C.cap = i; rendreEquipe(false); }
     }});
-  d._slot = s; d._fam = fam;
+  d._slot = s; d._fam = fam; d._poste = poste;
   zoneDepot(d, {type: "slot", i: s});
   if (i === null) {
-    d.append(el("div", {class: "mini"}, el("div", {}, el("div", {class: "o"}, "+"), el("div", {class: "n"}, NOM_FAM[fam]))));
+    d.append(el("div", {class: "mini"}, el("div", {}, el("div", {class: "o"}, "+"),
+      el("div", {class: "n"}, POSTE_ABBR[poste] || NOM_FAM[fam]))));
     return d;
   }
   const c = carte(i);
   zonePrise(d, {type: "slot", i: s});
   d.style.setProperty("--clubc", c.couleur);
   d.append(carteDessinee(c, 170));
+  d.append(el("div", {class: "slot-poste" + (horsPoste(i, poste) ? " dephase" : "")}, POSTE_ABBR[poste] || fam));
   if (C.cap === i) d.append(el("div", {class: "cap"}, "C"));
   d.append(el("button", {class: "slot-menu", title: "Options", onclick: e => { e.stopPropagation(); PRISE = null; menuSlot(s); }}, "···"));
   return d;
 }
 function menuSlot(s) {
-  const i = C.slots[s]; const fam = slotsFam(C.formation)[s]; const dlg = $("#fiche"); dlg.replaceChildren();
-  const box = el("div", {class: "fiche"}, el("h3", {class: "anton"}, carte(i).nom),
-    el("p", {class: "compteur"}, `${NOM_FAM[fam]} · OVR ${ovr(i)} · peut jouer ${famillesDe(carte(i)).map(f => NOM_FAM[f].toLowerCase()).join(", ")}`));
+  const i = C.slots[s]; const poste = slotsPostes(C.formation)[s];
+  const fam = FAM_POSTE[poste] || "MID"; const dlg = $("#fiche"); dlg.replaceChildren();
+  const c = carte(i);
+  const box = el("div", {class: "fiche"}, el("h3", {class: "anton"}, c.nom),
+    el("p", {class: "compteur"}, `${POSTE_COURT[poste] || poste} · OVR ${ovr(i)} · a tenu `
+      + (c.postes || []).map(x => (POSTE_COURT[x] || x).toLowerCase()).join(", ")),
+    horsPoste(i, poste) ? el("div", {class: "avert"},
+      `Hors poste : −${MALUS_HORS_POSTE} sur chacun de ses attributs pendant le match.`) : null);
   const acts = el("div", {class: "actions", style: "justify-content:flex-start"});
   acts.append(el("button", {class: "primaire", onclick: () => { C.cap = i; dlg.close(); rendreEquipe(false); }}, "Nommer capitaine"));
-  for (const b of C.banc.filter(x => peutJouer(x, fam))) acts.append(el("button", {onclick: () => { C.banc = C.banc.map(x => x === b ? i : x); C.slots[s] = b; if (C.cap === i) C.cap = b; dlg.close(); rendreEquipe(false); }}, `Remplacer par ${carte(b).nom} (${ovr(b)})`));
+  // the bench, those who really hold the position first
+  const remplacants = C.banc.filter(x => peutJouer(x, fam))
+    .sort((x, y) => (aLePoste(y, poste) - aLePoste(x, poste)) || (ovr(y) - ovr(x)));
+  for (const b of remplacants) acts.append(el("button", {onclick: () => { C.banc = C.banc.map(x => x === b ? i : x); C.slots[s] = b; if (C.cap === i) C.cap = b; dlg.close(); rendreEquipe(false); }},
+    `Remplacer par ${carte(b).nom} (${ovr(b)})${aLePoste(b, poste) ? "" : " — hors poste"}`));
   acts.append(el("button", {onclick: () => { C.slots[s] = null; C.banc.unshift(i); if (C.cap === i) C.cap = null; dlg.close(); rendreEquipe(false); }}, "Mettre sur le banc"));
   acts.append(el("button", {onclick: () => { dlg.close(); ouvrirFiche(i); }}, "Voir la fiche"), el("button", {class: "discret", onclick: () => dlg.close()}, "Fermer"));
   box.append(acts); dlg.append(box); dlg.showModal();
@@ -1265,6 +1323,7 @@ function blocChangements(d, route = "/lobby/changement", rendre = rendreLobby) {
   return b;
 }
 const SM_MAX_CHG = 5;
+const MALUS_HORS_POSTE = 10;
 
 function panneauHistorique(d) {
   const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Tes derniers matchs classés"));
@@ -1506,7 +1565,10 @@ function sparkline(vals, fmt = f1) {
 
 (async () => {
   try {
-    const s = await api("/saison"); TAILLE = s.taille_effectif; BANC_MAX = s.taille_banc ?? BANC_MAX; FORMATIONS = s.formations; LIMITES = s.limites;
+    const s = await api("/saison"); TAILLE = s.taille_effectif; BANC_MAX = s.taille_banc ?? BANC_MAX;
+    FORMATIONS = s.formations; LIMITES = s.limites;
+    if (s.formations_rangs) RANGS = s.formations_rangs;
+    if (s.familles_poste) FAM_POSTE = s.familles_poste;
     const moi = await api("/moi"); connecte(moi);
     if (moi.connecte) { const h = location.hash.replace("#", ""); await montrer(["packs", "encheres", "marche", "equipe", "lobby", "solo", "journee", "classement", "admin"].includes(h) ? h : (idsEffectif().length ? "equipe" : "packs")); }
   } catch (e) { toast("Serveur injoignable : " + e.message); }

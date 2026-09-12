@@ -151,8 +151,8 @@ def test_an_eleven_is_legal_as_soon_as_one_assignment_works():
     val = ["FWD", "DEF", "MID"]
     avec = [["GK"]] + [["DEF"]] * 4 + [val] + [["MID"]] * 2 + [["FWD"]] * 3
     assert S.onze_legal(avec, "4-3-3")                # he takes the midfield slot
-    # and 4-4-2 needs a fourth midfielder that nobody else can be
-    assert not S.onze_legal(avec, "4-4-2")
+    # and 3-4-2-1 wants four midfielders, which this eleven cannot field
+    assert not S.onze_legal(avec, "3-4-2-1")
     deux = [["GK"]] + [["DEF"]] * 4 + [val, val] + [["MID"]] * 2 + [["FWD"]] * 2
     assert S.onze_legal(deux, "4-4-2")                # with a second one, it is
     assert not S.onze_legal([["FWD"]] * 11)           # no keeper, no defence

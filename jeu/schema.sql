@@ -251,6 +251,8 @@ CREATE TABLE IF NOT EXISTS rencontre (
     onze_b           TEXT,
     banc_a           TEXT,                          -- JSON [player_id], order of entry
     banc_b           TEXT,
+    formation_a      TEXT,                          -- the shape each side lined up in
+    formation_b      TEXT,
     tactique_a       TEXT NOT NULL,                 -- JSON {tempo, bloc, risque} at kick-off
     tactique_b       TEXT,
     ajustements      TEXT NOT NULL DEFAULT '{}',    -- JSON {minute: [tactique A | null, tactique B | null]}

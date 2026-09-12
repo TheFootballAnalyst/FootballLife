@@ -107,8 +107,14 @@ FORMATIONS_COMPTES = _S.FORMATIONS
 
 
 def familles_formation(formation: str) -> list[str]:
-    g, d, m, f = _S.FORMATIONS[formation]
-    return ["GK"] * g + ["DEF"] * d + ["MID"] * m + ["FWD"] * f
+    return _S.familles_formation(formation)
+
+
+# What it costs to field a player out of his position — a centre-back at
+# left back, a winger up front.  Ten points off every attribute: enough
+# that the manager feels it, not so much that a squad with a hole in it
+# becomes unplayable.  The eleven is still legal; it is simply worse.
+MALUS_HORS_POSTE = 10
 
 
 def _z(attr: int) -> float:
@@ -187,6 +193,7 @@ class Equipe:
     joueurs: list[dict]
     tactique: Tactique = field(default_factory=Tactique)
     banc: list[dict] = field(default_factory=list)
+    formation: str = "4-3-3"
 
     def trait(self, cle: str) -> float:
         return traits(self.joueurs)[cle]
@@ -510,21 +517,35 @@ def style(joueurs: list[dict]) -> str:
 
 # --------------------------------------------------------------------------
 
-def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe") -> Equipe:
-    """Build an eleven from the game base's cards."""
+def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
+                       postes_slots: list[str] | None = None) -> Equipe:
+    """Build an eleven from the game base's cards.
+
+    `postes_slots` is the formation's position for each slot.  A card
+    fielded away from a position it really held keeps its line but loses
+    MALUS_HORS_POSTE on every attribute: a centre-back at left back is a
+    worse left back, and the manager should see it in the match rather
+    than only in a warning.
+    """
     import json
     from jeu import scoring as S
     joueurs = []
-    for pid in pids:
-        row = jeu.execute("""SELECT j.nom, j.poste, c.ovr, c.attributs FROM carte c
+    for i, pid in enumerate(pids):
+        row = jeu.execute("""SELECT j.nom, j.poste, c.ovr, c.attributs, j.postes FROM carte c
                              JOIN joueur j ON j.player_id = c.player_id
                              WHERE c.player_id = ? AND c.saison = ?""", (pid, saison)).fetchone()
         if not row:
             continue
-        nom_j, poste, ovr, attrs = row
-        joueurs.append({"pid": pid, "nom": nom_j, "poste": poste,
-                        "fam": S.FAMILLE_POSTE.get(poste, "MID"), "ovr": ovr,
-                        "attributs": json.loads(attrs or "{}")})
+        nom_j, poste, ovr, attrs, postes = row
+        tenus = json.loads(postes) if postes else [poste]
+        attributs = json.loads(attrs or "{}")
+        slot = postes_slots[i] if postes_slots and i < len(postes_slots) else None
+        dehors = bool(slot) and S.hors_poste(tenus, slot)
+        if dehors:
+            attributs = {k: max(40, v - MALUS_HORS_POSTE) for k, v in attributs.items()}
+        fam = S.FAMILLE_POSTE.get(slot or poste, S.FAMILLE_POSTE.get(poste, "MID"))
+        joueurs.append({"pid": pid, "nom": nom_j, "poste": poste, "fam": fam, "ovr": ovr,
+                        "attributs": attributs, "slot": slot, "hors_poste": dehors})
     return Equipe(nom, joueurs)
 
 

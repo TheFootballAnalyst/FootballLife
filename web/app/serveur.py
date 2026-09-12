@@ -236,6 +236,8 @@ def saison(jeu=Depends(bd)):
         "economie": eco, "bareme": ech, "equipes": n_equipes,
         "quotas": QUOTA, "taille_effectif": TAILLE_EFFECTIF, "taille_banc": S.TAILLE_BANC,
         "formations": S.FORMATIONS, "limites": S.LIMITES_FAMILLE,
+        "formations_rangs": {k: [list(r) for r in v] for k, v in S.FORMATIONS_RANGS.items()},
+        "familles_poste": S.FAMILLE_POSTE,
     }
 
 
