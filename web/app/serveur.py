@@ -247,6 +247,8 @@ def saison(jeu=Depends(bd)):
                             for choix, (axes, postes) in options.items()}
                       for axe, options in SM.AFFINITES.items()},
         "aise": {"max": SM.AISE_MAX, "z": SM.AISE_Z, "seuil": SM.ECART_AISE},
+        "causeries": list(SM.CAUSERIES),
+        "mi_temps": SM.MI_TEMPS, "duree_causerie": SM.DUREE_CAUSERIE,
     }
 
 
@@ -461,13 +463,18 @@ def tactique_de(jeu, e) -> dict:
         brut = json.loads(e["tactique"] or "{}")
     except (TypeError, KeyError, IndexError, json.JSONDecodeError):
         brut = {}
-    brut.pop("formation", None)     # la forme appartient à la composition
+    # Ni la forme ni le marquage : la première appartient à la
+    # composition, le second vise un joueur d'un match précis et n'a
+    # aucun sens comme réglage permanent du club.
+    for cle in ("formation", "marquage"):
+        brut.pop(cle, None)
     try:
         t = SM.Tactique(**brut).valide()
     except TypeError:               # une clé qui n'existe plus
         t = SM.Tactique().valide()
     d = vars(t).copy()
-    d.pop("formation", None)
+    for cle in ("formation", "marquage"):
+        d.pop(cle, None)
     return d
 
 
@@ -730,13 +737,15 @@ def equipe_tactique(t: TactiqueClub, u=Depends(exiger), jeu=Depends(bd)):
     et sert à tous les matchs, classés, défis et campagnes solo."""
     e = equipe_de(jeu, u)
     brut = dict(t.tactique or {})
-    brut.pop("formation", None)
+    for cle in ("formation", "marquage"):
+        brut.pop(cle, None)
     try:
         valide = SM.Tactique(**brut).valide()
     except TypeError:
         raise HTTPException(400, "Réglage tactique inconnu")
     d = vars(valide).copy()
-    d.pop("formation", None)
+    for cle in ("formation", "marquage"):
+        d.pop(cle, None)
     jeu.execute("UPDATE equipe SET tactique=? WHERE equipe_id=?",
                 (json.dumps(d, ensure_ascii=False), e["equipe_id"]))
     jeu.commit()
@@ -788,6 +797,20 @@ def lobby_pause(c: Pause, u=Depends(exiger), jeu=Depends(bd)):
     if not LB.solitaire(r):
         raise HTTPException(409, "On ne met pas un match classé en pause")
     LB.suspendre(jeu, r, c.pause)
+    return LB.etat(jeu, SAISON, e["equipe_id"])
+
+
+class Causerie(BaseModel):
+    causerie: str
+
+
+@app.post("/api/lobby/causerie")
+def lobby_causerie(c: Causerie, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    try:
+        LB.causer(jeu, SAISON, e["equipe_id"], c.causerie)
+    except LB.ErreurLobby as err:
+        raise HTTPException(409, str(err))
     return LB.etat(jeu, SAISON, e["equipe_id"])
 
 
@@ -871,6 +894,16 @@ def _match_solo(jeu, equipe_id: int):
 def solo_pause(c: Pause, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     LB.suspendre(jeu, _match_solo(jeu, e["equipe_id"]), c.pause)
+    return SO.etat(jeu, SAISON, e["equipe_id"])
+
+
+@app.post("/api/solo/causerie")
+def solo_causerie(c: Causerie, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    try:
+        LB.causer(jeu, SAISON, e["equipe_id"], c.causerie, _match_solo(jeu, e["equipe_id"]))
+    except LB.ErreurLobby as err:
+        raise HTTPException(409, str(err))
     return SO.etat(jeu, SAISON, e["equipe_id"])
 
 

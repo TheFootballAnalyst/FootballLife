@@ -214,6 +214,7 @@ def test_a_club_keeps_its_starting_tactic_and_every_match_begins_with_it(client)
     e = client.get("/api/equipe").json()
     assert e["tactique"]["tempo"] == "equilibre" and e["tactique"]["lateraux"] == "couloir"
     assert "formation" not in e["tactique"], "la forme appartient à la composition"
+    assert "marquage" not in e["tactique"], "le marquage vise un joueur d'un match précis"
 
     voulue = {"tempo": "possession", "bloc": "haut", "risque": "prudent",
               "lateraux": "axe", "ailiers": "interieur", "milieux": "bas",

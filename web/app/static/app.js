@@ -991,6 +991,7 @@ function panneauAttente(d) {
 // ---------------------------------------------------------------------------
 const ONGLETS_MATCH = {direct: "Le direct", tactique: "Tactique", stats: "Statistiques"};
 let ONGLET = "direct";
+const MATCH_FINI_VU = new Set();     // pour n'ouvrir la feuille qu'une fois
 
 function couleurNote(n) { return n >= 7.5 ? "haute" : n >= 6.5 ? "bonne" : n >= 5.5 ? "" : "basse"; }
 
@@ -1061,14 +1062,20 @@ function ongletStats(d) {
     };
     fiches.sort((x, y) => y.note - x.note);
     const h = el("div", {class: "hommes"});
-    for (const f of fiches.slice(0, 5)) {
+    fiches.slice(0, m.fini ? 6 : 5).forEach((f, i) => {
       const [n, c] = nom(f.pid);
-      h.append(el("div", {class: "homme" + (c === "ab"[moi] ? " mien" : "")},
+      const faits = [];
+      if (f.buts) faits.push(`${f.buts} but${f.buts > 1 ? "s" : ""}`);
+      if (f.passes_d) faits.push(`${f.passes_d} passe${f.passes_d > 1 ? "s" : ""} d.`);
+      if (f.arrets) faits.push(`${f.arrets} arrêt${f.arrets > 1 ? "s" : ""}`);
+      faits.push(`${f.touches} ballons`);
+      h.append(el("div", {class: "homme" + (c === "ab"[moi] ? " mien" : "") + (i === 0 && m.fini ? " premier" : "")},
         el("b", {class: "note " + couleurNote(f.note)}, f.note.toFixed(1)),
         el("span", {}, n),
-        el("span", {class: "compteur"}, `${f.touches} ballons · ${f.tirs} tir${f.tirs > 1 ? "s" : ""}`)));
-    }
-    p.append(el("div", {class: "etiq"}, "Les hommes du match"), h);
+        i === 0 && m.fini ? el("span", {class: "medaille"}, "homme du match") : null,
+        el("span", {class: "compteur"}, faits.join(" · "))));
+    });
+    p.append(el("div", {class: "etiq"}, m.fini ? "La feuille de match" : "Les hommes du match"), h);
   }
   return p;
 }
@@ -1137,10 +1144,17 @@ function ongletDirect(d) {
   const m = d.match, moi = d.cote === "b" ? 1 : 0;
   const p = el("div", {class: "onglet-corps"});
   const fil = el("div", {class: "fil"});
-  for (const e of [...m.evenements].reverse())
-    fil.append(el("div", {class: "evt " + e.type + (e.cote === "AB"[moi] ? " mien" : "")},
+  for (const e of [...m.evenements].reverse()) {
+    const l = el("div", {class: "evt " + e.type + (e.cote === "AB"[moi] ? " mien" : "")},
       el("span", {class: "min"}, e.minute + "'"), el("span", {class: "ico"}, EVT_ICONE[e.type] || "•"),
-      el("span", {class: "txt"}, e.texte)));
+      el("span", {class: "txt"}, e.texte));
+    // d'où venait le but : une action à une passe ne raconte pas la même
+    // chose qu'une action à six
+    if (e.type === "but" && e.passes !== undefined)
+      l.append(el("span", {class: "amont"},
+        e.passes <= 1 ? "action directe" : `${e.passes} passes, parti de ${(e.depart || "").split(" ").slice(-1)[0]}`));
+    fil.append(l);
+  }
   if (!m.evenements.length) fil.append(el("p", {class: "compteur"}, "Le match vient de commencer."));
   p.append(fil);
   return p;
@@ -1190,7 +1204,12 @@ function panneauMatch(d, routeTac = "/lobby/tactique", routePause = "/lobby/paus
     if (cle === "tactique" && m.fini) continue;
     barre.append(el("button", {"data-onglet": cle, onclick: () => { ONGLET = cle; dessiner(); }}, lib));
   }
-  if (m.fini && ONGLET === "tactique") ONGLET = "direct";
+  // Au coup de sifflet final, c'est la feuille de match qu'on veut voir,
+  // pas le fil des actions qu'on vient de regarder passer.
+  if (m.fini && (ONGLET === "tactique" || !MATCH_FINI_VU.has(m.rencontre_id))) {
+    ONGLET = "stats";
+    MATCH_FINI_VU.add(m.rencontre_id);
+  }
   p.append(barre, corpsOnglet);
   dessiner();
   bloc.append(p);
@@ -1749,10 +1768,13 @@ function jouerPhase(t, ph, moi) {
     b.hidden = true;
   }
   // le libellé d'action vit dans la légende, au-dessus du terrain
+  // Le commentaire vient du moteur (simulation.PHRASES) : il est tiré du
+  // même générateur que la séquence, donc rejouer un match redonne mot
+  // pour mot le même récit.  L'étiquette ne sert que de secours.
   const nom = T2D.noeud && T2D.noeud.querySelector(".t2d-action");
   if (nom) {
     const j = porteur ? porteur.getAttribute("title").split(" · ")[0] : "";
-    nom.textContent = (PHASE_TXT[ph.k] || "") + (j ? " — " + j : "");
+    nom.textContent = ph.d || (PHASE_TXT[ph.k] || "") + (j ? " — " + j : "");
     nom.className = "t2d-action " + ph.k;
   }
 }
@@ -2077,6 +2099,9 @@ function blocAjuster(d, routeTac, routePause, rendre) {
     AJU.noeud = construireAjuster(d, routeTac, routePause, rendre);
   }
   majAjuster(d, routePause, rendre);
+  majCauserie(d, routeTac, rendre);
+  majMarquage(d, routeTac, rendre);
+  majTireurs(d);
   const chg = blocChangements(d, routeTac === "/solo/tactique" ? "/solo/changement" : "/lobby/changement", rendre);
   // et on ne le réinsère que s'il a VRAIMENT changé : détacher puis
   // rattacher le même nœud pour rien, c'est le clic du manager qu'on
@@ -2107,6 +2132,8 @@ function construireAjuster(d, routeTac, routePause, rendre) {
     AJU.pause.append(AJU.boutonPause);
     p.append(AJU.pause);
   }
+  AJU.causerie = el("div", {});
+  p.append(AJU.causerie);
   p.append(selecteurTactique(tac, envoyer));
   // La formation change EN COURS DE MATCH : les onze restent sur le
   // terrain, on les redistribue sur les postes de la nouvelle forme
@@ -2123,12 +2150,103 @@ function construireAjuster(d, routeTac, routePause, rendre) {
       + "et elle se voit sur le terrain : un latéral qui reste derrière ne monte plus, "
       + "un ailier qui repique quitte le couloir."),
     selecteurConsignes(tac, envoyer)));
+  // Museler un joueur d'en face.  C'est la seule consigne qui regarde
+  // l'autre équipe, et elle est légitime : son onze est sur le terrain,
+  // on le voit jouer.
+  AJU.marquage = el("div", {class: "marquage"});
+  p.append(AJU.marquage);
+  AJU.tireurs = el("div", {class: "compteur tireurs"});
+  p.append(AJU.tireurs);
   AJU.corps = el("div", {});
   p.append(AJU.corps);
   return p;
 }
 
-const AXES_TAC = ["tempo", "bloc", "risque", "formation",
+// La causerie : seulement à la mi-temps, et seulement une fois.
+const CAUSERIE_TXT = {
+  secouer: ["Les secouer", "De l'urgence, moins de sang-froid. Ça porte surtout quand on est mené."],
+  rassurer: ["Les rassurer", "Du sang-froid, moins d'élan. Ça tient un résultat, ça n'en renverse pas."],
+  feliciter: ["Les féliciter", "Ça porte quand ça va bien. Quand ça va mal, c'est hors sujet et ça endort."],
+};
+
+function majCauserie(d, routeTac, rendre) {
+  const m = d.match, cote = d.cote === "b" ? "b" : "a";
+  const z = AJU.causerie;
+  if (!z) return;
+  const dite = m.causerie?.[cote];
+  const cest = m.pause && m.motif_pause === "mi-temps";
+  if (dite && dite !== "rien") {
+    z.replaceChildren(el("div", {class: "causerie dite"},
+      `À la pause, tu les as ${{"secouer": "secoués", "rassurer": "rassurés", "feliciter": "félicités"}[dite] || "laissés"}.`));
+    return;
+  }
+  if (!cest) { z.replaceChildren(); return; }
+  const route = routeTac.replace("tactique", "causerie");
+  const b = el("div", {class: "causerie"},
+    el("div", {class: "etiq"}, "🗣 Mi-temps — tu leur dis quoi ?"),
+    el("p", {class: "compteur"},
+      `Ce que tu dis ne vaut pas la même chose selon le score. L'effet dure ${G.saison?.duree_causerie ?? 20} minutes, `
+      + "et tu ne parles qu'une fois."));
+  const choix = el("div", {class: "tac-groupe"});
+  for (const [cle, [lib, aide]] of Object.entries(CAUSERIE_TXT))
+    choix.append(el("button", {class: "tac", title: aide, onclick: async () => {
+      try { await rendre(await api(route, {causerie: cle})); } catch (e) { toast(e.message); }
+    }}, lib));
+  choix.append(el("button", {class: "tac discret", onclick: async () => {
+    try { await rendre(await api(route, {causerie: "rien"})); } catch (e) { toast(e.message); }
+  }}, "Ne rien dire"));
+  b.append(choix);
+  z.replaceChildren(b);
+}
+
+function majMarquage(d, routeTac, rendre) {
+  const m = d.match, cote = d.cote === "b" ? "b" : "a", adv = cote === "a" ? "b" : "a";
+  const z = AJU.marquage;
+  if (!z || m.fini) { if (z) z.replaceChildren(); return; }
+  const tous = [...(m.onze?.[adv] || []), ...(m.banc?.[adv] || [])];
+  const sur = (m.sur_le_terrain?.[adv] || []).map(pid => tous.find(j => j.pid === pid)).filter(Boolean);
+  const actuel = AJU.tac.marquage || 0;
+  const paire = m.marquage?.[cote];
+  const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, "Marquage"));
+  g.append(el("button", {class: "tac" + (!actuel ? " actif" : ""),
+    onclick: () => { AJU.tac.marquage = 0; envoyerTac(d, routeTac, rendre); }}, "Personne"));
+  for (const j of sur.filter(x => x.fam !== "GK").slice(0, 10))
+    g.append(el("button", {class: "tac" + (actuel === j.pid ? " actif" : ""),
+      title: `${j.nom} · ${j.slot || j.poste} · OVR ${j.ovr}`,
+      onclick: () => { AJU.tac.marquage = j.pid; envoyerTac(d, routeTac, rendre); }},
+      (j.nom || "").split(" ").slice(-1)[0]));
+  z.replaceChildren(
+    el("p", {class: "compteur"},
+      "Coller un homme sur l'un des leurs. Il pèse moins — d'autant moins qu'il est fort — "
+      + "mais celui qui le suit passe son match à le suivre. Ça ne se justifie que contre un vrai danger."),
+    el("div", {class: "tactiques"}, g));
+  if (paire) {
+    const nom = pid => (tous.find(x => x.pid === pid)?.nom
+      || [...(m.onze?.[cote] || []), ...(m.banc?.[cote] || [])].find(x => x.pid === pid)?.nom || "?");
+    z.append(el("div", {class: "compteur"}, `${nom(paire.garde)} suit ${nom(paire.cible)}.`));
+  }
+}
+
+// Qui tire les penaltys et les corners : lu dans le onze, pas choisi.
+// Le meilleur finisseur prend les penaltys, le meilleur créateur les
+// corners, et ça change tout seul quand il sort.
+function majTireurs(d) {
+  const m = d.match, cote = d.cote === "b" ? "b" : "a";
+  if (!AJU.tireurs) return;
+  const t = m.tireurs?.[cote];
+  if (!t) { AJU.tireurs.replaceChildren(); return; }
+  const tous = [...(m.onze?.[cote] || []), ...(m.banc?.[cote] || [])];
+  const nom = pid => (tous.find(x => x.pid === pid)?.nom || "—").split(" ").slice(-1)[0];
+  AJU.tireurs.textContent =
+    `Penaltys : ${nom(t.penalty)} · corners : ${nom(t.corner)} — le meilleur finisseur et le meilleur créateur de ton onze.`;
+}
+
+function envoyerTac(d, routeTac, rendre) {
+  AJU.attendu = {...AJU.tac};
+  api(routeTac, {tactique: {...AJU.tac}}).then(rendre).catch(e => { AJU.attendu = null; toast(e.message); });
+}
+
+const AXES_TAC = ["tempo", "bloc", "risque", "formation", "marquage",
                   "lateraux", "ailiers", "milieux", "attaquants", "relance"];
 
 function memeTactique(a, b) {

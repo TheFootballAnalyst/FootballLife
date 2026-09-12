@@ -112,10 +112,17 @@ def test_the_better_eleven_wins_far_more_often():
     fort, faible = onze(90), onze(55, 20)
     v = sum(SM.jouer(SM.Equipe("A", fort), SM.Equipe("B", faible), i)["resultat"] == "A" for i in range(200))
     assert v >= 150
-    # and two equal elevens are close to even
-    eq = sum(SM.jouer(SM.Equipe("A", onze(75)), SM.Equipe("B", onze(75, 20)), i)["resultat"] == "A"
-             for i in range(200))
-    assert 70 <= eq <= 130
+    # Et deux onze égaux se valent.  Ce qu'on vérifie, c'est qu'AUCUN
+    # CÔTÉ n'est favorisé — pas que A gagne une part absolue, qui dépend
+    # aussi du taux de nuls.  Comparer A à B plutôt qu'à une borne
+    # divise la variance et teste la vraie propriété : sur deux cents
+    # matchs, un écart-type vaut déjà sept victoires, et la borne
+    # précédente tombait à moins d'un écart-type de la moyenne.
+    res = [SM.jouer(SM.Equipe("A", onze(75)), SM.Equipe("B", onze(75, 20)), i)["resultat"]
+           for i in range(600)]
+    a, b = res.count("A"), res.count("B")
+    assert abs(a - b) <= 60, (a, b)                 # deux écarts-types
+    assert 0.28 <= a / len(res) <= 0.48, a / len(res)
 
 
 def test_the_tactics_form_a_cycle_and_none_is_free():
@@ -702,3 +709,123 @@ def test_the_opponent_is_read_from_the_match_never_from_his_settings():
     bas = [SM.lecture_adverse(SM.jouer(a, SM.Equipe("B", onze(74, 20), SM.Tactique(bloc="bas")), i), "a")
            for i in range(20)]
     assert not any("bloc" in " ".join(x) for x in haut + bas)
+
+
+# --------------------------------------------------------------------------
+# Commentaire, coups de pied arrêtés, causerie, marquage
+# --------------------------------------------------------------------------
+
+def test_every_phase_is_told_and_the_story_is_reproducible():
+    a, b = SM.Equipe("A", onze(74)), SM.Equipe("B", onze(74, 20))
+    f, g = SM.jouer(a, b, 17), SM.jouer(a, b, 17)
+    dits = [x["d"] for l in f["fil"] for x in l["s"]]
+    assert all(dits), "une phase sans phrase ne se raconte pas"
+    assert [x["d"] for l in g["fil"] for x in l["s"]] == dits, "le récit doit être reproductible"
+    assert len(set(dits)) > 20, "toujours la même phrase, ce n'est pas un commentaire"
+    # et le nom du joueur y est
+    for l in f["fil"]:
+        for x in l["s"]:
+            if x["k"] == "tir":
+                assert f"J{x['p']}" in x["d"]
+                return
+
+
+def test_a_goal_says_where_it_came_from():
+    for graine in range(30):
+        f = SM.jouer(SM.Equipe("A", onze(74)), SM.Equipe("B", onze(74, 20)), graine)
+        buts = [e for e in f["evenements"] if e["type"] == "but" and not e.get("penalty")]
+        if buts:
+            assert buts[0]["passes"] >= 0 and buts[0]["depart"]
+            return
+    raise AssertionError("aucun but en trente matchs")
+
+
+def test_set_pieces_have_a_designated_taker_read_from_the_eleven():
+    j = onze(74)
+    j[9]["attributs"]["FIN"] = 99
+    j[7]["attributs"]["CRE"] = 99
+    t = SM.tireurs(j)
+    assert t["penalty"]["pid"] == j[9]["pid"]
+    assert t["corner"]["pid"] == j[7]["pid"]
+    assert t["penalty"]["fam"] != "GK" and t["corner"]["fam"] != "GK"
+    # et c'est bien lui qui s'avance dans la feuille
+    f = SM.jouer(SM.Equipe("A", j), SM.Equipe("B", onze(74, 20)), 5)
+    assert f["tireurs"]["a"]["penalty"] == j[9]["pid"]
+
+
+def test_penalties_happen_at_the_rate_football_gives_them():
+    pen, marques, n = 0, 0, 400
+    for i in range(n):
+        f = SM.jouer(SM.Equipe("A", onze(64)), SM.Equipe("B", onze(64, 20)), i)
+        pen += sum(f["penaltys"])
+        marques += sum(1 for e in f["evenements"] if e.get("penalty"))
+    assert 0.15 <= pen / n <= 0.38, pen / n           # le vrai football : ~0,25 par match
+    assert 0.70 <= marques / max(1, pen) <= 0.90, marques / pen
+
+
+def test_a_team_talk_depends_on_the_score_when_it_is_given():
+    """Secouer une équipe menée et secouer une équipe qui mène ne
+    donnent pas la même chose : c'est ce qui en fait une décision."""
+    t = {"controle": 0.5, "percussion": 0.5, "creation": 0.5,
+         "finition": 0.5, "defense": 0.5, "gardien": 0.5}
+    menes = SM.appliquer_causerie(t, "secouer", "menes")
+    mene = SM.appliquer_causerie(t, "secouer", "mene")
+    assert menes["percussion"] > mene["percussion"] > t["percussion"]
+    assert menes["controle"] < mene["controle"] < t["controle"]
+    # féliciter porte quand ça va bien et pas quand ça va mal
+    assert SM.appliquer_causerie(t, "feliciter", "mene")["finition"] > t["finition"]
+    assert SM.appliquer_causerie(t, "feliciter", "menes")["percussion"] < t["percussion"]
+    # ne rien dire ne change rien
+    assert SM.appliquer_causerie(t, "rien", "nul") == t
+
+
+def test_every_team_talk_is_a_trade_and_stays_bounded():
+    for causerie, situations in SM.CAUSERIES.items():
+        for sit, effets in situations.items():
+            if not effets:
+                continue
+            assert any(v > 1 for v in effets.values()), f"{causerie}/{sit} ne donne rien"
+            assert any(v < 1 for v in effets.values()), f"{causerie}/{sit} ne coûte rien"
+            assert all(SM.CAUSERIE_MIN <= v <= SM.CAUSERIE_MAX for v in effets.values())
+
+
+def test_a_talk_only_acts_on_the_minutes_that_follow_it():
+    a, b = SM.Equipe("A", onze(74)), SM.Equipe("B", onze(74, 20))
+    muet = SM.jouer(a, b, 23)
+    parle = SM.jouer(a, b, 23, causeries=("secouer", "rien"))
+    # la première période est identique au but près
+    assert [l["c"] for l in muet["fil"][:SM.MI_TEMPS]] == [l["c"] for l in parle["fil"][:SM.MI_TEMPS]]
+    assert parle["causerie"]["a"] == "secouer"
+
+
+def test_marking_only_pays_against_their_standout():
+    """Détacher un homme coûte toujours ; ça ne rapporte que si celui
+    d'en face sort vraiment DE SON PROPRE ONZE."""
+    med = SM.PROFIL_REPERE["MID"]
+    eleven = onze(70, 20)
+    star = eleven[9]
+    for k, v in SM.PROFIL_REPERE["FWD"].items():
+        star["attributs"][k] = v[0] + 3 * v[1]
+    star["profil"] = SM.profil(star["attributs"], "FWD")
+    for j in eleven:
+        j.setdefault("slot", {"GK": "Gardien", "DEF": "Defenseur central",
+                              "MID": "Milieu relayeur", "FWD": "Buteur"}[j["fam"]])
+    quelconque = eleven[6]
+    sur = [[dict(x) for x in onze(70)], [dict(x) for x in eleven]]
+    SM.poser_marquage(sur, [SM.Tactique(marquage=star["pid"]).valide(), SM.Tactique()])
+    bride_star = next(x for x in sur[1] if x["pid"] == star["pid"])["marque"]
+    sur = [[dict(x) for x in onze(70)], [dict(x) for x in eleven]]
+    SM.poser_marquage(sur, [SM.Tactique(marquage=quelconque["pid"]).valide(), SM.Tactique()])
+    bride_autre = next(x for x in sur[1] if x["pid"] == quelconque["pid"])["marque"]
+    assert bride_star < bride_autre, "leur meilleur doit être plus bridé qu'un joueur ordinaire"
+    assert bride_star >= 1 - SM.MARQUAGE_EFFET - 1e-9
+    # et celui qui le suit le paie, toujours
+    garde = next(x for x in sur[0] if x.get("marqueur_de"))
+    assert SM._bride(garde) == SM.MARQUAGE_GARDE
+
+
+def test_marking_someone_who_is_not_on_the_pitch_does_nothing():
+    sur = [[dict(x) for x in onze(70)], [dict(x) for x in onze(70, 20)]]
+    paires = SM.poser_marquage(sur, [SM.Tactique(marquage=999_999).valide(), SM.Tactique()])
+    assert paires == [None, None]
+    assert not any(j.get("marque") or j.get("marqueur_de") for c in sur for j in c)

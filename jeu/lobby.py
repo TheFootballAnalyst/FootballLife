@@ -362,7 +362,8 @@ def feuille(jeu, saison: str, r, minute: int | None = None) -> dict:
     # campaign.  Side A's injuries are never replaced behind his back: the
     # sheet reports them and the screen stops to ask.
     f = SM.jouer(a, b, r["graine"], _tactiques(r), jusqua=m, changements=_remplacements(r),
-                 auto_remplacement=(False, True))
+                 auto_remplacement=(False, True),
+                 causeries=(_champ(r, "causerie_a") or "rien", _champ(r, "causerie_b") or "rien"))
     f["rencontre_id"] = r["rencontre_id"]
     f["pause"] = en_pause(r)
     f["solitaire"] = solitaire(r)
@@ -405,6 +406,29 @@ def ajuster(jeu, saison: str, equipe_id: int, tactique: dict, r=None) -> int:
     jeu.execute("UPDATE rencontre SET ajustements=? WHERE rencontre_id=?", (json.dumps(aj), r["rencontre_id"]))
     jeu.commit()
     return int(cle)
+
+
+def causer(jeu, saison: str, equipe_id: int, causerie: str, r=None) -> str:
+    """Parler à son équipe, à la mi-temps.
+
+    Seulement à la mi-temps — une causerie n'est pas un bouton qu'on
+    presse à la vingtième minute — et une seule fois : ce qui est dit
+    est dit."""
+    r = r if r is not None else en_cours(jeu, saison, equipe_id)
+    if not r or not r["debut"]:
+        raise ErreurLobby("Aucun match en cours")
+    if causerie not in SM.CAUSERIES:
+        raise ErreurLobby("Causerie inconnue")
+    m = minute_de(r)
+    if m < MI_TEMPS or m >= MI_TEMPS + SM.DUREE_CAUSERIE:
+        raise ErreurLobby("C'est à la mi-temps qu'on parle à son équipe")
+    cote = "a" if r["equipe_a"] == equipe_id else "b"
+    if _champ(r, f"causerie_{cote}"):
+        raise ErreurLobby("Tu leur as déjà parlé")
+    jeu.execute(f"UPDATE rencontre SET causerie_{cote}=? WHERE rencontre_id=?",
+                (causerie, r["rencontre_id"]))
+    jeu.commit()
+    return causerie
 
 
 def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int, r=None) -> int:
@@ -475,7 +499,7 @@ def cloturer(jeu, saison: str, r) -> dict | None:
     return f
 
 
-MI_TEMPS = 45                # la pause, comme au football
+MI_TEMPS = SM.MI_TEMPS       # la pause, comme au football
 
 
 def arbitrer(jeu, r, f: dict) -> dict:

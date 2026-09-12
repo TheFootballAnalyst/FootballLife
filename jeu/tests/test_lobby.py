@@ -371,3 +371,41 @@ def test_the_sheet_carries_a_reading_of_the_opponent_for_each_side():
     assert all(isinstance(x, list) for x in f["lecture"].values())
     # et les fiches des joueurs y sont, pour l'écran de match
     assert f["joueurs"] and all("note" in x for x in f["joueurs"].values())
+
+
+def test_a_manager_speaks_at_half_time_and_only_then():
+    jeu = base_avec_equipes(1)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True)
+    r = LB.en_cours(jeu, "2025/26", 1)
+    # trop tôt : on ne parle pas à son équipe à la vingtième minute
+    r20 = _reculer(jeu, r, LB.DUREE_REELLE * 0.2)
+    with pytest.raises(LB.ErreurLobby):
+        LB.causer(jeu, "2025/26", 1, "secouer", r20)
+    # une causerie inconnue est refusée
+    r46 = _reculer(jeu, r, LB.DUREE_REELLE * 0.52)
+    with pytest.raises(LB.ErreurLobby):
+        LB.causer(jeu, "2025/26", 1, "leur chanter une chanson", r46)
+    assert LB.causer(jeu, "2025/26", 1, "secouer", r46) == "secouer"
+    r46 = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    # ce qui est dit est dit
+    with pytest.raises(LB.ErreurLobby):
+        LB.causer(jeu, "2025/26", 1, "rassurer", r46)
+    assert LB.feuille(jeu, "2025/26", r46)["causerie"]["a"] == "secouer"
+    # et trop tard, c'est trop tard
+    r80 = _reculer(jeu, r46, LB.DUREE_REELLE * 0.9)
+    jeu.execute("UPDATE rencontre SET causerie_a=NULL WHERE rencontre_id=?", (r["rencontre_id"],))
+    jeu.commit()
+    r80 = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    with pytest.raises(LB.ErreurLobby):
+        LB.causer(jeu, "2025/26", 1, "secouer", r80)
+
+
+def test_the_sheet_names_the_set_piece_takers_of_both_sides():
+    jeu = base_avec_equipes(1)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True)
+    r = _reculer(jeu, LB.en_cours(jeu, "2025/26", 1), LB.DUREE_REELLE * 0.5)
+    f = LB.feuille(jeu, "2025/26", r)
+    for cote in ("a", "b"):
+        t = f["tireurs"][cote]
+        assert t["penalty"] in f["sur_le_terrain"][cote]
+        assert t["corner"] in f["sur_le_terrain"][cote]

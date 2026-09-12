@@ -271,6 +271,7 @@ CREATE TABLE IF NOT EXISTS rencontre (
     pause            TEXT,                          -- ISO instant the clock was stopped, NULL while running
     pause_cumul      INTEGER NOT NULL DEFAULT 0,    -- seconds already spent paused
     arrets_vus       TEXT,                          -- JSON [player_id] the referee already stopped play for
+    causerie_a       TEXT, causerie_b TEXT,          -- ce que chaque manager a dit à la mi-temps
     cree_le          TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_rencontre_attente ON rencontre(saison, equipe_b, debut);

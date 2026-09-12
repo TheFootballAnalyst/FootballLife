@@ -788,3 +788,23 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
   .match-tete .mt-eq .nom{font-size:15px}
   .mt-centre .live-score{font-size:26px}
 }
+
+.evt .amont{margin-left:auto;font-family:"Barlow Condensed",sans-serif;font-size:11.5px;
+  color:var(--sourd);white-space:nowrap;padding-left:10px}
+
+/* La causerie de mi-temps et le marquage */
+.causerie{border:1px solid rgba(216,180,90,.4);background:rgba(216,180,90,.08);
+  border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.causerie .etiq{color:var(--or2);font-size:13px}
+.causerie p{margin:4px 0 8px}
+.causerie.dite{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.03);color:var(--sourd);font-size:13px}
+.tac.discret{opacity:.7}
+.marquage{margin:8px 0 4px}
+.marquage .compteur{margin-bottom:4px}
+.marquage .tac-groupe{flex-wrap:wrap}
+
+.tireurs{margin:6px 0 2px}
+.homme.premier{background:linear-gradient(90deg,rgba(216,180,90,.22),rgba(216,180,90,.05));
+  border:1px solid rgba(216,180,90,.45)}
+.homme .medaille{font-family:"Barlow Condensed",sans-serif;font-size:11px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--or2);border:1px solid rgba(216,180,90,.5);border-radius:9px;padding:0 7px}

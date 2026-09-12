@@ -45,6 +45,7 @@ import random
 from dataclasses import dataclass, field
 
 MINUTES = 90
+MI_TEMPS = 45
 
 # --------------------------------------------------------------------------
 # Calibration.  Targets: about 12 shots and 1.4 goals a side, 26 % of draws.
@@ -82,6 +83,16 @@ P_CORNER = 0.075          # won in open play
 P_CORNER_TIR = 0.28       # after a save or a block
 P_HORSJEU = 0.10          # the attacking side is caught
 P_BLESSURE = 0.0022       # a player has to come off
+# Le penalty.  Une faute dans le dernier tiers peut être une faute DANS
+# la surface : le football en donne un peu plus d'un match sur quatre,
+# et un peu moins de huit sur dix sont transformés.
+# 0,024 par faute commise en zone 2 ou 3 donne 0,24 penalty par match,
+# ce que donne le vrai football (un peu moins d'un match sur quatre) ;
+# à 0,052, mon premier chiffre, il en tombait 0,56 et le score montait
+# de 1,29 à 1,50 but par camp.
+P_PENALTY = 0.024
+PENALTY_BASE = 0.76       # transformé, à parité de FIN et de gardien
+PENALTY_MIN, PENALTY_MAX = 0.62, 0.90
 MAX_CHANGEMENTS = 5       # substitutions a side may make
 FENETRE_CHANGEMENT = 3    # ... in this many stoppages, as the laws have it
 
@@ -339,7 +350,7 @@ def _z(attr: int) -> float:
 def _moyenne(joueurs: list[dict], familles: tuple[str, ...], axes: tuple[str, ...]) -> float:
     """Mean of `axes` over the players of those lines, 0-1.  An empty line
     reads as a weak one rather than as nothing."""
-    vals = [_z(j["attributs"].get(ax, 40)) * _forme(j) * j.get("aise", 1.0)
+    vals = [_z(j["attributs"].get(ax, 40)) * _forme(j) * j.get("aise", 1.0) * _bride(j)
             for j in joueurs if j["fam"] in familles for ax in axes]
     return sum(vals) / len(vals) if vals else 0.25
 
@@ -370,6 +381,10 @@ class Tactique:
     # What each line is asked to do (CONSIGNES).  Every default is
     # neutral, so a stored tactic written before they existed reads as a
     # manager who has not touched them.
+    # Le joueur adverse qu'on fait museler, s'il y en a un (0 = personne).
+    # C'est la seule consigne qui regarde l'AUTRE équipe — et elle est
+    # légitime : son onze est sur le terrain, on le voit jouer.
+    marquage: int = 0
     lateraux: str = "couloir"
     ailiers: str = "equilibre"
     milieux: str = "equilibre"
@@ -383,7 +398,11 @@ class Tactique:
         f = self.formation if self.formation in _S.FORMATIONS_RANGS else ""
         c = {axe: (getattr(self, axe) if getattr(self, axe, None) in opts else CONSIGNE_DEFAUT[axe])
              for axe, opts in CONSIGNES.items()}
-        return Tactique(t, b, r, f, **c)
+        try:
+            mq = int(self.marquage or 0)
+        except (TypeError, ValueError):
+            mq = 0
+        return Tactique(t, b, r, f, max(0, mq), **c)
 
 
 # Every setting is a TRADE, and the products below are balanced so that no
@@ -595,6 +614,23 @@ def _chance(ta: dict, tb: dict, tac_a: Tactique, tac_b: Tactique) -> tuple[float
     return min(TIR_PAR_MIN_MAX, tir), min(XG_MAX, xg)
 
 
+def _designe(joueurs: list[dict], axe: str) -> dict | None:
+    """Le tireur attitré : le meilleur du onze sur cet axe.
+
+    Pas un tirage — un penalty ou un corner, ça se prépare à
+    l'entraînement, et c'est toujours le même qui le tire tant qu'il est
+    sur le terrain.  Le gardien ne tire rien."""
+    champ = [j for j in joueurs if j.get("fam") != "GK"] or joueurs
+    if not champ:
+        return None
+    return max(champ, key=lambda j: (j["attributs"].get(axe, 40), j.get("ovr", 0), -j["pid"]))
+
+
+def tireurs(joueurs: list[dict]) -> dict[str, dict | None]:
+    """Qui tire les penaltys et qui frappe les corners, dans ce onze."""
+    return {"penalty": _designe(joueurs, "FIN"), "corner": _designe(joueurs, "CRE")}
+
+
 def _tireur(joueurs: list[dict], rng: random.Random, axe: str = "FIN") -> dict:
     """Who takes it: weighted by the axis, forwards first."""
     poids = []
@@ -610,6 +646,168 @@ def _tireur(joueurs: list[dict], rng: random.Random, axe: str = "FIN") -> dict:
         if acc >= seuil:
             return j
     return joueurs[-1]
+
+
+# --------------------------------------------------------------------------
+# Le marquage individuel
+# --------------------------------------------------------------------------
+# Coller un homme à leur meilleur joueur.  Ça marche : il touche moins
+# de ballons et il pèse moins.  Mais celui qui le suit passe son match à
+# le suivre — il joue son propre match en moins bien.  C'est l'échange,
+# et il est volontairement défavorable en moyenne : museler quelqu'un ne
+# doit se justifier que si ce quelqu'un est vraiment au-dessus.
+# Le bénéfice dépend de QUI on marque, le coût non.
+#
+# Un coût fixe et un bénéfice fixe donnaient l'inverse du bon sens :
+# museler leur milieu quelconque rapportait plus que museler leur star.
+# La cause est dans le modèle de traits, pas dans le marquage — un milieu
+# entre dans cinq des six traits d'équipe (contrôle, percussion,
+# création, finition, défense), un attaquant dans trois — si bien que
+# brider n'importe quel milieu retire plus de valeur totale que brider
+# un attaquant, même bien meilleur.  Aucun réglage des deux constantes ne
+# corrigeait ça : je les ai essayées de 0,78 à 0,86 côté cible et de 0,93
+# à 0,98 côté garde, les quatre combinaisons donnaient le même verdict.
+#
+# La réponse est donc de faire dépendre le bénéfice du NIVEAU de la
+# cible, mesuré contre sa propre ligne : détacher un homme ne se paie
+# que si celui d'en face est vraiment au-dessus des autres.  C'est aussi
+# ce que dit le football — on ne met pas un homme sur un joueur moyen.
+MARQUAGE_EFFET = 0.22        # ce qu'on retire, au plus, à une vraie star
+MARQUAGE_Z = 0.9             # l'écart à SON ONZE où l'effet est au maximum
+MARQUAGE_GARDE = 0.94        # ce qu'il reste à celui qui le suit, toujours
+
+
+def niveau_ligne(j: dict) -> float:
+    """De combien un joueur dépasse sa ligne, en écarts-types.
+
+    Le NIVEAU, pas la forme : ici on veut savoir s'il est meilleur que
+    les autres à son poste, pas sur quels axes il ressort."""
+    rep = PROFIL_REPERE.get(j.get("fam"))
+    if not rep:
+        return 0.0
+    z = [(j["attributs"].get(k, 40) - rep[k][0]) / rep[k][1] for k in AXES_PROFIL if k in rep]
+    return sum(z) / len(z) if z else 0.0
+
+
+def bride_cible(j: dict, eleven: list[dict]) -> float:
+    """Ce qu'il reste au joueur marqué : d'autant moins qu'il sort DE SON
+    PROPRE ONZE.
+
+    Contre le vivier et non contre son équipe, la mesure s'effondrait dès
+    que les deux camps étaient bons : dans deux onze d'élite tout le
+    monde est à plus d'un écart-type et demi du vivier, donc marquer
+    n'importe qui rapportait (+0,03 à +0,14 but, mesuré), et la consigne
+    devenait un choix gratuit.  Relativement à SON équipe, le meilleur
+    d'un onze est au-dessus de sa médiane quel que soit le niveau
+    absolu — et le moins bon est en dessous.  C'est d'ailleurs ce que
+    dit le football : on met un homme sur LEUR danger, pas sur un bon
+    joueur dans l'absolu."""
+    champ = [x for x in eleven if x.get("fam") != "GK"] or eleven
+    niveaux = sorted(niveau_ligne(x) for x in champ)
+    mediane = niveaux[len(niveaux) // 2] if niveaux else 0.0
+    part = max(0.0, min(1.0, (niveau_ligne(j) - mediane) / MARQUAGE_Z))
+    return 1.0 - MARQUAGE_EFFET * part
+
+
+def marqueur(joueurs: list[dict], cible: dict) -> dict | None:
+    """Qui va le suivre : le joueur de sa ligne qui défend le mieux.
+
+    Un attaquant se fait suivre par un défenseur, un milieu par un
+    milieu — on ne détache pas son buteur sur leur arrière droit."""
+    fam = cible.get("fam", "MID")
+    ordre = {"FWD": ("DEF", "MID"), "MID": ("MID", "DEF"), "DEF": ("MID", "FWD"), "GK": ()}
+    for f in ordre.get(fam, ("MID",)):
+        cands = [j for j in joueurs if j.get("fam") == f]
+        if cands:
+            return max(cands, key=lambda j: (j["attributs"].get("DEF", 40), -j["pid"]))
+    return None
+
+
+def poser_marquage(sur: list[list[dict]], tac: list["Tactique"]) -> list[dict | None]:
+    """Appliquer les marquages des deux camps, et dire qui suit qui."""
+    for c in (0, 1):
+        for j in sur[c]:
+            j.pop("marque", None)
+            j.pop("marqueur_de", None)
+    paires: list[dict | None] = [None, None]
+    for c in (0, 1):
+        pid = getattr(tac[c], "marquage", 0)
+        if not pid:
+            continue
+        cible = next((j for j in sur[1 - c] if j["pid"] == pid), None)
+        if cible is None:
+            continue                          # sorti, expulsé, jamais entré
+        garde = marqueur(sur[c], cible)
+        if garde is None:
+            continue
+        # le facteur est calculé ICI, une fois, contre son propre onze
+        cible["marque"] = bride_cible(cible, sur[1 - c])
+        garde["marqueur_de"] = cible["pid"]
+        paires[c] = {"cible": cible["pid"], "garde": garde["pid"]}
+    return paires
+
+
+def _bride(j: dict) -> float:
+    """Ce qu'il reste d'un joueur une fois le marquage posé."""
+    f = 1.0
+    if j.get("marque"):
+        f *= j["marque"]
+    if j.get("marqueur_de"):
+        f *= MARQUAGE_GARDE
+    return f
+
+
+# --------------------------------------------------------------------------
+# La causerie
+# --------------------------------------------------------------------------
+# À la mi-temps, un entraîneur parle.  Ce qu'il dit ne vaut pas la même
+# chose selon le score : secouer une équipe qui mène de deux buts n'a
+# rien à voir avec secouer une équipe menée.  C'est précisément ce qui
+# en fait une décision — sinon il suffirait de toujours choisir la même.
+#
+# L'effet est TEMPORAIRE (DUREE_CAUSERIE minutes de seconde période) et
+# borné, et chaque causerie reste un échange : ce qu'on gagne d'un côté
+# se paie de l'autre, comme tout le reste du jeu.
+#
+#   causerie -> {situation: {trait: facteur}}
+# La situation est lue au moment où l'on parle : "mene", "mené", "nul".
+DUREE_CAUSERIE = 20          # minutes pendant lesquelles ça agit
+CAUSERIES = {
+    "rien": {},
+    # Les secouer : de l'urgence, moins de sang-froid.
+    "secouer": {
+        "mene":  {"percussion": 1.04, "controle": 0.95},   # ils se relâchaient
+        "nul":   {"percussion": 1.09, "controle": 0.93},
+        "menes": {"percussion": 1.12, "controle": 0.91},   # dos au mur, ça répond
+    },
+    # Les rassurer : du sang-froid, moins d'élan.
+    "rassurer": {
+        "mene":  {"controle": 1.09, "defense": 1.05, "percussion": 0.93},
+        "nul":   {"controle": 1.06, "defense": 1.03, "percussion": 0.95},
+        "menes": {"controle": 1.03, "defense": 1.02, "percussion": 0.97},  # ça ne renverse rien
+    },
+    # Les féliciter : ça porte quand ça va bien, ça endort quand ça ne va pas.
+    "feliciter": {
+        "mene":  {"finition": 1.07, "creation": 1.05, "defense": 0.96},
+        "nul":   {"finition": 1.02, "defense": 0.98},
+        "menes": {"finition": 1.01, "percussion": 0.96, "defense": 0.97},  # hors sujet
+    },
+}
+CAUSERIE_MIN, CAUSERIE_MAX = 0.88, 1.14
+
+
+def situation(score: list[int], cote: int) -> str:
+    """Où en est mon équipe, au moment où je lui parle."""
+    ecart = score[cote] - score[1 - cote]
+    return "mene" if ecart > 0 else "menes" if ecart < 0 else "nul"
+
+
+def appliquer_causerie(t: dict[str, float], causerie: str, sit: str) -> dict[str, float]:
+    effets = CAUSERIES.get(causerie, {}).get(sit)
+    if not effets:
+        return t
+    return {k: max(0.0, min(1.0, v * max(CAUSERIE_MIN, min(CAUSERIE_MAX, effets.get(k, 1.0)))))
+            for k, v in t.items()}
 
 
 # --------------------------------------------------------------------------
@@ -765,22 +963,67 @@ def _un(rs: random.Random, joueurs: list[dict], *familles: str) -> dict | None:
     return rs.choice(cands) if cands else None
 
 
-def _pas(kind: str, j: dict | None, cote: int, zone: int, **extra) -> dict | None:
+# Le commentaire, phase par phase.
+#
+# Une étiquette (« Passe ») dit ce qui se passe ; une phrase le raconte.
+# Plusieurs tournures par phase, tirées du MÊME générateur que la
+# séquence : le commentaire d'un match est donc lui aussi reproductible,
+# et rejouer une rencontre redonne mot pour mot le même récit.
+#
+# {j} est le joueur qui a le ballon.  Les phrases restent courtes : elles
+# passent sur une ligne au-dessus du terrain, et on en lit une par
+# seconde.
+PHRASES = {
+    "relance": ["{j} relance", "Ça repart de {j}", "{j} repart de derrière", "{j} remet le pied dessus"],
+    "passe": ["{j} oriente", "Ballon pour {j}", "{j} décale", "{j} touche et redonne", "{j} casse une ligne"],
+    "conduite": ["{j} perce", "{j} élimine son homme", "{j} s'enfonce dans la surface", "{j} attaque la défense"],
+    "tir": ["{j} frappe !", "Frappe de {j} !", "{j} enroule !", "{j} déclenche !"],
+    "but": ["AU FOND ! {j} !", "BUT DE {j} !", "{j} ne tremble pas !"],
+    "arret": ["{j} la sort", "Arrêt de {j} !", "{j} se détend et repousse"],
+    "rate": ["À côté", "Ça passe au-dessus", "Le poteau le sauve", "Trop enlevé"],
+    "degagement": ["{j} dégage", "{j} renvoie loin", "{j} met le pied"],
+    "perte": ["{j} récupère", "Ballon perdu, {j} enchaîne", "{j} intercepte"],
+    "duel": ["{j} vient au contact", "Duel avec {j}", "{j} ferme l'espace"],
+    "faute": ["Faute de {j}", "{j} accroche", "{j} arrête l'action irrégulièrement"],
+    "carton": ["L'arbitre sort le carton pour {j}", "Averti, {j}"],
+    "coupfranc": ["{j} remet en jeu", "Coup franc joué par {j}", "{j} reprend le jeu"],
+    "corner": ["{j} au corner", "{j} va le tirer", "Corner frappé par {j}"],
+    "centre": ["Centre vers {j}", "{j} attaque le ballon", "Ça tombe pour {j}"],
+    "horsjeu": ["{j} est parti trop tôt", "Hors-jeu signalé sur {j}", "Le drapeau se lève, {j}"],
+    "engagement": ["On remet au centre, {j} engage", "{j} remet en jeu"],
+    "blessure": ["{j} reste au sol", "{j} ne peut pas continuer"],
+    "penalty": ["{j} prend le ballon", "{j} s'avance sur le point"],
+}
+
+
+def _court(nom: str) -> str:
+    """Le nom qu'on crie dans un stade : le dernier."""
+    return (nom or "").split(" ")[-1]
+
+
+def _dire(rs: random.Random, kind: str, j: dict | None) -> str:
+    tours = PHRASES.get(kind)
+    if not tours:
+        return ""
+    return rs.choice(tours).replace("{j}", _court(j["nom"]) if j else "")
+
+
+def _pas(rs: random.Random, kind: str, j: dict | None, cote: int, zone: int, **extra) -> dict | None:
     if j is None:
         return None
-    return {"k": kind, "p": j["pid"], "c": cote, "z": zone} | extra
+    return {"k": kind, "p": j["pid"], "c": cote, "z": zone, "d": _dire(rs, kind, j)} | extra
 
 
 def _construction(rs: random.Random, joueurs: list[dict], cote: int, jusqua: int) -> list[dict]:
     """The build-up: two to four touches, from the back towards `jusqua`."""
     out = []
     if joueurs and rs.random() < 0.30:
-        out.append(_pas("relance", _un(rs, joueurs, "GK"), cote, 0))
+        out.append(_pas(rs, "relance", _un(rs, joueurs, "GK"), cote, 0))
     out = [x for x in out if x]
-    out.append(_pas("passe" if out else "relance", _un(rs, joueurs, "DEF"), cote, 1))
-    out.append(_pas("passe", _un(rs, joueurs, "MID"), cote, min(2, max(1, jusqua))))
+    out.append(_pas(rs, "passe" if out else "relance", _un(rs, joueurs, "DEF"), cote, 1))
+    out.append(_pas(rs, "passe", _un(rs, joueurs, "MID"), cote, min(2, max(1, jusqua))))
     if jusqua >= 2 and rs.random() < 0.55:
-        out.append(_pas("passe", _un(rs, joueurs, "MID", "FWD"), cote, 2))
+        out.append(_pas(rs, "passe", _un(rs, joueurs, "MID", "FWD"), cote, 2))
     return [x for x in out if x]
 
 
@@ -793,40 +1036,51 @@ def sequence(rs: random.Random, sur: list[list[dict]], cote: int, zone: int, iss
 
     if q in ("but", "arret", "rate"):
         if tireur is not None:
-            pas.append(_pas("conduite", tireur, cote, 3))
+            pas.append(_pas(rs, "conduite", tireur, cote, 3))
             # where he aims: the posts more often than the middle
             cible = round(rs.choice([0.12, 0.22, 0.5, 0.78, 0.88]) + rs.uniform(-0.05, 0.05), 3)
-            pas.append(_pas("tir", tireur, cote, 3, t=max(0.05, min(0.95, cible))))
+            pas.append(_pas(rs, "tir", tireur, cote, 3, t=max(0.05, min(0.95, cible))))
         if q == "but":
-            pas.append(_pas("but", tireur, cote, 3, o=issue.get("passeur", {}).get("pid")
+            pas.append(_pas(rs, "but", tireur, cote, 3, o=issue.get("passeur", {}).get("pid")
                             if isinstance(issue.get("passeur"), dict) else None))
-            pas.append(_pas("engagement", _un(rs, sur[adv], "MID"), adv, 1))
+            pas.append(_pas(rs, "engagement", _un(rs, sur[adv], "MID"), adv, 1))
         elif q == "arret":
-            pas.append(_pas("arret", gk, adv, 0))
+            pas.append(_pas(rs, "arret", gk, adv, 0))
         else:
-            pas.append(_pas("rate", tireur, cote, 3))
-            pas.append(_pas("degagement", _un(rs, sur[adv], "GK"), adv, 0))
+            pas.append(_pas(rs, "rate", tireur, cote, 3))
+            pas.append(_pas(rs, "degagement", _un(rs, sur[adv], "GK"), adv, 0))
+    elif q == "penalty":
+        pt, gk2 = issue.get("tireur"), issue.get("gardien")
+        pas.append(_pas(rs, "faute", issue.get("fauteur"), adv, 3))
+        pas.append(_pas(rs, "penalty", pt, cote, 3))
+        cible = round(rs.choice([0.14, 0.24, 0.5, 0.76, 0.86]), 3)
+        pas.append(_pas(rs, "tir", pt, cote, 3, t=cible))
+        if issue.get("quoi_but"):
+            pas.append(_pas(rs, "but", pt, cote, 3))
+            pas.append(_pas(rs, "engagement", _un(rs, sur[adv], "MID"), adv, 1))
+        else:
+            pas.append(_pas(rs, "arret", gk2, adv, 0))
     elif q == "faute":
         fauteur = issue.get("fauteur")
-        pas.append(_pas("duel", fauteur, adv, zone))
-        pas.append(_pas("faute", fauteur, adv, zone))
+        pas.append(_pas(rs, "duel", fauteur, adv, zone))
+        pas.append(_pas(rs, "faute", fauteur, adv, zone))
         if issue.get("carton"):
-            pas.append(_pas("carton", fauteur, adv, zone, r=bool(issue.get("rouge"))))
-        pas.append(_pas("coupfranc", _un(rs, sur[cote], "MID", "DEF"), cote, zone))
+            pas.append(_pas(rs, "carton", fauteur, adv, zone, r=bool(issue.get("rouge"))))
+        pas.append(_pas(rs, "coupfranc", _un(rs, sur[cote], "MID", "DEF"), cote, zone))
     elif q == "horsjeu":
-        pas.append(_pas("horsjeu", issue.get("porteur"), cote, 3))
-        pas.append(_pas("degagement", _un(rs, sur[adv], "GK"), adv, 0))
+        pas.append(_pas(rs, "horsjeu", issue.get("porteur"), cote, 3))
+        pas.append(_pas(rs, "degagement", _un(rs, sur[adv], "GK"), adv, 0))
     elif q == "corner":
         pass                                  # the corner block below adds it
     else:
-        pas.append(_pas("perte", _un(rs, sur[adv], "DEF", "MID"), adv, zone))
+        pas.append(_pas(rs, "perte", _un(rs, sur[adv], "DEF", "MID"), adv, zone))
 
     if issue.get("corner"):
-        pas.append(_pas("corner", _un(rs, sur[cote], "MID", "FWD"), cote, 3))
-        pas.append(_pas("centre", _un(rs, sur[cote], "DEF", "FWD"), cote, 3))
-        pas.append(_pas("degagement", _un(rs, sur[adv], "DEF"), adv, 3))
+        pas.append(_pas(rs, "corner", _designe(sur[cote], "CRE") or _un(rs, sur[cote], "MID"), cote, 3))
+        pas.append(_pas(rs, "centre", _un(rs, sur[cote], "DEF", "FWD"), cote, 3))
+        pas.append(_pas(rs, "degagement", _un(rs, sur[adv], "DEF"), adv, 3))
     if issue.get("blesse") is not None:
-        pas.append(_pas("blessure", issue["blesse"], issue.get("cote_blesse", cote), zone))
+        pas.append(_pas(rs, "blessure", issue["blesse"], issue.get("cote_blesse", cote), zone))
     return [x for x in pas if x]
 
 
@@ -845,7 +1099,8 @@ def _remplacer(sur: list[dict], banc: list[dict], sortant: int, entrant: int) ->
 
 def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique | None, Tactique | None]] | None = None,
           jusqua: int = MINUTES, changements: dict[int, tuple[list, list]] | None = None,
-          auto_remplacement: tuple[bool, bool] = (True, True)) -> dict:
+          auto_remplacement: tuple[bool, bool] = (True, True),
+          causeries: tuple[str, str] = ("rien", "rien")) -> dict:
     """Play the match minute by minute and return its sheet.
 
     `tactiques` is the timeline of adjustments: {minute: (tactique A or
@@ -886,11 +1141,18 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
         if tac[c].formation and tac[c].formation != forme[c]:
             forme[c] = tac[c].formation
             appliquer_formation(sur[c], forme[c])
+    marquages = poser_marquage(sur, tac)
     t = [traits_diriges(sur[0], tac[0]), traits_diriges(sur[1], tac[1])]
+    # la causerie : ce que le manager a dit à la pause, et dans quelle
+    # situation il l'a dit (fixée au coup de sifflet de la mi-temps)
+    dit = [causeries[0] if len(causeries) > 0 else "rien",
+           causeries[1] if len(causeries) > 1 else "rien"]
+    sit_causerie: list[str | None] = [None, None]
     blesses: list[list[int]] = [[], []]    # off injured, nobody on for them yet
     score = [0, 0]
     tirs, xg_tot, minutes_ballon = [0, 0], [0.0, 0.0], [0, 0]
     fautes, corners, jaunes_n, rouges_n, horsjeux = [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
+    penaltys = [0, 0]
     jaunes: list[dict[int, int]] = [{}, {}]
     faits_chg = [0, 0]
     fenetres_chg = [0, 0]
@@ -1019,7 +1281,34 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                 deja = jaunes[adv].get(fauteur["pid"], 0) >= 1
                 r_second = rng.random()
                 issue.update({"quoi": "faute", "fauteur": fauteur})
-                if r_carton < P_ROUGE:
+                # Une faute dans le dernier tiers est parfois une faute
+                # DANS la surface.  Le tireur attitré s'avance : c'est le
+                # meilleur finisseur du onze, pas un joueur tiré au sort.
+                if zone >= 2 and rng.random() < P_PENALTY and sur[cote]:
+                    penaltys[cote] += 1
+                    pt = _designe(sur[cote], "FIN") or porteur
+                    gkp = next((j for j in sur[adv] if j["fam"] == "GK"), None)
+                    reussite = max(PENALTY_MIN, min(PENALTY_MAX, PENALTY_BASE * _duel(
+                        _z(pt["attributs"].get("FIN", 40)) * _forme(pt) + 0.55,
+                        t[adv]["gardien"] + 0.55, 0.5)))
+                    issue.update({"quoi": "penalty", "tireur": pt, "gardien": gkp})
+                    if rng.random() < reussite:
+                        score[cote] += 1
+                        tirs[cote] += 1
+                        xg_tot[cote] += 0.79
+                        evt = ajoute(m, cote, "but", f"Penalty transformé par {pt['nom']}",
+                                     pid=pt["pid"], nom=pt["nom"], penalty=True,
+                                     xg=0.79, score=list(score))
+                        issue["quoi_but"] = True
+                    else:
+                        tirs[cote] += 1
+                        xg_tot[cote] += 0.79
+                        evt = ajoute(m, cote, "penalty_manque",
+                                     f"Penalty manqué par {pt['nom']}"
+                                     + (f", {gkp['nom']} le sort" if gkp else ""),
+                                     pid=pt["pid"], nom=pt["nom"],
+                                     gardien_pid=gkp["pid"] if gkp else None, xg=0.79)
+                elif r_carton < P_ROUGE:
                     issue.update({"carton": True, "rouge": True})
                     evt = carton(m, adv, fauteur, rouge=True)
                 elif r_carton < P_CARTON and deja and r_second < P_SECOND_JAUNE:
@@ -1081,15 +1370,34 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
         # The legs.  Everyone on the pitch loses a little of the minute,
         # each side at the cost of the way its manager makes it play, and
         # the traits are read again from tired players.
+        marquages = poser_marquage(sur, tac)
         for c in (0, 1):
             for j in sur[c]:
                 j["endurance"] = max(0.0, j.get("endurance", ENDURANCE_MAX) - usure(j, tac[c]))
             t[c] = traits_diriges(sur[c], tac[c])
+            # La causerie agit sur le début de la seconde période, et la
+            # situation retenue est celle de la MI-TEMPS : ce que le
+            # manager avait sous les yeux quand il a parlé.
+            if dit[c] != "rien" and MI_TEMPS < m <= MI_TEMPS + DUREE_CAUSERIE:
+                if sit_causerie[c] is None:
+                    sit_causerie[c] = situation(score, c)
+                t[c] = appliquer_causerie(t[c], dit[c], sit_causerie[c])
 
         rs = random.Random(graine * 1000 + m + 7_000_003)
+        phases = sequence(rs, sur, cote, zone, issue)
+        # Un but se raconte aussi par ce qui l'a précédé : combien de
+        # passes, et de quel pied le mouvement est parti.  C'est dans la
+        # séquence, il suffit de le dire.
+        if evt is not None and evenements[evt]["type"] == "but":
+            amont = [x for x in phases if x["k"] in ("relance", "passe", "conduite")]
+            evenements[evt]["passes"] = max(0, len(amont) - 1)
+            if amont:
+                depart = next((j for j in sur[cote] if j["pid"] == amont[0]["p"]), None)
+                if depart:
+                    evenements[evt]["depart"] = depart["nom"]
         fil.append({"m": m, "c": cote, "z": zone,
                     "p": porteur["pid"] if porteur else None, "e": evt,
-                    "s": sequence(rs, sur, cote, zone, issue)})
+                    "s": phases})
 
     fini = jusqua >= MINUTES
     poss = [round(100 * minutes_ballon[0] / max(1, sum(minutes_ballon))),
@@ -1099,7 +1407,9 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
         "resultat": ("A" if score[0] > score[1] else "B" if score[1] > score[0] else "N") if fini else None,
         "possession": poss, "tirs": tirs, "xg": [round(x, 2) for x in xg_tot],
         "fautes": fautes, "corners": corners, "jaunes": jaunes_n, "rouges": rouges_n,
-        "horsjeu": horsjeux, "changements": faits_chg,
+        "horsjeu": horsjeux, "penaltys": penaltys, "changements": faits_chg,
+        "tireurs": {"ab"[c]: {k: (j["pid"] if j else None) for k, j in tireurs(sur[c]).items()}
+                    for c in (0, 1)},
         "entres": {"a": entres[0], "b": entres[1]},
         "endurance": {"a": {j["pid"]: round(j.get("endurance", ENDURANCE_MAX)) for j in sur[0]},
                       "b": {j["pid"]: round(j.get("endurance", ENDURANCE_MAX)) for j in sur[1]}},
@@ -1116,6 +1426,8 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
         "onze": {"a": [j["pid"] for j in sur[0]], "b": [j["pid"] for j in sur[1]]},
         "traits": {"a": {k: round(v, 3) for k, v in t[0].items()}, "b": {k: round(v, 3) for k, v in t[1].items()}},
         "tactique": {"a": vars(tac[0]), "b": vars(tac[1])},
+        "causerie": {"a": dit[0], "b": dit[1]},
+        "marquage": {"a": marquages[0], "b": marquages[1]},
         "graine": graine,
     }
 

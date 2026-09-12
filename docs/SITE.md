@@ -156,6 +156,36 @@ xG**, qui distingue une domination d'un cambriolage, et la **carte des
 tirs** : chaque frappe à l'endroit d'où elle est partie, grosse comme
 son xG, pleine si elle est rentrée.
 
+## Ce que tu décides pendant le match
+
+**Les coups de pied arrêtés** ont leur tireur, lu dans ton onze et pas
+choisi : le meilleur finisseur prend les penaltys, le meilleur créateur
+frappe les corners, et ça change tout seul quand il sort. Une faute dans
+le dernier tiers est parfois une faute **dans la surface** : il en tombe
+0,24 par match, ce que donne le vrai football, et 83 % sont transformés.
+À mon premier chiffre il en tombait 0,56 et le score montait de 1,29 à
+1,50 but par camp — c'est pour ça qu'on mesure.
+
+**La causerie de mi-temps.** Tu leur parles une fois, et ce que tu dis
+ne vaut pas la même chose selon le score : secouer une équipe menée
+n'est pas secouer une équipe qui mène. L'effet dure vingt minutes.
+
+| Tu les… | quand tu mènes | quand c'est nul | quand tu es mené |
+| --- | --- | --- | --- |
+| **secoues** | un peu d'urgence | +percussion, −contrôle | ils répondent le plus fort |
+| **rassures** | +contrôle, +défense, −percussion | idem, plus doux | ça ne renverse rien |
+| **félicites** | +finition, +création, −défense | presque rien | hors sujet, et ça endort |
+
+**Le marquage.** Tu peux coller un homme sur l'un des leurs. Il pèse
+moins — d'autant moins qu'il sort de **son propre onze** — mais celui
+qui le suit passe son match à le suivre. Mesuré sur de vrais clubs :
+marquer leur meilleur vaut +0,031 but, un joueur moyen −0,068, leur plus
+faible −0,068. Ça ne se justifie que contre un vrai danger.
+
+Le niveau se mesure contre leur équipe et non contre le vivier, et c'est
+tout le sujet : contre le vivier, dès que les deux camps sont bons, tout
+le monde est au-dessus de la moyenne et marquer n'importe qui rapportait.
+
 ## Lire l'adversaire
 
 Tu ne vois **pas** la feuille de réglages de l'autre manager. Le cycle
@@ -204,6 +234,12 @@ balle, le coup de sifflet sur une faute — les vingt-deux s'arrêtent et
 attendent la reprise. L'événement s'annonce au moment où il arrive :
 but, arrêt, occasion manquée, corner, faute, carton, hors-jeu, blessure,
 remplacement, changement de formation.
+
+**Le commentaire.** Chaque phase a sa phrase — « Ça repart de Van Dijk »,
+« Szoboszlai casse une ligne », « Yamal enroule ! », « AU FOND ! » —
+tirée du même générateur que la séquence : rejouer un match redonne mot
+pour mot le même récit. Et un but dit d'où il vient : *3 passes, parti
+de Courtois*, ou *action directe*.
 
 **Les onze bougent, pas deux blocs.** Pendant chaque phase, chacun se
 déplace selon son poste : le latéral déborde, l'ailier tient la largeur
