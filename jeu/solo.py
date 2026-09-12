@@ -222,6 +222,9 @@ def onze_club(jeu, saison: str, team_id: int, formation: str = "4-3-3") -> list[
         # the card as it is stays next to the card as it is played, so a
         # formation changed during the match recomputes the penalty
         j["attributs_bruts"] = dict(j["attributs"])
+        # ... et sa forme, pour qu'un club réel soit lui aussi plus ou
+        # moins à l'aise dans la tactique qu'il se donne
+        j["profil"] = SM.profil(j["attributs"], j["fam"])
         if j["hors_poste"]:
             j["attributs"] = {k: max(40, v - SM.MALUS_HORS_POSTE) for k, v in j["attributs"].items()}
     return sortis
@@ -285,6 +288,9 @@ def banc_club(jeu, saison: str, team_id: int, onze: list[dict]) -> list[dict]:
     reste = [{"pid": r[0], "nom": r[1], "poste": r[2], "ovr": r[3],
               "attributs": json.loads(r[4] or "{}"),
               "attributs_bruts": json.loads(r[4] or "{}"),
+              "profil": SM.profil(json.loads(r[4] or "{}"),
+                                  (S.familles_eligibles(json.loads(r[5])) if r[5] else
+                                   [S.FAMILLE_POSTE.get(r[2], "MID")])[0] or "MID"),
               "tenus": json.loads(r[5]) if r[5] else [r[2]],
               "fam": (S.familles_eligibles(json.loads(r[5])) if r[5] else
                       [S.FAMILLE_POSTE.get(r[2], "MID")])[0] or "MID"}

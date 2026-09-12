@@ -524,11 +524,51 @@ function rendreTactiqueClub() {
     enregistrerTactique(etat);
   };
   boite.append(selecteurTactique(LOBBY.tac, enregistrer));
+  boite.append(bilanAise());
   boite.append(depliant("equipe", "Consignes aux lignes",
     el("p", {class: "compteur"},
       "Ce que tu demandes à chaque ligne. Chacune est un échange, jamais un bonus : "
       + "le premier choix de chaque ligne ne touche à rien."),
     selecteurConsignes(LOBBY.tac, enregistrer)));
+}
+
+// Ce que ta tactique fait à TON onze : qui elle sert, qui elle dessert.
+// C'est le retour dont le manager a besoin pour choisir — sans lui, le
+// profil d'un joueur n'est qu'une ligne de plus sur une fiche.
+function bilanAise() {
+  const b = el("div", {class: "bilan-aise"});
+  if (!Object.keys(AFFINITES).length) return b;
+  const postes = slotsPostes(C.formation);
+  const gens = [];
+  C.slots.forEach((id, i) => {
+    const c = id === null ? null : carte(id);
+    if (!c || !c.profil) return;
+    gens.push({nom: c.nom, poste: postes[i],
+               a: aiseDe(c.profil, postes[i], LOBBY.tac)});
+  });
+  if (!gens.length) return b;
+  const pct = x => AISE.max * Math.max(-1, Math.min(1, x / AISE.z)) * 100;
+  const moyen = gens.reduce((s, g) => s + pct(g.a), 0) / gens.length;
+  gens.sort((x, y) => y.a - x.a);
+  const servis = gens.filter(g => pct(g.a) >= 1.5);
+  const desservis = gens.filter(g => pct(g.a) <= -1.5).reverse();
+  b.append(el("div", {class: "etiq"}, "Ce que ta tactique fait à ton onze"));
+  b.append(el("div", {class: "bilan-chiffre " + (moyen > 0.5 ? "bon" : moyen < -0.5 ? "mauvais" : "")},
+    (moyen > 0 ? "+" : "") + moyen.toFixed(1) + " %",
+    el("span", {class: "compteur"}, " en moyenne sur tes onze titulaires")));
+  const ligne = (titre, liste, classe) => {
+    if (!liste.length) return null;
+    return el("div", {class: "bilan-ligne " + classe},
+      el("span", {class: "t"}, titre),
+      el("span", {}, liste.slice(0, 4).map(g =>
+        `${g.nom.split(" ").slice(-1)[0]} ${pct(g.a) > 0 ? "+" : ""}${pct(g.a).toFixed(0)} %`).join(" · ")
+        + (liste.length > 4 ? ` (+${liste.length - 4})` : "")));
+  };
+  b.append(ligne("Elle les sert", servis, "bon"));
+  b.append(ligne("Elle les dessert", desservis, "mauvais"));
+  if (!servis.length && !desservis.length)
+    b.append(el("p", {class: "compteur"}, "Ton onze est indifférent à ce réglage : personne n'y gagne ni n'y perd."));
+  return b;
 }
 
 async function rendreClub() {
@@ -793,6 +833,47 @@ function depliant(cle, titre, ...enfants) {
   d.open = !!DEPLIES[cle];
   d.addEventListener("toggle", () => { DEPLIES[cle] = d.open; });
   return d;
+}
+
+// ---------------------------------------------------------------------------
+// Le profil d'un joueur : où il est chez lui.
+//
+// Le serveur envoie six nombres par carte — sa FORME sur les six axes,
+// lue contre sa ligne et débarrassée de son niveau (jeu/simulation.profil)
+// — et la table de ce que chaque réglage demande.  Tout le reste se
+// déduit ici : rien n'est étiqueté à la main, ni au serveur ni ici.
+let AFFINITES = {}, AISE = {max: 0.10, z: 1.3, seuil: 0.35};
+
+function affinite(profil, poste, axe, choix) {
+  const d = AFFINITES[axe]?.[choix];
+  if (!d || !profil) return null;
+  if (d.postes && !d.postes.includes(poste)) return null;
+  const vals = d.axes.map(k => profil[k]).filter(v => v !== undefined);
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+}
+
+// Son aise dans une tactique donnée : la moyenne des réglages non
+// neutres qui le concernent, exactement comme le moteur la calcule.
+function aiseDe(profil, poste, tac) {
+  const v = [];
+  for (const axe of Object.keys(AFFINITES)) {
+    const a = affinite(profil, poste, axe, tac?.[axe]);
+    if (a !== null) v.push(a);
+  }
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
+}
+
+// Les réglages où il est le plus, et le moins, chez lui.
+function lectureProfil(profil, poste, combien = 3) {
+  const out = [];
+  for (const [axe, opts] of Object.entries(AFFINITES))
+    for (const choix of Object.keys(opts)) {
+      const v = affinite(profil, poste, axe, choix);
+      if (v !== null && v !== 0) out.push({texte: opts[choix].texte, score: v});
+    }
+  out.sort((a, b) => b.score - a.score);
+  return {aise: out.filter(x => x.score >= AISE.seuil).slice(0, combien),
+          gene: out.filter(x => x.score <= -AISE.seuil).slice(-combien).reverse()};
 }
 
 function selecteurConsignes(tac, onChange) {
@@ -2040,6 +2121,48 @@ function faits(p) {
   const bouts = ["buts", "pd", "arrets"].filter(k => f[k]).map(k => ` ${FAIT_ICONE[k]}${f[k]}`);
   return bouts.join("");
 }
+// Ce que la fiche dit du profil : où il est chez lui, où il l'est moins,
+// et — si le manager a déjà réglé sa tactique — ce que ça lui vaut dans
+// SON équipe à lui.
+function blocProfil(d) {
+  const b = el("div", {class: "profil-bloc"});
+  const lu = lectureProfil(d.profil, d.postes?.[0] || d.poste);
+  if (!lu.aise.length && !lu.gene.length) {
+    b.append(el("div", {class: "etiq"}, "Profil de jeu"),
+      el("p", {class: "compteur"},
+        "Aucune préférence marquée : il est également à l'aise partout, ce qui est "
+        + "la marque d'un joueur complet — et ce qui veut dire qu'aucune tactique ne "
+        + "le fera jouer au-dessus de lui-même."));
+    return b;
+  }
+  b.append(el("div", {class: "etiq"}, "Profil de jeu"));
+  b.append(el("p", {class: "compteur"},
+    "Lu dans ses attributs, comparés à ceux de sa ligne : ce qu'il fait mieux que "
+    + "les autres à son poste, pas son niveau. Une tactique qui lui va le fait jouer "
+    + `jusqu'à ${Math.round(AISE.max * 100)} % au-dessus de lui-même ; une qui le dessert, autant en dessous.`));
+  const l = el("div", {class: "profil-listes"});
+  if (lu.aise.length) l.append(el("div", {class: "profil-col aise"},
+    el("div", {class: "t"}, "À l'aise dans"),
+    ...lu.aise.map(x => el("div", {class: "profil-item"}, el("span", {}, x.texte),
+      el("b", {}, (x.score > 0 ? "+" : "") + x.score.toFixed(1))))));
+  if (lu.gene.length) l.append(el("div", {class: "profil-col gene"},
+    el("div", {class: "t"}, "Moins à l'aise dans"),
+    ...lu.gene.map(x => el("div", {class: "profil-item"}, el("span", {}, x.texte),
+      el("b", {}, x.score.toFixed(1))))));
+  b.append(l);
+  // et avec TA tactique de départ ?
+  if (Object.keys(AFFINITES).length) {
+    const a = aiseDe(d.profil, d.postes?.[0] || d.poste, LOBBY.tac);
+    const pct = AISE.max * Math.max(-1, Math.min(1, a / AISE.z)) * 100;
+    b.append(el("div", {class: "profil-tien " + (pct > 1 ? "bon" : pct < -1 ? "mauvais" : "")},
+      Math.abs(pct) < 1
+        ? "Avec ta tactique de départ, il joue à son niveau."
+        : `Avec ta tactique de départ, il joue ${pct > 0 ? "au-dessus" : "en dessous"} de lui-même `
+          + `(${pct > 0 ? "+" : ""}${pct.toFixed(0)} % sur ses attributs).`));
+  }
+  return b;
+}
+
 async function ouvrirFiche(id) {
   let d; try { d = await api("/cartes/" + id); } catch (e) { toast(e.message); return; }
   const dlg = $("#fiche"); dlg.replaceChildren();
@@ -2061,6 +2184,7 @@ async function ouvrirFiche(id) {
   const axes = d.fam === "GK" ? AXES.gardien : AXES.champ; const A = el("div", {class: "attrs"});
   for (const ax of axes) { const val = d.attributs[ax] ?? 40; A.append(el("div", {class: "attr"}, el("span", {}, (d.poste === "Gardien" && ATTR_NOMS_GARDIEN[ax]) || ATTR_NOMS[ax]), el("div", {class: "jauge"}, el("i", {class: val >= 80 ? "haut" : "", style: `width:${(val - 40) / 59 * 100}%`})), el("b", {class: "num"}, String(val)))); }
   box.append(el("div", {class: "etiq"}, "Attributs de la saison"), A);
+  box.append(blocProfil(d));
   box.append(el("div", {class: "etiq"}, "Dernières prestations"), el("div", {class: "notes"}, ...(d.prestations.length ? d.prestations.slice(0, 8).map(p => el("span", {class: "note " + (p.note >= 7 ? "b" : p.note < 5 ? "m" : ""), title: `J${p.numero} · ${p.competition}`}, `${f1(p.note)} · ${Math.round(p.minutes)}'${faits(p)}`)) : [el("span", {class: "compteur"}, "aucun match noté cette saison")])));
   if (d.historique.length > 1) box.append(el("div", {class: "etiq", style: "margin-top:10px"}, "Prix par journée"), sparkline(d.historique.map(h => h.prix), fM));
   const acts = el("div", {class: "actions"});
@@ -2168,6 +2292,8 @@ function sparkline(vals, fmt = f1) {
     FORMATIONS = s.formations; LIMITES = s.limites;
     if (s.formations_rangs) RANGS = s.formations_rangs;
     if (s.familles_poste) FAM_POSTE = s.familles_poste;
+    if (s.affinites) AFFINITES = s.affinites;
+    if (s.aise) AISE = s.aise;
     const moi = await api("/moi"); connecte(moi);
     if (moi.connecte) { const h = location.hash.replace("#", ""); await montrer(["packs", "encheres", "marche", "equipe", "lobby", "solo", "journee", "classement", "admin"].includes(h) ? h : (idsEffectif().length ? "equipe" : "packs")); }
   } catch (e) { toast("Serveur injoignable : " + e.message); }

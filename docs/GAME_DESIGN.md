@@ -280,6 +280,28 @@ better chances behind. Measured over 400 matches a case, no setting beats
 every other (`BACKTEST.md`), so the lobby cannot be solved by copying one
 build. The three axes can be changed while the match runs.
 
+**A player is not equally at home everywhere.** Every card carries a
+profile — read from its own attributes, never labelled by hand — and a
+tactic that suits a player has him playing above himself, one that
+fights him below. It is read twice over: against HIS LINE (a centre-back
+defends better than a striker; what matters is a full-back who
+progresses more than other full-backs) and against HIMSELF (otherwise an
+elite card, above the median on everything, would be at home in every
+tactic at once, and the mechanic would be a gift to big squads). The
+profile therefore measures a SHAPE and sums to zero: a complete player
+has no profile anywhere, which is itself something true about him.
+
+Worth up to 10 % on a player's attributes — about three card points on
+an attribute of 70, a third of the out-of-position penalty. Measured on
+fourteen real club elevens, the same setting played with and without it:
+the right choice is worth +0.107 goals a match, the wrong one −0.071.
+What a whole ELEVEN can gain is capped at 2 %: at identical tactics on
+both sides the mechanic moves football by 0.02 goals, so the cap is a
+guarantee rather than a fix — no squad built for the purpose can turn a
+good reading into a collective level bonus. A tactic that fights its own
+eleven keeps its full cost, so reading well pays little and reading
+badly costs a lot.
+
 **A manager sets his tactics once.** The three axes and the five
 instructions are a property of the CLUB, set on the Équipe screen beside
 the lineup and stored on the team row: every match he plays starts

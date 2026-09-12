@@ -171,6 +171,44 @@ humain — un défi, une campagne solo — se **met en pause** : le
 classement, lui, ne s'arrête pas, deux managers ne tiennent pas la même
 horloge.
 
+**Chaque joueur a un profil, et il n'est pas étiqueté à la main.**
+Vitinha s'épanouit dans une équipe qui garde le ballon ; Nuno Mendes est
+mal à l'aise si tu lui demandes de rester derrière. Le jeu ne le décide
+nulle part : il le **lit** dans la carte, qui vient elle-même de ce que
+le joueur a vraiment fait sur un terrain.
+
+Le profil est lu deux fois de suite, et les deux comptent :
+
+- **contre sa ligne.** Un central défend mieux qu'un attaquant ; sans ça,
+  tout défenseur passerait pour un amoureux du bloc bas. Ce qui compte,
+  c'est un latéral qui progresse plus que *les autres latéraux*.
+- **contre lui-même.** Sinon un joueur élite, au-dessus de la médiane
+  partout, serait à l'aise dans toutes les tactiques à la fois, et le
+  profil deviendrait un cadeau aux gros effectifs. Le profil mesure donc
+  une **forme**, pas un niveau : il fait zéro en moyenne. Un joueur
+  complet n'a de profil nulle part — et c'est une information sur lui.
+
+Une tactique qui lui va le fait jouer jusqu'à **10 % au-dessus de
+lui-même** — environ trois points de carte sur un attribut à 70, un
+tiers du malus de hors-poste. Une qui le dessert, autant en dessous.
+Mesuré sur quatorze onzes de vrais clubs, le même réglage joué avec et
+sans : le bon choix vaut +0,107 but par match, le mauvais −0,071, soit
+0,18 but d'écart.
+
+Ce qu'un **onze entier** peut y gagner est plafonné à 2 %, et c'est une
+garantie plus qu'un correctif : à tactiques identiques des deux côtés,
+l'aise déplace le football de 1,96 à 1,98 but par camp, autant dire
+rien. Le plafond assure qu'aucun effectif taillé exprès ne transformera
+une bonne lecture en avantage collectif — la lecture se paie en choix,
+jamais en niveau offert. Une tactique qui dessert son équipe, elle,
+garde son coût entier : bien lire rapporte peu, mal lire coûte cher.
+
+Tu lis tout ça sur **la fiche d'un joueur** — où il est chez lui, où il
+l'est moins, et ce que ta propre tactique lui fait — et sur l'écran
+Équipe, qui te dit ce que ton réglage fait à ton onze : *« +3,6 % en
+moyenne · elle sert Olise +10 %, Szoboszlai +10 % · elle dessert
+Konaté −5 % »*.
+
 **Ta tactique de départ se règle une fois.** Comme la composition, elle
 vit sur l'écran Équipe : les trois axes et les cinq consignes, enregistrés
 sur ton club dès que tu y touches. Tous tes matchs — classés, défis,

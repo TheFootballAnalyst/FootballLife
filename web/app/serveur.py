@@ -239,6 +239,14 @@ def saison(jeu=Depends(bd)):
         "formations": S.FORMATIONS, "limites": S.LIMITES_FAMILLE,
         "formations_rangs": {k: [list(r) for r in v] for k, v in S.FORMATIONS_RANGS.items()},
         "familles_poste": S.FAMILLE_POSTE,
+        # Ce qu'un réglage demande à un joueur, et comment ça se dit : le
+        # moteur en est la seule source, l'écran s'en sert pour lire les
+        # profils des cartes sans avoir à les recevoir déjà interprétés.
+        "affinites": {axe: {choix: {"axes": list(axes), "postes": list(postes) if postes else None,
+                                    "texte": SM.LIBELLE_AFFINITE.get((axe, choix), choix)}
+                            for choix, (axes, postes) in options.items()}
+                      for axe, options in SM.AFFINITES.items()},
+        "aise": {"max": SM.AISE_MAX, "z": SM.AISE_Z, "seuil": SM.ECART_AISE},
     }
 
 
@@ -276,10 +284,12 @@ def cartes_toutes(jeu):
     out = []
     for r in jeu.execute("""
             SELECT c.player_id, c.ovr, c.prix, c.part, c.note_ovr, c.matchs, c.minutes,
-                   c.valeur_base, c.ovr_base, c.arrivee, j.age, j.numero, j.pays, j.pied,
+                   c.valeur_base, c.ovr_base, c.arrivee, c.attributs, j.age, j.numero, j.pays, j.pied,
                    j.nom, j.poste, j.postes, j.team_id, cl.nom AS club, cl.couleur
             FROM carte c JOIN joueur j ON j.player_id = c.player_id
             LEFT JOIN club cl ON cl.team_id = j.team_id WHERE c.saison = ?""", (SAISON,)):
+        postes = json.loads(r["postes"]) if r["postes"] else [r["poste"]]
+        fam = (S.familles_eligibles(postes) or [S.FAMILLE_POSTE.get(r["poste"], "MID")])[0]
         out.append({
             "id": r["player_id"], "nom": r["nom"], "poste": r["poste"],
             "fam": S.FAMILLE_POSTE.get(r["poste"], "MID"),
@@ -293,6 +303,13 @@ def cartes_toutes(jeu):
             "age": r["age"], "numero": r["numero"], "pays": r["pays"], "pied": r["pied"],
             "matchs": r["matchs"], "minutes": int(r["minutes"] or 0), "arrivee": r["arrivee"],
             "notes": notes.get(r["player_id"], [])[-6:],
+            # La FORME du joueur sur les six axes, lue contre sa ligne :
+            # six nombres, pas une étiquette (jeu/simulation.profil).  Les
+            # libellés se déduisent côté écran à partir de la table
+            # d'affinités envoyée par /api/saison — une seule source pour
+            # la donnée, un seul endroit pour la dire.
+            "profil": {k: round(v, 1) for k, v in
+                       SM.profil(json.loads(r["attributs"] or "{}"), fam).items()},
         })
     _CACHE["cle"], _CACHE["cartes"] = cle, out
     return out

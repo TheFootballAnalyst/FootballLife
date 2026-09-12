@@ -448,3 +448,172 @@ def test_a_match_with_instructions_is_still_football():
         buts += f["score"]; tirs += f["tirs"]
     assert 0.9 <= st.mean(buts) <= 2.0, st.mean(buts)
     assert 8 <= st.mean(tirs) <= 16, st.mean(tirs)
+
+
+# --------------------------------------------------------------------------
+# Le profil d'un joueur et son aise dans la tactique
+# --------------------------------------------------------------------------
+
+def test_a_profile_measures_shape_not_level():
+    """Le profil doit dire OÙ un joueur est fort, pas COMBIEN.
+
+    Sans ça, un joueur élite serait au-dessus de la médiane sur tous les
+    axes, donc à l'aise dans toutes les tactiques à la fois, et l'aise
+    deviendrait un bonus offert aux gros effectifs."""
+    median = SM.PROFIL_REPERE["MID"]
+    moyen = {k: v[0] for k, v in median.items()}
+    elite = {k: v[0] + 2 * v[1] for k, v in median.items()}       # +2 écarts PARTOUT
+    for attrs in (moyen, elite):
+        pr = SM.profil(attrs, "MID")
+        assert abs(sum(pr.values())) < 1e-9, "un profil fait zéro : c'est une forme"
+        assert all(abs(v) < 1e-9 for v in pr.values()), "aucun axe ne ressort"
+    # un spécialiste, lui, ressort là où il est spécialiste
+    garde = dict(moyen, CON=moyen["CON"] + 3 * median["CON"][1])
+    pr = SM.profil(garde, "MID")
+    assert pr["CON"] > 2 and all(v < 0 for k, v in pr.items() if k != "CON")
+
+
+def test_a_profile_is_read_against_the_line_not_in_the_absolute():
+    """Un défenseur défend mieux qu'un attaquant : sans normaliser par
+    ligne, tout défenseur passerait pour un amoureux du bloc bas."""
+    med_def = {k: v[0] for k, v in SM.PROFIL_REPERE["DEF"].items()}
+    med_fwd = {k: v[0] for k, v in SM.PROFIL_REPERE["FWD"].items()}
+    assert med_def["DEF"] > med_fwd["DEF"] + 20          # le vivier le dit
+    # et pourtant aucun des deux, à la médiane de SA ligne, n'a de profil
+    assert all(abs(v) < 1e-9 for v in SM.profil(med_def, "DEF").values())
+    assert all(abs(v) < 1e-9 for v in SM.profil(med_fwd, "FWD").values())
+
+
+def test_comfort_is_neutral_on_average_and_bounded():
+    """L'aise ne crée pas de valeur : sur une tactique quelconque elle
+    vaut 1 en moyenne, et elle ne dépasse jamais ses bornes."""
+    import random
+    rng = random.Random(3)
+    med = SM.PROFIL_REPERE["MID"]
+    vals = []
+    for _ in range(3000):
+        attrs = {k: rng.gauss(v[0], v[1]) for k, v in med.items()}
+        j = {"attributs": attrs, "fam": "MID", "slot": "Milieu relayeur",
+             "profil": SM.profil(attrs, "MID")}
+        t = SM.Tactique(tempo=rng.choice(list(SM.TEMPO)), bloc=rng.choice(list(SM.BLOC)),
+                        milieux=rng.choice(list(SM.CONSIGNES["milieux"]))).valide()
+        vals.append(SM.aise(j, t))
+    moyenne = sum(vals) / len(vals)
+    assert abs(moyenne - 1.0) < 0.01, moyenne
+    assert min(vals) >= 1 - SM.AISE_MAX - 1e-9 and max(vals) <= 1 + SM.AISE_MAX + 1e-9
+
+
+def test_a_neutral_tactic_asks_nothing_of_anyone():
+    """Le réglage par défaut est le match sur lequel le moteur est
+    calibré : personne n'y est ni avantagé ni desservi."""
+    j = {"attributs": {k: v[0] + 3 * v[1] for k, v in SM.PROFIL_REPERE["MID"].items()},
+         "fam": "MID", "slot": "Milieu relayeur"}
+    j["profil"] = SM.profil(j["attributs"], "MID")
+    assert SM.aise(j, SM.Tactique().valide()) == 1.0
+    # y compris le "monte dans son couloir" des latéraux, qui est leur défaut
+    lat = dict(j, slot="Lateral", fam="DEF")
+    lat["profil"] = SM.profil(lat["attributs"], "DEF")
+    assert SM.aise(lat, SM.Tactique(lateraux="couloir").valide()) == 1.0
+
+
+def test_a_possession_player_gains_from_possession_and_loses_going_direct():
+    """Le cas de départ : un milieu qui contrôle et crée plus que les
+    autres milieux doit s'épanouir dans une équipe qui garde le ballon."""
+    med = SM.PROFIL_REPERE["MID"]
+    attrs = {k: v[0] for k, v in med.items()}
+    attrs["CON"] += 2.5 * med["CON"][1]
+    attrs["CRE"] += 2.0 * med["CRE"][1]
+    j = {"attributs": attrs, "fam": "MID", "slot": "Milieu relayeur"}
+    j["profil"] = SM.profil(attrs, "MID")
+    assert SM.aise(j, SM.Tactique(tempo="possession").valide()) > 1.03
+    assert SM.aise(j, SM.Tactique(tempo="direct").valide()) < 0.99
+    # et un latéral qui progresse et dribble n'aime pas rester derrière
+    medd = SM.PROFIL_REPERE["DEF"]
+    a2 = {k: v[0] for k, v in medd.items()}
+    a2["PRO"] += 2.5 * medd["PRO"][1]; a2["DRI"] += 2.5 * medd["DRI"][1]
+    lat = {"attributs": a2, "fam": "DEF", "slot": "Lateral"}
+    lat["profil"] = SM.profil(a2, "DEF")
+    assert SM.aise(lat, SM.Tactique(lateraux="bas").valide()) < 0.98
+
+
+def test_comfort_reaches_the_eleven_and_the_sheet():
+    """L'aise n'est pas décorative : elle passe dans les traits."""
+    med = SM.PROFIL_REPERE["MID"]
+    def onze_de(cle, force):
+        j = []
+        for i in range(11):
+            fam = "GK" if i == 0 else "DEF" if i <= 4 else "MID" if i <= 7 else "FWD"
+            a = {k: v[0] for k, v in SM.PROFIL_REPERE.get(fam, med).items()}
+            if cle in a:
+                a[cle] += force * SM.PROFIL_REPERE.get(fam, med)[cle][1]
+            x = joueur(i + 1, fam, 74)
+            x["attributs"] = a | {"ARR": 70, "EVI": 70}
+            x["slot"] = {"GK": "Gardien", "DEF": "Defenseur central",
+                         "MID": "Milieu relayeur", "FWD": "Buteur"}[fam]
+            x["profil"] = SM.profil(x["attributs"], fam)
+            j.append(x)
+        return j
+    garde = onze_de("CON", 3.0)
+    poss = SM.traits_diriges(garde, SM.Tactique(tempo="possession").valide())
+    direct = SM.traits_diriges(garde, SM.Tactique(tempo="direct").valide())
+    assert poss["controle"] > direct["controle"]
+
+
+def test_the_named_reading_of_a_profile_says_something_useful():
+    med = SM.PROFIL_REPERE["MID"]
+    attrs = {k: v[0] for k, v in med.items()}
+    attrs["CON"] += 3 * med["CON"][1]
+    lu = SM.lecture_profil(attrs, "MID", "Milieu relayeur")
+    assert lu["aise"] and lu["gene"]
+    assert any("garde le ballon" in x["texte"] for x in lu["aise"])
+    assert all(x["score"] >= SM.ECART_AISE for x in lu["aise"])
+    assert all(x["score"] <= -SM.ECART_AISE for x in lu["gene"])
+    # un joueur complet n'a rien à dire, et c'est une information
+    complet = {k: v[0] for k, v in med.items()}
+    assert SM.lecture_profil(complet, "MID", "Milieu relayeur")["aise"] == []
+
+
+def test_an_eleven_can_never_gain_more_than_the_team_cap():
+    """Un effectif taillé exprès pour une tactique ne doit pas en tirer
+    un avantage collectif : la lecture se paie en choix, pas en niveau."""
+    med = SM.PROFIL_REPERE["MID"]
+    taille = []
+    for i in range(11):
+        a = {k: v[0] for k, v in med.items()}
+        a["CON"] += 3 * med["CON"][1]; a["CRE"] += 3 * med["CRE"][1]
+        x = joueur(i + 1, "MID", 74)
+        x["attributs"] = a
+        x["slot"] = "Milieu relayeur"
+        x["profil"] = SM.profil(a, "MID")
+        taille.append(x)
+    # tout le monde adore la possession, et pourtant
+    SM.poser_aise(taille, SM.Tactique(tempo="possession", attaquants="pivot",
+                                      relance="courte", lateraux="axe").valide())
+    moyenne = sum(j["aise"] for j in taille) / len(taille)
+    assert moyenne <= 1 + SM.AISE_EQUIPE_MAX + 1e-9, moyenne
+    # ... et une tactique à contre-emploi garde tout son coût, elle
+    SM.poser_aise(taille, SM.Tactique(tempo="direct", milieux="projection").valide())
+    contre = sum(j["aise"] for j in taille) / len(taille)
+    assert contre < 1 - 0.02, contre
+    assert 1 - contre > (1 + SM.AISE_EQUIPE_MAX) - moyenne, "mal lire doit coûter plus que bien lire ne rapporte"
+
+
+def test_the_cap_takes_nothing_away_from_who_is_flattered_inside_the_eleven():
+    """Le plafond reprend l'excès à tout le monde également : l'écart
+    entre celui qui est servi et celui qui l'est moins ne bouge pas."""
+    med = SM.PROFIL_REPERE["MID"]
+    def milieu(pid, cle):
+        a = {k: v[0] for k, v in med.items()}
+        a[cle] += 3 * med[cle][1]
+        x = joueur(pid, "MID", 74)
+        x["attributs"] = a; x["slot"] = "Milieu relayeur"
+        x["profil"] = SM.profil(a, "MID")
+        return x
+    onze = [milieu(i + 1, "CON") for i in range(9)] + [milieu(10, "FIN"), milieu(11, "DRI")]
+    tac = SM.Tactique(tempo="possession", relance="courte").valide()
+    brut = [SM.aise(j, tac) for j in onze]
+    SM.poser_aise(onze, tac)
+    pose = [j["aise"] for j in onze]
+    ecarts_bruts = [x - brut[0] for x in brut]
+    ecarts_poses = [x - pose[0] for x in pose]
+    assert all(abs(a - b) < 1e-9 for a, b in zip(ecarts_bruts, ecarts_poses))

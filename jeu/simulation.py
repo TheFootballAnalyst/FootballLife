@@ -138,6 +138,187 @@ USURE_RISQUE = {"offensif": 1.06, "equilibre": 1.0, "prudent": 0.95}
 COUT_FATIGUE = 0.12
 
 
+# --------------------------------------------------------------------------
+# Le profil d'un joueur, et son aise dans la tactique qu'on lui demande
+# --------------------------------------------------------------------------
+# Un joueur n'est pas également à l'aise partout.  Vitinha s'épanouit dans
+# une équipe qui garde le ballon ; Nuno Mendes veut déborder, pas rester
+# derrière.  Le jeu ne l'étiquette nulle part à la main : il le LIT dans
+# la carte, qui elle-même vient de ce que le joueur a vraiment fait.
+#
+# Deux normalisations, et elles comptent toutes les deux :
+#
+#  1. contre SA LIGNE.  Un défenseur central défend mieux qu'un attaquant :
+#     sans ça, tout défenseur passerait pour un amoureux du bloc bas.  Ce
+#     qui nous intéresse, c'est un latéral qui progresse plus que LES
+#     AUTRES LATÉRAUX.
+#  2. contre LUI-MÊME.  Sinon un joueur élite, au-dessus de la médiane sur
+#     tous les axes, serait à l'aise dans toutes les tactiques à la fois —
+#     et l'aise deviendrait un bonus offert aux gros effectifs.  Le profil
+#     mesure donc une FORME, pas un niveau : il fait zéro en moyenne sur
+#     les six axes.  Un joueur complet n'a de profil nulle part, ce qui est
+#     exactement ce qu'on veut dire de lui.
+#
+# Médianes et écarts-types mesurés sur les 3 541 cartes de champ des huit
+# championnats (1 446 défenseurs, 894 milieux, 1 201 attaquants).
+PROFIL_REPERE = {
+    "DEF": {"CON": (68, 6.2), "CRE": (48, 9.4), "DEF": (71, 7.7), "DRI": (49, 7.8), "FIN": (49, 5.4), "PRO": (64, 6.3)},
+    "MID": {"CON": (59, 6.1), "CRE": (60, 7.8), "DEF": (57, 5.6), "DRI": (61, 6.1), "FIN": (58, 5.9), "PRO": (66, 7.1)},
+    "FWD": {"CON": (46, 4.3), "CRE": (72, 7.9), "DEF": (45, 4.1), "DRI": (71, 5.4), "FIN": (72, 6.1), "PRO": (46, 5.0)},
+}
+# Le gardien en est exclu : ses axes (ARR, EVI, SOR, REL) ne sont pas ceux
+# du champ, et aucun réglage tactique ne lui demande autre chose que de
+# garder son but.
+AXES_PROFIL = ("CON", "CRE", "DEF", "DRI", "FIN", "PRO")
+
+
+def profil(attributs: dict, fam: str) -> dict[str, float]:
+    """La forme d'un joueur : sur quels axes il sort DE SA LIGNE, et de
+    combien, une fois son niveau général retiré.  Somme nulle."""
+    rep = PROFIL_REPERE.get(fam)
+    if not rep:
+        return {}
+    z = {k: (attributs.get(k, 40) - rep[k][0]) / rep[k][1] for k in AXES_PROFIL if k in rep}
+    if not z:
+        return {}
+    moyen = sum(z.values()) / len(z)
+    return {k: v - moyen for k, v in z.items()}
+
+
+# Ce qu'un réglage demande à un joueur.  Chaque pôle d'un axe appelle des
+# qualités DIFFÉRENTES de l'autre, sinon le réglage ne distinguerait
+# personne ; et le réglage neutre de chaque axe n'appelle rien du tout.
+#
+#   axe -> {choix: (axes de la carte appelés, postes concernés ou None
+#                   pour tout le monde)}
+AFFINITES = {
+    "tempo": {"possession": (("CON", "CRE"), None), "direct": (("PRO", "FIN"), None)},
+    # Presser haut, c'est défendre dans le camp d'en face, avec de
+    # l'espace derrière : il faut progresser et gagner ses duels haut.
+    # Défendre bas, c'est défendre sa surface et ne pas la redonner.
+    "bloc": {"haut": (("PRO", "DRI"), None), "bas": (("DEF", "CON"), None)},
+    # `prudent` n'appelle rien : fermer le match réduit le VOLUME des
+    # occasions des deux côtés, ça ne demande pas d'autres qualités — et
+    # écrit (DEF, CON), c'était mot pour mot le bloc bas, deux décisions
+    # différentes qui se lisaient pareil.  Ouvrir le match, si : il faut
+    # des joueurs qui vivent dans le désordre.
+    "risque": {"offensif": (("DRI", "FIN"), None)},
+    # Pas de "couloir" ici : c'est le réglage PAR DÉFAUT des latéraux,
+    # donc le réglage neutre, et un défaut ne rend personne plus à l'aise.
+    "lateraux": {"bas": (("DEF", "CON"), ("Lateral",)),
+                 "axe": (("CON", "CRE"), ("Lateral",))},
+    "ailiers": {"ligne": (("DRI", "PRO"), ("Ailier", "Ailier droit", "Ailier gauche")),
+                "interieur": (("FIN", "CRE"), ("Ailier", "Ailier droit", "Ailier gauche"))},
+    "milieux": {"bas": (("DEF", "CON"), ("Milieu defensif", "Milieu relayeur", "Milieu offensif")),
+                "projection": (("PRO", "FIN"), ("Milieu defensif", "Milieu relayeur", "Milieu offensif")),
+                "lateral": (("CRE", "PRO"), ("Milieu defensif", "Milieu relayeur", "Milieu offensif"))},
+    "attaquants": {"profondeur": (("PRO", "DRI"), ("Buteur",)),
+                   "pivot": (("CON", "CRE"), ("Buteur",))},
+    "relance": {"courte": (("CON", "CRE"), ("Defenseur central",)),
+                "longue": (("PRO", "FIN"), ("Defenseur central",))},
+}
+# Ce que vaut une aise parfaite : 10 % sur les attributs du joueur, soit
+# environ trois points de carte sur un attribut à 70 — un tiers du malus
+# de hors-poste.  Mesuré sur quatorze onzes de vrais clubs, le même
+# réglage joué avec et sans l'aise : celui qui va à l'équipe rapporte
+# +0,107 but par match, celui qui la dessert en coûte 0,071, soit 0,18
+# but entre le bon choix et le mauvais — du même ordre qu'un axe
+# tactique.  À 6 % l'écart tombait à 0,09 but, trop peu pour valoir une
+# décision.
+AISE_MAX = 0.10
+AISE_Z = 1.3         # l'écart-type de profil à partir duquel c'est au maximum
+# Ce qu'un ONZE entier peut gagner à être bien servi : 2 %, pas plus.
+#
+# C'est une GARANTIE, pas un correctif : mesuré sur 435 matchs entre
+# vrais clubs, à tactiques identiques des deux côtés, l'aise déplace le
+# football de 1,96 à 1,98 but par camp — deux centièmes, autant dire
+# rien, et le plafond ne change pas ce chiffre.  Ce qu'il assure, c'est
+# qu'aucun effectif, même taillé exprès, ne pourra transformer une bonne
+# lecture tactique en avantage collectif : la lecture doit se payer en
+# choix (le réglage qui flatte tes joueurs n'est pas forcément celui qui
+# contre l'adversaire), jamais en niveau offert.
+#
+# Seul l'EXCÈS au-dessus du plafond est repris, et à tout le monde
+# également : qui est flatté et qui est desservi DANS l'équipe ne change
+# pas d'un iota, et c'est là que se joue la lecture d'un effectif.  Une
+# tactique qui dessert son équipe, elle, garde son coût entier — bien
+# lire rapporte peu, mal lire coûte cher.
+AISE_EQUIPE_MAX = 0.02
+
+
+# Comment se dit chaque réglage, pour la fiche d'un joueur.
+LIBELLE_AFFINITE = {
+    ("tempo", "possession"): "une équipe qui garde le ballon",
+    ("tempo", "direct"): "une équipe qui joue direct",
+    ("bloc", "haut"): "un bloc haut",
+    ("bloc", "bas"): "un bloc bas",
+    ("risque", "offensif"): "un match ouvert",
+    ("lateraux", "bas"): "rester derrière",
+    ("lateraux", "axe"): "rentrer dans l'axe",
+    ("ailiers", "ligne"): "coller la ligne de touche",
+    ("ailiers", "interieur"): "repiquer dans l'axe",
+    ("milieux", "bas"): "rester bas",
+    ("milieux", "projection"): "se projeter dans la surface",
+    ("milieux", "lateral"): "décaler le jeu",
+    ("attaquants", "profondeur"): "chercher la profondeur",
+    ("attaquants", "pivot"): "jouer en pivot",
+    ("relance", "courte"): "ressortir par le bas",
+    ("relance", "longue"): "le jeu long",
+}
+ECART_AISE = 0.35    # en deçà, un joueur n'a pas de préférence à afficher
+
+
+def lecture_profil(attributs: dict, fam: str, slot: str | None = None, combien: int = 2) -> dict:
+    """Ce qu'on écrit sur la fiche : où ce joueur est chez lui, et où non.
+
+    Rien n'est étiqueté à la main.  C'est la carte qui parle, et la carte
+    vient de ce que le joueur a vraiment fait sur un terrain."""
+    pr = profil(attributs, fam)
+    if not pr:
+        return {"axes": {}, "aise": [], "gene": []}
+    faux = {"slot": slot, "poste": slot, "profil": pr}
+    scores = []
+    for axe, options in AFFINITES.items():
+        for choix in options:
+            v = affinite(faux, Tactique(**{axe: choix}).valide())
+            if v:
+                scores.append({"cle": f"{axe}:{choix}",
+                               "texte": LIBELLE_AFFINITE.get((axe, choix), choix),
+                               "score": round(v, 2)})
+    scores.sort(key=lambda x: -x["score"])
+    return {"axes": {k: round(v, 2) for k, v in pr.items()},
+            "aise": [x for x in scores[:combien] if x["score"] >= ECART_AISE],
+            "gene": [x for x in scores[-combien:] if x["score"] <= -ECART_AISE][::-1]}
+
+
+def affinite(j: dict, tac: "Tactique") -> float:
+    """De combien un joueur est chez lui dans ce qu'on lui demande, en
+    écarts-types de profil.  La MOYENNE des réglages non neutres qui le
+    concernent : des consignes cohérentes entre elles s'additionnent
+    naturellement, des consignes qui se contredisent s'annulent."""
+    pr = j.get("profil")
+    if not pr:
+        return 0.0
+    slot = j.get("slot") or j.get("poste")
+    scores = []
+    for axe, choix in AFFINITES.items():
+        appel = choix.get(getattr(tac, axe, None))
+        if appel is None:
+            continue                          # réglage neutre : il ne demande rien
+        axes, postes = appel
+        if postes is not None and slot not in postes:
+            continue                          # cette consigne ne le concerne pas
+        vals = [pr[k] for k in axes if k in pr]
+        if vals:
+            scores.append(sum(vals) / len(vals))
+    return sum(scores) / len(scores) if scores else 0.0
+
+
+def aise(j: dict, tac: "Tactique") -> float:
+    """Le multiplicateur d'un joueur dans la tactique du moment."""
+    return 1.0 + AISE_MAX * max(-1.0, min(1.0, affinite(j, tac) / AISE_Z))
+
+
 def _forme(j: dict) -> float:
     """A player's fatigue multiplier, 1.0 when fresh."""
     e = j.get("endurance", ENDURANCE_MAX)
@@ -158,7 +339,7 @@ def _z(attr: int) -> float:
 def _moyenne(joueurs: list[dict], familles: tuple[str, ...], axes: tuple[str, ...]) -> float:
     """Mean of `axes` over the players of those lines, 0-1.  An empty line
     reads as a weak one rather than as nothing."""
-    vals = [_z(j["attributs"].get(ax, 40)) * _forme(j)
+    vals = [_z(j["attributs"].get(ax, 40)) * _forme(j) * j.get("aise", 1.0)
             for j in joueurs if j["fam"] in familles for ax in axes]
     return sum(vals) / len(vals) if vals else 0.25
 
@@ -363,13 +544,26 @@ def _poser(j: dict, slot: str) -> None:
     j["attributs"] = ({k: max(40, v - MALUS_HORS_POSTE) for k, v in brut.items()}
                       if dehors else dict(brut))
     j["fam"] = _S.FAMILLE_POSTE.get(slot, j.get("fam", "MID"))
+    j["profil"] = profil(j["attributs"], j["fam"])
+
+
+def poser_aise(joueurs: list[dict], tac: "Tactique") -> None:
+    """Écrire sur chaque joueur son aise, le gain d'équipe plafonné."""
+    if not joueurs:
+        return
+    brut = [aise(j, tac) for j in joueurs]
+    exces = max(0.0, sum(brut) / len(brut) - (1.0 + AISE_EQUIPE_MAX))
+    for j, v in zip(joueurs, brut):
+        j["aise"] = v - exces
 
 
 def traits_diriges(joueurs: list[dict], tac: "Tactique") -> dict[str, float]:
     """An eleven's six traits, instructions included.
 
     The only reading the match uses: the cards say what the eleven is,
-    the instructions say what it is being asked to do."""
+    the instructions say what it is being asked to do — and how much each
+    player is at home in it."""
+    poser_aise(joueurs, tac)
     return appliquer_consignes(traits(joueurs), tac)
 
 
@@ -889,6 +1083,7 @@ def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
                         "attributs": ({k: max(40, v - MALUS_HORS_POSTE) for k, v in attributs.items()}
                                       if dehors else attributs),
                         "slot": slot, "hors_poste": dehors,
+                        "profil": profil(attributs, fam),
                         "endurance": ENDURANCE_MAX})
     return Equipe(nom, joueurs)
 
