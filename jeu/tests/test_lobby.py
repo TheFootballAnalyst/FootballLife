@@ -327,3 +327,47 @@ def test_a_formation_changed_in_play_is_recorded_like_any_other_adjustment():
     # coup d'envoi
     postes = [j["slot"] for j in f["onze"]["a"] if j["pid"] in f["sur_le_terrain"]["a"]]
     assert postes.count("Defenseur central") == 3
+
+
+def test_half_time_stops_a_single_player_match_once():
+    """La mi-temps : le seul arrêt que le football prévoit, et le moment
+    où un manager corrige ce qu'il a vu."""
+    jeu = base_avec_equipes(1)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True, banc=[12, 13, 14, 15])
+    r = LB.en_cours(jeu, "2025/26", 1)
+    jeu.execute("UPDATE rencontre SET graine=11 WHERE rencontre_id=?", (r["rencontre_id"],))
+    jeu.commit()
+    r = _reculer(jeu, r, LB.DUREE_REELLE * 0.55)          # après la 45e
+    f = LB.arbitrer(jeu, r, LB.feuille(jeu, "2025/26", r))
+    assert f["minute"] >= LB.MI_TEMPS
+    assert f["pause"] is True and f["motif_pause"] == "mi-temps"
+    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    assert LB.en_pause(r)
+    # on repart, et on ne siffle pas une deuxième mi-temps
+    LB.suspendre(jeu, r, False)
+    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    LB.arbitrer(jeu, r, LB.feuille(jeu, "2025/26", r))
+    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+    assert not LB.en_pause(r), "une seule mi-temps par match"
+
+
+def test_a_ranked_match_has_no_half_time_break():
+    """Deux managers ne peuvent pas se mettre d'accord pour souffler."""
+    jeu = base_avec_equipes(2)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None)
+    LB.rejoindre(jeu, "2025/26", 2, ONZE, None)
+    r = _reculer(jeu, LB.en_cours(jeu, "2025/26", 1), LB.DUREE_REELLE * 0.55)
+    f = LB.arbitrer(jeu, r, LB.feuille(jeu, "2025/26", r))
+    assert f["minute"] >= LB.MI_TEMPS
+    assert not f.get("pause")
+
+
+def test_the_sheet_carries_a_reading_of_the_opponent_for_each_side():
+    jeu = base_avec_equipes(1)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True)
+    r = _reculer(jeu, LB.en_cours(jeu, "2025/26", 1), LB.DUREE_REELLE * 0.9)
+    f = LB.feuille(jeu, "2025/26", r)
+    assert set(f["lecture"]) == {"a", "b"}
+    assert all(isinstance(x, list) for x in f["lecture"].values())
+    # et les fiches des joueurs y sont, pour l'écran de match
+    assert f["joueurs"] and all("note" in x for x in f["joueurs"].values())

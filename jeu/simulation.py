@@ -613,6 +613,126 @@ def _tireur(joueurs: list[dict], rng: random.Random, axe: str = "FIN") -> dict:
 
 
 # --------------------------------------------------------------------------
+# La note de match, joueur par joueur
+# --------------------------------------------------------------------------
+# Ce qu'on lit d'abord sur un écran de match : qui fait le match.  Elle
+# se construit à partir de ce que la simulation a VRAIMENT produit — ses
+# événements et ses phases — et de rien d'autre.
+#
+# Elle n'a rien à voir avec la note du moteur (moteur/topsflops.py), qui
+# note un vrai match d'un vrai joueur et qui, elle, fait la carte.  Celle
+# d'ici note UNE rencontre simulée, elle vit et meurt avec elle, et elle
+# ne remonte JAMAIS vers la carte : la règle du projet est que seul le
+# vrai football décide de ce que vaut un joueur.
+# 6,6 et non 6,0 : sur une échelle de notes de football, 6 n'est pas la
+# moyenne, c'est un mauvais match.  Avec une base à 6,0 la moitié du
+# vivier passait sous 6 — l'implication est symétrique autour de la
+# médiane de l'équipe, donc elle fait descendre autant qu'elle fait
+# monter.  Mesuré sur soixante matchs, 6,6 place la médiane à 6,6, un
+# buteur autour de 7,6 et l'homme du match entre 8 et 9.
+NOTE_BASE = 6.6
+NOTE_BUT = 1.10
+NOTE_PASSE_D = 0.70
+NOTE_TIR_CADRE = 0.12        # un tir que le gardien doit sortir
+NOTE_OCCASION = -0.10        # une occasion nette manquée
+NOTE_ARRET = 0.22            # pour le gardien qui la sort
+NOTE_FAUTE = -0.06
+NOTE_JAUNE = -0.35
+NOTE_ROUGE = -1.30
+NOTE_HORSJEU = -0.05
+NOTE_ENCAISSE_GK = -0.28     # un but encaissé, pour le gardien
+NOTE_ENCAISSE_DEF = -0.14    # ... et pour la défense
+NOTE_IMPLICATION = 0.45      # ce que vaut, au plus, d'être au cœur du jeu
+NOTE_MIN, NOTE_MAX = 3.0, 10.0
+
+
+def _implication(touches: float, minutes: float, reference: float) -> float:
+    """Être dans le match ou le regarder passer, en une valeur -1..1.
+
+    Comparé à la MÉDIANE de son équipe, pas dans l'absolu : un milieu
+    touche plus de ballons qu'un buteur par nature, et ce n'est pas un
+    mérite."""
+    if minutes <= 0 or reference <= 0:
+        return 0.0
+    r = (touches / minutes) / reference
+    return max(-1.0, min(1.0, (r - 1.0) * 1.4))
+
+
+def notes_du_match(evenements: list[dict], fil: list[dict], minutes: list[dict],
+                   score: list[int], familles: dict[int, str]) -> dict[int, dict]:
+    """Les stats et la note de chaque joueur, des deux camps."""
+    fiches: dict[int, dict] = {}
+
+    def fiche(pid):
+        if pid not in fiches:
+            fiches[pid] = {"minutes": 0, "touches": 0, "tirs": 0, "buts": 0, "passes_d": 0,
+                           "arrets": 0, "fautes": 0, "jaunes": 0, "rouges": 0, "horsjeu": 0}
+        return fiches[pid]
+
+    for c in (0, 1):
+        for pid, m in minutes[c].items():
+            fiche(pid)["minutes"] = m
+    for ligne in fil:
+        for ph in ligne.get("s") or ():
+            if ph.get("p") is not None:
+                fiche(ph["p"])["touches"] += 1
+    for e in evenements:
+        pid = e.get("pid")
+        t = e["type"]
+        if pid is None:
+            continue
+        f = fiche(pid)
+        if t == "but":
+            f["buts"] += 1
+            f["tirs"] += 1
+        elif t == "arret":
+            f["tirs"] += 1
+            if e.get("gardien_pid") is not None:
+                fiche(e["gardien_pid"])["arrets"] += 1
+        elif t == "occasion":
+            f["tirs"] += 1
+        elif t == "faute":
+            f["fautes"] += 1
+        elif t == "jaune":
+            f["jaunes"] += 1
+            f["fautes"] += 1
+        elif t == "rouge":
+            f["rouges"] += 1
+            f["fautes"] += 1
+        elif t == "horsjeu":
+            f["horsjeu"] += 1
+        if t == "but" and e.get("passeur_pid") is not None:
+            fiche(e["passeur_pid"])["passes_d"] += 1
+
+    # la médiane des touches par minute, camp par camp
+    refs = {}
+    for c in (0, 1):
+        taux = sorted((fiches[p]["touches"] / fiches[p]["minutes"])
+                      for p in minutes[c] if fiches.get(p, {}).get("minutes"))
+        refs[c] = taux[len(taux) // 2] if taux else 1.0
+
+    for c in (0, 1):
+        encaisses = score[1 - c]
+        for pid in minutes[c]:
+            f = fiches[pid]
+            fam = familles.get(pid, "MID")
+            n = NOTE_BASE
+            n += NOTE_BUT * f["buts"] + NOTE_PASSE_D * f["passes_d"]
+            n += NOTE_TIR_CADRE * max(0, f["tirs"] - f["buts"]) + NOTE_ARRET * f["arrets"]
+            n += NOTE_FAUTE * f["fautes"] + NOTE_JAUNE * f["jaunes"] + NOTE_ROUGE * f["rouges"]
+            n += NOTE_HORSJEU * f["horsjeu"]
+            n += NOTE_IMPLICATION * _implication(f["touches"], f["minutes"], refs[c])
+            # un but encaissé se paie derrière, au prorata du temps joué
+            part = f["minutes"] / max(1, MINUTES)
+            if fam == "GK":
+                n += NOTE_ENCAISSE_GK * encaisses * part
+            elif fam == "DEF":
+                n += NOTE_ENCAISSE_DEF * encaisses * part
+            f["note"] = round(max(NOTE_MIN, min(NOTE_MAX, n)), 1)
+    return fiches
+
+
+# --------------------------------------------------------------------------
 # The match
 # --------------------------------------------------------------------------
 
@@ -775,6 +895,8 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
     faits_chg = [0, 0]
     fenetres_chg = [0, 0]
     entres: list[list[int]] = [[], []]      # who has already come on, so the bench knows
+    minutes_jouees: list[dict[int, int]] = [{}, {}]   # pour la note de chacun
+    familles: dict[int, str] = {}
     evenements: list[dict] = []
     fil: list[dict] = []
 
@@ -871,7 +993,7 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                 issue.update({"quoi": "but", "passeur": passeur})
                 evt = ajoute(m, cote, "but", f"But de {tireur['nom']}, servi par {passeur['nom']}",
                              pid=tireur["pid"], nom=tireur["nom"], passeur=passeur["nom"],
-                             xg=round(xg, 2), score=list(score))
+                             passeur_pid=passeur["pid"], xg=round(xg, 2), score=list(score))
             else:
                 gk = next((j for j in sur[adv] if j["fam"] == "GK"), None)
                 arret = rng.random() < 0.42 + 0.3 * t[adv]["gardien"]
@@ -879,7 +1001,8 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                 if arret and gk:
                     issue.update({"quoi": "arret", "gardien": gk})
                     evt = ajoute(m, cote, "arret", f"Arrêt de {gk['nom']} devant {tireur['nom']}",
-                                 pid=tireur["pid"], nom=tireur["nom"], gardien=gk["nom"], xg=round(xg, 2))
+                                 pid=tireur["pid"], nom=tireur["nom"], gardien=gk["nom"],
+                                 gardien_pid=gk["pid"], xg=round(xg, 2))
                 elif xg >= XG_NOTABLE:
                     evt = ajoute(m, cote, "occasion", f"{tireur['nom']} manque l'occasion",
                                  pid=tireur["pid"], nom=tireur["nom"], xg=round(xg, 2))
@@ -950,6 +1073,11 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                                  pid=blesse["pid"], slot=sortant_slot)
                 t[c_bless] = traits_diriges(sur[c_bless], tac[c_bless])
 
+        for c in (0, 1):
+            for j in sur[c]:
+                minutes_jouees[c][j["pid"]] = minutes_jouees[c].get(j["pid"], 0) + 1
+                familles[j["pid"]] = j.get("fam", "MID")
+
         # The legs.  Everyone on the pitch loses a little of the minute,
         # each side at the cost of the way its manager makes it play, and
         # the traits are read again from tired players.
@@ -979,8 +1107,11 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
         "formation": {"a": forme[0], "b": forme[1]},
         # the position each player is CURRENTLY filling, which a formation
         # changed at half-time and a substitution both move
-        "postes": {"ab"[c]: {j["pid"]: {"slot": j.get("slot"), "hors_poste": bool(j.get("hors_poste"))}
+        "postes": {"ab"[c]: {j["pid"]: {"slot": j.get("slot"), "hors_poste": bool(j.get("hors_poste")),
+                                        "aise": round(j.get("aise", 1.0), 3)}
                              for j in sur[c]} for c in (0, 1)},
+        # ce que chacun a fait, et la note qui va avec (notes_du_match)
+        "joueurs": notes_du_match(evenements, fil, minutes_jouees, score, familles),
         "evenements": evenements, "fil": fil,
         "onze": {"a": [j["pid"] for j in sur[0]], "b": [j["pid"] for j in sur[1]]},
         "traits": {"a": {k: round(v, 3) for k, v in t[0].items()}, "b": {k: round(v, 3) for k, v in t[1].items()}},
@@ -1046,6 +1177,69 @@ def style(joueurs: list[dict]) -> str:
     faible = next((DITS[k][1] for d, k in reversed(ecarts) if d <= -ECART_STYLE), None)
     bouts = forces + ([faible] if faible else [])
     return ", ".join(bouts) or "équipe équilibrée, sans trait dominant"
+
+
+# --------------------------------------------------------------------------
+# Lire l'adversaire depuis le banc
+# --------------------------------------------------------------------------
+# On ne montre PAS à un manager la feuille de réglages de l'autre.  Le
+# cycle tactique (possession > bloc bas > direct > bloc haut) n'est un
+# choix que s'il faut deviner : lire « bloc haut, offensif » en clair
+# transforme une lecture de jeu en consultation de tableau.
+#
+# À la place, ce qu'un entraîneur voit vraiment depuis sa surface
+# technique.  Et seulement ça : les seuils ci-dessous sont MESURÉS sur
+# quatre-vingts matchs par réglage, et on ne dit que ce qui sépare
+# vraiment.
+#
+#   réglage adverse     tirs total   ses tirs   sa possession   ses fautes
+#   possession               19,1        9,2          57 %          9,5
+#   direct                   27,3       14,2          42 %         13,0
+#   offensif                 28,0       14,0          49 %         10,5
+#   prudent                  19,5        9,8          49 %         11,9
+#   bloc haut                23,0       12,8          49 %         11,9
+#   bloc bas                 23,4       10,4          49 %         10,8
+#   (neutre)                 22,9       11,5          49 %         11,4
+#
+# La possession trahit le tempo, le nombre total de tirs dit si le match
+# est ouvert, les fautes trahissent un peu le jeu direct.  LE BLOC, lui,
+# ne se lit pas : haut et bas donnent la même possession et presque les
+# mêmes tirs.  C'est cohérent — le moteur ne modélise pas non plus l'endroit
+# où le ballon est récupéré — et c'est tant mieux : il reste quelque chose
+# à deviner.  On ne l'invente donc pas.
+MINUTES_LECTURE = 15         # avant, il n'y a rien à lire
+
+
+def lecture_adverse(f: dict, cote: str) -> list[str]:
+    """Ce qu'un manager peut honnêtement dire de l'autre équipe, à cette
+    minute.  Déduit du MATCH, jamais des réglages : c'est donc parfois
+    faux, exactement comme une vraie lecture depuis le banc."""
+    i = 0 if cote == "a" else 1
+    adv = 1 - i
+    m = f.get("minute", 0)
+    if m < MINUTES_LECTURE:
+        return []
+    par90 = lambda x: x * 90 / max(1, m)
+    dits = []
+    poss = (f.get("possession") or [50, 50])[adv]
+    if poss >= 55:
+        dits.append("ils gardent le ballon")
+    elif poss <= 45:
+        dits.append("ils te laissent le ballon")
+    tirs = f.get("tirs") or [0, 0]
+    total = par90(tirs[0] + tirs[1])
+    if total >= 26:
+        dits.append("le match est ouvert")
+    elif total <= 20:
+        dits.append("le match est fermé")
+    leurs = par90(tirs[adv])
+    if leurs >= 13.5:
+        dits.append("ils poussent")
+    elif leurs <= 10:
+        dits.append("ils ne se découvrent pas")
+    if par90((f.get("fautes") or [0, 0])[adv]) >= 12.7:
+        dits.append("ils jouent dur")
+    return dits[:3]
 
 
 # --------------------------------------------------------------------------

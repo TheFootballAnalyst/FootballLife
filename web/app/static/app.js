@@ -976,27 +976,166 @@ function panneauAttente(d) {
   return p;
 }
 
-function panneauMatch(d) {
+// ---------------------------------------------------------------------------
+// L'écran de match.
+//
+// Quand un match tourne, il PREND l'écran : le score et l'horloge en
+// haut, le terrain au centre, les deux compositions de chaque côté avec
+// la note et l'endurance de chacun, et en dessous des onglets — le
+// direct, la tactique, les stats.  C'est la disposition d'un jeu de
+// management : tout ce qu'on regarde pendant qu'on décide est visible en
+// même temps, et ce qu'on ne regarde qu'entre deux décisions est derrière
+// un onglet.
+//
+// L'onglet reste où le manager l'a laissé d'un sondage à l'autre.
+// ---------------------------------------------------------------------------
+const ONGLETS_MATCH = {direct: "Le direct", tactique: "Tactique", stats: "Statistiques"};
+let ONGLET = "direct";
+
+function couleurNote(n) { return n >= 7.5 ? "haute" : n >= 6.5 ? "bonne" : n >= 5.5 ? "" : "basse"; }
+
+// Une composition, joueur par joueur : sa note de match, ce qu'il a
+// fait, ce qu'il lui reste dans les jambes.
+function colonneCompo(m, cote, mien) {
+  const tous = [...(m.onze?.[cote] || []), ...(m.banc?.[cote] || [])];
+  const sur = (m.sur_le_terrain?.[cote] || []).map(pid => tous.find(j => j.pid === pid)).filter(Boolean);
+  const endu = m.endurance?.[cote] || {};
+  const fiches = m.joueurs || {};
+  const c = el("div", {class: "compo-col " + (mien ? "mien" : "adverse")});
+  c.append(el("div", {class: "compo-tete"},
+    el("b", {class: "anton"}, m.noms[cote === "a" ? 0 : 1]),
+    el("span", {class: "compo-forme"}, m.formation?.[cote] || "")));
+  for (const j of sur) {
+    const f = fiches[j.pid] || {};
+    const faits = [];
+    if (f.buts) faits.push("⚽".repeat(Math.min(3, f.buts)));
+    if (f.passes_d) faits.push("🅰".repeat(Math.min(3, f.passes_d)));
+    if (f.arrets) faits.push(`🧤${f.arrets}`);
+    if (f.jaunes) faits.push("🟨");
+    if (f.rouges) faits.push("🟥");
+    const e = endu[j.pid];
+    const l = el("div", {class: "compo-j", title: `${j.nom} · ${j.slot || j.poste} · OVR ${j.ovr}`
+        + (f.touches ? ` · ${f.touches} ballons joués` : "")},
+      el("span", {class: "po"}, POSTE_ABBR[j.slot] || ""),
+      el("span", {class: "nm"}, (j.nom || "").split(" ").slice(-1)[0]),
+      el("span", {class: "fa"}, faits.join(" ")),
+      jaugeEndurance(e),
+      el("b", {class: "note " + couleurNote(f.note ?? 6)}, f.note ? f.note.toFixed(1) : "—"));
+    c.append(l);
+  }
+  const utilises = new Set(m.entres?.[cote] || []);
+  const restants = (m.banc?.[cote] || []).filter(j => !utilises.has(j.pid));
+  c.append(el("div", {class: "compo-banc"}, `Banc : ${restants.length} · `
+    + `${m.changements?.[cote === "a" ? 0 : 1] ?? 0}/${SM_MAX_CHG} changements`));
+  return c;
+}
+
+// Les stats avancées : les barres, la carte des tirs, la course au xG.
+function ongletStats(d) {
   const m = d.match, moi = d.cote === "b" ? 1 : 0, lui = 1 - moi;
-  const bloc = el("div", {});
-  bloc.append(panneauTerrain(d, d.cote === "b" ? "b" : "a"));
-  const p = el("div", {class: "panneau match-live"});
-  bloc.append(p);
-  p.append(el("div", {class: "live-tete"},
-    el("div", {class: "live-eq"}, el("div", {class: "nom anton"}, m.noms[0]), el("div", {class: "style"}, m.style.a)),
-    el("div", {class: "live-score anton"}, `${m.score[0]} – ${m.score[1]}`),
-    el("div", {class: "live-eq droite"}, el("div", {class: "nom anton"}, m.noms[1]), el("div", {class: "style"}, m.style.b))));
-  const pct = Math.round(100 * m.minute / d.minutes);
-  p.append(el("div", {class: "horloge" + (m.pause ? " suspendue" : "")}, el("i", {style: `width:${pct}%`}),
-    el("b", {}, m.fini ? "Terminé" : m.pause ? `${m.minute}' — arrêté` : `${m.minute}'`)));
+  const p = el("div", {class: "onglet-corps"});
   const stats = el("div", {class: "live-stats"});
-  for (const [lib, va, vb] of [["Possession", m.possession[0] + " %", m.possession[1] + " %"],
-                               ["Tirs", m.tirs[0], m.tirs[1]], ["xG", m.xg[0].toFixed(2), m.xg[1].toFixed(2)],
-                               ["Corners", m.corners?.[0] ?? 0, m.corners?.[1] ?? 0],
-                               ["Fautes", m.fautes?.[0] ?? 0, m.fautes?.[1] ?? 0],
-                               ["Cartons", cartons(m, 0), cartons(m, 1)]])
+  const pair = (lib, a, b) => [lib, a, b];
+  for (const [lib, va, vb] of [
+      pair("Possession", m.possession[moi] + " %", m.possession[lui] + " %"),
+      pair("Tirs", m.tirs[moi], m.tirs[lui]),
+      pair("xG", m.xg[moi].toFixed(2), m.xg[lui].toFixed(2)),
+      pair("xG par tir", (m.tirs[moi] ? m.xg[moi] / m.tirs[moi] : 0).toFixed(2),
+           (m.tirs[lui] ? m.xg[lui] / m.tirs[lui] : 0).toFixed(2)),
+      pair("Corners", m.corners?.[moi] ?? 0, m.corners?.[lui] ?? 0),
+      pair("Fautes", m.fautes?.[moi] ?? 0, m.fautes?.[lui] ?? 0),
+      pair("Hors-jeu", m.horsjeu?.[moi] ?? 0, m.horsjeu?.[lui] ?? 0),
+      pair("Cartons", cartons(m, moi), cartons(m, lui))])
     stats.append(el("div", {class: "sl"}, el("b", {}, String(va)), el("span", {}, lib), el("b", {}, String(vb))));
   p.append(stats);
+  p.append(el("div", {class: "etiq"}, "La course au xG"), courseXg(m, moi));
+  p.append(el("div", {class: "etiq"}, "Où ils ont tiré"), carteTirs(m, moi));
+  // les meilleures notes des deux camps
+  const fiches = Object.entries(m.joueurs || {}).map(([pid, f]) => ({pid: +pid, ...f}));
+  if (fiches.length) {
+    const nom = pid => {
+      for (const c of ["a", "b"])
+        for (const j of [...(m.onze?.[c] || []), ...(m.banc?.[c] || [])])
+          if (j.pid === pid) return [j.nom, c];
+      return ["?", "a"];
+    };
+    fiches.sort((x, y) => y.note - x.note);
+    const h = el("div", {class: "hommes"});
+    for (const f of fiches.slice(0, 5)) {
+      const [n, c] = nom(f.pid);
+      h.append(el("div", {class: "homme" + (c === "ab"[moi] ? " mien" : "")},
+        el("b", {class: "note " + couleurNote(f.note)}, f.note.toFixed(1)),
+        el("span", {}, n),
+        el("span", {class: "compteur"}, `${f.touches} ballons · ${f.tirs} tir${f.tirs > 1 ? "s" : ""}`)));
+    }
+    p.append(el("div", {class: "etiq"}, "Les hommes du match"), h);
+  }
+  return p;
+}
+
+// La course au xG : ce qui distingue une domination d'un cambriolage.
+function courseXg(m, moi) {
+  const cum = [[0], [0]];
+  for (const l of m.fil || []) {
+    const e = l.e !== null && l.e !== undefined ? m.evenements[l.e] : null;
+    const x = e && e.xg ? e.xg : 0;
+    const c = e ? (e.cote === "A" ? 0 : 1) : null;
+    cum[0].push(cum[0][cum[0].length - 1] + (c === 0 ? x : 0));
+    cum[1].push(cum[1][cum[1].length - 1] + (c === 1 ? x : 0));
+  }
+  const n = cum[0].length;
+  const haut = Math.max(0.5, cum[0][n - 1], cum[1][n - 1]);
+  const W = 100, H = 42;
+  const trace = s => s.map((v, i) => `${(i / Math.max(1, n - 1) * W).toFixed(2)},${(H - v / haut * H).toFixed(2)}`).join(" ");
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("class", "xg-course");
+  svg.setAttribute("preserveAspectRatio", "none");
+  for (const [k, cls] of [[moi, "mien"], [1 - moi, "adverse"]]) {
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    l.setAttribute("points", trace(cum[k]));
+    l.setAttribute("class", cls);
+    svg.append(l);
+  }
+  const b = el("div", {class: "xg-boite"});
+  b.append(svg, el("div", {class: "xg-legende"},
+    el("span", {class: "lg mien"}, `toi ${cum[moi][n - 1].toFixed(2)}`),
+    el("span", {class: "lg adverse"}, `eux ${cum[1 - moi][n - 1].toFixed(2)}`)));
+  return b;
+}
+
+// La carte des tirs : chaque frappe à l'endroit d'où elle est partie,
+// grosse comme son xG, pleine si elle est rentrée.
+function carteTirs(m, moi) {
+  const b = el("div", {class: "tirs-carte"});
+  const fond = el("div", {class: "tirs-fond"}, el("div", {class: "tirs-surface"}), el("div", {class: "tirs-but"}));
+  b.append(fond);
+  let n = 0;
+  for (const l of m.fil || []) {
+    const e = l.e !== null && l.e !== undefined ? m.evenements[l.e] : null;
+    if (!e || !["but", "arret", "occasion"].includes(e.type)) continue;
+    const tir = (l.s || []).find(x => x.k === "tir");
+    const mien = e.cote === "AB"[moi];
+    const xg = e.xg || 0.05;
+    const taille = 7 + Math.min(22, xg * 42);
+    // d'où : plus le xG est grand, plus c'est près du but
+    const prof = 0.06 + (1 - Math.min(1, xg / 0.5)) * 0.26;
+    const trav = tir && tir.t !== undefined ? 0.5 + (tir.t - 0.5) * 0.62 : 0.5;
+    const pt = el("span", {class: "tir " + e.type + (mien ? " mien" : " adverse"),
+      title: `${e.minute}' ${e.texte} · xG ${xg.toFixed(2)}`,
+      style: `right:${(prof * 100).toFixed(1)}%;top:${(trav * 100).toFixed(1)}%;`
+             + `width:${taille}px;height:${taille}px;margin:${-taille / 2}px`});
+    fond.append(pt); n++;
+  }
+  if (!n) b.append(el("p", {class: "compteur"}, "Pas encore de tir."));
+  else b.append(el("p", {class: "compteur"},
+    "Taille = xG. Plein = but, cerclé = arrêt ou occasion manquée. Tes tirs en bleu, les leurs en rouge."));
+  return b;
+}
+
+function ongletDirect(d) {
+  const m = d.match, moi = d.cote === "b" ? 1 : 0;
+  const p = el("div", {class: "onglet-corps"});
   const fil = el("div", {class: "fil"});
   for (const e of [...m.evenements].reverse())
     fil.append(el("div", {class: "evt " + e.type + (e.cote === "AB"[moi] ? " mien" : "")},
@@ -1004,14 +1143,64 @@ function panneauMatch(d) {
       el("span", {class: "txt"}, e.texte)));
   if (!m.evenements.length) fil.append(el("p", {class: "compteur"}, "Le match vient de commencer."));
   p.append(fil);
-  if (!m.fini) {
-    p.append(blocAjuster(d, "/lobby/tactique", "/lobby/pause", rendreLobby));
-  } else {
+  return p;
+}
+
+function panneauMatch(d, routeTac = "/lobby/tactique", routePause = "/lobby/pause", rendre = rendreLobby) {
+  const m = d.match, moi = d.cote === "b" ? 1 : 0, lui = 1 - moi;
+  const cote = d.cote === "b" ? "b" : "a", adv = cote === "a" ? "b" : "a";
+  const bloc = el("div", {class: "ecran-match"});
+
+  // ---- le bandeau : les deux équipes, le score, l'horloge
+  const tete = el("div", {class: "panneau match-tete"});
+  tete.append(el("div", {class: "mt-eq"}, el("div", {class: "nom anton"}, m.noms[moi]),
+    el("div", {class: "style"}, m.style["ab"[moi]])));
+  tete.append(el("div", {class: "mt-centre"},
+    el("div", {class: "live-score anton"}, `${m.score[moi]} – ${m.score[lui]}`),
+    el("div", {class: "mt-min anton"}, m.fini ? "Terminé"
+      : m.pause ? `${m.minute}' — ${{"mi-temps": "mi-temps", "blessure": "blessure"}[m.motif_pause] || "arrêté"}`
+      : `${m.minute}'`)));
+  tete.append(el("div", {class: "mt-eq droite"}, el("div", {class: "nom anton"}, m.noms[lui]),
+    // Pas ses réglages : ce qu'on en voit (simulation.lecture_adverse).
+    el("div", {class: "style"}, (m.lecture?.[cote] || []).join(" · ")
+      || (m.minute < 15 ? "trop tôt pour les lire" : "rien de net"))));
+  const pct = Math.round(100 * m.minute / d.minutes);
+  tete.append(el("div", {class: "horloge" + (m.pause ? " suspendue" : "")}, el("i", {style: `width:${pct}%`})));
+  bloc.append(tete);
+
+  // ---- le corps : compo · terrain · compo
+  const corps = el("div", {class: "match-corps"});
+  corps.append(colonneCompo(m, cote, true));
+  corps.append(panneauTerrain(d, cote));
+  corps.append(colonneCompo(m, adv, false));
+  bloc.append(corps);
+
+  // ---- les onglets
+  const p = el("div", {class: "panneau match-live"});
+  const barre = el("div", {class: "onglets"});
+  const corpsOnglet = el("div", {});
+  const dessiner = () => {
+    barre.querySelectorAll("button").forEach(b => b.classList.toggle("actif", b.dataset.onglet === ONGLET));
+    corpsOnglet.replaceChildren(
+      ONGLET === "stats" ? ongletStats(d)
+      : ONGLET === "tactique" && !m.fini ? blocAjuster(d, routeTac, routePause, rendre)
+      : ongletDirect(d));
+  };
+  for (const [cle, lib] of Object.entries(ONGLETS_MATCH)) {
+    if (cle === "tactique" && m.fini) continue;
+    barre.append(el("button", {"data-onglet": cle, onclick: () => { ONGLET = cle; dessiner(); }}, lib));
+  }
+  if (m.fini && ONGLET === "tactique") ONGLET = "direct";
+  p.append(barre, corpsOnglet);
+  dessiner();
+  bloc.append(p);
+
+  if (m.fini) {
     const r = m.resultat === "N" ? "Match nul" : ((m.resultat === "A") === (moi === 0) ? "Victoire" : "Défaite");
     const de = m.elo_apres && m.elo_apres[moi] !== null ? m.elo_apres[moi] - m.elo_avant[moi] : null;
     p.append(el("div", {class: "live-fin"}, el("b", {class: "anton"}, r),
       de === null ? el("span", {}, m.defi ? " · défi, hors classement" : "") : el("span", {}, ` · Elo ${de > 0 ? "+" : ""}${de.toFixed(1)}`),
-      el("button", {class: "primaire", onclick: () => rendreLobby()}, "Rejouer")));
+      routeTac === "/lobby/tactique" ? el("button", {class: "primaire", onclick: () => rendreLobby()}, "Rejouer") : null));
   }
   return bloc;
 }
@@ -1134,33 +1323,13 @@ function panneauCampagne(d) {
 
 // A campaign match is played LIVE, on the same clock and the same pitch as
 // a lobby match: you watch it, you adjust, you make your changes.
+// Un match de campagne se joue sur LE MÊME écran qu'un match du lobby :
+// il n'y a qu'une façon de regarder un match dans ce jeu.
 function panneauMatchSolo(c) {
   const d = {match: c.match, cote: "a", duree: c.match.duree, minutes: c.match.minutes};
   const b = el("div", {});
-  b.append(panneauTerrain(d, "a"));
-  const m = c.match;
-  const p = el("div", {class: "panneau match-live"});
-  const stats = el("div", {class: "live-stats"});
-  for (const [lib, va, vb] of [["Possession", m.possession[0] + " %", m.possession[1] + " %"],
-                               ["Tirs", m.tirs[0], m.tirs[1]], ["xG", m.xg[0].toFixed(2), m.xg[1].toFixed(2)],
-                               ["Corners", m.corners?.[0] ?? 0, m.corners?.[1] ?? 0],
-                               ["Fautes", m.fautes?.[0] ?? 0, m.fautes?.[1] ?? 0],
-                               ["Cartons", cartons(m, 0), cartons(m, 1)]])
-    stats.append(el("div", {class: "sl"}, el("b", {}, String(va)), el("span", {}, lib), el("b", {}, String(vb))));
-  p.append(stats);
-  const fil = el("div", {class: "fil"});
-  for (const e of [...m.evenements].reverse())
-    fil.append(el("div", {class: "evt " + e.type + (e.cote === "A" ? " mien" : "")},
-      el("span", {class: "min"}, e.minute + "'"), el("span", {class: "ico"}, EVT_ICONE[e.type] || "•"),
-      el("span", {class: "txt"}, e.texte)));
-  if (!m.evenements.length) fil.append(el("p", {class: "compteur"}, "Le match vient de commencer."));
-  p.append(fil);
-  if (!m.fini) {
-    p.append(blocAjuster(d, "/solo/tactique", "/solo/pause", rendreSolo));
-  } else {
-    p.append(el("p", {class: "compteur"}, "Match terminé, la journée se clôture…"));
-  }
-  b.append(p);
+  b.append(panneauMatch(d, "/solo/tactique", "/solo/pause", rendreSolo));
+  if (c.match.fini) b.append(el("p", {class: "compteur"}, "Match terminé, la journée se clôture…"));
   return b;
 }
 
@@ -1624,8 +1793,6 @@ function chargerMinute() {
   T2D.i = 0;
   const evt = ligne && ligne.e !== null && ligne.e !== undefined ? T2D.evts[ligne.e] : null;
   if (evt) T2D.dernier = {evt, quand: Date.now()};
-  const h = T2D.noeud && T2D.noeud.querySelector(".t2d-minute");
-  if (h) h.textContent = T2D.m + "'";
   if (!T2D.phases.length && ligne) bougerTerrain(T2D.t, ligne.c, ligne.z, T2D.moi);
 }
 
@@ -1666,12 +1833,10 @@ function panneauTerrain(d, moi) {
   let p = T2D.noeud;
   if (!p || T2D.cle !== cle) {
     arreterTerrain();                       // nouveau match, ou nouveau onze
+    // Pas de score ni d'horloge ici : le bandeau du match les porte, et
+    // deux horloges qui ne disent pas la même minute (l'animation a un
+    // temps de retard sur le serveur) valent moins qu'une seule.
     p = el("div", {class: "panneau terrain-live"});
-    p.append(el("div", {class: "t2d-tete"},
-      el("div", {class: "eq"}, el("b", {class: "anton"}, m.noms[moi === "a" ? 0 : 1])),
-      el("div", {class: "t2d-score anton"}, ""),
-      el("div", {class: "eq droite"}, el("b", {class: "anton"}, m.noms[moi === "a" ? 1 : 0])),
-      el("div", {class: "t2d-minute anton"}, "")));
     p.append(el("div", {class: "t2d-legende"},
       el("span", {class: "lg mien"}, "Ton équipe"),
       el("span", {class: "lg adverse"}, "L'adversaire"),
@@ -1683,8 +1848,6 @@ function panneauTerrain(d, moi) {
     if (T2D.m > m.minute) T2D.m = Math.max(0, m.minute - 1);
   }
   const t = p.querySelector(".terrain2d");
-  p.querySelector(".t2d-score").textContent =
-    `${m.score[moi === "a" ? 0 : 1]} – ${m.score[moi === "a" ? 1 : 0]}`;
   T2D.fil = m.fil || [];
   T2D.cible = m.minute;
   T2D.evts = m.evenements || [];
@@ -1693,7 +1856,6 @@ function panneauTerrain(d, moi) {
   T2D.pas = Math.max(900, (d.duree * 1000) / (d.minutes || 90));
   if (T2D.m === 0) T2D.m = Math.max(0, T2D.cible - 1);
   if (T2D.m > T2D.cible) T2D.m = T2D.cible;
-  p.querySelector(".t2d-minute").textContent = m.fini ? "Terminé" : T2D.m + "'";
   jauges(m);
   reAnnoncer(t);
   t.classList.toggle("suspendu", !!m.pause);

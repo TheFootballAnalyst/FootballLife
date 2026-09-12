@@ -366,6 +366,9 @@ def feuille(jeu, saison: str, r, minute: int | None = None) -> dict:
     f["rencontre_id"] = r["rencontre_id"]
     f["pause"] = en_pause(r)
     f["solitaire"] = solitaire(r)
+    # ce que chaque camp peut dire de l'autre — pas sa feuille de
+    # réglages, ce qu'il en VOIT (simulation.lecture_adverse)
+    f["lecture"] = {"a": SM.lecture_adverse(f, "a"), "b": SM.lecture_adverse(f, "b")}
     f["defi"] = bool(r["defi"])
     f["noms"] = [a.nom, b.nom]
     sur = f.pop("onze", {"a": [], "b": []})
@@ -472,6 +475,9 @@ def cloturer(jeu, saison: str, r) -> dict | None:
     return f
 
 
+MI_TEMPS = 45                # la pause, comme au football
+
+
 def arbitrer(jeu, r, f: dict) -> dict:
     """Stop the clock when one of the manager's players goes off injured.
 
@@ -492,12 +498,23 @@ def arbitrer(jeu, r, f: dict) -> dict:
     except (TypeError, json.JSONDecodeError):
         vus = set()
     neufs = [pid for pid in attente if pid not in vus]
-    if neufs and not en_pause(r):
+    motif = None
+    if neufs:
+        motif, marque = "blessure", set(neufs)
+    elif f.get("minute", 0) >= MI_TEMPS and "mi-temps" not in vus:
+        # La mi-temps : le seul arrêt que le football prévoit, et le
+        # moment où un manager corrige ce qu'il a vu.  Une fois, et
+        # seulement pour un match à un seul humain.
+        motif, marque = "mi-temps", {"mi-temps"}
+    if motif and not en_pause(r):
         suspendre(jeu, r, True)
         jeu.execute("UPDATE rencontre SET arrets_vus=? WHERE rencontre_id=?",
-                    (json.dumps(sorted(vus | set(neufs))), r["rencontre_id"]))
+                    (json.dumps(sorted(vus | marque, key=str)), r["rencontre_id"]))
         jeu.commit()
         f["pause"] = True
+        f["motif_pause"] = motif
+    elif en_pause(r):
+        f["motif_pause"] = "blessure" if attente else "mi-temps" if "mi-temps" in vus else "manuelle"
     return f
 
 

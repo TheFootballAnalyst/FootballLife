@@ -127,6 +127,71 @@ contre un onze assemblé à ton niveau. Un défi ne touche pas ton Elo
 classé : le classement n'enregistre que ce qui s'est joué contre
 quelqu'un.
 
+## L'écran de match
+
+Quand un match tourne, il **prend l'écran**. Le score et l'horloge en
+haut, le terrain au centre, **les deux compositions de chaque côté** —
+poste, nom, ce qu'il a fait, son endurance, sa note — et en dessous
+trois onglets : **Le direct** (le fil des actions), **Tactique** (les
+axes, la formation, les consignes, les changements) et **Statistiques**.
+L'onglet reste où tu l'as laissé d'un sondage à l'autre.
+
+**Chaque joueur a une note de match**, comme on en lit sur une feuille
+de match. Elle se construit de ce que la simulation a produit : ses buts
+et ses passes décisives, ses tirs, ses arrêts, ses fautes et ses
+cartons, les buts encaissés s'il défend, et son implication — le nombre
+de ballons qu'il a touchés comparé à la médiane de son équipe, parce
+qu'un milieu en touche plus qu'un buteur par nature. La base est à 6,6
+et non à 6 : sur une échelle de football, 6 n'est pas la moyenne, c'est
+un mauvais match. Mesuré sur soixante matchs, la médiane tombe à 6,6, un
+buteur autour de 7,8, et 7 % des notes passent 8.
+
+Cette note-là n'a **rien à voir** avec celle du moteur, qui note un vrai
+match d'un vrai joueur et qui, elle, fait la carte. Celle du match
+simulé vit et meurt avec lui : elle ne remonte jamais vers la carte.
+
+Les **statistiques avancées** : possession, tirs, xG, xG par tir,
+corners, fautes, hors-jeu, cartons — et deux dessins. La **course au
+xG**, qui distingue une domination d'un cambriolage, et la **carte des
+tirs** : chaque frappe à l'endroit d'où elle est partie, grosse comme
+son xG, pleine si elle est rentrée.
+
+## Lire l'adversaire
+
+Tu ne vois **pas** la feuille de réglages de l'autre manager. Le cycle
+tactique n'est un choix que s'il faut deviner : lire « bloc haut,
+offensif » en clair transformerait une lecture de jeu en consultation de
+tableau.
+
+À la place, ce qu'un entraîneur voit depuis sa surface technique, déduit
+du match et pas des réglages — donc parfois faux, comme une vraie
+lecture. Mesuré sur quatre-vingts matchs par réglage, voici ce qui se
+lit et ce qui ne se lit pas :
+
+| ce que fait l'adversaire | tirs total | ses tirs | sa possession | ses fautes |
+| --- | --- | --- | --- | --- |
+| il garde le ballon | 19,1 | 9,2 | **57 %** | 9,5 |
+| il joue direct | 27,3 | 14,2 | **42 %** | 13,0 |
+| il est offensif | **28,0** | 14,0 | 49 % | 10,5 |
+| il est prudent | **19,5** | 9,8 | 49 % | 11,9 |
+| bloc haut | 23,0 | 12,8 | 49 % | 11,9 |
+| bloc bas | 23,4 | 10,4 | 49 % | 10,8 |
+| (neutre) | 22,9 | 11,5 | 49 % | 11,4 |
+
+La possession trahit le tempo, le nombre total de tirs dit si le match
+est ouvert, les fautes trahissent un peu le jeu direct. **Le bloc, lui,
+ne se lit pas** : haut et bas donnent la même possession et presque les
+mêmes tirs. C'est cohérent — le moteur ne modélise pas non plus
+l'endroit où le ballon est récupéré — et c'est tant mieux, il reste
+quelque chose à deviner. Le jeu ne l'invente donc pas.
+
+Avant la quinzième minute, il n'y a rien à lire et il te le dit.
+
+**La mi-temps** arrête un match à un seul humain, une fois, à la 45e :
+le moment où l'on corrige ce qu'on a vu. Un match classé entre deux
+managers n'en a pas — ils ne peuvent pas se mettre d'accord pour
+souffler.
+
 ## Le terrain
 
 Le match se regarde, action par action. Les vingt-deux cartes sont

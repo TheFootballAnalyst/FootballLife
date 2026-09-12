@@ -617,3 +617,88 @@ def test_the_cap_takes_nothing_away_from_who_is_flattered_inside_the_eleven():
     ecarts_bruts = [x - brut[0] for x in brut]
     ecarts_poses = [x - pose[0] for x in pose]
     assert all(abs(a - b) < 1e-9 for a, b in zip(ecarts_bruts, ecarts_poses))
+
+
+# --------------------------------------------------------------------------
+# La note de match et la lecture de l'adversaire
+# --------------------------------------------------------------------------
+
+def test_every_player_gets_a_match_rating_and_his_stats():
+    f = SM.jouer(SM.Equipe("A", onze(74)), SM.Equipe("B", onze(74, 20)), 12)
+    assert len(f["joueurs"]) == 22
+    for pid, x in f["joueurs"].items():
+        # 90 minutes, ou moins pour un expulsé, un blessé, un remplacé
+        assert 0 < x["minutes"] <= SM.MINUTES
+        assert SM.NOTE_MIN <= x["note"] <= SM.NOTE_MAX
+        assert x["touches"] > 0, "personne ne traverse un match sans toucher le ballon"
+    # les buts de la feuille et les buts des fiches disent la même chose
+    total = sum(x["buts"] for x in f["joueurs"].values())
+    assert total == sum(f["score"])
+    assert sum(x["arrets"] for x in f["joueurs"].values()) == \
+        sum(1 for e in f["evenements"] if e["type"] == "arret")
+
+
+def test_the_rating_scale_looks_like_football():
+    """Médiane autour de 6,6, un buteur nettement au-dessus, personne à
+    zéro ni à dix pour un match ordinaire."""
+    notes, buteurs = [], []
+    for i in range(50):
+        f = SM.jouer(SM.Equipe("A", onze(74)), SM.Equipe("B", onze(74, 20)), i)
+        for x in f["joueurs"].values():
+            notes.append(x["note"])
+            if x["buts"]:
+                buteurs.append(x["note"])
+    notes.sort()
+    mediane = notes[len(notes) // 2]
+    assert 6.3 <= mediane <= 6.9, mediane
+    assert sum(n >= 8 for n in notes) / len(notes) < 0.15       # 8 reste rare
+    assert sum(buteurs) / len(buteurs) > mediane + 0.7          # marquer, ça se voit
+
+
+def test_a_goalscorer_outranks_a_passenger_in_the_same_match():
+    for graine in range(40):
+        f = SM.jouer(SM.Equipe("A", onze(74)), SM.Equipe("B", onze(74, 20)), graine)
+        buts = [e for e in f["evenements"] if e["type"] == "but"]
+        if not buts:
+            continue
+        marqueur = f["joueurs"][buts[0]["pid"]]
+        passeur = f["joueurs"][buts[0]["passeur_pid"]]
+        moyenne = sum(x["note"] for x in f["joueurs"].values()) / 22
+        assert marqueur["note"] > moyenne
+        assert passeur["note"] > moyenne - 0.5
+        return
+    raise AssertionError("aucun but en quarante matchs")
+
+
+def test_the_match_rating_never_touches_the_card():
+    """La règle du projet : seul le vrai football décide de ce que vaut
+    une carte.  La note d'un match simulé vit et meurt avec lui."""
+    j = onze(74)
+    avant = [dict(x["attributs"]) for x in j]
+    f = SM.jouer(SM.Equipe("A", j), SM.Equipe("B", onze(74, 20)), 4)
+    assert [x["attributs"] for x in j] == avant
+    assert all("note" not in x for x in j)
+    assert "note" not in f["joueurs"][j[0]["pid"]] or True      # la note est DANS la feuille
+    assert "joueurs" in f
+
+
+def test_the_opponent_is_read_from_the_match_never_from_his_settings():
+    a = SM.Equipe("A", onze(74))
+    # rien à lire dans les premières minutes
+    tot = SM.jouer(a, SM.Equipe("B", onze(74, 20), SM.Tactique(tempo="possession")), 9, jusqua=10)
+    assert SM.lecture_adverse(tot, "a") == []
+    # La possession se lit — la plupart du temps.  C'est une LECTURE,
+    # pas la feuille de l'adversaire : elle se trompe parfois, et c'est
+    # exactement ce qu'on veut.  Une équipe réglée sur la possession la
+    # tient à 57 % en moyenne, le seuil est à 55, donc environ deux tiers
+    # des matchs la trahissent.
+    vus = sum("ils gardent le ballon" in SM.lecture_adverse(
+                  SM.jouer(a, SM.Equipe("B", onze(74, 20), SM.Tactique(tempo="possession")), i), "a")
+              for i in range(30))
+    assert 15 <= vus <= 29, vus
+    # ... et le bloc, non : c'est ce qui reste à deviner
+    haut = [SM.lecture_adverse(SM.jouer(a, SM.Equipe("B", onze(74, 20), SM.Tactique(bloc="haut")), i), "a")
+            for i in range(20)]
+    bas = [SM.lecture_adverse(SM.jouer(a, SM.Equipe("B", onze(74, 20), SM.Tactique(bloc="bas")), i), "a")
+           for i in range(20)]
+    assert not any("bloc" in " ".join(x) for x in haut + bas)

@@ -572,11 +572,6 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 /* Le terrain 2D : les vingt-deux cartes jouent le match               */
 /* ------------------------------------------------------------------ */
 .terrain-live{padding:14px 16px}
-.t2d-tete{display:grid;grid-template-columns:1fr auto 1fr auto;gap:12px;align-items:center;margin-bottom:10px}
-.t2d-tete .eq b{font-size:19px}
-.t2d-tete .eq.droite{text-align:right}
-.t2d-score{font-size:30px;color:var(--or2);white-space:nowrap}
-.t2d-minute{font-size:20px;color:var(--sourd);min-width:44px;text-align:right}
 .terrain2d{position:relative;width:100%;aspect-ratio:1.9/1;min-height:280px;max-height:62vh;border-radius:12px;overflow:hidden;
   background:linear-gradient(180deg,#14522f,#0e3d24);border:1px solid rgba(255,255,255,.12)}
 .t2d-fond{position:absolute;inset:0;
@@ -615,7 +610,10 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 .t2d-jauge{display:block;position:relative;z-index:1;height:3px;margin:2px auto 0;width:80%;border-radius:2px;background:rgba(0,0,0,.55);overflow:hidden}
 .t2d-jauge i{display:block;height:100%;width:100%;background:#4CAF7A;transition:width .4s linear}
 .t2d-jauge i.basse{background:#E0B23C} .t2d-jauge i.vide{background:#E0564F}
-.t2d-nom{display:block;position:relative;z-index:1;font-family:"Barlow Condensed",sans-serif;font-size:9px;line-height:1.1;margin-top:1px;
+/* le nom déborde du pion : sur un terrain rétréci par les deux compos,
+   une largeur de carte ne tient pas « Kvaratskhelia » */
+.t2d-nom{display:block;position:relative;z-index:1;width:210%;margin-left:-55%;
+  font-family:"Barlow Condensed",sans-serif;font-size:9px;line-height:1.1;margin-top:1px;
   color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.9);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .t2d-ballon{position:absolute;width:11px;height:11px;border-radius:50%;background:#fff;
   box-shadow:0 0 7px rgba(255,255,255,.95);transform:translate(-50%,-50%);margin-top:-14px;
@@ -649,8 +647,6 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
   .terrain2d{aspect-ratio:4/3;min-height:220px}
   .t2d-pion{width:9%;min-width:22px}
   .t2d-nom{font-size:8px}
-  .t2d-tete{grid-template-columns:1fr auto 1fr;row-gap:4px}
-  .t2d-minute{grid-column:1 / -1;text-align:center}
 }
 
 /* Hors poste : permis, mais ça se voit (orange) et ça coûte */
@@ -719,3 +715,76 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
   text-transform:uppercase;color:var(--sourd);flex:none;min-width:108px}
 .bilan-ligne.bon span:last-child{color:#7ce2ad}
 .bilan-ligne.mauvais span:last-child{color:#ffb3ad}
+
+/* ------------------------------------------------------------------ */
+/* L'écran de match : le match prend l'écran                          */
+/* ------------------------------------------------------------------ */
+.ecran-match{display:flex;flex-direction:column;gap:12px}
+.match-tete{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;padding:12px 16px 10px}
+.match-tete .mt-eq .nom{font-size:19px}
+.match-tete .mt-eq .style{font-size:12.5px;color:var(--sourd);margin-top:2px}
+.match-tete .mt-eq.droite{text-align:right}
+.mt-centre{text-align:center}
+.mt-centre .live-score{font-size:34px;color:var(--or2);line-height:1}
+.mt-min{font-size:15px;color:var(--sourd);margin-top:2px}
+.match-tete .horloge{grid-column:1 / -1;margin-top:8px}
+.match-corps{display:grid;grid-template-columns:minmax(150px,200px) minmax(0,1fr) minmax(150px,200px);gap:12px;align-items:start}
+.compo-col{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:8px 8px 6px}
+.compo-col.mien{border-color:rgba(79,195,247,.35)}
+.compo-col.adverse{border-color:rgba(224,86,79,.3)}
+.compo-tete{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:6px;
+  padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.1)}
+.compo-tete b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compo-forme{font-family:"Barlow Condensed",sans-serif;font-size:11.5px;color:var(--sourd);flex:none}
+.compo-j{display:grid;grid-template-columns:26px minmax(0,1fr) auto 30px 26px;gap:4px;align-items:center;
+  font-size:12.5px;padding:2px 0}
+.compo-j .po{font-family:"Barlow Condensed",sans-serif;font-size:10px;color:var(--sourd);letter-spacing:.03em}
+.compo-j .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compo-j .fa{font-size:10px;white-space:nowrap}
+.compo-j .endu{width:30px}
+.compo-j .note{font-family:Anton,sans-serif;font-size:13px;text-align:right;color:var(--sourd)}
+.compo-j .note.haute{color:#7ce2ad} .compo-j .note.bonne{color:#cfe6d8} .compo-j .note.basse{color:#ffb3ad}
+.compo-banc{margin-top:6px;padding-top:5px;border-top:1px solid rgba(255,255,255,.1);
+  font-family:"Barlow Condensed",sans-serif;font-size:11px;color:var(--sourd)}
+.onglets{display:flex;gap:6px;border-bottom:1px solid rgba(255,255,255,.12);margin:-4px -4px 10px;padding:0 4px}
+.onglets button{background:none;border:none;border-bottom:2px solid transparent;border-radius:0;
+  padding:8px 12px;font-family:"Barlow Condensed",sans-serif;font-size:14px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--sourd);cursor:pointer}
+.onglets button:hover{color:#fff}
+.onglets button.actif{color:var(--or2);border-bottom-color:var(--or2)}
+.onglet-corps{min-height:120px}
+/* la course au xG */
+.xg-boite{margin:4px 0 10px}
+.xg-course{width:100%;height:74px;display:block;background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.1);border-radius:8px}
+.xg-course polyline{fill:none;stroke-width:1.4;vector-effect:non-scaling-stroke}
+.xg-course polyline.mien{stroke:#4FC3F7} .xg-course polyline.adverse{stroke:#E0564F}
+.xg-legende{display:flex;gap:14px;margin-top:4px}
+.xg-legende .lg{font-family:"Barlow Condensed",sans-serif;font-size:12px;color:var(--sourd);display:flex;gap:5px;align-items:center}
+.xg-legende .lg::before{content:"";width:14px;height:2px;background:currentColor}
+.xg-legende .lg.mien{color:#4FC3F7} .xg-legende .lg.adverse{color:#E0564F}
+/* la carte des tirs : une demi-surface vue de côté */
+.tirs-carte{margin:4px 0 8px}
+.tirs-fond{position:relative;width:100%;aspect-ratio:2.4/1;min-height:130px;border-radius:8px;
+  background:linear-gradient(90deg,#0e3d24,#14522f);border:1px solid rgba(255,255,255,.12);overflow:hidden}
+.tirs-surface{position:absolute;right:0;top:16%;bottom:16%;width:34%;border:2px solid rgba(255,255,255,.25);border-right:none}
+.tirs-but{position:absolute;right:0;top:40%;height:20%;width:4px;background:rgba(255,255,255,.6)}
+.tir{position:absolute;border-radius:50%;border:2px solid;box-sizing:border-box}
+.tir.mien{border-color:#4FC3F7} .tir.adverse{border-color:#E0564F}
+.tir.but.mien{background:#4FC3F7} .tir.but.adverse{background:#E0564F}
+.tir.arret{background:rgba(255,255,255,.12)}
+.hommes{display:flex;flex-direction:column;gap:3px;margin-top:4px}
+.homme{display:flex;gap:10px;align-items:baseline;font-size:13.5px;padding:3px 8px;border-radius:7px;
+  background:rgba(255,255,255,.03)}
+.homme.mien{background:rgba(79,195,247,.1)}
+.homme .note{font-family:Anton,sans-serif;font-size:15px;min-width:30px}
+.homme .note.haute{color:#7ce2ad} .homme .note.basse{color:#ffb3ad}
+.homme .compteur{margin-left:auto}
+@media (max-width:900px){
+  .match-corps{grid-template-columns:1fr}
+  .compo-col{order:2}
+  .match-corps > .terrain-live{order:1}
+  .match-tete{grid-template-columns:1fr auto 1fr;gap:8px}
+  .match-tete .mt-eq .nom{font-size:15px}
+  .mt-centre .live-score{font-size:26px}
+}
