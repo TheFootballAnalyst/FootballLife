@@ -41,6 +41,7 @@ from jeu import importer as I  # noqa: E402
 from jeu import marche as MA  # noqa: E402
 from jeu import pipeline as P  # noqa: E402
 from jeu import scoring as S  # noqa: E402
+from jeu import simulation as SM  # noqa: E402
 from jeu import solo as SO  # noqa: E402
 try:
     from jeu import cartes as CARTES  # noqa: E402  (needs Pillow and the fonts in moteur/)
@@ -430,7 +431,27 @@ def equipe(u=Depends(exiger), jeu=Depends(bd)):
             "points": round(e["points_total"], 2), "rang": rang,
             "elo_classe": round(e["elo_classe"]), "classees": e["classees"],
             "effectif": effectif_de(jeu, e["equipe_id"]), "composition": compo,
-            "marche_ouvert": marche_ouvert(jeu)}
+            "tactique": tactique_de(jeu, e), "marche_ouvert": marche_ouvert(jeu)}
+
+
+def tactique_de(jeu, e) -> dict:
+    """La tactique de départ du club : celle de tous ses matchs tant que
+    le manager ne la change pas en cours de route.
+
+    Elle est relue par SM.Tactique.valide(), donc une valeur inconnue ou
+    une base d'avant les consignes retombe sur le réglage neutre."""
+    try:
+        brut = json.loads(e["tactique"] or "{}")
+    except (TypeError, KeyError, IndexError, json.JSONDecodeError):
+        brut = {}
+    brut.pop("formation", None)     # la forme appartient à la composition
+    try:
+        t = SM.Tactique(**brut).valide()
+    except TypeError:               # une clé qui n'existe plus
+        t = SM.Tactique().valide()
+    d = vars(t).copy()
+    d.pop("formation", None)
+    return d
 
 
 # --------------------------------------------------------------------------
@@ -678,6 +699,31 @@ class Ajustement(BaseModel):
 def lobby_etat(u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     return LB.etat(jeu, SAISON, e["equipe_id"]) | {"historique": LB.historique(jeu, SAISON, e["equipe_id"])}
+
+
+class TactiqueClub(BaseModel):
+    tactique: dict
+
+
+@app.post("/api/equipe/tactique")
+def equipe_tactique(t: TactiqueClub, u=Depends(exiger), jeu=Depends(bd)):
+    """Enregistrer la tactique de départ du club.
+
+    Ce n'est pas une soumission de journée : elle n'est jamais verrouillée
+    et sert à tous les matchs, classés, défis et campagnes solo."""
+    e = equipe_de(jeu, u)
+    brut = dict(t.tactique or {})
+    brut.pop("formation", None)
+    try:
+        valide = SM.Tactique(**brut).valide()
+    except TypeError:
+        raise HTTPException(400, "Réglage tactique inconnu")
+    d = vars(valide).copy()
+    d.pop("formation", None)
+    jeu.execute("UPDATE equipe SET tactique=? WHERE equipe_id=?",
+                (json.dumps(d, ensure_ascii=False), e["equipe_id"]))
+    jeu.commit()
+    return {"tactique": d}
 
 
 @app.post("/api/lobby/rejoindre")

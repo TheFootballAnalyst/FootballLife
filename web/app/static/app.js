@@ -69,6 +69,9 @@ async function rafraichir(tout) {
   if (tout || !G.cartes.length) { G.cartes = await api("/cartes"); G.idx = new Map(G.cartes.map(c => [c.id, c])); }
   G.equipe = await api("/equipe");
   G.compo = G.equipe.composition || compoVide();
+  // La tactique de départ du club est la tactique de TOUS ses matchs :
+  // le lobby et le solo partent de là, comme ils partent de la compo.
+  if (G.equipe.tactique) LOBBY.tac = {...LOBBY.tac, ...G.equipe.tactique};
   try { G.ventes = (await api("/marche")).ventes; } catch (e) { G.ventes = []; }
   majStatut();
 }
@@ -489,8 +492,45 @@ function rendreEquipe(recalc = true) {
       + (manque > 0 ? ` — il t'en manque ${manque}. Ouvre des packs, achète aux enchères, ou fais entrer des cartes de ta réserve dans l'effectif.` : ".")));
   }
   ecrireBrouillon();
+  rendreTactiqueClub();
   rendreClub();
 }
+// La tactique de départ, réglée là où on règle la composition.  Elle est
+// ENREGISTRÉE dès qu'on y touche : ce n'est pas une soumission de journée,
+// elle n'est jamais verrouillée, et elle sert à tous les matchs.
+let TAC_ENREG = null;
+
+// Un seul endroit qui écrit la tactique du club, appelé depuis l'écran
+// Équipe comme depuis le lobby.  Retardé d'un instant : cliquer trois
+// réglages d'affilée ne fait pas trois écritures.
+function enregistrerTactique(etat) {
+  clearTimeout(TAC_ENREG);
+  TAC_ENREG = setTimeout(async () => {
+    try {
+      const r = await api("/equipe/tactique", {tactique: LOBBY.tac});
+      if (G.equipe) G.equipe.tactique = r.tactique;
+      if (etat) etat.textContent = "enregistrée";
+    } catch (e) { if (etat) etat.textContent = e.message; }
+  }, 350);
+}
+
+function rendreTactiqueClub() {
+  const boite = $("#tac-club");
+  if (!boite) return;
+  boite.replaceChildren();
+  const etat = $("#tac-etat");
+  const enregistrer = () => {
+    rendreTactiqueClub();                       // les boutons se rallument tout de suite
+    enregistrerTactique(etat);
+  };
+  boite.append(selecteurTactique(LOBBY.tac, enregistrer));
+  boite.append(depliant("equipe", "Consignes aux lignes",
+    el("p", {class: "compteur"},
+      "Ce que tu demandes à chaque ligne. Chacune est un échange, jamais un bonus : "
+      + "le premier choix de chaque ligne ne touche à rien."),
+    selecteurConsignes(LOBBY.tac, enregistrer)));
+}
+
 async function rendreClub() {
   const d = await api("/club"); G.club = d.cartes;
   const R = $("#club-liste"); R.replaceChildren();
@@ -823,12 +863,17 @@ function panneauEntree(d) {
     strip.append(t);
   }
   p.append(el("div", {class: "etiq"}, "Le onze que tu alignes"), strip);
-  const maj = () => { const n = panneauEntree(d); p.replaceWith(n); };
+  // Retoucher la tactique ici l'enregistre aussi : c'est la MÊME que
+  // celle de l'écran Équipe, il n'y en a qu'une par club.
+  const maj = () => { const n = panneauEntree(d); p.replaceWith(n); enregistrerTactique(); };
+  p.append(el("div", {class: "etiq"}, "Ta tactique de départ"));
   p.append(selecteurTactique(LOBBY.tac, maj));
   p.append(depliant("entree", "Consignes aux lignes",
     el("p", {class: "compteur"},
       "Ce que tu demandes à chaque ligne, en plus des trois axes. Tu peux les changer en cours de match."),
     selecteurConsignes(LOBBY.tac, maj)));
+  p.append(el("p", {class: "compteur"},
+    "Réglée une fois, elle sert à tous tes matchs — tu la retrouves aussi sur l'écran Équipe."));
   const acts = el("div", {class: "actions", style: "justify-content:flex-start"});
   acts.append(el("button", {class: "primaire", onclick: () => entrerLobby(onze, false)}, "Chercher un adversaire"),
     el("button", {onclick: () => entrerLobby(onze, true)}, "Jouer un défi tout de suite"));

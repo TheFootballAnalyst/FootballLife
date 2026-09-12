@@ -88,7 +88,7 @@ def journees_depuis_rounds(fot: sqlite3.Connection, ligue_id: int,
 MIGRATIONS = {                       # columns added after the first bases were written
     "prestation": [("stats", "TEXT")],
     "equipe": [("elo_classe", "REAL NOT NULL DEFAULT 1000"), ("classees", "INTEGER NOT NULL DEFAULT 0"),
-               ("packs_offerts", "TEXT")],
+               ("packs_offerts", "TEXT"), ("tactique", "TEXT")],
     "joueur": [("valeur_marche", "REAL"), ("age", "INTEGER"), ("numero", "TEXT"), ("pays", "TEXT"),
                ("postes", "TEXT"), ("pied", "TEXT")],
     "carte": [("part", "REAL NOT NULL DEFAULT 0"), ("valeur_base", "REAL NOT NULL DEFAULT 1"),

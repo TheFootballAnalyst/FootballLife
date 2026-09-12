@@ -15,7 +15,7 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 | Enchères | l'hôtel des ventes : mises à prix, achat immédiat, offres (argent bloqué), fin de vente ; tes ventes et tes offres |
 | Lobby | le match classé : ton onze contre celui d'un autre manager, joué avec les cartes sur un terrain 2D où elles jouent vraiment les actions, six minutes pour quatre-vingt-dix, tactique, formation et remplacements en direct ; ton Elo classé et tes derniers matchs |
 | Solo | la campagne : tu prends la place d'un vrai club dans une vraie compétition et tu joues son calendrier contre les onze des autres clubs ; crédits et packs selon la place ou le tour atteint |
-| Équipe | formation, onze sur le terrain, capitaine, ordre du banc, **Envoyer la composition** avant le premier coup d'envoi ; **Mon club** : effectif et réserve, aligner, mettre en vente, vendre à la banque |
+| Équipe | formation, onze sur le terrain, capitaine, ordre du banc, **tactique de départ** (les trois axes et les consignes aux lignes, valables pour tous tes matchs), **Envoyer la composition** avant le premier coup d'envoi ; **Mon club** : effectif et réserve, aligner, mettre en vente, vendre à la banque |
 | Journée | le résultat de la dernière journée (détail par joueur, entrants du banc, rang), l'état de la journée en cours, l'historique |
 | Classement | mondial, plus les ligues privées : créer une ligue donne un code, le partager suffit |
 | Admin | verrouiller ou rouvrir la journée, charger les prestations notées, clôturer |
@@ -170,6 +170,15 @@ plus fatigués en tête.
 humain — un défi, une campagne solo — se **met en pause** : le
 classement, lui, ne s'arrête pas, deux managers ne tiennent pas la même
 horloge.
+
+**Ta tactique de départ se règle une fois.** Comme la composition, elle
+vit sur l'écran Équipe : les trois axes et les cinq consignes, enregistrés
+sur ton club dès que tu y touches. Tous tes matchs — classés, défis,
+campagnes solo — commencent dans cette configuration, et tu la retrouves
+sur l'écran Lobby avant le coup d'envoi. Contrairement à la composition
+elle n'est jamais verrouillée par la journée : les matchs du lobby se
+jouent n'importe quand. Ce que tu changes en direct pendant un match ne
+la touche pas — la prochaine rencontre repart de ton réglage.
 
 **Les consignes aux lignes.** En plus des trois axes, tu dis à chaque
 ligne ce que tu attends d'elle, et chaque consigne est un échange,

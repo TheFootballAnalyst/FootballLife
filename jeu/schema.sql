@@ -215,6 +215,7 @@ CREATE TABLE IF NOT EXISTS equipe (
     elo_classe       REAL NOT NULL DEFAULT 1000,   -- the ranked lobby's ladder, the game's only one
     classees         INTEGER NOT NULL DEFAULT 0,    -- ranked matches played in the lobby
     packs_offerts    TEXT,                          -- JSON {type: nombre}, gagnés en campagne solo
+    tactique         TEXT,                          -- JSON: la tactique de départ du club, tous matchs
     UNIQUE (utilisateur_id, ligue_jeu_id)
 );
 

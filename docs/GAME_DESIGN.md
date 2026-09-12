@@ -280,6 +280,13 @@ better chances behind. Measured over 400 matches a case, no setting beats
 every other (`BACKTEST.md`), so the lobby cannot be solved by copying one
 build. The three axes can be changed while the match runs.
 
+**A manager sets his tactics once.** The three axes and the five
+instructions are a property of the CLUB, set on the Équipe screen beside
+the lineup and stored on the team row: every match he plays starts
+there. Unlike the gameweek lineup it is never locked — lobby matches are
+played at any hour — and what he changes mid-match stays in that match,
+so the next one opens on his own setup again.
+
 **Instructions to the lines.** Besides the three axes, a manager says
 what he asks of each line — full-backs who stay home, overlap or tuck
 inside; wingers who hug the touchline or cut in; midfielders who join

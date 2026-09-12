@@ -204,3 +204,45 @@ def test_private_leagues(client):
     ligues = client.get("/api/ligues").json()
     assert len(ligues) == 1 and ligues[0]["nom"] == "Les potes"
     assert {m["pseudo"] for m in ligues[0]["classement"]} == {"ana", "bob"}
+
+
+def test_a_club_keeps_its_starting_tactic_and_every_match_begins_with_it(client):
+    """Comme la composition : réglée une fois, elle sert à tous les
+    matchs. Elle n'est jamais verrouillée — ce n'est pas une soumission
+    de journée — et une valeur inconnue retombe sur le neutre."""
+    inscrire(client, "tac", "motdepasse")
+    e = client.get("/api/equipe").json()
+    assert e["tactique"]["tempo"] == "equilibre" and e["tactique"]["lateraux"] == "couloir"
+    assert "formation" not in e["tactique"], "la forme appartient à la composition"
+
+    voulue = {"tempo": "possession", "bloc": "haut", "risque": "prudent",
+              "lateraux": "axe", "ailiers": "interieur", "milieux": "bas",
+              "attaquants": "pivot", "relance": "courte"}
+    r = client.post("/api/equipe/tactique", json={"tactique": voulue})
+    assert r.status_code == 200, r.text
+    assert r.json()["tactique"] == voulue
+    # elle est relue telle quelle au chargement suivant
+    assert client.get("/api/equipe").json()["tactique"] == voulue
+
+    # un réglage inconnu ne casse rien : il retombe sur le neutre de sa ligne
+    r = client.post("/api/equipe/tactique", json={"tactique": dict(voulue, ailiers="bidon")})
+    assert r.status_code == 200 and r.json()["tactique"]["ailiers"] == "equilibre"
+    # une clé qui n'existe pas est refusée plutôt qu'enregistrée en silence
+    assert client.post("/api/equipe/tactique", json={"tactique": {"nimporte": "quoi"}}).status_code == 400
+    # et la dernière tactique valide est toujours là
+    assert client.get("/api/equipe").json()["tactique"]["milieux"] == "bas"
+
+
+def test_the_starting_tactic_is_never_locked_by_the_gameweek(client):
+    """La composition se verrouille au coup d'envoi de la journée ; la
+    tactique, elle, sert aussi aux matchs du lobby, qui se jouent
+    n'importe quand."""
+    inscrire(client, "tac2", "motdepasse")
+    from web.app import serveur as SV
+    j = SV.ouvrir()
+    j.execute("UPDATE journee SET cloture='2000-01-01T00:00:00Z' WHERE saison='2025/26' AND numero=1")
+    j.commit(); j.close()
+    SV._CACHE["cle"] = None
+    assert client.get("/api/equipe").json()["marche_ouvert"] is False
+    r = client.post("/api/equipe/tactique", json={"tactique": {"tempo": "direct"}})
+    assert r.status_code == 200 and r.json()["tactique"]["tempo"] == "direct"
