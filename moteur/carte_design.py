@@ -30,6 +30,14 @@ DECORS = {
     "LaLiga":           {"fond": ("#3F1013", "#0A0405"), "accent": "#FF6A5E", "logo": "laliga"},
     "Serie A":          {"fond": ("#0A2D45", "#04080C"), "accent": "#5FD3FF", "logo": "serie-a"},
     "Bundesliga":       {"fond": ("#3F0B0B", "#0A0404"), "accent": "#FF5A5A", "logo": "bundesliga"},
+    # Les trois championnats ajoutes et les deux autres coupes d'Europe.
+    # Pas de logo dans images/ligues/ pour l'instant : la carte se dessine
+    # sans, avec la couleur d'accent du pays plutot que l'or par defaut.
+    "Eredivisie":       {"fond": ("#3A1A05", "#0A0603"), "accent": "#FF9A3C", "logo": "eredivisie"},
+    "Liga Portugal":    {"fond": ("#0B3320", "#040A07"), "accent": "#4FD48A", "logo": "liga-portugal"},
+    "Super Lig":        {"fond": ("#3B0A16", "#0A0305"), "accent": "#FF6E8A", "logo": "super-lig"},
+    "Europa League":    {"fond": ("#2A1204", "#080402"), "accent": "#FFA83C", "logo": "europa-league"},
+    "Conference League": {"fond": ("#06331F", "#030906"), "accent": "#5FE3A0", "logo": "conference-league"},
 }
 DEFAUT = {"fond": ("#14161E", "#06070B"), "accent": "#D4AF37", "logo": None}
 AXES = [("FIN", "FINITION"), ("CRE", "CRÉATION"), ("PRO", "PROGRESSION"),

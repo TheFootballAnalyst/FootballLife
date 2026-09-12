@@ -61,9 +61,9 @@ XG_MAX = 0.62             # a chance is never a certainty
 # a ceiling the two ways of dominating compound: `controle` already buys
 # the minutes, then percussion against defence multiplies the shots taken
 # in each of them.  Two real clubs never reach it (the shot duel tops out
-# at 1.41 over the 96 elevens of the five leagues), but an end-game squad
-# of the best cards in the game did — 34 shots in a match, which is not
-# football any more.
+# at 1.50 over the 150 elevens of the eight leagues), but an end-game
+# squad of the best cards in the game did — 34 shots in a match, which is
+# not football any more.
 TIR_PAR_MIN_MAX = 0.40
 
 # What a match has besides shots, per MINUTE OF POSSESSION, set so a whole
@@ -473,10 +473,10 @@ def _texte_tactique(nom: str, t: Tactique) -> str:
     return f"{nom} : {_MOTS.get(t.tempo, t.tempo)}, {_MOTS.get(t.bloc, t.bloc)}, {_MOTS.get(t.risque, t.risque)}"
 
 
-# The median of each trait over a real card pool (docs/BACKTEST.md), and
-# how much of a gap counts as a trait worth naming.
-REPERE = {"controle": 0.39, "percussion": 0.31, "creation": 0.40,
-          "finition": 0.50, "defense": 0.40, "gardien": 0.30}
+# The median of each trait over a real card pool — the 150 club elevens of
+# the eight leagues — and how much of a gap counts as a trait worth naming.
+REPERE = {"controle": 0.416, "percussion": 0.352, "creation": 0.429,
+          "finition": 0.511, "defense": 0.406, "gardien": 0.319}
 DITS = {
     "controle": ("garde le ballon", "subit la possession"),
     "percussion": ("casse les lignes", "bute sur le bloc"),

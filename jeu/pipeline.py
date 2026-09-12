@@ -65,7 +65,13 @@ from jeu import importer as I  # noqa: E402
 from jeu import marche as MA  # noqa: E402
 from jeu import scoring as S  # noqa: E402
 
-TOP5 = (47, 87, 55, 54, 53)
+# The game's perimeter: the eight leagues moteur/bareme_stats.py already
+# collects and calibrates (LIGUES there, and a coefficient per competition
+# in coefs_championnats.json).  The engine has always rated all eight; the
+# game was the only thing stopping at five, which left a Champions League
+# field two thirds full and no card at all for a PSV or a Sporting player.
+LIGUES = (47, 87, 55, 54, 53, 57, 61, 71)   # + Eredivisie, Liga Portugal, Süper Lig
+TOP5 = LIGUES                               # the old name, kept for callers
 MINUTES_REGULIER = 450
 
 
@@ -138,9 +144,9 @@ def journee_id(jeu, saison, numero):
 # Seed: cards of a season from another season's performances
 # --------------------------------------------------------------------------
 
-def clubs_perimetre(jeu, saison=None, ligues=TOP5):
+def clubs_perimetre(jeu, saison=None, ligues=LIGUES):
     """The team ids of the game's perimeter: everyone who played a match of
-    one of `ligues` (the five leagues), in `saison` if given."""
+    one of `ligues` (the eight leagues), in `saison` if given."""
     marks = ",".join("?" * len(ligues))
     cond, args = "", list(ligues) * 2
     if saison:
@@ -198,7 +204,7 @@ def fenetre_de_journee(tous: dict, jeu, saison, numero) -> dict[int, dict]:
     return {pid: fs[jid] for pid, j in tous.items() for fs in [B.fenetres_journees(j, journees)] if jid in fs}
 
 
-def amorcer(jeu, saison, source, journees_source=None, ligues=TOP5, numero_etat=0, fot=None):
+def amorcer(jeu, saison, source, journees_source=None, ligues=LIGUES, numero_etat=0, fot=None):
     """Create the season's cards from the season barème of `source`
     (optionally restricted to a range of its gameweeks).
 
@@ -295,13 +301,13 @@ def postes_connus(jeu):
 # Mercato: a card for anyone who enters the perimeter during the season
 # --------------------------------------------------------------------------
 
-def rafraichir_clubs(jeu, saison, jid, ligues=TOP5):
+def rafraichir_clubs(jeu, saison, jid, ligues=LIGUES):
     """Point `joueur.team_id` and `joueur.poste` at what the player actually
     did in this gameweek's league matches.
 
     A weekly import only inserts a player if he is unknown, and then with
     no club at all; a player who changed clubs in the window keeps his old
-    one.  Only the five leagues count here: a week of international
+    one.  Only the league matches count here: a week of international
     matches must not move anyone to his national team.
     """
     marks = ",".join("?" * len(ligues))
@@ -322,13 +328,13 @@ def rafraichir_clubs(jeu, saison, jid, ligues=TOP5):
     return n
 
 
-def integrer_nouveaux(jeu, saison, numero, params, ligues=TOP5):
+def integrer_nouveaux(jeu, saison, numero, params, ligues=LIGUES):
     """Open a card for every player who played in the perimeter this
     gameweek and has none yet: a summer signing from a league the engine
     does not cover, a promoted club's squad, a teenager on debut.
 
     Without this the card pool is frozen on the players who were in the
-    five leagues last season, and the pépites of the new season — exactly
+    perimeter last season, and the pépites of the new season — exactly
     the cards the game is about finding — cannot be bought at all.
 
     The seed is whatever the source season gives him (a signing from a

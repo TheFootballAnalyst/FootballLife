@@ -51,12 +51,17 @@ from jeu import simulation as SM
 # the game base, and everything else about the shape of the competition is
 # read from the base's own fixture list.
 COMPETITIONS = {
-    "ligue1":  {"nom": "Ligue 1", "cid": 53, "format": "championnat"},
     "premier": {"nom": "Premier League", "cid": 47, "format": "championnat"},
     "liga":    {"nom": "LaLiga", "cid": 87, "format": "championnat"},
     "seriea":  {"nom": "Serie A", "cid": 55, "format": "championnat"},
     "bundes":  {"nom": "Bundesliga", "cid": 54, "format": "championnat"},
+    "ligue1":  {"nom": "Ligue 1", "cid": 53, "format": "championnat"},
+    "eredivisie": {"nom": "Eredivisie", "cid": 57, "format": "championnat"},
+    "portugal": {"nom": "Liga Portugal", "cid": 61, "format": "championnat"},
+    "turquie": {"nom": "Süper Lig", "cid": 71, "format": "championnat"},
     "ldc":     {"nom": "Ligue des champions", "cid": 42, "format": "ligue_puis_coupe"},
+    "europa":  {"nom": "Ligue Europa", "cid": 73, "format": "ligue_puis_coupe"},
+    "conference": {"nom": "Conference League", "cid": 10216, "format": "ligue_puis_coupe"},
 }
 
 # The knockout ladder of the European format, in order.  `aller_retour`
@@ -146,20 +151,27 @@ def clubs_competition(jeu, saison: str, cle: str) -> list[dict]:
     # twenty is not the competition.  The field is therefore completed with
     # the strongest clubs the game DOES have cards for, so the format is
     # the real one and every club in it is a real club with real cards.
-    if len(out) < TAILLE_LIGUE:
-        deja = {c["team_id"] for c in out}
-        for tid, nom, couleur in jeu.execute(
-                "SELECT team_id, nom, couleur FROM club ORDER BY nom"):
-            if tid in deja:
-                continue
-            ovrs = [r[0] for r in jeu.execute(
-                """SELECT c.ovr FROM carte c JOIN joueur j ON j.player_id=c.player_id
-                   WHERE c.saison=? AND j.team_id=? ORDER BY c.ovr DESC LIMIT 8""", (saison, tid))]
-            if len(ovrs) == 8:
-                out.append({"team_id": tid, "nom": nom, "couleur": couleur or "#14161E",
+    if len(out) >= TAILLE_LIGUE:
+        return out[:TAILLE_LIGUE]
+    deja = {c["team_id"] for c in out}
+    invites = []
+    for tid, nom, couleur in jeu.execute("SELECT team_id, nom, couleur FROM club ORDER BY nom"):
+        if tid in deja:
+            continue
+        ovrs = [r[0] for r in jeu.execute(
+            """SELECT c.ovr FROM carte c JOIN joueur j ON j.player_id=c.player_id
+               WHERE c.saison=? AND j.team_id=? ORDER BY c.ovr DESC LIMIT 8""", (saison, tid))]
+        if len(ovrs) == 8:
+            invites.append({"team_id": tid, "nom": nom, "couleur": couleur or "#14161E",
                             "force": round(sum(ovrs) / len(ovrs), 1), "invite": True})
-        out.sort(key=lambda c: -c["force"])
-    return out[:TAILLE_LIGUE]
+    # A club that really qualified is never dropped for an invited one: the
+    # invited ones only fill what is left, strongest first.  Sorting the
+    # whole lot by strength before truncating pushed four real qualifiers
+    # out of the Champions League in favour of stronger league clubs.
+    invites.sort(key=lambda c: -c["force"])
+    out += invites[:max(0, TAILLE_LIGUE - len(out))]
+    out.sort(key=lambda c: -c["force"])
+    return out
 
 
 def onze_club(jeu, saison: str, team_id: int, formation: str = "4-3-3") -> list[dict]:
@@ -198,14 +210,14 @@ def onze_club(jeu, saison: str, team_id: int, formation: str = "4-3-3") -> list[
     return pris
 
 
-# Tercile boundaries measured on the 96 club elevens of the five leagues.
+# Tercile boundaries measured on the 150 club elevens of the eight leagues.
 # A club's way of playing has to be read against its PEERS: judged against
 # absolute values, every club came out direct and offensive at once,
 # because a club eleven finishes better than it controls almost by
-# definition.  Against the terciles, the league divides in three.
-SEUILS_TEMPO = (-0.139, -0.081)     # controle - finition
-SEUILS_BLOC = (0.392, 0.436)        # defense
-SEUILS_RISQUE = (0.071, 0.130)      # finition - defense
+# definition.  Against the terciles, the field divides in three.
+SEUILS_TEMPO = (-0.143, -0.079)     # controle - finition
+SEUILS_BLOC = (0.383, 0.441)        # defense
+SEUILS_RISQUE = (0.086, 0.127)      # finition - defense
 
 
 def _tercile(valeur: float, seuils: tuple[float, float], bas: str, milieu: str, haut: str) -> str:
@@ -343,20 +355,45 @@ def calendrier_reel(jeu, saison: str, cle: str, clubs: list[int]) -> list[list[t
     return [tours[k] for k in sorted(tours) if tours[k]]
 
 
-def _complet(tours: list[list[tuple[int, int]]], n: int, attendus: int) -> bool:
-    """Whether a fixture list really covers the field: every club playing
-    the expected number of matches.  A base that covers only some of the
-    competition's clubs gives a calendar full of holes — half a league
-    phase, a club with two matches and another with nine — and a generated
-    draw is then closer to the competition than the real fragments."""
-    if not tours:
-        return False
+def _matchs_par_club(tours: list[list[tuple[int, int]]], n: int) -> dict[int, int]:
     joues = {i: 0 for i in range(n)}
     for tour in tours:
         for a, b in tour:
             joues[a] = joues.get(a, 0) + 1
             joues[b] = joues.get(b, 0) + 1
-    return all(v == attendus for v in joues.values())
+    return joues
+
+
+TOLERANCE_CALENDRIER = 2       # matches a real league calendar may be short of
+
+
+def _complet(tours: list[list[tuple[int, int]]], n: int, attendus: int | None = None) -> bool:
+    """Whether a fixture list really covers the field.
+
+    A base that covers only some of the competition's clubs gives a
+    calendar full of holes — half a league phase, a club with two matches
+    and another with nine — and a generated draw is then closer to the
+    competition than the real fragments.
+
+    With `attendus` the number is known (a league: everybody plays
+    everybody twice), but a real calendar is allowed to fall a couple of
+    matches short of it: a postponed fixture replayed outside the season's
+    windows leaves one club on 33 and another on 34, and refusing the
+    whole thing over that threw away the real Ligue 1, Liga Portugal and
+    Süper Lig calendars for a generated round robin.  Without `attendus`
+    the calendar only has to be REGULAR, every club playing the same
+    number of matches, because a league phase is six matches in the
+    Conference League and eight in the other two, and that is the data's
+    to say.
+    """
+    if not tours:
+        return False
+    joues = _matchs_par_club(tours, n)
+    if attendus is not None:
+        return (max(joues.values()) <= attendus
+                and min(joues.values()) >= attendus - TOLERANCE_CALENDRIER)
+    valeurs = set(joues.values())
+    return len(valeurs) == 1 and valeurs.pop() >= 4
 
 
 def _tour(phase: str, manche: int, duels: list[tuple[int, int]]) -> dict:
@@ -377,7 +414,7 @@ def demarrer(jeu, saison: str, equipe_id: int, cle: str, club_remplace: int,
     tids = [c["team_id"] for c in clubs]
     europe = COMPETITIONS[cle]["format"] == "ligue_puis_coupe"
     reel = calendrier_reel(jeu, saison, cle, tids)
-    attendus = MATCHS_LIGUE if europe else 2 * (len(tids) - 1)
+    attendus = None if europe else 2 * (len(tids) - 1)
     tours = reel if _complet(reel, len(tids), attendus) else (
         calendrier_championnat(len(tids))[:MATCHS_LIGUE] if europe else calendrier_championnat(len(tids)))
     phase = "ligue" if europe else "championnat"

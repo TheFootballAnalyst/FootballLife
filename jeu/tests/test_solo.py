@@ -432,3 +432,36 @@ def test_an_exempt_round_has_nothing_to_kick_off():
         _reculer(jeu, LB.DUREE_REELLE + 5)
         SO.etat(jeu, "2025/26", 1)
     assert SO.lancer_tour(jeu, "2025/26", 1, ONZE, None) == 0
+
+
+def test_a_real_qualifier_is_never_dropped_for_an_invited_club():
+    """The European field is completed to thirty-six with the strongest
+    clubs the game has cards for.  Sorting the whole lot by strength before
+    truncating pushed four real qualifiers out of the Champions League in
+    favour of stronger league clubs."""
+    jeu = base_europe(n_clubs=12, matchs_par_club=4)
+    vrais = {r[0] for r in jeu.execute(
+        """SELECT DISTINCT home_team_id FROM match WHERE competition_id=42
+           UNION SELECT DISTINCT away_team_id FROM match WHERE competition_id=42""")}
+    champ = SO.clubs_competition(jeu, "2025/26", "ldc")
+    dedans = {c["team_id"] for c in champ}
+    # every real participant the game has a squad for is in the field
+    avec_cartes = {t for t in vrais if jeu.execute(
+        """SELECT COUNT(*) FROM carte c JOIN joueur j ON j.player_id=c.player_id
+           WHERE c.saison='2025/26' AND j.team_id=?""", (t,)).fetchone()[0] >= 8}
+    assert avec_cartes <= dedans
+    assert all(not c.get("invite") for c in champ if c["team_id"] in avec_cartes)
+    assert len(champ) <= SO.TAILLE_LIGUE
+    # the field is still ordered by strength, invited or not
+    assert [c["force"] for c in champ] == sorted((c["force"] for c in champ), reverse=True)
+
+
+def test_a_real_calendar_survives_a_postponed_fixture():
+    """A match replayed outside the season's windows leaves one club on 33
+    and another on 34.  Refusing the whole calendar over that threw away
+    the real Ligue 1, Liga Portugal and Süper Lig fixture lists."""
+    cal = SO.calendrier_championnat(18)
+    assert SO._complet(cal, 18, 34)
+    ampute = [t for t in cal[:-1]] + [[d for d in cal[-1][1:]]]     # one fixture dropped
+    assert SO._complet(ampute, 18, 34)                              # still the real thing
+    assert not SO._complet(cal[:10], 18, 34)                        # a third of a season is not

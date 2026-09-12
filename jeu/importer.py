@@ -7,7 +7,7 @@ Cuts the season into gameweeks on the rounds of the reference league (a
 gameweek runs from the first kick-off of round N to the day before the
 first kick-off of round N+1, so the European midweek that follows a round
 belongs to it), runs the engine (`topsflops.calculer`) on every window over
-the whole series perimeter (top 5 + Champions League), rates each
+the whole perimeter of the base (every usable match), rates each
 performance (note + attributes), and writes `journee`, `match`, `club`,
 `joueur`, `prestation` into the game database.
 
@@ -169,10 +169,19 @@ def lire_stats(fot: sqlite3.Connection, match_ids) -> dict[tuple[int, int], dict
     return out
 
 
+# What the GAME imports as rated performances: everything the barème
+# already counts, which is every usable match of the base.  The engine's
+# own COMPS_SERIE is the editorial perimeter of the tops/flops series (top
+# five plus the Champions League) and stopping there left the card and the
+# note disagreeing: a Copa del Rey match moved a player's card, because the
+# barème reads every usable match, and moved nothing on his gameweek,
+# because the game had never imported it.
+COMPS_JEU = None        # None = no filter, the whole base
+
+
 def importer_journee(fot: sqlite3.Connection, jeu: sqlite3.Connection,
-                     saison: str, j: dict, comps=None, adversaire=False) -> int:
-    prestas, matchs = T.calculer(fot, j["du"], j["au"],
-                                 comps=comps if comps is not None else T.COMPS_SERIE,
+                     saison: str, j: dict, comps=COMPS_JEU, adversaire=False) -> int:
+    prestas, matchs = T.calculer(fot, j["du"], j["au"], comps=comps,
                                  seuil_min=1, adversaire=adversaire)
     jeu.execute("""INSERT OR REPLACE INTO journee(journee_id, saison, numero, du, au, cloture, calculee)
                    VALUES ((SELECT journee_id FROM journee WHERE saison=? AND numero=?),
@@ -209,8 +218,14 @@ def importer_journee(fot: sqlite3.Connection, jeu: sqlite3.Connection,
                     (pid, p["nom"], sans_accents(p["nom"]), None, p["poste"]))
         note = N.note_prestation(p)
         attrs = N.attributs_prestation(p)
+        # Some cup sheets carry team_id 0 — FotMob did not resolve the club.
+        # It is not a club the game knows, so it is stored as unknown rather
+        # than as a dangling reference: the performance still counts.
         tid = fot.execute("SELECT team_id FROM appearance WHERE match_id=? AND player_id=?",
                           (mid, pid)).fetchone()
+        cotes = matchs.get(mid)
+        if tid and cotes and tid[0] not in (cotes["home"][0], cotes["away"][0]):
+            tid = None
         jeu.execute("""INSERT OR REPLACE INTO prestation(match_id, player_id, team_id, poste, minutes,
                        entrant, brut, coef, points, note, statut, lignes, attributs, stats)
                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",

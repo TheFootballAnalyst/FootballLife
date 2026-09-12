@@ -20,19 +20,25 @@ plus weekly payouts, is what a manager builds a better team with.
 
 ## The three open questions
 
-### 1. Perimeter — global league: the five leagues + Champions League
+### 1. Perimeter — global league: the eight leagues the engine rates
 
 Decision (the project owner's, after the backtest): the game league is
-**global**, the players of the five big leagues with their league and
-Champions League matches, about 2 400 cards. The data model still carries
-a `perimetre` per game league (`ligue_jeu.perimetre`, a list of
-competition ids), so a Ligue 1-only league remains a configuration row.
+**global**. It started at the five big leagues, about 2 400 cards; it is
+now the **eight** championships `moteur/bareme_stats.py` already collects
+and calibrates — the five plus the Eredivisie, the Liga Portugal and the
+Süper Lig — with every match of the base behind them (the European cups
+and the domestic cups included). The engine had always rated all eight;
+the game was the only thing stopping at five, which left a Champions
+League field two thirds full and no card at all for a PSV or a Sporting
+player. The data model still carries a `perimetre` per game league
+(`ligue_jeu.perimetre`, a list of competition ids), so a Ligue 1-only
+league remains a configuration row.
 
-The backtest showed why global is the safer first perimeter for this
-engine: with the Champions League weighting inside the note, a Ligue
-1-only league had a single club (PSG) behind every spring price rise;
-across five leagues the rises spread over Arsenal, Bayern, Barcelona,
-PSG, Atlético and Nottingham (`BACKTEST.md`).
+The backtest showed why global is the safer perimeter for this engine:
+with the Champions League weighting inside the note, a Ligue 1-only
+league had a single club (PSG) behind every spring price rise; across
+the big leagues the rises spread over Arsenal, Bayern, Barcelona, PSG,
+Atlético and Nottingham (`BACKTEST.md`).
 
 ### 2. Frequency — one gameweek per league round, midweek included
 
@@ -130,7 +136,7 @@ grow is to hold cards that climb.
 
 ## The mercato — a card for whoever enters the perimeter
 
-The seed fixes the cards on the players who were in the five leagues last
+The seed fixes the cards on the players who were in the perimeter last
 season. Left alone, that freezes the pool for the whole year: a summer
 signing from a league the engine does not cover, a promoted club's squad,
 a teenager on debut would have no card at all. Those are exactly the

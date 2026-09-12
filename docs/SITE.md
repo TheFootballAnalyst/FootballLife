@@ -149,8 +149,9 @@ remplaçants sont ceux que tu as nommés sur l'écran Équipe.
 
 ## Le mode solo
 
-Tu choisis une compétition — les cinq championnats ou la Ligue des
-champions — puis **le club dont tu prends la place**. Tu joues **son**
+Tu choisis une compétition — les huit championnats, la Ligue des
+champions, la Ligue Europa ou la Conference League — puis **le club dont
+tu prends la place**. Tu joues **son**
 calendrier, le vrai, lu dans la base : les huit adversaires qu'un club a
 réellement tirés en phase de ligue, l'ordre réel d'une saison de
 championnat. Les adversaires sont les vrais clubs, alignés avec les
@@ -176,8 +177,8 @@ Une double confrontation se joue au cumul des deux manches, et un cumul à
 égalité se décide aux tirs au but — plus de but à l'extérieur, comme
 l'UEFA depuis 2021.
 
-Le champ européen est de trente-six. Une base qui ne couvre que les cinq
-grands championnats n'a de cartes que pour une vingtaine des clubs qui se
+Le champ européen est de trente-six. Une base qui ne couvre pas tous les
+championnats n'a de cartes que pour une partie des clubs qui se
 sont vraiment qualifiés — les autres jouent dans des championnats qu'elle
 n'a jamais importés — et un tableau bâti sur vingt n'est pas la
 compétition. Le champ est donc complété par les clubs les plus forts dont
@@ -196,7 +197,7 @@ Chaque adversaire joue à sa façon, lue sur son propre onze : un club qui
 contrôle bien plus qu'il ne finit garde le ballon, un autre joue direct,
 une défense faible s'assoit bas. Ce n'est pas tiré au sort — la même
 équipe joue toujours pareil — et les seuils sont les terciles des 96
-onze des cinq championnats, sinon tout le monde jouait direct et offensif
+onze des huit championnats, sinon tout le monde jouait direct et offensif
 en même temps. Les clubs tenus par la machine font aussi leurs
 changements.
 

@@ -128,6 +128,19 @@ produit avec un `bareme_stats.py` antérieur aux réglages du 27/08/2026
 (poids des duels défensifs ramené de 8,0 à 3,0, duels au sol neutralisés,
 corrections rendues à leur famille).
 
+**Périmètre.** Les mesures de cette page ont été faites sur les cinq
+grands championnats, le périmètre du jeu à l'époque. Il couvre depuis les
+**huit** que le moteur collecte et calibre (les cinq, plus l'Eredivisie,
+la Liga Portugal et la Süper Lig), avec tous les matchs de la base
+derrière — coupes d'Europe et coupes nationales comprises. Le barème,
+lui, n'a pas changé d'un point : il lisait déjà tous ces matchs, et le
+nombre de fenêtres de barème est identique (112 527). Ce qui change est
+la population des CARTES, 2 371 → 3 872, et donc l'échantillon sur lequel
+la cloche est ajustée. Mesuré sur les 2 359 cartes communes : ΔOVR médian
++1, moyen +0,26, seules 1,3 % bougent de plus de 3 points, p1 −3 et p99
++3. Le classement était déjà un rang ; y ajouter des joueurs plus faibles
+le décale à peine.
+
 **La cloche.** Total hybride placé par rang parmi les 1 782 réguliers
 (≥ 900 min) des cinq championnats, cloche 65 ± 10 : 47 cartes à 85 et
 plus, 307 à 75 et plus, 1 014 entre 60 et 74, 1 050 sous 60 ; sommet à 98

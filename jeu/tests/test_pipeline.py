@@ -356,3 +356,25 @@ def test_the_preferred_foot_comes_from_the_file_or_stays_unknown(tmp_path):
     assert pieds[4] is None and pieds[5] is None
     # no file at all is not an error: every card simply reads "inconnu"
     assert I.importer_pieds(jeu, tmp_path / "absent.json") == 0
+
+
+def test_the_perimeter_is_the_eight_leagues_the_engine_rates():
+    """The engine collects and calibrates eight championships
+    (bareme_stats.LIGUES, and a coefficient each in
+    coefs_championnats.json).  The game used to stop at five, which left
+    a Champions League field two thirds full and no card at all for a PSV
+    or a Sporting player."""
+    assert set(P.LIGUES) == {47, 87, 55, 54, 53, 57, 61, 71}
+    jeu = base()
+    # a club that only plays the Eredivisie is inside the perimeter
+    jeu.execute("INSERT INTO competition VALUES (57, 'Eredivisie', '2025/26')")
+    jeu.execute("INSERT INTO club(team_id, nom) VALUES (77, 'PSV')")
+    jeu.execute("INSERT INTO club(team_id, nom) VALUES (78, 'Ajax')")
+    jid = jeu.execute("SELECT journee_id FROM journee WHERE saison='2025/26' AND numero=1").fetchone()[0]
+    jeu.execute("""INSERT INTO match(match_id, journee_id, competition_id, date_utc,
+                   home_team_id, away_team_id) VALUES (777, ?, 57, '2025-08-16T18:00:00Z', 77, 78)""", (jid,))
+    jeu.commit()
+    dedans = P.clubs_perimetre(jeu, "2025/26")
+    assert 77 in dedans and 78 in dedans
+    # and the five-league perimeter is what it used to be, if anyone asks
+    assert 77 not in P.clubs_perimetre(jeu, "2025/26", ligues=(47, 87, 55, 54, 53))

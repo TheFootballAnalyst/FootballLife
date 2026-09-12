@@ -2,7 +2,7 @@
 
     python3 -m jeu.backtest --jeu jeu/jeu_2526.sqlite --ligue 0 \
                             --amorce 1-17 --jouer 18-34 --sortie out/
-    (--ligue 0 = the five leagues + Champions League, the "global league";
+    (--ligue 0 = the eight leagues + Champions League, the "global league";
      --ligue 53 = Ligue 1 clubs only)
 
 Seeds the cards on the gameweeks of --amorce (as if they were last season),
@@ -74,12 +74,13 @@ FENETRE_FORME = 5                                             # gameweeks
 # Data
 # --------------------------------------------------------------------------
 
-TOP5 = (47, 87, 55, 54, 53)   # Premier League, LaLiga, Serie A, Bundesliga, Ligue 1
+from jeu.pipeline import LIGUES        # the eight the engine collects
+TOP5 = LIGUES
 
 
 def charger(jeu: sqlite3.Connection, ligue_id: int):
     """Cards of the perimeter (players whose club plays the reference
-    league, or any of the top 5 when ligue_id is 0) and their performances
+    league, or any of the eight when ligue_id is 0) and their performances
     by gameweek."""
     ligues = TOP5 if ligue_id == 0 else (ligue_id,)
     marks = ",".join("?" * len(ligues))
@@ -514,7 +515,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--jeu", default=str(RACINE / "jeu" / "jeu_2526.sqlite"))
     ap.add_argument("--ligue", type=int, default=0,
-                    help="perimeter: a league id, or 0 for the top 5 (global league)")
+                    help="perimeter: a league id, or 0 for the eight leagues (global league)")
     ap.add_argument("--amorce", default="1-17")
     ap.add_argument("--jouer", default="18-34")
     ap.add_argument("--sortie", default=str(RACINE / "out"))

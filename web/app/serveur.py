@@ -87,7 +87,7 @@ def ligue_monde(jeu) -> int:
         return row[0]
     eco = P.parametre(jeu, SAISON, "economie") or {}
     jeu.execute("INSERT INTO ligue_jeu(nom, saison, perimetre, budget_initial, taille_effectif, cree_le) VALUES (?,?,?,?,?,?)",
-                (LIGUE_MONDE, SAISON, json.dumps([47, 87, 55, 54, 53, 42]), eco.get("budget", E.BUDGET_INITIAL),
+                (LIGUE_MONDE, SAISON, json.dumps(list(P.LIGUES) + [42]), eco.get("budget", E.BUDGET_INITIAL),
                  TAILLE_EFFECTIF, P.maintenant()))
     jeu.commit()
     return ligue_monde(jeu)
@@ -250,10 +250,12 @@ def cartes_toutes(jeu):
     cle = (cle[0], tuple(cle[1]))
     if _CACHE["cle"] == cle:
         return _CACHE["cartes"]
-    ligues = {47: "Premier League", 87: "LaLiga", 55: "Serie A", 54: "Bundesliga", 53: "Ligue 1"}
+    ligues = {47: "Premier League", 87: "LaLiga", 55: "Serie A", 54: "Bundesliga", 53: "Ligue 1",
+              57: "Eredivisie", 61: "Liga Portugal", 71: "Süper Lig"}
     ligue_club = {}
-    for tid, cid, n in jeu.execute("""SELECT home_team_id, competition_id, COUNT(*) FROM match
-                                      WHERE competition_id IN (47,87,55,54,53) GROUP BY 1,2"""):
+    marks = ",".join(str(x) for x in P.LIGUES)
+    for tid, cid, n in jeu.execute(f"""SELECT home_team_id, competition_id, COUNT(*) FROM match
+                                       WHERE competition_id IN ({marks}) GROUP BY 1,2"""):
         if tid not in ligue_club or n > ligue_club[tid][1]:
             ligue_club[tid] = (cid, n)
     notes: dict[int, list] = {}
