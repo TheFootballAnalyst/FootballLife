@@ -119,11 +119,51 @@ def maintenant() -> str:
 # The real clubs and their elevens
 # --------------------------------------------------------------------------
 
-def clubs_competition(jeu, saison: str, cle: str) -> list[dict]:
-    """The clubs of a competition, strongest squad first.
+# La force d'un club : la moyenne d'OVR de ses huit meilleures cartes.
+# Assez pour tirer un tableau, et elle bouge avec la saison comme tout le
+# reste.  Un club qui n'a pas huit cartes ne peut pas être joué.
+TAILLE_FORCE = 8
 
-    Strength is the mean OVR of the club's eight best cards — enough to
-    seed a bracket, and it moves with the season like everything else."""
+
+def forces_clubs(jeu, saison: str) -> dict[int, float]:
+    """La force de CHAQUE club de la base, en une seule requête.
+
+    Une requête par club — c'était l'écriture d'avant — coûtait 630 ms à
+    chaque calcul du plateau, et le plateau était recalculé à chaque
+    sondage du match en direct : le serveur passait la moitié de son
+    temps là-dedans et chaque clic attendait derrière.  Une fenêtre SQL
+    rend la même chose en une trentaine de millisecondes."""
+    lignes = jeu.execute(f"""
+        WITH rangs AS (
+            SELECT j.team_id, c.ovr,
+                   ROW_NUMBER() OVER (PARTITION BY j.team_id ORDER BY c.ovr DESC, c.player_id) AS r
+            FROM carte c JOIN joueur j ON j.player_id = c.player_id
+            WHERE c.saison = ? AND j.team_id IS NOT NULL)
+        SELECT team_id, SUM(ovr) * 1.0 / COUNT(*), COUNT(*) FROM rangs
+        WHERE r <= {TAILLE_FORCE} GROUP BY team_id""", (saison,))
+    return {tid: round(moy, 1) for tid, moy, n in lignes if n == TAILLE_FORCE}
+
+
+def _fiches_clubs(jeu, saison: str, tids, forces: dict[int, float] | None = None) -> dict[int, dict]:
+    """Nom, couleur et force des clubs demandés — deux requêtes en tout."""
+    tids = list(tids)
+    if not tids:
+        return {}
+    forces = forces if forces is not None else forces_clubs(jeu, saison)
+    marques = ",".join("?" * len(tids))
+    noms = {r[0]: (r[1], r[2]) for r in jeu.execute(
+        f"SELECT team_id, nom, couleur FROM club WHERE team_id IN ({marques})", tids)}
+    out = {}
+    for tid in tids:
+        if tid not in forces:
+            continue
+        nom, couleur = noms.get(tid, ("Club " + str(tid), None))
+        out[tid] = {"team_id": tid, "nom": nom, "couleur": couleur or "#14161E", "force": forces[tid]}
+    return out
+
+
+def clubs_competition(jeu, saison: str, cle: str) -> list[dict]:
+    """The clubs of a competition, strongest squad first."""
     if cle not in COMPETITIONS:
         raise ErreurSolo("Compétition inconnue")
     comp = COMPETITIONS[cle]
@@ -131,17 +171,8 @@ def clubs_competition(jeu, saison: str, cle: str) -> list[dict]:
         """SELECT DISTINCT home_team_id FROM match WHERE competition_id=?
            UNION SELECT DISTINCT away_team_id FROM match WHERE competition_id=?""",
         (comp["cid"], comp["cid"]))]
-    out = []
-    for tid in tids:
-        ovrs = [r[0] for r in jeu.execute(
-            """SELECT c.ovr FROM carte c JOIN joueur j ON j.player_id=c.player_id
-               WHERE c.saison=? AND j.team_id=? ORDER BY c.ovr DESC LIMIT 8""", (saison, tid))]
-        if len(ovrs) < 8:                 # a club the game has no squad for cannot be played
-            continue
-        nom, couleur = (jeu.execute("SELECT nom, couleur FROM club WHERE team_id=?", (tid,)).fetchone()
-                        or ("Club " + str(tid), None))
-        out.append({"team_id": tid, "nom": nom, "couleur": couleur or "#14161E",
-                    "force": round(sum(ovrs) / len(ovrs), 1)})
+    forces = forces_clubs(jeu, saison)
+    out = list(_fiches_clubs(jeu, saison, tids, forces).values())
     out.sort(key=lambda c: -c["force"])
     if comp["format"] != "ligue_puis_coupe":
         return out
@@ -154,16 +185,8 @@ def clubs_competition(jeu, saison: str, cle: str) -> list[dict]:
     if len(out) >= TAILLE_LIGUE:
         return out[:TAILLE_LIGUE]
     deja = {c["team_id"] for c in out}
-    invites = []
-    for tid, nom, couleur in jeu.execute("SELECT team_id, nom, couleur FROM club ORDER BY nom"):
-        if tid in deja:
-            continue
-        ovrs = [r[0] for r in jeu.execute(
-            """SELECT c.ovr FROM carte c JOIN joueur j ON j.player_id=c.player_id
-               WHERE c.saison=? AND j.team_id=? ORDER BY c.ovr DESC LIMIT 8""", (saison, tid))]
-        if len(ovrs) == 8:
-            invites.append({"team_id": tid, "nom": nom, "couleur": couleur or "#14161E",
-                            "force": round(sum(ovrs) / len(ovrs), 1), "invite": True})
+    autres = [r[0] for r in jeu.execute("SELECT team_id FROM club ORDER BY nom") if r[0] not in deja]
+    invites = [c | {"invite": True} for c in _fiches_clubs(jeu, saison, autres, forces).values()]
     # A club that really qualified is never dropped for an invited one: the
     # invited ones only fill what is left, strongest first.  Sorting the
     # whole lot by strength before truncating pushed four real qualifiers
@@ -625,8 +648,10 @@ def _ajouter_phase(cal: list[dict], phase: str, duels: list[tuple[int, int]]) ->
 def _clubs_du(jeu, saison, camp) -> list[dict]:
     """The field, in the order the campaign froze, with your place held by
     your team."""
+    # Le plateau est FIGÉ dans la campagne : on ne le reconstruit pas, on
+    # relit le nom, la couleur et la force des trente-six clubs retenus.
     tids = json.loads(camp["clubs"])
-    par_id = {c["team_id"]: c for c in clubs_competition(jeu, saison, camp["cle"])}
+    par_id = _fiches_clubs(jeu, saison, tids)
     nom_equipe = jeu.execute("SELECT nom FROM equipe WHERE equipe_id=?", (camp["equipe_id"],)).fetchone()[0]
     out = []
     for i, tid in enumerate(tids):
@@ -1008,8 +1033,8 @@ def etat(jeu, saison: str, equipe_id: int) -> dict:
                                        if cumul and t["manche"] == 2 else None)}
     c = {"campagne_id": camp["campagne_id"], "cle": camp["cle"], "nom": comp["nom"], "format": comp["format"],
          "match": live,
-         "club_remplace": next((x["nom"] for x in clubs_competition(jeu, saison, camp["cle"])
-                                if x["team_id"] == camp["club_remplace"]), ""),
+         "club_remplace": (jeu.execute("SELECT nom FROM club WHERE team_id=?",
+                                       (camp["club_remplace"],)).fetchone() or [""])[0],
          "place": camp["place"], "tour": tour, "tours": len(cal), "prochain": prochain,
          "phase": cal[min(tour, len(cal) - 1)]["phase"],
          "mes_matchs": [f | {"adversaire": clubs[f["b"] if f["a"] == camp["place"] else f["a"]]["nom"]}

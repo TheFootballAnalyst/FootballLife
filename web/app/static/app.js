@@ -2129,8 +2129,13 @@ function construireAjuster(d, routeTac, routePause, rendre) {
   };
   AJU.pause = el("div", {class: "actions", style: "justify-content:flex-start;margin-bottom:8px"});
   if (d.match.solitaire && routePause) {
+    // L'état de pause est lu AU CLIC, jamais figé à la construction : le
+    // panneau est réutilisé d'un sondage à l'autre, et un `d` capturé ici
+    // envoyait « mettre en pause » à un match que l'arbitre avait déjà
+    // arrêté pour la mi-temps — donc « Reprendre » ne faisait rien.
     AJU.boutonPause = el("button", {onclick: async () => {
-      try { await rendre(await api(routePause, {pause: !d.match.pause})); } catch (e) { toast(e.message); }
+      const enPause = !!(AJU.d?.match?.pause);
+      try { await rendre(await api(routePause, {pause: !enPause})); } catch (e) { toast(e.message); }
     }}, "");
     AJU.pause.append(AJU.boutonPause);
     p.append(AJU.pause);
@@ -2257,6 +2262,7 @@ function memeTactique(a, b) {
 }
 
 function majAjuster(d, routePause, rendre) {
+  AJU.d = d;                                  // l'état courant, pour les gestionnaires
   const m = d.match, cote = d.cote === "b" ? "b" : "a";
   const tac = AJU.tac;
   const serveur = {...(m.tactique[cote] || LOBBY.tac)};

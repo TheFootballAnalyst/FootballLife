@@ -465,3 +465,48 @@ def test_a_real_calendar_survives_a_postponed_fixture():
     ampute = [t for t in cal[:-1]] + [[d for d in cal[-1][1:]]]     # one fixture dropped
     assert SO._complet(ampute, 18, 34)                              # still the real thing
     assert not SO._complet(cal[:10], 18, 34)                        # a third of a season is not
+
+
+# --------------------------------------------------------------------------
+# The field is read, not rebuilt, once the campaign has frozen it
+# --------------------------------------------------------------------------
+
+def test_the_strength_of_every_club_is_the_mean_of_its_eight_best_cards():
+    """One window query for the whole base, and it says exactly what the
+    old club-by-club loop said: the mean OVR of the eight best cards, and
+    no strength at all for a club with fewer than eight."""
+    jeu = base_solo()
+    # a club with only three cards: it exists, it cannot be played
+    jeu.execute("INSERT INTO club(team_id, nom, couleur) VALUES (99, 'Petit', '#000000')")
+    for k in range(3):
+        pid = 5000 + k
+        jeu.execute("INSERT INTO joueur(player_id, nom, nom_normalise, team_id, poste, postes) VALUES (?,?,?,99,'FWD','[\"FWD\"]')",
+                    (pid, f"P{pid}", f"p{pid}"))
+        jeu.execute("""INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, attributs, matchs, minutes, maj)
+                       VALUES (?, '2025/26', 6.5, 90, 5.0, '{}', 10, 900, 'x')""", (pid,))
+    forces = SO.forces_clubs(jeu, "2025/26")
+    assert 99 not in forces and forces
+    for tid, force in forces.items():
+        ovrs = [r[0] for r in jeu.execute(
+            """SELECT c.ovr FROM carte c JOIN joueur j ON j.player_id=c.player_id
+               WHERE c.saison='2025/26' AND j.team_id=? ORDER BY c.ovr DESC LIMIT 8""", (tid,))]
+        assert len(ovrs) == SO.TAILLE_FORCE and force == round(sum(ovrs) / 8, 1)
+    # and the field is the same clubs, in the same order, as before
+    clubs = SO.clubs_competition(jeu, "2025/26", "ligue1")
+    assert [c["force"] for c in clubs] == sorted((forces[c["team_id"]] for c in clubs), reverse=True)
+
+
+def test_a_campaign_poll_never_rebuilds_the_field(monkeypatch):
+    """The field is frozen in the campaign row.  Rebuilding it on every
+    poll of a live match cost 1.3 s per click; the campaign screen must
+    read the frozen field and never call the competition builder."""
+    jeu = base_solo()
+    SO.demarrer(jeu, "2025/26", 1, "ligue1", 11, graine=21)
+    SO.lancer_tour(jeu, "2025/26", 1, ONZE, {"tempo": "direct"}, banc=[12, 13, 14, 15])
+
+    def interdit(*a, **k):
+        raise AssertionError("clubs_competition rappelé pendant un sondage")
+    monkeypatch.setattr(SO, "clubs_competition", interdit)
+    e = SO.etat(jeu, "2025/26", 1)["campagne"]
+    assert e["match"] and e["club_remplace"] == "Club 1"
+    assert len(e["classement"]) == 6 and {c["nom"] for c in e["classement"]} >= {"Mon FC"}
