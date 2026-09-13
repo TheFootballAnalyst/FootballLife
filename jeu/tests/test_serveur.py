@@ -49,9 +49,38 @@ def test_inscription_creates_team_and_first_user_is_admin(client):
     moi = client.get("/api/moi").json()
     assert moi["connecte"] and moi["pseudo"] == "ana" and moi["equipe"] == "Équipe de ana"
     e = client.get("/api/equipe").json()
-    assert e["budget"] == E.BUDGET_INITIAL and e["effectif"] == {} and e["marche_ouvert"]
+    # le tout premier compte est celui de l'administrateur : il démarre
+    # avec le budget de démonstration, pas celui de la ligue
+    from web.app import serveur as SV
+    assert e["budget"] == SV.BUDGET_PREMIER and e["effectif"] == {} and e["marche_ouvert"]
     assert client.post("/api/inscription", json={"pseudo": "ANA", "mot_de_passe": "xxxxxx"}).status_code == 409
     assert client.post("/api/inscription", json={"pseudo": "b", "mot_de_passe": "xxxxxx"}).status_code == 400
+
+
+def test_only_the_first_account_gets_the_demo_budget(client):
+    """Le premier compte est riche pour faire visiter le jeu ; tous les
+    autres démarrent avec le budget de la ligue."""
+    from web.app import serveur as SV
+    inscrire(client, "premier", "motdepasse")
+    assert client.get("/api/equipe").json()["budget"] == SV.BUDGET_PREMIER
+    assert SV.BUDGET_PREMIER > E.BUDGET_INITIAL
+    client.post("/api/deconnexion")
+    inscrire(client, "second", "motdepasse")
+    assert client.get("/api/equipe").json()["budget"] == E.BUDGET_INITIAL
+    client.post("/api/deconnexion")
+    inscrire(client, "troisieme", "motdepasse")
+    assert client.get("/api/equipe").json()["budget"] == E.BUDGET_INITIAL
+
+
+def test_the_demo_budget_can_be_turned_off(monkeypatch):
+    """Une vraie mise en ligne met FL_BUDGET_PREMIER=0 et le premier
+    compte redevient un compte comme les autres."""
+    from web.app import serveur as SV
+    for brut, attendu in (("0", None), ("", None), ("n'importe quoi", 10_000.0), ("250", 250.0)):
+        monkeypatch.setenv("FL_BUDGET_PREMIER", brut)
+        assert SV._budget_premier() == attendu, brut
+    monkeypatch.delenv("FL_BUDGET_PREMIER")
+    assert SV._budget_premier() == 10_000.0
 
 
 def test_login_logout(client):
@@ -77,6 +106,7 @@ def donner(client, pids, equipe_id=None):
 
 def test_packs_club_and_auction_house(client):
     inscrire(client)
+    depart = client.get("/api/equipe").json()["budget"]      # le premier compte est riche
     cartes = client.get("/api/cartes").json()
     assert len(cartes) == 15 and {"id", "nom", "fam", "ovr", "prix", "part", "notes"} <= set(cartes[0])
     cat = client.get("/api/packs").json()
@@ -85,7 +115,7 @@ def test_packs_club_and_auction_house(client):
     # every synthetic card is bronze: a bronze pack works, its copies land in the reserve
     r = client.post("/api/packs/ouvrir", json={"type": "bronze"}).json()
     assert len(r["cartes"]) == 3 and all(c["carte"]["ovr"] < 60 for c in r["cartes"])
-    assert abs(r["budget"] - (E.BUDGET_INITIAL - 6.0)) < 1e-6
+    assert abs(r["budget"] - (depart - 6.0)) < 1e-6
     club = client.get("/api/club").json()["cartes"]
     assert len(club) == 3 and not any(c["dans_effectif"] for c in club)
     x = club[0]["exemplaire_id"]

@@ -52,6 +52,28 @@ CHEMIN_JEU = pathlib.Path(os.environ.get("FL_JEU", RACINE / "jeu" / "jeu_2526.sq
 SAISON = os.environ.get("FL_SAISON", "2025/26")
 SECRET = os.environ.get("FL_SECRET", "dev-secret-change-me").encode()
 ADMINS = {p.strip() for p in os.environ.get("FL_ADMINS", "").split(",") if p.strip()}
+# Le budget du TOUT PREMIER compte, en M€.  Ce compte est déjà celui de
+# l'administrateur : c'est celui qui monte la base et qui fait visiter le
+# jeu, et il lui faut de quoi acheter n'importe quelle carte sans passer
+# une heure au mercato.  Dix milliards d'euros, donc, pendant que tous
+# les comptes suivants démarrent avec le budget normal de la ligue.
+#
+# FL_BUDGET_PREMIER=0 rend au premier compte le budget de tout le monde,
+# ce qu'une vraie mise en ligne voudra faire.
+def _budget_premier() -> float | None:
+    brut = os.environ.get("FL_BUDGET_PREMIER")
+    if brut is None:
+        return 10_000.0                      # 10 Md€, en millions
+    if not brut.strip():
+        return None                          # mis à vide = désactivé
+    try:
+        v = float(brut)
+    except ValueError:
+        return 10_000.0                      # valeur illisible : on garde le défaut
+    return v if v > 0 else None
+
+
+BUDGET_PREMIER = _budget_premier()
 IMAGES = RACINE / "moteur" / "images"
 CACHE_CARTES = pathlib.Path(os.environ.get("FL_CACHE", RACINE / "out" / "cartes_site"))
 STATIQUE = pathlib.Path(__file__).resolve().parent / "static"
@@ -187,6 +209,8 @@ def inscription(ident: Identifiants, reponse: Response, jeu=Depends(bd)):
     uid = cur.lastrowid
     lm = ligue_monde(jeu)
     budget = jeu.execute("SELECT budget_initial FROM ligue_jeu WHERE ligue_jeu_id=?", (lm,)).fetchone()[0]
+    if premier and BUDGET_PREMIER:
+        budget = BUDGET_PREMIER              # le compte de démonstration
     jeu.execute("INSERT INTO equipe(utilisateur_id, ligue_jeu_id, nom, budget) VALUES (?,?,?,?)",
                 (uid, lm, (ident.equipe or f"Équipe de {pseudo}").strip()[:40], budget))
     jeu.commit()

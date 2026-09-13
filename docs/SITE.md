@@ -102,6 +102,16 @@ sinon les cartes affichent des initiales.
 Sauvegarde : le fichier `/data/jeu.sqlite` est tout l'état du jeu. Le
 copier après chaque clôture suffit.
 
+**Le premier compte est le compte de démonstration.** C'est déjà celui
+de l'administrateur — c'est lui qui monte la base et qui fait visiter le
+jeu — et il démarre avec **10 milliards d'euros** au lieu des 100 M€ de
+la ligue, de quoi acheter n'importe quelle carte sans passer une heure
+au mercato. Tous les comptes suivants démarrent normalement.
+
+Une vraie mise en ligne voudra le désactiver : `FL_BUDGET_PREMIER=0` (ou
+vide) rend au premier compte le budget de tout le monde, et n'importe
+quel autre montant en M€ le fixe à ce montant (`FL_BUDGET_PREMIER=250`).
+
 ## API
 
 `/api/docs` donne la liste. Les appels d'écriture demandent le cookie de
