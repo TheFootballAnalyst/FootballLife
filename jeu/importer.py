@@ -127,8 +127,30 @@ def nettoyer_retirees(jeu: sqlite3.Connection) -> list[str]:
     return restes
 
 
+# How long a connection waits for the base when another one is writing.
+# The site serves each request on its own connection, dozens at a time
+# when a screen draws its cards; without a real wait, opening a pack while
+# the market was rendering ended in "database is locked".
+ATTENTE_VERROU = 15.0
+
+
+def connecter(chemin: pathlib.Path) -> sqlite3.Connection:
+    """A connection to a game base that is already set up: WAL so that
+    readers never block the one writer, a real busy timeout, and no
+    schema work — that is ouvrir_jeu's, once."""
+    jeu = sqlite3.connect(chemin, check_same_thread=False, timeout=ATTENTE_VERROU)
+    jeu.execute(f"PRAGMA busy_timeout = {int(ATTENTE_VERROU * 1000)}")
+    if str(chemin) not in (":memory:", ""):
+        # WAL is written into the file: setting it once is enough, but
+        # asking again costs nothing and covers a base copied from
+        # elsewhere.
+        jeu.execute("PRAGMA journal_mode = WAL")
+        jeu.execute("PRAGMA synchronous = NORMAL")
+    return jeu
+
+
 def ouvrir_jeu(chemin: pathlib.Path) -> sqlite3.Connection:
-    jeu = sqlite3.connect(chemin, check_same_thread=False)
+    jeu = connecter(chemin)
     jeu.executescript(SCHEMA.read_text(encoding="utf-8"))
     for reste in nettoyer_retirees(jeu):
         print(reste)

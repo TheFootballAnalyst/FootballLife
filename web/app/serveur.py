@@ -89,8 +89,20 @@ app = FastAPI(title="FootballLife", docs_url="/api/docs", redoc_url=None)
 # Base
 # --------------------------------------------------------------------------
 
+# The schema and the migrations run ONCE, at startup; a request only
+# connects.  Running the schema script on every request was needless
+# work, and every connection was a rollback-journal one: a pack opened
+# while the market was drawing sixty cards waited on sixty readers and
+# died on "database is locked".  WAL and a real busy timeout (importer.
+# connecter) end that.
+_PRETE: set[str] = set()
+
+
 def ouvrir() -> sqlite3.Connection:
-    jeu = I.ouvrir_jeu(CHEMIN_JEU)
+    if str(CHEMIN_JEU) not in _PRETE:
+        I.ouvrir_jeu(CHEMIN_JEU).close()
+        _PRETE.add(str(CHEMIN_JEU))
+    jeu = I.connecter(CHEMIN_JEU)
     jeu.row_factory = sqlite3.Row
     jeu.execute("PRAGMA foreign_keys = ON")
     return jeu

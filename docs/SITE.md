@@ -54,6 +54,14 @@ pour un serveur lancé autrement (0 = sans limite). Pour une autre base :
 `py web/app/lancer.py --jeu jeu/jeu_2627.sqlite --saison 2026/27`. La
 fenêtre reste occupée tant que le site tourne ; `Ctrl+C` l'arrête.
 
+La base est ouverte en mode WAL avec une attente de quinze secondes sur
+le verrou : les lectures (les cartes qui se dessinent par dizaines) ne
+bloquent jamais l'écriture (ouvrir un pack, faire un changement). Deux
+fichiers `demo.sqlite-wal` et `demo.sqlite-shm` vivent à côté de la base,
+c'est normal. **Ne mets pas le projet dans un dossier synchronisé
+(OneDrive, Documents sur un PC d'entreprise)** : la synchronisation
+tient le fichier et SQLite répond « database is locked ».
+
 Puis http://localhost:8000. Le premier compte créé est administrateur. En
 démo, les prestations des journées 26 à 34 sont déjà en base : sur
 l'écran Admin, « Clôturer la journée » suffit à faire avancer la saison.
