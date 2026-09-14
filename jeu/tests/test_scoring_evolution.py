@@ -167,3 +167,59 @@ def test_a_versatile_card_is_not_counted_twice():
     assert S.onze_legal(partout, "4-3-3")
     # but eleven keepers cannot: only one GK slot exists
     assert not S.onze_legal([["GK"]] * 11)
+
+
+# --------------------------------------------------------------------------
+# Anyone anywhere — and it costs by distance
+# --------------------------------------------------------------------------
+
+def test_the_out_of_position_cost_grows_with_the_distance():
+    m = S.malus_poste
+    assert m(["Defenseur central"], "Defenseur central") == 0
+    assert m(["Lateral"], "Lateral gauche") == 0                    # a side-less card fits both sides
+    assert m(["Ailier droit"], "Ailier gauche") == S.MALUS_COTE     # the wrong flank costs a little
+    assert m(["Defenseur central"], "Lateral droit") == S.MALUS_DISTANCE[1]
+    assert m(["Milieu relayeur"], "Milieu defensif") == S.MALUS_DISTANCE[1]   # three central mids is cheap
+    assert m(["Defenseur central"], "Ailier gauche") == S.MALUS_DISTANCE[2]
+    assert m(["Defenseur central"], "Buteur") == S.MALUS_DISTANCE[3]
+    assert m(["Gardien"], "Buteur") == S.MALUS_GARDIEN == m(["Buteur"], "Gardien")
+    assert m(["Gardien"], "Gardien") == 0
+    # the closest position he held is the one that counts
+    assert m(["Buteur", "Ailier"], "Lateral droit") == S.MALUS_DISTANCE[1]
+    assert S.hors_poste(["Lateral"], "Ailier droit") and not S.hors_poste(["Ailier"], "Ailier droit")
+    mat = S.matrice_malus()
+    assert mat["Lateral gauche"]["Lateral"] == 0 and mat["Gardien"]["Buteur"] == S.MALUS_GARDIEN
+    assert set(mat) == {p for r in S.FORMATIONS_RANGS.values() for rang in r for p in rang}
+
+
+def test_the_formations_name_their_sides_and_a_pivot():
+    for nom, rangs in S.FORMATIONS_RANGS.items():
+        postes = [p for r in rangs for p in r]
+        assert len(postes) == 11 and postes[0] == "Gardien", nom
+        for r in rangs:
+            for p in r:
+                if S.poste_base(p) in ("Lateral", "Ailier"):
+                    assert S.cote_poste(p) in ("gauche", "droit"), (nom, p)
+            larges = [p for p in r if S.cote_poste(p)]
+            if larges:
+                assert S.cote_poste(larges[0]) == "gauche" and S.cote_poste(larges[-1]) == "droit", (nom, r)
+    assert S.FORMATIONS_RANGS["4-3-3"][2] == ("Milieu relayeur", "Milieu defensif", "Milieu relayeur")
+    assert S.PROFONDEUR_POSTE["Milieu defensif"] < 0 < S.PROFONDEUR_POSTE["Milieu offensif"]
+
+
+def test_the_best_fit_fills_each_slot_with_the_smallest_cost():
+    tenus = [["Gardien"], ["Lateral"], ["Defenseur central"], ["Defenseur central"], ["Ailier"],
+             ["Milieu relayeur"], ["Milieu defensif"], ["Milieu relayeur"], ["Ailier"], ["Buteur"], ["Buteur"]]
+    ordre = S.repartir(tenus, "4-3-3")
+    postes = S.postes_formation("4-3-3")
+    assert sorted(ordre) == list(range(11))
+    couts = [S.malus_poste(tenus[k], postes[i]) for i, k in enumerate(ordre)]
+    # one full-back is missing and a striker is spare: the cheapest way
+    # is one move of two steps or two of one, never a chain of three
+    assert sum(couts) == S.MALUS_DISTANCE[2] and sum(1 for c in couts if c) <= 2
+    # with values, the eleven is the one worth the most at its posts: a
+    # much better striker on the wing beats a poor winger on the wing
+    tenus2 = tenus + [["Buteur"]]
+    valeurs = [70] * 11 + [95]
+    ordre2 = S.repartir(tenus2, "4-3-3", valeurs)
+    assert 11 in ordre2

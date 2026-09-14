@@ -234,7 +234,13 @@ form button.primaire{width:100%;margin-top:14px;padding:11px;font-size:15px;font
 .slot.cible .mini > div{outline:2px solid var(--or2,#d8b45a);outline-offset:2px}
 .slot.cible.vide .mini > div{border-color:var(--or2,#d8b45a);background:rgba(216,180,90,.14)}
 .slot.interdit{opacity:.4}
+.slot.cible-ligne .mini > div{outline:2px solid #E0B23C;outline-offset:2px}
+.slot.cible-loin .mini > div{outline:2px dashed #E0564F;outline-offset:2px}
 .slot.faute .mini > div{outline:2px solid #E0564F;outline-offset:2px}
+.slot.trouve .mini > div{outline:3px solid #4FC3F7;outline-offset:3px}
+/* le pivot derrière ses relayeurs, le meneur devant : --prof vient de scoring.PROFONDEUR_POSTE */
+.slot{--prof:0;margin-top:calc(var(--prof) * -400px)}
+#eq-nom{max-width:180px}
 .slot.survol .mini > div{outline:3px solid var(--or2,#d8b45a);outline-offset:2px}
 .slot-menu{position:absolute;right:2px;top:2px;z-index:3;width:22px;height:22px;padding:0;line-height:20px;border-radius:50%;
   background:rgba(10,14,28,.72);color:#F2F4FA;border:1px solid rgba(255,255,255,.28);font-size:12px;cursor:pointer}
@@ -656,6 +662,7 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
   font-family:"Barlow Condensed",sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.04em;
   padding:1px 7px;border-radius:9px;background:rgba(8,10,18,.92);border:1px solid rgba(255,255,255,.22);color:#cfd6e6}
 .slot-poste.dephase{background:#D68A2E;color:#141414;border-color:#f0b75e}
+.slot-poste.loin{background:#B23C36;color:#fff;border-color:#E0564F}
 .slot{position:relative}
 
 /* ------------------------------------------------------------------ */
@@ -808,3 +815,19 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
   border:1px solid rgba(216,180,90,.45)}
 .homme .medaille{font-family:"Barlow Condensed",sans-serif;font-size:11px;letter-spacing:.07em;
   text-transform:uppercase;color:var(--or2);border:1px solid rgba(216,180,90,.5);border-radius:9px;padding:0 7px}
+.permutation{margin-top:14px;border-top:1px solid var(--ligne);padding-top:10px}
+/* La pop-up d'événement : un but se voit en plein terrain */
+.t2d-popup{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.8);z-index:7;text-align:center;
+  padding:18px 34px;border-radius:16px;background:rgba(8,10,18,.9);border:2px solid var(--or2,#d8b45a);
+  box-shadow:0 12px 40px rgba(0,0,0,.6);opacity:0;pointer-events:none;min-width:40%}
+.t2d-popup.on{animation:popsurgir .45s cubic-bezier(.2,1.4,.4,1) forwards}
+.t2d-popup .titre{font-size:44px;letter-spacing:.06em;line-height:1;color:#fff}
+.t2d-popup .sous{margin-top:6px;font-family:"Barlow Condensed",sans-serif;font-size:18px;color:#e8ecf5}
+.t2d-popup .score{margin-top:8px;font-size:30px;color:var(--or2,#d8b45a)}
+.t2d-popup.but.mien{border-color:#6ad3a3;background:rgba(24,86,58,.94)} .t2d-popup.but.mien .titre{color:#bfffe0}
+.t2d-popup.but.adverse{border-color:#E0564F;background:rgba(96,32,30,.94)}
+.t2d-popup.rouge{border-color:#E0564F;background:rgba(120,30,30,.94)}
+.t2d-popup.penalty_manque{border-color:#E0B23C}
+@keyframes popsurgir{from{opacity:0;transform:translate(-50%,-50%) scale(.6)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@media (max-width:640px){.t2d-popup .titre{font-size:30px}.t2d-popup{padding:12px 20px}}
+@media (prefers-reduced-motion: reduce){.t2d-popup.on{animation:none;opacity:1;transform:translate(-50%,-50%)}}

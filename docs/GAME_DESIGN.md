@@ -222,15 +222,29 @@ position is the first of the list, so it never contradicts it: Bellingham
 reads "milieu relayeur" again instead of "ailier". 313 of the 2 629 cards
 are eligible in more than one line.
 
-An eleven is legal as soon as **one** assignment of its cards to the
-formation works (`scoring.onze_legal`), which is what the pitch shows:
-each card sits in a slot of a family it really played. The lineup is
-stored slot by slot, so the manager's arrangement comes back as he left
-it. On the pitch a card is moved by dragging it, or by tapping it and
-tapping where it goes — the same gesture, since a drag under the
-threshold is a tap. Whoever it displaces takes its place when he can play
-there, and goes to the bench when he cannot, rather than being dropped
-into a position he has never held.
+**Anyone can play anywhere, and it costs by distance.** The pitch is a
+graph of positions (`scoring.VOISINS`); a card pays, on every attribute
+in the match, the malus of the graph distance between the slot and the
+closest position it held: 0, 4, 8, 14, 20 by step, 30 between goal and
+field either way, plus 2 for the wrong flank (`scoring.malus_poste`).
+Nothing is refused any more — the family bounds that used to make an
+eleven "illegal" were the thing managers ran into most. The screen
+shows what a card is worth where it stands (OVR less malus) and the
+average of the eleven at its posts. Wide slots carry their side (left
+back, right winger); the 4-3-3 midfield is a pivot behind two eights.
+
+Filling a shape — the club elevens, a formation changed at half-time —
+is a real assignment (Hungarian, `scoring.repartir`): the eleven worth
+the most at its posts, value less malus. Slot by slot, scarcest first,
+produced chains of three men each one step out where one man two steps
+out was cheaper.
+
+The lineup is stored slot by slot, so the manager's arrangement comes
+back as he left it. On the pitch a card is moved by dragging it, or by
+tapping it and tapping where it goes — the same gesture, since a drag
+under the threshold is a tap; two starters dropped on each other swap
+posts. During a match two men on the pitch can swap posts too
+(`lobby.permuter`): no substitution spent, effective the next minute.
 
 ## The ranked lobby — the cards play the match
 

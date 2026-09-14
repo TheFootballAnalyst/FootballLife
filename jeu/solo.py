@@ -222,34 +222,20 @@ def onze_club(jeu, saison: str, team_id: int, formation: str = "4-3-3") -> list[
     cartes = _cartes_club(jeu, saison, team_id)
     postes = S.postes_formation(formation)
     fams = S.familles_formation(formation)
-    pris: set[int] = set()
-    onze: list[dict | None] = [None] * len(postes)
-    ordre = sorted(range(len(postes)),
-                   key=lambda i: len([c for c in cartes if S.a_le_poste(c["tenus"], postes[i])]))
-    for tour in ("poste", "famille", "reste"):
-        for i in ordre:
-            if onze[i] is not None:
-                continue
-            for c in cartes:
-                if c["pid"] in pris:
-                    continue
-                if (tour == "poste" and S.a_le_poste(c["tenus"], postes[i])) \
-                        or (tour == "famille" and fams[i] in c["familles"]) \
-                        or tour == "reste":
-                    onze[i] = c | {"fam": fams[i], "slot": postes[i],
-                                   "hors_poste": not S.a_le_poste(c["tenus"], postes[i])}
-                    pris.add(c["pid"])
-                    break
-    sortis = [j for j in onze if j is not None]
-    for j in sortis:
+    ordre = S.repartir([c["tenus"] for c in cartes], formation, [c["ovr"] for c in cartes])
+    sortis = []
+    for i, k in enumerate(ordre):
+        c = cartes[k]
+        malus = S.malus_poste(c["tenus"], postes[i])
+        j = c | {"fam": fams[i], "slot": postes[i], "hors_poste": malus > 0, "malus": malus}
         # the card as it is stays next to the card as it is played, so a
         # formation changed during the match recomputes the penalty
         j["attributs_bruts"] = dict(j["attributs"])
         # ... et sa forme, pour qu'un club réel soit lui aussi plus ou
         # moins à l'aise dans la tactique qu'il se donne
         j["profil"] = SM.profil(j["attributs"], j["fam"])
-        if j["hors_poste"]:
-            j["attributs"] = {k: max(40, v - SM.MALUS_HORS_POSTE) for k, v in j["attributs"].items()}
+        j["attributs"] = SM._penalise(j["attributs"], malus)
+        sortis.append(j)
     return sortis
 
 

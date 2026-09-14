@@ -23,70 +23,102 @@ TAILLE_ONZE = 11
 TAILLE_BANC = 7          # a real matchday squad: eleven and seven
 
 # A formation is ELEVEN REAL POSITIONS laid out in rows, keeper first, back
-# to front.  It used to be four counts (one keeper, four defenders, three
-# midfielders, three forwards) and a slot only knew its family — which is
-# why Van Dijk came out at left back and Robertson in the middle, and why
-# "best eleven" put three centre-backs and one full-back in a back four.
-# A row is what the pitch draws; the flattened order is the slot index, so
-# a lineup stored before this still reads correctly.
+# to front, left to right inside a row.  A wide slot carries its side:
+# the manager reads "latéral gauche" and "ailier droit" on the pitch, not
+# two anonymous "latéral" boxes.  The flattened order is the slot index,
+# so a lineup stored before this still reads correctly.
+#
+# The midfield of a 4-3-3 is a pivot and two eights, drawn as a triangle
+# (PROFONDEUR_POSTE): the flat row "defensif, relayeur, offensif" put the
+# holding player on the left touchline and nobody could tell who did what.
 FORMATIONS_RANGS = {
     "4-3-3": [("Gardien",),
-              ("Lateral", "Defenseur central", "Defenseur central", "Lateral"),
-              ("Milieu defensif", "Milieu relayeur", "Milieu offensif"),
-              ("Ailier", "Buteur", "Ailier")],
+              ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
+              ("Milieu relayeur", "Milieu defensif", "Milieu relayeur"),
+              ("Ailier gauche", "Buteur", "Ailier droit")],
     "4-4-2": [("Gardien",),
-              ("Lateral", "Defenseur central", "Defenseur central", "Lateral"),
-              ("Ailier", "Milieu relayeur", "Milieu defensif", "Ailier"),
+              ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
+              ("Ailier gauche", "Milieu relayeur", "Milieu defensif", "Ailier droit"),
               ("Buteur", "Buteur")],
     "4-2-3-1": [("Gardien",),
-                ("Lateral", "Defenseur central", "Defenseur central", "Lateral"),
+                ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
                 ("Milieu defensif", "Milieu defensif"),
-                ("Ailier", "Milieu offensif", "Ailier"),
+                ("Ailier gauche", "Milieu offensif", "Ailier droit"),
                 ("Buteur",)],
     "4-1-4-1": [("Gardien",),
-                ("Lateral", "Defenseur central", "Defenseur central", "Lateral"),
+                ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
                 ("Milieu defensif",),
-                ("Ailier", "Milieu relayeur", "Milieu relayeur", "Ailier"),
+                ("Ailier gauche", "Milieu relayeur", "Milieu relayeur", "Ailier droit"),
                 ("Buteur",)],
     "4-5-1": [("Gardien",),
-              ("Lateral", "Defenseur central", "Defenseur central", "Lateral"),
-              ("Ailier", "Milieu offensif", "Milieu relayeur", "Milieu defensif", "Ailier"),
+              ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
+              ("Ailier gauche", "Milieu relayeur", "Milieu defensif", "Milieu offensif", "Ailier droit"),
               ("Buteur",)],
     "3-5-2": [("Gardien",),
               ("Defenseur central", "Defenseur central", "Defenseur central"),
-              ("Lateral", "Milieu defensif", "Milieu relayeur", "Milieu offensif", "Lateral"),
+              ("Lateral gauche", "Milieu relayeur", "Milieu defensif", "Milieu relayeur", "Lateral droit"),
               ("Buteur", "Buteur")],
     "3-4-3": [("Gardien",),
               ("Defenseur central", "Defenseur central", "Defenseur central"),
-              ("Lateral", "Milieu relayeur", "Milieu defensif", "Lateral"),
-              ("Ailier", "Buteur", "Ailier")],
+              ("Lateral gauche", "Milieu relayeur", "Milieu defensif", "Lateral droit"),
+              ("Ailier gauche", "Buteur", "Ailier droit")],
     "3-4-2-1": [("Gardien",),
                 ("Defenseur central", "Defenseur central", "Defenseur central"),
-                ("Lateral", "Milieu defensif", "Milieu relayeur", "Lateral"),
+                ("Lateral gauche", "Milieu defensif", "Milieu relayeur", "Lateral droit"),
                 ("Milieu offensif", "Milieu offensif"),
                 ("Buteur",)],
     "5-3-2": [("Gardien",),
-              ("Lateral", "Defenseur central", "Defenseur central", "Defenseur central", "Lateral"),
-              ("Milieu defensif", "Milieu relayeur", "Milieu offensif"),
+              ("Lateral gauche", "Defenseur central", "Defenseur central", "Defenseur central", "Lateral droit"),
+              ("Milieu relayeur", "Milieu defensif", "Milieu relayeur"),
               ("Buteur", "Buteur")],
     "5-4-1": [("Gardien",),
-              ("Lateral", "Defenseur central", "Defenseur central", "Defenseur central", "Lateral"),
-              ("Ailier", "Milieu relayeur", "Milieu defensif", "Ailier"),
+              ("Lateral gauche", "Defenseur central", "Defenseur central", "Defenseur central", "Lateral droit"),
+              ("Ailier gauche", "Milieu relayeur", "Milieu defensif", "Ailier droit"),
               ("Buteur",)],
 }
+# How far in front of its row a position stands, in fractions of the
+# pitch: the pivot sits behind the eights, the ten in front of them.
+# Drawing only — the match reads positions, not depths.
+PROFONDEUR_POSTE = {"Milieu defensif": -0.045, "Milieu offensif": 0.045}
+
 FAMILLE_POSTE = {
     "Gardien": "GK",
     "Defenseur central": "DEF",
-    "Lateral": "DEF",
+    "Lateral": "DEF", "Lateral gauche": "DEF", "Lateral droit": "DEF",
     "Milieu defensif": "MID",
     "Milieu relayeur": "MID",
     "Milieu offensif": "MID",
-    "Ailier": "FWD",
-    "Ailier droit": "FWD",
-    "Ailier gauche": "FWD",
+    "Ailier": "FWD", "Ailier droit": "FWD", "Ailier gauche": "FWD",
     "Buteur": "FWD",
 }
+# Kept for the display of a squad by line; the pitch itself no longer
+# enforces it (see malus_poste).
 LIMITES_FAMILLE = {"GK": (1, 1), "DEF": (3, 5), "MID": (2, 5), "FWD": (1, 4)}
+
+
+LIBELLE_POSTE = {
+    "Gardien": "gardien", "Defenseur central": "défenseur central",
+    "Lateral": "latéral", "Lateral gauche": "latéral gauche", "Lateral droit": "latéral droit",
+    "Milieu defensif": "milieu défensif", "Milieu relayeur": "milieu relayeur",
+    "Milieu offensif": "meneur", "Ailier": "ailier", "Ailier gauche": "ailier gauche",
+    "Ailier droit": "ailier droit", "Buteur": "buteur",
+}
+
+
+def libelle_poste(poste: str | None) -> str:
+    return LIBELLE_POSTE.get(poste or "", (poste or "").lower())
+
+
+def poste_base(poste: str) -> str:
+    """A position without its side: "Lateral gauche" -> "Lateral"."""
+    for suffixe in (" gauche", " droit"):
+        if poste.endswith(suffixe):
+            return poste[:-len(suffixe)]
+    return poste
+
+
+def cote_poste(poste: str) -> str | None:
+    return "gauche" if poste.endswith(" gauche") else "droit" if poste.endswith(" droit") else None
 
 
 def postes_formation(formation: str) -> list[str]:
@@ -104,8 +136,7 @@ def _comptes(formation: str) -> tuple[int, int, int, int]:
     return tuple(fams.count(f) for f in ("GK", "DEF", "MID", "FWD"))
 
 
-# The family counts, derived — what the legality check and the simulation
-# read.  Kept under the old name so nothing else has to change.
+# The family counts, derived — what the simulation reads.
 FORMATIONS = {nom: _comptes(nom) for nom in FORMATIONS_RANGS}
 
 # A card is not one position.  Valverde played sixteen matches at right
@@ -116,51 +147,161 @@ FORMATIONS = {nom: _comptes(nom) for nom in FORMATIONS_RANGS}
 # barème's shrink.
 PART_POSTE_ELIGIBLE = 0.20
 
+# Anyone can play anywhere — and it costs by DISTANCE.  The pitch is a
+# graph of positions; a card pays, on every attribute, the malus of the
+# distance between the slot and the closest position it really held.  A
+# centre-back at full-back is one step away and loses a little; the same
+# man at centre-forward is three steps away and loses a lot.  A keeper in
+# the field, or a field player in goal, is another sport.
+VOISINS = {
+    "Defenseur central": ("Lateral", "Milieu defensif"),
+    "Lateral": ("Defenseur central", "Ailier", "Milieu relayeur"),
+    "Milieu defensif": ("Defenseur central", "Milieu relayeur"),
+    "Milieu relayeur": ("Milieu defensif", "Milieu offensif", "Lateral"),
+    "Milieu offensif": ("Milieu relayeur", "Ailier", "Buteur"),
+    "Ailier": ("Lateral", "Milieu offensif", "Buteur"),
+    "Buteur": ("Milieu offensif", "Ailier"),
+}
+MALUS_DISTANCE = (0, 4, 8, 14, 20)    # by graph distance, the last for anything farther
+MALUS_GARDIEN = 30                    # keeper <-> field, either way
+MALUS_COTE = 2                        # the right side, the wrong foot: a winger switched over
+
+
+def _distances() -> dict[tuple[str, str], int]:
+    """Graph distance between every pair of base positions (BFS)."""
+    out = {}
+    for depart in VOISINS:
+        vus = {depart: 0}
+        file = [depart]
+        while file:
+            p = file.pop(0)
+            for v in VOISINS[p]:
+                if v not in vus:
+                    vus[v] = vus[p] + 1
+                    file.append(v)
+        for arrivee, d in vus.items():
+            out[(depart, arrivee)] = d
+    return out
+
+
+DISTANCES = _distances()
+
+
+def malus_poste(postes_carte, poste_slot: str) -> int:
+    """What a card loses on every attribute in that slot: zero at a
+    position it held, more the farther the slot is from any of them."""
+    if not poste_slot:
+        return 0
+    tenus = [p for p in (postes_carte or ()) if p]
+    if not tenus:
+        return MALUS_DISTANCE[2]
+    slot_base, slot_cote = poste_base(poste_slot), cote_poste(poste_slot)
+    meilleur = None
+    for tenu in tenus:
+        base, cote = poste_base(tenu), cote_poste(tenu)
+        if (base == "Gardien") != (slot_base == "Gardien"):
+            m = MALUS_GARDIEN
+        elif base == "Gardien":
+            m = 0
+        else:
+            d = DISTANCES.get((base, slot_base), len(MALUS_DISTANCE))
+            m = MALUS_DISTANCE[min(d, len(MALUS_DISTANCE) - 1)]
+            if slot_cote and cote and slot_cote != cote:
+                m += MALUS_COTE
+        meilleur = m if meilleur is None else min(meilleur, m)
+    return meilleur
+
 
 def a_le_poste(postes_carte, poste_slot: str) -> bool:
-    """Whether the card really held THAT position — not merely a position
-    of the same family.  A centre-back and a full-back are both defenders
-    and are not interchangeable."""
-    return poste_slot in (postes_carte or ())
+    """Whether the card really held THAT position (side included when the
+    card's own position names one)."""
+    return malus_poste(postes_carte, poste_slot) == 0
 
 
 def hors_poste(postes_carte, poste_slot: str) -> bool:
-    """Fielded in his line but not at his position: allowed, and it costs
-    something (simulation.MALUS_HORS_POSTE)."""
-    return not a_le_poste(postes_carte, poste_slot)
+    """Fielded away from every position he held: allowed, and it costs
+    `malus_poste` on every attribute."""
+    return malus_poste(postes_carte, poste_slot) > 0
 
 
-def repartir(postes_par_joueur: list, formation: str) -> list[int]:
-    """Which player fills which slot of `formation`, best fit first.
+def matrice_malus() -> dict[str, dict[str, int]]:
+    """{slot: {position held: malus}} for every slot of every formation
+    and every position a card can carry — what the screen reads to colour
+    a box and to show the OVR a card is worth where it stands."""
+    slots = sorted({p for rangs in FORMATIONS_RANGS.values() for rang in rangs for p in rang})
+    tenus = sorted(FAMILLE_POSTE)
+    return {s: {t: malus_poste([t], s) for t in tenus} for s in slots}
 
-    `postes_par_joueur[i]` is the list of positions player i really held.
-    Returns one player index per slot, in slot order.  The scarcest slot
-    is served first — a squad with one keeper and ten midfielders must not
-    lose the keeper to a midfield slot — then each slot takes a player who
-    held that very position, failing that one of the line, failing that
-    whoever is left.  It is what the manager's "best eleven" button does,
-    and what a formation changed at half-time has to do as well.
+
+def _affectation(cout: list[list[float]]) -> list[int]:
+    """The column of each row that minimises the total cost (Hungarian
+    algorithm, rows <= columns).  Small: eleven rows, a squad of columns."""
+    n, m = len(cout), len(cout[0]) if cout else 0
+    if n == 0 or m < n:
+        raise ValueError("plus de cases que de joueurs")
+    INF = float("inf")
+    u = [0.0] * (n + 1)
+    v = [0.0] * (m + 1)
+    p = [0] * (m + 1)          # p[j] = row assigned to column j (1-based), 0 if none
+    way = [0] * (m + 1)
+    for i in range(1, n + 1):
+        p[0] = i
+        j0 = 0
+        minv = [INF] * (m + 1)
+        used = [False] * (m + 1)
+        while True:
+            used[j0] = True
+            i0 = p[j0]
+            delta, j1 = INF, 0
+            for j in range(1, m + 1):
+                if used[j]:
+                    continue
+                cur = cout[i0 - 1][j - 1] - u[i0] - v[j]
+                if cur < minv[j]:
+                    minv[j], way[j] = cur, j0
+                if minv[j] < delta:
+                    delta, j1 = minv[j], j
+            for j in range(m + 1):
+                if used[j]:
+                    u[p[j]] += delta
+                    v[j] -= delta
+                else:
+                    minv[j] -= delta
+            j0 = j1
+            if p[j0] == 0:
+                break
+        while j0:
+            j1 = way[j0]
+            p[j0] = p[j1]
+            j0 = j1
+    out = [0] * n
+    for j in range(1, m + 1):
+        if p[j]:
+            out[p[j] - 1] = j - 1
+    return out
+
+
+def repartir(postes_par_joueur: list, formation: str, valeurs: list[float] | None = None) -> list[int]:
+    """Which player fills which slot of `formation`, best fit overall.
+
+    `postes_par_joueur[k]` is the list of positions player k really held,
+    best player first; `valeurs` (optional) what each is worth, an OVR.
+    Returns one player index per slot, in slot order: the assignment
+    that MAXIMISES the eleven's worth at its posts — the sum of value
+    less out-of-position cost — so that a missing full-back is covered
+    by the one man whose move costs the least, and never by a chain of
+    three men each one step out.  Slot by slot, scarcest first, it did
+    exactly that chain.  Without values, it is the cheapest assignment,
+    ties to the better-ranked player.
     """
     postes = postes_formation(formation)
-    fams = familles_formation(formation)
-    place: list[int | None] = [None] * len(postes)
-    pris: set[int] = set()
-    rareté = lambda i: len([t for t in postes_par_joueur if a_le_poste(t, postes[i])])
-    ordre = sorted(range(len(postes)), key=rareté)
-    for tour in ("poste", "famille", "reste"):
-        for i in ordre:
-            if place[i] is not None:
-                continue
-            for k, tenus in enumerate(postes_par_joueur):
-                if k in pris:
-                    continue
-                if (tour == "poste" and a_le_poste(tenus, postes[i])) \
-                        or (tour == "famille" and fams[i] in (familles_eligibles(tenus) or [])) \
-                        or tour == "reste":
-                    place[i] = k
-                    pris.add(k)
-                    break
-    return [k for k in place if k is not None]
+    n, m = len(postes), len(postes_par_joueur)
+    if m < n:
+        # fewer players than slots: fill what can be filled, in order
+        return list(range(m))
+    cout = [[malus_poste(postes_par_joueur[k], postes[i]) - (valeurs[k] if valeurs else 0.0) + k * 1e-6
+             for k in range(m)] for i in range(n)]
+    return _affectation(cout)
 
 
 def familles_eligibles(postes) -> list[str]:

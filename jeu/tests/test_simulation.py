@@ -829,3 +829,71 @@ def test_marking_someone_who_is_not_on_the_pitch_does_nothing():
     paires = SM.poser_marquage(sur, [SM.Tactique(marquage=999_999).valide(), SM.Tactique()])
     assert paires == [None, None]
     assert not any(j.get("marque") or j.get("marqueur_de") for c in sur for j in c)
+
+
+# --------------------------------------------------------------------------
+# The ball has a position, and a minute starts where the last one stopped
+# --------------------------------------------------------------------------
+
+def _absolu(ph):
+    """A phase's ball position on ONE pitch, whichever side holds it."""
+    z, y = ph["z"], ph.get("y", 0.5)
+    return (z, y) if ph["c"] == 0 else (3 - z, 1 - y)
+
+
+def test_the_sequences_are_continuous_and_carry_a_width():
+    f = SM.jouer(SM.Equipe("A", onze(70)), SM.Equipe("B", onze(70, 20)), 11)
+    phases = [ph for l in f["fil"] for ph in l["s"]]
+    assert phases and all("y" in ph and 0 <= ph["y"] <= 1 for ph in phases)
+    # from one phase to the next the ball never jumps two zones or across
+    # the whole width, except at a restart (kick-off, corner, penalty)
+    sauts, n = 0, 0
+    prev = None
+    for ph in phases:
+        a = _absolu(ph)
+        if prev is not None and ph["k"] not in ("engagement", "corner", "penalty"):
+            n += 1
+            if abs(a[0] - prev[0]) >= 2 or abs(a[1] - prev[1]) > 0.6:
+                sauts += 1
+        prev = a
+    assert n > 300 and sauts <= n * 0.02, (sauts, n)
+    # a minute that follows a turnover starts with the recovery, not the
+    # keeper: the "perte" phase belongs to the side that won the ball, so
+    # the attacker who wins it back opens with a recovery
+    for a, b in zip(f["fil"], f["fil"][1:]):
+        if a["s"] and a["s"][-1]["k"] == "perte" and b["c"] == a["c"]:
+            assert b["s"][0]["k"] == "recuperation"
+            break
+    else:
+        raise AssertionError("no turnover followed by the other side's possession")
+    assert SM.etat_apres([]) is None
+    assert SM.etat_apres(phases[:1])["c"] == phases[0]["c"]
+
+
+def test_the_geometry_follows_the_formation():
+    eleven = onze(70)
+    g = SM.geometrie(eleven, "4-3-3")
+    assert len(g) == 11 and g[1][0] < 0.1                     # the keeper on his line
+    lat_g, lat_d = g[2], g[5]                                  # first and last of the back four
+    assert lat_g[1] < 0.5 < lat_d[1]
+    assert g[7][0] < g[6][0]                                   # the pivot behind the eights
+    # ten men, no formation to match: by family, still eleven-proof
+    assert len(SM.geometrie(eleven[:10], "4-3-3")) == 10
+
+
+def test_two_men_can_swap_positions_during_the_match():
+    a = SM.Equipe("A", onze(70), formation="4-3-3")
+    for j, p in zip(a.joueurs, SM._S.postes_formation("4-3-3")):
+        j["slot"] = p; j["tenus"] = [SM._S.poste_base(p)]
+    b = SM.Equipe("B", onze(70, 20))
+    f = SM.jouer(a, b, 3, permutations={20: ([(2, 6)], [])})       # the left-back and the first eight
+    ev = [e for e in f["evenements"] if e["type"] == "permutation"]
+    assert len(ev) == 1 and ev[0]["minute"] == 20 and ev[0]["cote"] == "A"
+    assert f["postes"]["a"][2]["slot"] == "Milieu relayeur" and f["postes"]["a"][6]["slot"] == "Lateral gauche"
+    assert f["postes"]["a"][2]["malus"] > 0 and f["postes"]["a"][6]["malus"] > 0
+    # the eleven stays in slot order, so the pitch draws them where they stand
+    assert f["onze"]["a"][1] == 6 and f["onze"]["a"][5] == 2
+    # a man who is off cannot be swapped: nothing happens, nothing breaks
+    g = SM.jouer(a, b, 3, permutations={20: ([(2, 999)], [])})
+    assert not [e for e in g["evenements"] if e["type"] == "permutation"]
+    assert g["score"] == f["score"]                             # a swap never moves the dice

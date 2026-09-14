@@ -43,9 +43,10 @@ def test_a_lineup_is_checked_against_the_squad_and_the_positions():
     with pytest.raises(LB.ErreurLobby):
         LB.verifier_onze(jeu, "2025/26", 1, ONZE[:10])              # ten players
     with pytest.raises(LB.ErreurLobby):
-        LB.verifier_onze(jeu, "2025/26", 1, [1] * 11)               # eleven keepers
-    with pytest.raises(LB.ErreurLobby):
-        LB.verifier_onze(jeu, "2025/26", 1, [10] + ONZE[1:])        # a striker in goal
+        LB.verifier_onze(jeu, "2025/26", 1, [1] * 11)               # the same card eleven times
+    # a striker in goal is allowed — he pays scoring.MALUS_GARDIEN in the match
+    inverse = [10] + ONZE[1:9] + [1, 11]
+    assert LB.verifier_onze(jeu, "2025/26", 1, inverse) == inverse
     with pytest.raises(LB.ErreurLobby):
         LB.verifier_onze(jeu, "2025/26", 1, ONZE, "coucou")         # unknown formation
 
@@ -409,3 +410,25 @@ def test_the_sheet_names_the_set_piece_takers_of_both_sides():
         t = f["tireurs"][cote]
         assert t["penalty"] in f["sur_le_terrain"][cote]
         assert t["corner"] in f["sur_le_terrain"][cote]
+
+
+def test_two_players_can_exchange_their_positions_during_a_match():
+    jeu = base_avec_equipes(2)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, banc=BANC)
+    LB.rejoindre(jeu, "2025/26", 2, ONZE, None, banc=BANC)
+    with pytest.raises(LB.ErreurLobby):
+        LB.permuter(jeu, "2025/26", 1, ONZE[1], BANC[0])       # the second one is on the bench
+    with pytest.raises(LB.ErreurLobby):
+        LB.permuter(jeu, "2025/26", 1, ONZE[1], ONZE[1])       # the same man twice
+    minute = LB.permuter(jeu, "2025/26", 1, ONZE[1], ONZE[5])  # a defender and a midfielder
+    assert minute >= 1
+    r = LB.en_cours(jeu, "2025/26", 1)
+    f = LB.feuille(jeu, "2025/26", r, 90)
+    ev = [e for e in f["evenements"] if e["type"] == "permutation" and e["cote"] == "A"]
+    assert len(ev) == 1 and ev[0]["minute"] == minute
+    avant = LB.feuille(jeu, "2025/26", r, minute - 1)["postes"]["a"] if minute > 1 else None
+    apres = f["postes"]["a"]
+    if avant:
+        assert apres[ONZE[1]]["slot"] == avant[ONZE[5]]["slot"] and apres[ONZE[5]]["slot"] == avant[ONZE[1]]["slot"]
+    # it is not a substitution: the five changes are all still there
+    assert f["changements"][0] == 0

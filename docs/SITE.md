@@ -24,8 +24,9 @@ Règles appliquées côté serveur : 18 cartes sur la feuille (11 + 7), au
 plus 3 gardiens, 7 défenseurs, 7 milieux, 5 attaquants — les quotas
 dépassent volontairement dix-huit, ils sont là pour empêcher une équipe
 de huit attaquants, pas pour dicter sa forme ; la réserve du club n'a
-plus de plafond ; onze légal (1 gardien, 3 à 5
-défenseurs, 2 à 5 milieux, 1 à 3 attaquants) ; capitaine titulaire ;
+plus de plafond ; onze titulaires, **n'importe qui à n'importe quelle
+case** — le poste se paie dans le match, il ne se refuse pas (voir « La
+composition ») ; capitaine titulaire ;
 composition refusée après la clôture ; marché fermé entre la clôture et
 le calcul ; prix = prix OVR × (1 + part des équipes qui possèdent la
 carte), recalculé à chaque clôture.
@@ -168,6 +169,14 @@ son xG, pleine si elle est rentrée.
 
 ## Ce que tu décides pendant le match
 
+**Échanger deux postes.** Sans faire de changement, deux joueurs sur le
+terrain peuvent échanger leurs cases : Valverde monte de latéral droit
+à milieu relayeur et le relayeur descend, les deux ailiers changent
+d'aile. Ça se fait dans l'onglet Tactique, sous les remplacements, en
+touchant deux joueurs ; ça prend effet à la minute suivante, ça ne
+compte pas dans les cinq changements et il n'y a pas de limite. Chacun
+paie le poste où il se retrouve, comme sur l'écran Équipe.
+
 **Les coups de pied arrêtés** ont leur tireur, lu dans ton onze et pas
 choisi : le meilleur finisseur prend les penaltys, le meilleur créateur
 frappe les corners, et ça change tout seul quand il sort. Une faute dans
@@ -241,9 +250,28 @@ chaque minute se joue vraiment : la relance du gardien, les passes qui
 montent, la conduite dans la surface, **la frappe qui part du pied vers
 un point du but**, l'arrêt, le ballon qui file à côté, la perte de
 balle, le coup de sifflet sur une faute — les vingt-deux s'arrêtent et
-attendent la reprise. L'événement s'annonce au moment où il arrive :
-but, arrêt, occasion manquée, corner, faute, carton, hors-jeu, blessure,
-remplacement, changement de formation.
+attendent la reprise.
+
+**Le ballon a une position, et le match une continuité.** Chaque phase
+porte une profondeur et une largeur ; le ballon est dessiné là, il y va
+en un temps qui dépend de la distance, et le porteur *vient* au ballon.
+Une minute repart d'où la précédente s'est arrêtée : une récupération
+se fait là où le ballon a été perdu, une équipe qui garde le ballon
+haut le garde haut — c'est ce qui fait qu'un siège se voit, avec le
+bloc adverse tassé devant sa surface et les latéraux montés. Les
+receveurs sont choisis par proximité : le latéral gauche reçoit à
+gauche, une passe qui traverse le terrain est un *renversement*. Les
+deux blocs coulissent vers le ballon, celui qui défend davantage ; deux
+coéquipiers se proposent en soutien, l'adversaire le plus proche vient
+au contact ; et personne n'est aligné au laser. Tout ça est du dessin :
+le score vient des dés du moteur et rien de tout ceci ne les touche.
+
+**L'écran suit l'animation, pas le serveur.** Le serveur a une minute
+d'avance sur ce que le terrain montre. Le score, l'horloge, le fil du
+direct et le bandeau attendent donc que la phase se joue : le but entre
+au tableau quand le ballon entre dans le but, la faute au coup de
+sifflet. Et un but, un rouge, un penalty s'affichent **en plein
+terrain**, quelques secondes, avec le buteur, le passeur et le score.
 
 **Le commentaire.** Chaque phase a sa phrase — « Ça repart de Van Dijk »,
 « Szoboszlai casse une ligne », « Yamal enroule ! », « AU FOND ! » —
@@ -441,11 +469,28 @@ et un résultat est écrit dès qu'il est calculé.
 
 Le onze se range en glissant une carte sur une case, ou en la touchant
 puis en touchant sa destination — c'est le même geste, un glissé trop
-court est une touche. Une carte ne peut aller que sur une case d'un poste
-que le joueur a vraiment tenu : Valverde peut jouer ailier, latéral ou
-milieu, un gardien ne peut aller nulle part ailleurs. Le joueur délogé
-prend la place laissée libre s'il peut y jouer, sinon il part sur le banc
-et la case reste vide, en rouge, jusqu'à ce que tu la combles.
+court est une touche. **N'importe quelle carte peut aller sur n'importe
+quelle case**, et deux titulaires qu'on glisse l'un sur l'autre
+échangent leurs postes. Ce qui se paie, c'est la **distance** entre la
+case et le poste le plus proche que le joueur a vraiment tenu
+(`scoring.malus_poste`) : un central au poste de latéral perd 4 sur
+chaque attribut, sur une aile 8, en pointe 14, et un gardien dans le
+champ (ou un joueur de champ dans les buts) 30. Un ailier droit mis à
+gauche perd 2. La case le dit — orange pour un cran, rouge pour loin de
+chez lui — avec **l'OVR qu'il vaut à ce poste**, et l'écran donne l'OVR
+moyen du onze au poste. Le bouton « meilleur onze » prend, case par
+case, la carte qui vaut le plus *là* ; côté moteur, un onze de club ou
+un changement de formation résolvent la même question par une vraie
+affectation (hongroise) plutôt que case par case, ce qui évite la chaîne
+de trois joueurs chacun d'un cran à côté.
+
+Les postes de côté portent leur côté — latéral gauche, ailier droit —
+et le milieu d'un 4-3-3 est un pivot derrière deux relayeurs, dessiné en
+triangle. Trois milieux axiaux dans ces trois cases ne coûtent qu'un
+cran au relayeur qui joue pivot.
+
+Un champ de recherche au-dessus du banc filtre le banc et le club par
+nom et allume la carte sur le terrain.
 
 Le rangement est enregistré case par case : il revient tel que tu l'as
 laissé au rechargement.

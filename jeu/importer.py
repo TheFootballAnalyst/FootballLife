@@ -104,7 +104,8 @@ MIGRATIONS = {                       # columns added after the first bases were 
                   ("nom_adverse", "TEXT"), ("domicile", "INTEGER"),
                   ("formation_a", "TEXT"), ("formation_b", "TEXT"),
                   ("pause", "TEXT"), ("pause_cumul", "INTEGER NOT NULL DEFAULT 0"),
-                  ("arrets_vus", "TEXT"), ("causerie_a", "TEXT"), ("causerie_b", "TEXT")],
+                  ("arrets_vus", "TEXT"), ("causerie_a", "TEXT"), ("causerie_b", "TEXT"),
+                  ("permutations", "TEXT NOT NULL DEFAULT '{}'")],
 }
 
 

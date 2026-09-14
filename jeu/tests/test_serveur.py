@@ -168,9 +168,14 @@ def test_composition_rules_and_lock(client):
     assert client.post("/api/equipe/composition", json=bonne).status_code == 200
     e = client.get("/api/equipe").json()
     assert e["composition"]["capitaine"] == 10 and e["composition"]["titulaires"] == list(range(1, 12))
-    # two goalkeepers in the eleven: illegal
-    mauvaise = dict(bonne, titulaires=[1, 12, 3, 4, 5, 6, 7, 8, 9, 10, 11], banc=[2, 13, 14])
+    # ten starters: refused.  Two keepers in the eleven, on the other hand,
+    # is the manager's business: the second one pays for it in the match
+    # (scoring.malus_poste), the server does not refuse it.
+    mauvaise = dict(bonne, titulaires=list(range(1, 11)), banc=[12, 13, 14])
     assert client.post("/api/equipe/composition", json=mauvaise).status_code == 400
+    deux_gk = dict(bonne, titulaires=[1, 12, 3, 4, 5, 6, 7, 8, 9, 10, 11], banc=[2, 13, 14])
+    assert client.post("/api/equipe/composition", json=deux_gk).status_code == 200
+    assert client.post("/api/equipe/composition", json=bonne).status_code == 200
     # captain must start
     assert client.post("/api/equipe/composition", json=dict(bonne, capitaine=14)).status_code == 400
     # a player not owned

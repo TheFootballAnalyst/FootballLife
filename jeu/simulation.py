@@ -125,7 +125,14 @@ def familles_formation(formation: str) -> list[str]:
 # left back, a winger up front.  Ten points off every attribute: enough
 # that the manager feels it, not so much that a squad with a hole in it
 # becomes unplayable.  The eleven is still legal; it is simply worse.
-MALUS_HORS_POSTE = 10
+# Out of position costs by DISTANCE (scoring.malus_poste): a centre-back at
+# full-back loses 4 on every attribute, at centre-forward 14, in goal 30.
+# Kept as the name the rest of the code knew, for the "one step away" case.
+MALUS_HORS_POSTE = _S.MALUS_DISTANCE[1]
+
+
+def _penalise(attributs: dict, malus: int) -> dict:
+    return {k: max(40, v - malus) for k, v in attributs.items()} if malus else dict(attributs)
 
 # --------------------------------------------------------------------------
 # Stamina
@@ -218,8 +225,8 @@ AFFINITES = {
     # donc le réglage neutre, et un défaut ne rend personne plus à l'aise.
     "lateraux": {"bas": (("DEF", "CON"), ("Lateral",)),
                  "axe": (("CON", "CRE"), ("Lateral",))},
-    "ailiers": {"ligne": (("DRI", "PRO"), ("Ailier", "Ailier droit", "Ailier gauche")),
-                "interieur": (("FIN", "CRE"), ("Ailier", "Ailier droit", "Ailier gauche"))},
+    "ailiers": {"ligne": (("DRI", "PRO"), ("Ailier",)),
+                "interieur": (("FIN", "CRE"), ("Ailier",))},
     "milieux": {"bas": (("DEF", "CON"), ("Milieu defensif", "Milieu relayeur", "Milieu offensif")),
                 "projection": (("PRO", "FIN"), ("Milieu defensif", "Milieu relayeur", "Milieu offensif")),
                 "lateral": (("CRE", "PRO"), ("Milieu defensif", "Milieu relayeur", "Milieu offensif"))},
@@ -310,7 +317,7 @@ def affinite(j: dict, tac: "Tactique") -> float:
     pr = j.get("profil")
     if not pr:
         return 0.0
-    slot = j.get("slot") or j.get("poste")
+    slot = _S.poste_base(j.get("slot") or j.get("poste") or "")
     scores = []
     for axe, choix in AFFINITES.items():
         appel = choix.get(getattr(tac, axe, None))
@@ -557,11 +564,11 @@ def _poser(j: dict, slot: str) -> None:
     brut = j.get("attributs_bruts") or j.get("attributs") or {}
     j["attributs_bruts"] = dict(brut)
     tenus = j.get("tenus") or ([j["poste"]] if j.get("poste") else [])
-    dehors = bool(slot) and _S.hors_poste(tenus, slot)
+    malus = _S.malus_poste(tenus, slot) if slot else 0
     j["slot"] = slot
-    j["hors_poste"] = dehors
-    j["attributs"] = ({k: max(40, v - MALUS_HORS_POSTE) for k, v in brut.items()}
-                      if dehors else dict(brut))
+    j["hors_poste"] = malus > 0
+    j["malus"] = malus
+    j["attributs"] = _penalise(brut, malus)
     j["fam"] = _S.FAMILLE_POSTE.get(slot, j.get("fam", "MID"))
     j["profil"] = profil(j["attributs"], j["fam"])
 
@@ -963,6 +970,58 @@ def _un(rs: random.Random, joueurs: list[dict], *familles: str) -> dict | None:
     return rs.choice(cands) if cands else None
 
 
+# Où chacun se tient, en largeur (0 = sa gauche quand il attaque, 1 = sa
+# droite) et en profondeur (0 = sa ligne de but, 1 = celle d'en face) :
+# lu dans les rangs de la formation, comme l'écran le dessine.  C'est ce
+# qui permet de choisir le receveur le plus proche du ballon plutôt
+# qu'un joueur de la ligne au hasard, et donc de faire vivre le ballon
+# sur un côté, puis sur l'autre, au lieu de le voir sauter d'un bout du
+# terrain à l'autre à chaque passe.
+PROFONDEUR_LIGNE = {"GK": 0.05, "DEF": 0.20, "MID": 0.40, "FWD": 0.62}
+
+
+def geometrie(sur: list[dict], formation: str) -> dict[int, tuple[float, float]]:
+    """{pid: (profondeur, largeur)} of an eleven on its formation."""
+    rangs = _S.FORMATIONS_RANGS.get(formation)
+    out = {}
+    if rangs and sum(len(r) for r in rangs) == len(sur):
+        n = len(rangs)
+        i = 0
+        for r, rang in enumerate(rangs):
+            x = PROFONDEUR_LIGNE["GK"] if r == 0 else 0.20 + (0.46 * (r - 1)) / max(1, n - 2)
+            for k, poste in enumerate(rang):
+                out[sur[i]["pid"]] = (x + _S.PROFONDEUR_POSTE.get(poste, 0.0), (k + 1) / (len(rang) + 1))
+                i += 1
+        return out
+    total: dict[str, int] = {}
+    pris: dict[str, int] = {}
+    for j in sur:
+        total[j["fam"]] = total.get(j["fam"], 0) + 1
+    for j in sur:
+        k = pris.get(j["fam"], 0)
+        pris[j["fam"]] = k + 1
+        out[j["pid"]] = (PROFONDEUR_LIGNE.get(j["fam"], 0.4), (k + 1) / (total[j["fam"]] + 1))
+    return out
+
+
+def _pres(rs: random.Random, joueurs: list[dict], geo: dict, y: float, *familles: str,
+          sauf: int | None = None) -> dict | None:
+    """One player of those lines, the nearer to the ball's width the
+    likelier: the left-back gets the ball on the left, not the right one."""
+    cands = [j for j in joueurs if j["fam"] in familles and j["pid"] != sauf] \
+        or [j for j in joueurs if j["pid"] != sauf] or joueurs
+    if not cands:
+        return None
+    poids = [1.0 / (0.10 + abs(geo.get(j["pid"], (0.4, 0.5))[1] - y)) for j in cands]
+    seuil = rs.random() * sum(poids)
+    acc = 0.0
+    for j, w in zip(cands, poids):
+        acc += w
+        if acc >= seuil:
+            return j
+    return cands[-1]
+
+
 # Le commentaire, phase par phase.
 #
 # Une étiquette (« Passe ») dit ce qui se passe ; une phrase le raconte.
@@ -976,6 +1035,10 @@ def _un(rs: random.Random, joueurs: list[dict], *familles: str) -> dict | None:
 PHRASES = {
     "relance": ["{j} relance", "Ça repart de {j}", "{j} repart de derrière", "{j} remet le pied dessus"],
     "passe": ["{j} oriente", "Ballon pour {j}", "{j} décale", "{j} touche et redonne", "{j} casse une ligne"],
+    "circulation": ["{j} fait tourner", "{j} temporise", "Ça circule, {j}", "{j} garde le ballon"],
+    "ouverture": ["Renversement sur {j}", "{j} ouvre de l'autre côté", "Grand changement d'aile pour {j}"],
+    "retrait": ["{j} remet en retrait", "Ballon en arrière sur {j}", "{j} assure derrière"],
+    "recuperation": ["{j} récupère", "{j} gratte le ballon", "{j} ressort le ballon", "{j} intercepte"],
     "conduite": ["{j} perce", "{j} élimine son homme", "{j} s'enfonce dans la surface", "{j} attaque la défense"],
     "tir": ["{j} frappe !", "Frappe de {j} !", "{j} enroule !", "{j} déclenche !"],
     "but": ["AU FOND ! {j} !", "BUT DE {j} !", "{j} ne tremble pas !"],
@@ -1014,74 +1077,185 @@ def _pas(rs: random.Random, kind: str, j: dict | None, cote: int, zone: int, **e
     return {"k": kind, "p": j["pid"], "c": cote, "z": zone, "d": _dire(rs, kind, j)} | extra
 
 
-def _construction(rs: random.Random, joueurs: list[dict], cote: int, jusqua: int) -> list[dict]:
-    """The build-up: two to four touches, from the back towards `jusqua`."""
-    out = []
-    if joueurs and rs.random() < 0.30:
-        out.append(_pas(rs, "relance", _un(rs, joueurs, "GK"), cote, 0))
-    out = [x for x in out if x]
-    out.append(_pas(rs, "passe" if out else "relance", _un(rs, joueurs, "DEF"), cote, 1))
-    out.append(_pas(rs, "passe", _un(rs, joueurs, "MID"), cote, min(2, max(1, jusqua))))
-    if jusqua >= 2 and rs.random() < 0.55:
-        out.append(_pas(rs, "passe", _un(rs, joueurs, "MID", "FWD"), cote, 2))
+# Le ballon a une largeur.  Chaque phase porte `y`, dans le repère de
+# celui qui l'a (0 = sa gauche).  Quand il change de camp, la position
+# reste la même sur la pelouse : z devient 3 - z et y devient 1 - y.
+ZONES_MAX = 3
+
+
+def _y_de(rs: random.Random, geo: dict, j: dict, y_ballon: float, tire: float = 0.35) -> float:
+    """Where a player takes the ball: his own width, pulled toward where
+    the ball was — he comes to it, it does not jump to him."""
+    if j is None:
+        return round(y_ballon, 3)
+    py = geo.get(j["pid"], (0.4, 0.5))[1]
+    return round(max(0.04, min(0.96, py * (1 - tire) + y_ballon * tire + rs.uniform(-0.04, 0.04))), 3)
+
+
+def _miroir(etat: dict | None) -> tuple[int, float]:
+    """The previous ball position seen from the OTHER side."""
+    if not etat:
+        return 1, 0.5
+    return ZONES_MAX - etat["z"], 1.0 - etat["y"]
+
+
+def _construction(rs: random.Random, joueurs: list[dict], cote: int, jusqua: int,
+                  etat: dict | None, geo: dict) -> list[dict]:
+    """The build-up: from where the ball IS to `jusqua`.
+
+    It used to start from the keeper every minute, whatever had just
+    happened: the ball teleported back ninety times a match and a team
+    camped in the other half looked like a team clearing its lines.  Now
+    a minute starts where the last one stopped — a turnover is won where
+    the ball was lost, a side that keeps it high keeps it high — and the
+    touches go from there to the zone the dice chose, through the men
+    nearest the ball.
+    """
+    out: list[dict] = []
+    if etat is None:
+        # kick-off
+        z, y = 1, 0.5
+        j = _pres(rs, joueurs, geo, y, "MID", "FWD")
+        out.append(_pas(rs, "engagement", j, cote, z, y=y))
+        dernier = j["pid"] if j else None
+    elif etat["c"] == cote:
+        # the same side keeps it: it carries on from there
+        z, y = etat["z"], etat["y"]
+        dernier = etat["p"]
+        if etat["k"] in ("arret", "degagement"):
+            j = next((x for x in joueurs if x["pid"] == dernier), None) or _pres(rs, joueurs, geo, y, "GK")
+            y = _y_de(rs, geo, j, y, 0.6)
+            out.append(_pas(rs, "relance", j, cote, 0, y=y))
+            z = 0
+            dernier = j["pid"] if j else None
+    else:
+        # a turnover: won where the other side lost it
+        z, y = _miroir(etat)
+        if etat["k"] in ("degagement", "arret", "rate"):
+            z = min(2, max(1, z - 1))          # a long ball, picked up around midfield
+            j = _pres(rs, joueurs, geo, y, "MID", "DEF")
+        elif etat["k"] == "engagement":
+            j = _pres(rs, joueurs, geo, y, "MID")
+        else:
+            j = _pres(rs, joueurs, geo, y, "DEF", "MID") if z <= 1 else _pres(rs, joueurs, geo, y, "MID", "FWD")
+        y = _y_de(rs, geo, j, y, 0.7)
+        out.append(_pas(rs, "recuperation", j, cote, z, y=y))
+        dernier = j["pid"] if j else None
+
+    # the touches, zone by zone, toward the target
+    lignes = {0: ("DEF",), 1: ("DEF", "MID"), 2: ("MID", "FWD"), 3: ("FWD", "MID")}
+    while z < jusqua:
+        z += 1
+        j = _pres(rs, joueurs, geo, y, *lignes[z], sauf=dernier)
+        if j is None:
+            break
+        ny = _y_de(rs, geo, j, y)
+        kind = "ouverture" if abs(ny - y) > 0.42 else "passe"
+        out.append(_pas(rs, kind, j, cote, z, y=ny))
+        y, dernier = ny, j["pid"]
+    if z > jusqua:
+        # the dice sent the ball back: a pass backwards, into the lines behind
+        z = jusqua
+        j = _pres(rs, joueurs, geo, y, *lignes[z], sauf=dernier)
+        if j is not None:
+            y = _y_de(rs, geo, j, y)
+            out.append(_pas(rs, "retrait", j, cote, z, y=y))
+            dernier = j["pid"]
+    # a side that already stands where it wants to be still plays: one
+    # or two touches of circulation, which is what a siege looks like
+    n_circ = 1 + (1 if rs.random() < 0.45 else 0) if len(out) <= 1 else (1 if rs.random() < 0.35 else 0)
+    for _ in range(n_circ):
+        j = _pres(rs, joueurs, geo, y, *lignes[z], sauf=dernier)
+        if j is None:
+            break
+        ny = _y_de(rs, geo, j, y)
+        out.append(_pas(rs, "ouverture" if abs(ny - y) > 0.42 else "circulation", j, cote, z, y=ny))
+        y, dernier = ny, j["pid"]
     return [x for x in out if x]
 
 
-def sequence(rs: random.Random, sur: list[list[dict]], cote: int, zone: int, issue: dict) -> list[dict]:
-    """The phases of one minute, in the order they are played."""
+def sequence(rs: random.Random, sur: list[list[dict]], cote: int, zone: int, issue: dict,
+             etat: dict | None = None, geo: tuple[dict, dict] | None = None) -> list[dict]:
+    """The phases of one minute, in the order they are played, starting
+    from `etat` — where the previous minute left the ball."""
     adv = 1 - cote
     q = issue.get("quoi", "rien")
-    pas = _construction(rs, sur[cote], cote, zone)
+    if geo is None:
+        geo = ({j["pid"]: (PROFONDEUR_LIGNE.get(j["fam"], 0.4), 0.5) for j in sur[0]},
+               {j["pid"]: (PROFONDEUR_LIGNE.get(j["fam"], 0.4), 0.5) for j in sur[1]})
+    g, ga = geo[cote], geo[adv]
+    pas = _construction(rs, sur[cote], cote, zone, etat, g)
+    y = pas[-1]["y"] if pas else 0.5
     tireur, gk = issue.get("tireur"), issue.get("gardien")
 
     if q in ("but", "arret", "rate"):
         if tireur is not None:
-            pas.append(_pas(rs, "conduite", tireur, cote, 3))
+            yt = _y_de(rs, g, tireur, y, 0.5)
+            yt = round(yt + (0.5 - yt) * 0.45, 3)          # he cuts toward the goal
+            pas.append(_pas(rs, "conduite", tireur, cote, 3, y=yt))
             # where he aims: the posts more often than the middle
             cible = round(rs.choice([0.12, 0.22, 0.5, 0.78, 0.88]) + rs.uniform(-0.05, 0.05), 3)
-            pas.append(_pas(rs, "tir", tireur, cote, 3, t=max(0.05, min(0.95, cible))))
+            pas.append(_pas(rs, "tir", tireur, cote, 3, t=max(0.05, min(0.95, cible)), y=yt))
+            y = yt
         if q == "but":
-            pas.append(_pas(rs, "but", tireur, cote, 3, o=issue.get("passeur", {}).get("pid")
+            pas.append(_pas(rs, "but", tireur, cote, 3, y=0.5, o=issue.get("passeur", {}).get("pid")
                             if isinstance(issue.get("passeur"), dict) else None))
-            pas.append(_pas(rs, "engagement", _un(rs, sur[adv], "MID"), adv, 1))
+            pas.append(_pas(rs, "engagement", _un(rs, sur[adv], "MID"), adv, 1, y=0.5))
         elif q == "arret":
-            pas.append(_pas(rs, "arret", gk, adv, 0))
+            pas.append(_pas(rs, "arret", gk, adv, 0, y=0.5))
         else:
-            pas.append(_pas(rs, "rate", tireur, cote, 3))
-            pas.append(_pas(rs, "degagement", _un(rs, sur[adv], "GK"), adv, 0))
+            pas.append(_pas(rs, "rate", tireur, cote, 3, y=y))
+            if not issue.get("corner"):        # deflected out: the corner block restarts play
+                pas.append(_pas(rs, "degagement", _un(rs, sur[adv], "GK"), adv, 0, y=0.5))
     elif q == "penalty":
         pt, gk2 = issue.get("tireur"), issue.get("gardien")
-        pas.append(_pas(rs, "faute", issue.get("fauteur"), adv, 3))
-        pas.append(_pas(rs, "penalty", pt, cote, 3))
+        pas.append(_pas(rs, "faute", issue.get("fauteur"), adv, 0, y=round(1 - y, 3)))
+        pas.append(_pas(rs, "penalty", pt, cote, 3, y=0.5))
         cible = round(rs.choice([0.14, 0.24, 0.5, 0.76, 0.86]), 3)
-        pas.append(_pas(rs, "tir", pt, cote, 3, t=cible))
+        pas.append(_pas(rs, "tir", pt, cote, 3, t=cible, y=0.5))
         if issue.get("quoi_but"):
-            pas.append(_pas(rs, "but", pt, cote, 3))
-            pas.append(_pas(rs, "engagement", _un(rs, sur[adv], "MID"), adv, 1))
+            pas.append(_pas(rs, "but", pt, cote, 3, y=0.5))
+            pas.append(_pas(rs, "engagement", _un(rs, sur[adv], "MID"), adv, 1, y=0.5))
         else:
-            pas.append(_pas(rs, "arret", gk2, adv, 0))
+            pas.append(_pas(rs, "arret", gk2, adv, 0, y=0.5))
     elif q == "faute":
         fauteur = issue.get("fauteur")
-        pas.append(_pas(rs, "duel", fauteur, adv, zone))
-        pas.append(_pas(rs, "faute", fauteur, adv, zone))
+        za, ya = ZONES_MAX - zone, round(1 - y, 3)
+        pas.append(_pas(rs, "duel", fauteur, adv, za, y=ya))
+        pas.append(_pas(rs, "faute", fauteur, adv, za, y=ya))
         if issue.get("carton"):
-            pas.append(_pas(rs, "carton", fauteur, adv, zone, r=bool(issue.get("rouge"))))
-        pas.append(_pas(rs, "coupfranc", _un(rs, sur[cote], "MID", "DEF"), cote, zone))
+            pas.append(_pas(rs, "carton", fauteur, adv, za, y=ya, r=bool(issue.get("rouge"))))
+        j = _pres(rs, sur[cote], g, y, "MID", "DEF")
+        pas.append(_pas(rs, "coupfranc", j, cote, zone, y=y))
     elif q == "horsjeu":
-        pas.append(_pas(rs, "horsjeu", issue.get("porteur"), cote, 3))
-        pas.append(_pas(rs, "degagement", _un(rs, sur[adv], "GK"), adv, 0))
+        pas.append(_pas(rs, "horsjeu", issue.get("porteur"), cote, 3, y=y))
+        pas.append(_pas(rs, "degagement", _un(rs, sur[adv], "GK"), adv, 0, y=0.5))
     elif q == "corner":
         pass                                  # the corner block below adds it
     else:
-        pas.append(_pas(rs, "perte", _un(rs, sur[adv], "DEF", "MID"), adv, zone))
+        # a turnover, by the man nearest the ball
+        j = _pres(rs, sur[adv], ga, 1 - y, "DEF", "MID") if zone >= 2 else _pres(rs, sur[adv], ga, 1 - y, "MID", "FWD")
+        pas.append(_pas(rs, "perte", j, adv, ZONES_MAX - zone, y=_y_de(rs, ga, j, round(1 - y, 3), 0.75)))
 
     if issue.get("corner"):
-        pas.append(_pas(rs, "corner", _designe(sur[cote], "CRE") or _un(rs, sur[cote], "MID"), cote, 3))
-        pas.append(_pas(rs, "centre", _un(rs, sur[cote], "DEF", "FWD"), cote, 3))
-        pas.append(_pas(rs, "degagement", _un(rs, sur[adv], "DEF"), adv, 3))
+        coin = 0.03 if y < 0.5 else 0.97
+        pas.append(_pas(rs, "corner", _designe(sur[cote], "CRE") or _un(rs, sur[cote], "MID"), cote, 3, y=coin))
+        pas.append(_pas(rs, "centre", _un(rs, sur[cote], "DEF", "FWD"), cote, 3, y=round(0.5 + rs.uniform(-0.12, 0.12), 3)))
+        pas.append(_pas(rs, "degagement", _un(rs, sur[adv], "DEF"), adv, 0, y=round(0.5 + rs.uniform(-0.2, 0.2), 3)))
     if issue.get("blesse") is not None:
-        pas.append(_pas(rs, "blessure", issue["blesse"], issue.get("cote_blesse", cote), zone))
+        c_b = issue.get("cote_blesse", cote)
+        pas.append(_pas(rs, "blessure", issue["blesse"], c_b, zone if c_b == cote else ZONES_MAX - zone,
+                        y=y if c_b == cote else 1 - y))
     return [x for x in pas if x]
+
+
+def etat_apres(phases: list[dict]) -> dict | None:
+    """Where the ball is once the minute is played: what the next one
+    starts from."""
+    if not phases:
+        return None
+    d = phases[-1]
+    return {"c": d["c"], "z": d["z"], "y": round(d.get("y", 0.5), 3), "p": d["p"], "k": d["k"]}
 
 
 def _remplacer(sur: list[dict], banc: list[dict], sortant: int, entrant: int) -> dict | None:
@@ -1100,7 +1274,8 @@ def _remplacer(sur: list[dict], banc: list[dict], sortant: int, entrant: int) ->
 def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique | None, Tactique | None]] | None = None,
           jusqua: int = MINUTES, changements: dict[int, tuple[list, list]] | None = None,
           auto_remplacement: tuple[bool, bool] = (True, True),
-          causeries: tuple[str, str] = ("rien", "rien")) -> dict:
+          causeries: tuple[str, str] = ("rien", "rien"),
+          permutations: dict[int, tuple[list, list]] | None = None) -> dict:
     """Play the match minute by minute and return its sheet.
 
     `tactiques` is the timeline of adjustments: {minute: (tactique A or
@@ -1123,6 +1298,12 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
     animates; it costs ninety small records and saves the front-end from
     inventing a match of its own.
 
+    `permutations` is the timeline of position swaps: {minute: ([(pid,
+    pid), ...] for A, [...] for B)}.  Two men on the pitch exchange their
+    slots — the full-back goes into midfield, the two wingers switch
+    flanks — and each takes the out-of-position cost of where he now
+    stands.  Nobody comes off, so it costs no substitution.
+
     `auto_remplacement` says, side by side, whether the machine replaces an
     injured player on its own.  A side a human manages is left a man short
     and the sheet reports it (`attente`): the screen stops and asks him who
@@ -1130,6 +1311,7 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
     """
     tactiques = tactiques or {}
     changements = changements or {}
+    permutations = permutations or {}
     tac = [a.tactique.valide(), b.tactique.valide()]
     eq = [a, b]
     sur = [_sur_le_terrain(a), _sur_le_terrain(b)]
@@ -1161,6 +1343,7 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
     familles: dict[int, str] = {}
     evenements: list[dict] = []
     fil: list[dict] = []
+    ou: dict | None = None                  # where the ball is between two minutes
 
     def ajoute(minute, cote, type_, texte, **extra):
         evenements.append({"minute": minute, "cote": "AB"[cote] if cote is not None else None,
@@ -1224,6 +1407,28 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                            pid=e["pid"], sortant=parti.get("pid"))
                 if fait:
                     fenetres_chg[c] += 1
+                    t[c] = traits_diriges(sur[c], tac[c])
+        if m in permutations:
+            for c, liste in enumerate(permutations[m]):
+                fait = False
+                for un, deux in liste:
+                    i = next((k for k, j in enumerate(sur[c]) if j["pid"] == un), None)
+                    k = next((k for k, j in enumerate(sur[c]) if j["pid"] == deux), None)
+                    if i is None or k is None or i == k:
+                        continue        # one of them is off: nothing to swap
+                    # they change places in the list too, so the eleven
+                    # stays in slot order and the pitch draws them where
+                    # they now stand
+                    sur[c][i], sur[c][k] = sur[c][k], sur[c][i]
+                    s_i, s_k = sur[c][i].get("slot"), sur[c][k].get("slot")
+                    _poser(sur[c][i], s_k)
+                    _poser(sur[c][k], s_i)
+                    fait = True
+                    ajoute(m, c, "permutation",
+                           f"{sur[c][i]['nom']} passe {_S.libelle_poste(s_k)}, "
+                           f"{sur[c][k]['nom']} {_S.libelle_poste(s_i)}",
+                           pid=sur[c][i]["pid"], autre=sur[c][k]["pid"])
+                if fait:
                     t[c] = traits_diriges(sur[c], tac[c])
 
         rng = random.Random(graine * 1000 + m)
@@ -1384,7 +1589,9 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                 t[c] = appliquer_causerie(t[c], dit[c], sit_causerie[c])
 
         rs = random.Random(graine * 1000 + m + 7_000_003)
-        phases = sequence(rs, sur, cote, zone, issue)
+        geo = (geometrie(sur[0], forme[0]), geometrie(sur[1], forme[1]))
+        phases = sequence(rs, sur, cote, zone, issue, ou, geo)
+        ou = etat_apres(phases)
         # Un but se raconte aussi par ce qui l'a précédé : combien de
         # passes, et de quel pied le mouvement est parti.  C'est dans la
         # séquence, il suffit de le dire.
@@ -1418,6 +1625,7 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
         # the position each player is CURRENTLY filling, which a formation
         # changed at half-time and a substitution both move
         "postes": {"ab"[c]: {j["pid"]: {"slot": j.get("slot"), "hors_poste": bool(j.get("hors_poste")),
+                                        "malus": int(j.get("malus", 0)),
                                         "aise": round(j.get("aise", 1.0), 3)}
                              for j in sur[c]} for c in (0, 1)},
         # ce que chacun a fait, et la note qui va avec (notes_du_match)
@@ -1561,10 +1769,11 @@ def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
     """Build an eleven from the game base's cards.
 
     `postes_slots` is the formation's position for each slot.  A card
-    fielded away from a position it really held keeps its line but loses
-    MALUS_HORS_POSTE on every attribute: a centre-back at left back is a
-    worse left back, and the manager should see it in the match rather
-    than only in a warning.
+    fielded away from a position it really held takes the slot's line and
+    loses scoring.malus_poste on every attribute — more the farther the
+    slot is from anything he held: a centre-back at left back is a
+    slightly worse left back, at centre-forward a much worse striker, and
+    the manager should see it in the match rather than only in a warning.
     """
     import json
     from jeu import scoring as S
@@ -1579,16 +1788,15 @@ def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
         tenus = json.loads(postes) if postes else [poste]
         attributs = json.loads(attrs or "{}")
         slot = postes_slots[i] if postes_slots and i < len(postes_slots) else None
-        dehors = bool(slot) and S.hors_poste(tenus, slot)
+        malus = S.malus_poste(tenus, slot) if slot else 0
         fam = S.FAMILLE_POSTE.get(slot or poste, S.FAMILLE_POSTE.get(poste, "MID"))
         joueurs.append({"pid": pid, "nom": nom_j, "poste": poste, "fam": fam, "ovr": ovr,
                         # the card as it is, kept apart from the card as it
                         # is being played: a formation change mid-match
                         # recomputes the penalty from the raw one.
                         "attributs_bruts": dict(attributs), "tenus": tenus,
-                        "attributs": ({k: max(40, v - MALUS_HORS_POSTE) for k, v in attributs.items()}
-                                      if dehors else attributs),
-                        "slot": slot, "hors_poste": dehors,
+                        "attributs": _penalise(attributs, malus),
+                        "slot": slot, "hors_poste": malus > 0, "malus": malus,
                         "profil": profil(attributs, fam),
                         "endurance": ENDURANCE_MAX})
     return Equipe(nom, joueurs)

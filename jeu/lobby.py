@@ -124,8 +124,9 @@ class ErreurLobby(Exception):
 # --------------------------------------------------------------------------
 
 def verifier_onze(jeu, saison: str, equipe_id: int, onze: list[int], formation: str = "4-3-3") -> list[int]:
-    """The eleven a manager sends: eleven distinct cards of his squad, each
-    able to play the slot he put it in."""
+    """The eleven a manager sends: eleven distinct cards of his squad.
+    Anyone may play anywhere — the slot's distance from what he really
+    held is paid in the match (scoring.malus_poste), not refused here."""
     if formation not in S.FORMATIONS:
         raise ErreurLobby("Formation inconnue")
     if len(onze) != S.TAILLE_ONZE or len(set(onze)) != S.TAILLE_ONZE or any(p is None for p in onze):
@@ -135,14 +136,9 @@ def verifier_onze(jeu, saison: str, equipe_id: int, onze: list[int], formation: 
         (equipe_id, saison))}
     if not set(onze) <= effectif:
         raise ErreurLobby("Un joueur du onze n'est pas dans ton effectif")
-    fams = SM.familles_formation(formation)
-    for pid, fam in zip(onze, fams):
-        row = jeu.execute("SELECT nom, poste, postes FROM joueur WHERE player_id=?", (pid,)).fetchone()
-        if not row:
+    for pid in onze:
+        if not jeu.execute("SELECT 1 FROM joueur WHERE player_id=?", (pid,)).fetchone():
             raise ErreurLobby("Joueur inconnu")
-        elig = S.familles_eligibles(json.loads(row[2]) if row[2] else [row[1]]) or [S.FAMILLE_POSTE.get(row[1], "MID")]
-        if fam not in elig:
-            raise ErreurLobby(f"{row[0]} n'a jamais joué à ce poste")
     return list(onze)
 
 
@@ -330,6 +326,15 @@ def _remplacements(r) -> dict[int, tuple[list, list]]:
             for m, paire in brut.items()}
 
 
+def _permutations(r) -> dict[int, tuple[list, list]]:
+    try:
+        brut = json.loads(r["permutations"] or "{}")
+    except (TypeError, KeyError, IndexError, json.JSONDecodeError):
+        return {}
+    return {int(m): ([tuple(x) for x in (paire[0] or [])], [tuple(x) for x in (paire[1] or [])])
+            for m, paire in brut.items()}
+
+
 def _cotes(jeu, saison: str, r) -> tuple[SM.Equipe, SM.Equipe]:
     noms = {}
     try:
@@ -363,7 +368,8 @@ def feuille(jeu, saison: str, r, minute: int | None = None) -> dict:
     # sheet reports them and the screen stops to ask.
     f = SM.jouer(a, b, r["graine"], _tactiques(r), jusqua=m, changements=_remplacements(r),
                  auto_remplacement=(False, True),
-                 causeries=(_champ(r, "causerie_a") or "rien", _champ(r, "causerie_b") or "rien"))
+                 causeries=(_champ(r, "causerie_a") or "rien", _champ(r, "causerie_b") or "rien"),
+                 permutations=_permutations(r))
     f["rencontre_id"] = r["rencontre_id"]
     f["pause"] = en_pause(r)
     f["solitaire"] = solitaire(r)
@@ -473,6 +479,37 @@ def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int, r=None
     # restarts as soon as the manager has named the man coming on.
     if en_pause(r) and sortant in f["attente"][cle_cote]:
         suspendre(jeu, r, False)
+    return int(cle)
+
+
+def permuter(jeu, saison: str, equipe_id: int, un: int, deux: int, r=None) -> int:
+    """Record a position swap between two men on the pitch, at the
+    clock's minute: the full-back goes into midfield and the midfielder
+    to full-back, the wingers switch flanks.  It costs no substitution and
+    there is no limit; each takes the out-of-position cost of where he
+    now stands.  Returns the minute it takes effect."""
+    r = r if r is not None else en_cours(jeu, saison, equipe_id)
+    if not r or not r["debut"]:
+        raise ErreurLobby("Aucun match en cours")
+    m = minute_de(r)
+    if m >= SM.MINUTES:
+        raise ErreurLobby("Le match est terminé")
+    if un == deux:
+        raise ErreurLobby("Il faut deux joueurs différents")
+    cote = 0 if r["equipe_a"] == equipe_id else 1
+    cle_cote = "ab"[cote]
+    f = feuille(jeu, saison, r, m)
+    dessus = set(f["sur_le_terrain"][cle_cote])
+    if un not in dessus or deux not in dessus:
+        raise ErreurLobby("Les deux joueurs doivent être sur le terrain")
+    cle = str(min(SM.MINUTES, m + 1))
+    brut = json.loads(_champ(r, "permutations") or "{}")
+    paire = brut.get(cle) or [[], []]
+    paire[cote] = list(paire[cote]) + [[un, deux]]
+    brut[cle] = paire
+    jeu.execute("UPDATE rencontre SET permutations=? WHERE rencontre_id=?",
+                (json.dumps(brut), r["rencontre_id"]))
+    jeu.commit()
     return int(cle)
 
 

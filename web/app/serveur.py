@@ -263,6 +263,10 @@ def saison(jeu=Depends(bd)):
         "formations": S.FORMATIONS, "limites": S.LIMITES_FAMILLE,
         "formations_rangs": {k: [list(r) for r in v] for k, v in S.FORMATIONS_RANGS.items()},
         "familles_poste": S.FAMILLE_POSTE,
+        # ce qu'une carte perd à chaque poste, et de combien un poste se
+        # dessine devant ou derrière sa ligne
+        "malus_postes": S.matrice_malus(), "malus_gardien": S.MALUS_GARDIEN,
+        "profondeur_poste": S.PROFONDEUR_POSTE,
         # Ce qu'un réglage demande à un joueur, et comment ça se dit : le
         # moteur en est la seule source, l'écran s'en sert pour lire les
         # profils des cartes sans avoir à les recevoir déjà interprétés.
@@ -646,15 +650,11 @@ def composition(c: Compo, u=Depends(exiger), jeu=Depends(bd)):
         raise HTTPException(400, "Le capitaine doit être titulaire")
     if len(c.banc) > S.TAILLE_BANC:
         raise HTTPException(400, f"{S.TAILLE_BANC} remplaçants au plus sur la feuille")
-    # A card is eligible wherever the player really played, so the eleven is
-    # legal as soon as ONE assignment of its cards to the formation works.
-    elig = {}
-    for pid, poste, postes in jeu.execute("SELECT player_id, poste, postes FROM joueur"):
-        liste = json.loads(postes) if postes else [poste]
-        elig[pid] = S.familles_eligibles(liste) or [S.FAMILLE_POSTE.get(poste, "MID")]
-    if not S.onze_legal([elig.get(p, ["MID"]) for p in c.titulaires], c.formation):
-        raise HTTPException(400, "Onze illégal pour cette formation : 1 gardien, 3 à 5 défenseurs, "
-                                 "2 à 5 milieux, 1 à 3 attaquants, chacun à un poste qu'il a tenu")
+    # Anyone may play anywhere: the formation gives eleven slots, the
+    # manager fills them as he likes, and a card away from what it held
+    # pays for it in the match (scoring.malus_poste), not here.
+    if len(c.titulaires) != S.TAILLE_ONZE:
+        raise HTTPException(400, "Il faut onze titulaires")
     jeu.execute("INSERT OR REPLACE INTO composition VALUES (?,?,?,?,?,?,?)",
                 (e["equipe_id"], j["journee_id"], c.formation, json.dumps(c.titulaires), json.dumps(c.banc),
                  c.capitaine, P.maintenant()))
@@ -739,6 +739,11 @@ class Changement(BaseModel):
     entrant: int
 
 
+class Permutation(BaseModel):
+    un: int
+    deux: int
+
+
 class Ajustement(BaseModel):
     tactique: dict
 
@@ -801,6 +806,17 @@ def lobby_changement(c: Changement, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     try:
         minute = LB.changer(jeu, SAISON, e["equipe_id"], c.sortant, c.entrant)
+    except LB.ErreurLobby as err:
+        raise HTTPException(409, str(err))
+    return {"minute": minute} | LB.etat(jeu, SAISON, e["equipe_id"])
+
+
+@app.post("/api/lobby/permutation")
+def lobby_permutation(c: Permutation, u=Depends(exiger), jeu=Depends(bd)):
+    """Two men on the pitch exchange their positions."""
+    e = equipe_de(jeu, u)
+    try:
+        minute = LB.permuter(jeu, SAISON, e["equipe_id"], c.un, c.deux)
     except LB.ErreurLobby as err:
         raise HTTPException(409, str(err))
     return {"minute": minute} | LB.etat(jeu, SAISON, e["equipe_id"])
@@ -946,6 +962,16 @@ def solo_changement(c: Changement, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     try:
         minute = LB.changer(jeu, SAISON, e["equipe_id"], c.sortant, c.entrant, _match_solo(jeu, e["equipe_id"]))
+    except LB.ErreurLobby as err:
+        raise HTTPException(409, str(err))
+    return {"minute": minute} | SO.etat(jeu, SAISON, e["equipe_id"])
+
+
+@app.post("/api/solo/permutation")
+def solo_permutation(c: Permutation, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    try:
+        minute = LB.permuter(jeu, SAISON, e["equipe_id"], c.un, c.deux, _match_solo(jeu, e["equipe_id"]))
     except LB.ErreurLobby as err:
         raise HTTPException(409, str(err))
     return {"minute": minute} | SO.etat(jeu, SAISON, e["equipe_id"])
