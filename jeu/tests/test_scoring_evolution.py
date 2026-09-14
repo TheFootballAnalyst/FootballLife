@@ -223,3 +223,22 @@ def test_the_best_fit_fills_each_slot_with_the_smallest_cost():
     valeurs = [70] * 11 + [95]
     ordre2 = S.repartir(tenus2, "4-3-3", valeurs)
     assert 11 in ordre2
+
+
+def test_the_attributes_can_erase_or_deepen_the_out_of_position_cost():
+    raphinha = {"FIN": 87, "CRE": 86, "PRO": 60, "DEF": 54, "DRI": 72, "CON": 56}
+    central = {"FIN": 45, "CRE": 50, "PRO": 60, "DEF": 85, "DRI": 50, "CON": 75}
+    # a winger with a striker's finishing plays striker for nothing
+    assert S.malus_poste(["Ailier"], "Buteur", raphinha, "Ailier") <= 0
+    # a centre-back at centre-forward pays the distance AND his attributes
+    assert S.malus_poste(["Defenseur central"], "Buteur", central, "Defenseur central") > S.MALUS_DISTANCE[3]
+    # one step away stays cheap for him, and never a bonus beyond the cap
+    assert 0 < S.malus_poste(["Defenseur central"], "Milieu defensif", central, "Defenseur central") <= S.MALUS_DISTANCE[2]
+    assert S.malus_poste(["Ailier"], "Buteur", {"FIN": 99, "DRI": 99, "PRO": 99, "CRE": 40, "CON": 40, "DEF": 40}, "Ailier") >= -S.BONUS_POSTE_MAX
+    # at a position he held, the attributes change nothing; across the goal line, neither
+    assert S.malus_poste(["Ailier"], "Ailier droit", raphinha, "Ailier") == 0
+    assert S.malus_poste(["Ailier"], "Gardien", raphinha, "Ailier") == S.MALUS_GARDIEN
+    # five 4-3-3s, the bare key first, named on screen
+    assert [f for f in S.FORMATIONS_RANGS if f.startswith("4-3-3")] == ["4-3-3", "4-3-3 (2)", "4-3-3 (3)", "4-3-3 (4)", "4-3-3 (5)"]
+    assert S.LIBELLE_FORMATION["4-3-3"] == "4-3-3 (1)"
+    assert S.CODE_POSTE["Milieu defensif"] == "MDC" and S.CODE_POSTE["Lateral gauche"] == "DG"

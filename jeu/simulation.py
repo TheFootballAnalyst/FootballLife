@@ -132,7 +132,8 @@ MALUS_HORS_POSTE = _S.MALUS_DISTANCE[1]
 
 
 def _penalise(attributs: dict, malus: int) -> dict:
-    return {k: max(40, v - malus) for k, v in attributs.items()} if malus else dict(attributs)
+    """Every attribute less the malus (a negative malus is a bonus)."""
+    return {k: max(40, min(99, v - malus)) for k, v in attributs.items()} if malus else dict(attributs)
 
 # --------------------------------------------------------------------------
 # Stamina
@@ -551,7 +552,8 @@ def appliquer_formation(joueurs: list[dict], formation: str) -> None:
     fourth, when a real manager moves the men who fit.
     """
     postes = _S.postes_formation(formation)
-    ordre = _S.repartir([j.get("tenus") or [j.get("poste")] for j in joueurs], formation)
+    ordre = _S.repartir([j.get("tenus") or [j.get("poste")] for j in joueurs], formation,
+                        attributs=[j.get("attributs_bruts") or j.get("attributs") for j in joueurs])
     reste = [j for k, j in enumerate(joueurs) if k not in set(ordre)]
     joueurs[:] = [joueurs[k] for k in ordre] + reste
     for i, j in enumerate(joueurs):
@@ -564,7 +566,7 @@ def _poser(j: dict, slot: str) -> None:
     brut = j.get("attributs_bruts") or j.get("attributs") or {}
     j["attributs_bruts"] = dict(brut)
     tenus = j.get("tenus") or ([j["poste"]] if j.get("poste") else [])
-    malus = _S.malus_poste(tenus, slot) if slot else 0
+    malus = _S.malus_poste(tenus, slot, brut, j.get("poste")) if slot else 0
     j["slot"] = slot
     j["hors_poste"] = malus > 0
     j["malus"] = malus
@@ -1788,7 +1790,7 @@ def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
         tenus = json.loads(postes) if postes else [poste]
         attributs = json.loads(attrs or "{}")
         slot = postes_slots[i] if postes_slots and i < len(postes_slots) else None
-        malus = S.malus_poste(tenus, slot) if slot else 0
+        malus = S.malus_poste(tenus, slot, attributs, poste) if slot else 0
         fam = S.FAMILLE_POSTE.get(slot or poste, S.FAMILLE_POSTE.get(poste, "MID"))
         joueurs.append({"pid": pid, "nom": nom_j, "poste": poste, "fam": fam, "ovr": ovr,
                         # the card as it is, kept apart from the card as it

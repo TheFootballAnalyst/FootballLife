@@ -163,7 +163,9 @@ def test_composition_rules_and_lock(client):
     exid = lambda pid: [c for c in client.get("/api/club").json()["cartes"] if c["player_id"] == pid][0]["exemplaire_id"]
     for pid in (15, 90):
         assert client.post("/api/club/aligner", json={"exemplaire_id": exid(pid), "dans_effectif": True}).status_code == 200
-    assert client.post("/api/club/aligner", json={"exemplaire_id": exid(91), "dans_effectif": True}).status_code == 409
+    # no quota by line any more: a fourth keeper in the squad is the manager's call
+    assert client.post("/api/club/aligner", json={"exemplaire_id": exid(91), "dans_effectif": True}).status_code == 200
+    assert client.post("/api/club/aligner", json={"exemplaire_id": exid(91), "dans_effectif": False}).status_code == 200
     bonne = {"formation": "4-3-3", "titulaires": list(range(1, 12)), "banc": [12, 13, 14], "capitaine": 10}
     assert client.post("/api/equipe/composition", json=bonne).status_code == 200
     e = client.get("/api/equipe").json()

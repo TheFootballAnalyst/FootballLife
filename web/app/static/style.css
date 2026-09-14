@@ -839,3 +839,6 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 .dessin > .tend{position:absolute;right:6%;top:26%;z-index:2;font-size:12px;padding:1px 5px;border-radius:8px;background:rgba(8,10,18,.82);border:1px solid rgba(255,255,255,.18)}
 .ligne > .dessin > .tend{display:none}
 @media (max-width:640px){.dessin > .tend{font-size:11px;padding:0 4px}}
+
+.slot.bonus .mini > div{outline:2px solid #4CAF7A;outline-offset:2px}
+.slot-poste.bonus{background:#2E7D5B;color:#eafff4;border-color:#6ad3a3}

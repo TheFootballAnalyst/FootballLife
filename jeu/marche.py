@@ -38,7 +38,9 @@ from jeu import scoring as S
 # The matchday squad: eleven and seven.  The quotas add up to more than
 # eighteen on purpose — they exist to stop a squad of eight strikers, not
 # to dictate its shape; the legal eleven does the rest.
-QUOTA = {"GK": 3, "DEF": 7, "MID": 7, "FWD": 5}
+# No quota by line any more: eighteen cards, arranged as the manager
+# likes.  Kept as counts of zero so an old screen reading them sees none.
+QUOTA: dict[str, int] = {}
 TAILLE_EFFECTIF = 18
 RESERVE_MAX = None          # no cap: a club may hold as many cards as it buys
 
@@ -234,9 +236,6 @@ def aligner(jeu, equipe_id: int, exemplaire_id: int, dans_effectif: bool) -> Non
             raise ErreurMarche("Ce joueur est déjà dans ton effectif")
         if len(eff) >= TAILLE_EFFECTIF:
             raise ErreurMarche(f"Effectif complet ({TAILLE_EFFECTIF})")
-        fam = _poste(jeu, pid)
-        if sum(1 for p in eff if _poste(jeu, p) == fam) >= QUOTA[fam]:
-            raise ErreurMarche(f"Déjà {QUOTA[fam]} à ce poste")
     else:
         reserve = _un(jeu, "SELECT COUNT(*) FROM exemplaire WHERE equipe_id=? AND detruit=0 AND dans_effectif=0", (equipe_id,))[0]
         if RESERVE_MAX is not None and reserve >= RESERVE_MAX:

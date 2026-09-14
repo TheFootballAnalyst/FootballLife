@@ -32,10 +32,28 @@ TAILLE_BANC = 7          # a real matchday squad: eleven and seven
 # (PROFONDEUR_POSTE): the flat row "defensif, relayeur, offensif" put the
 # holding player on the left touchline and nobody could tell who did what.
 FORMATIONS_RANGS = {
+    # Five 4-3-3s, told apart by their midfield three (FIFA style).  The
+    # first keeps the bare key: it is what every stored lineup says.
     "4-3-3": [("Gardien",),
               ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
               ("Milieu relayeur", "Milieu defensif", "Milieu relayeur"),
               ("Ailier gauche", "Buteur", "Ailier droit")],
+    "4-3-3 (2)": [("Gardien",),
+                  ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
+                  ("Milieu relayeur", "Milieu relayeur", "Milieu relayeur"),
+                  ("Ailier gauche", "Buteur", "Ailier droit")],
+    "4-3-3 (3)": [("Gardien",),
+                  ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
+                  ("Milieu relayeur", "Milieu offensif", "Milieu relayeur"),
+                  ("Ailier gauche", "Buteur", "Ailier droit")],
+    "4-3-3 (4)": [("Gardien",),
+                  ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
+                  ("Milieu defensif", "Milieu defensif", "Milieu relayeur"),
+                  ("Ailier gauche", "Buteur", "Ailier droit")],
+    "4-3-3 (5)": [("Gardien",),
+                  ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
+                  ("Milieu defensif", "Milieu relayeur", "Milieu offensif"),
+                  ("Ailier gauche", "Buteur", "Ailier droit")],
     "4-4-2": [("Gardien",),
               ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
               ("Ailier gauche", "Milieu relayeur", "Milieu defensif", "Ailier droit"),
@@ -95,6 +113,17 @@ FAMILLE_POSTE = {
 # enforces it (see malus_poste).
 LIMITES_FAMILLE = {"GK": (1, 1), "DEF": (3, 5), "MID": (2, 5), "FWD": (1, 4)}
 
+
+# The short codes, as FIFA writes them.  A card position without a side
+# ("Lateral", "Ailier") reads as both sides.
+CODE_POSTE = {
+    "Gardien": "GB", "Defenseur central": "DC",
+    "Lateral": "DG/DD", "Lateral gauche": "DG", "Lateral droit": "DD",
+    "Milieu defensif": "MDC", "Milieu relayeur": "MC", "Milieu offensif": "MOC",
+    "Ailier": "AG/AD", "Ailier gauche": "AG", "Ailier droit": "AD", "Buteur": "BU",
+}
+# What a formation is called on screen: the bare 4-3-3 is the first of five.
+LIBELLE_FORMATION = {"4-3-3": "4-3-3 (1)"}
 
 LIBELLE_POSTE = {
     "Gardien": "gardien", "Defenseur central": "défenseur central",
@@ -166,6 +195,43 @@ MALUS_DISTANCE = (0, 4, 8, 14, 20)    # by graph distance, the last for anything
 MALUS_GARDIEN = 30                    # keeper <-> field, either way
 MALUS_COTE = 2                        # the right side, the wrong foot: a winger switched over
 
+# What each position asks of the six attributes.  Out of position, a card
+# pays half the distance malus LESS how much better its attributes fit
+# the new post than its own: Raphinha's finishing makes him a striker at
+# no cost, a centre-back's does not.  A fit that beats the distance is a
+# bonus, capped at BONUS_POSTE_MAX — rare, and deserved.
+POIDS_POSTE = {
+    "Defenseur central": {"DEF": .55, "CON": .20, "PRO": .10, "CRE": .05, "DRI": .05, "FIN": .05},
+    "Lateral":           {"DEF": .35, "PRO": .20, "CON": .15, "CRE": .15, "DRI": .15, "FIN": .00},
+    "Milieu defensif":   {"DEF": .35, "CON": .30, "PRO": .15, "CRE": .10, "DRI": .05, "FIN": .05},
+    "Milieu relayeur":   {"CON": .30, "CRE": .25, "PRO": .15, "DEF": .15, "DRI": .10, "FIN": .05},
+    "Milieu offensif":   {"CRE": .35, "DRI": .20, "FIN": .15, "PRO": .15, "CON": .15, "DEF": .00},
+    "Ailier":            {"DRI": .30, "FIN": .20, "CRE": .20, "PRO": .20, "CON": .10, "DEF": .00},
+    "Buteur":            {"FIN": .50, "DRI": .15, "PRO": .10, "CRE": .10, "CON": .10, "DEF": .05},
+}
+BONUS_POSTE_MAX = 3
+PART_DISTANCE = 0.5                   # how much of the distance malus the attributes cannot erase
+PART_ECART = 0.6                      # how much of the attribute fit counts, either way
+
+
+def score_poste(attributs: dict, poste: str) -> float | None:
+    """How well six attributes fit a base position, on the attribute scale."""
+    poids = POIDS_POSTE.get(poste_base(poste))
+    if not poids or not attributs:
+        return None
+    return sum(w * attributs.get(ax, 40) for ax, w in poids.items())
+
+
+def ajustement_poste(attributs: dict, poste_principal: str | None, poste_slot: str) -> float:
+    """The attributes' say: positive when the card fits the slot better
+    than its own position, negative when worse.  Zero when unknown."""
+    if not poste_principal:
+        return 0.0
+    a, b = score_poste(attributs, poste_slot), score_poste(attributs, poste_principal)
+    if a is None or b is None:
+        return 0.0
+    return a - b
+
 
 def _distances() -> dict[tuple[str, str], int]:
     """Graph distance between every pair of base positions (BFS)."""
@@ -187,9 +253,10 @@ def _distances() -> dict[tuple[str, str], int]:
 DISTANCES = _distances()
 
 
-def malus_poste(postes_carte, poste_slot: str) -> int:
-    """What a card loses on every attribute in that slot: zero at a
-    position it held, more the farther the slot is from any of them."""
+def distance_poste(postes_carte, poste_slot: str) -> int:
+    """The distance malus alone: zero at a position the card held, more
+    the farther the slot is from any of them, MALUS_GARDIEN across the
+    goal line."""
     if not poste_slot:
         return 0
     tenus = [p for p in (postes_carte or ()) if p]
@@ -212,6 +279,20 @@ def malus_poste(postes_carte, poste_slot: str) -> int:
     return meilleur
 
 
+def malus_poste(postes_carte, poste_slot: str, attributs: dict | None = None,
+                poste_principal: str | None = None) -> int:
+    """What a card loses on every attribute in that slot (negative: what
+    it gains).  Zero at a position it held.  Elsewhere, half the distance
+    malus, less what its attributes say (`ajustement_poste`), between
+    -BONUS_POSTE_MAX and the keeper malus.  Without attributes, the
+    distance alone."""
+    d = distance_poste(postes_carte, poste_slot)
+    if d == 0 or d >= MALUS_GARDIEN or not attributs:
+        return d
+    ecart = ajustement_poste(attributs, poste_principal or (postes_carte[0] if postes_carte else None), poste_slot)
+    return int(max(-BONUS_POSTE_MAX, min(MALUS_GARDIEN, round(PART_DISTANCE * d - PART_ECART * ecart))))
+
+
 def a_le_poste(postes_carte, poste_slot: str) -> bool:
     """Whether the card really held THAT position (side included when the
     card's own position names one)."""
@@ -230,7 +311,7 @@ def matrice_malus() -> dict[str, dict[str, int]]:
     a box and to show the OVR a card is worth where it stands."""
     slots = sorted({p for rangs in FORMATIONS_RANGS.values() for rang in rangs for p in rang})
     tenus = sorted(FAMILLE_POSTE)
-    return {s: {t: malus_poste([t], s) for t in tenus} for s in slots}
+    return {s: {t: distance_poste([t], s) for t in tenus} for s in slots}
 
 
 def _affectation(cout: list[list[float]]) -> list[int]:
@@ -281,7 +362,8 @@ def _affectation(cout: list[list[float]]) -> list[int]:
     return out
 
 
-def repartir(postes_par_joueur: list, formation: str, valeurs: list[float] | None = None) -> list[int]:
+def repartir(postes_par_joueur: list, formation: str, valeurs: list[float] | None = None,
+             attributs: list[dict | None] | None = None) -> list[int]:
     """Which player fills which slot of `formation`, best fit overall.
 
     `postes_par_joueur[k]` is the list of positions player k really held,
@@ -299,7 +381,8 @@ def repartir(postes_par_joueur: list, formation: str, valeurs: list[float] | Non
     if m < n:
         # fewer players than slots: fill what can be filled, in order
         return list(range(m))
-    cout = [[malus_poste(postes_par_joueur[k], postes[i]) - (valeurs[k] if valeurs else 0.0) + k * 1e-6
+    cout = [[malus_poste(postes_par_joueur[k], postes[i], attributs[k] if attributs else None)
+             - (valeurs[k] if valeurs else 0.0) + k * 1e-6
              for k in range(m)] for i in range(n)]
     return _affectation(cout)
 

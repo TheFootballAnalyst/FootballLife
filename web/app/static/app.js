@@ -2,7 +2,7 @@
 // FootballLife — front-end of web/app/serveur.py.  Vanilla JS, one file.
 // State lives on the server; this page only holds what it just fetched.
 
-const QUOTA = {GK: 2, DEF: 5, MID: 5, FWD: 3};
+const QUOTA = {};
 const FAMS = ["GK", "DEF", "MID", "FWD"];
 const NOM_FAM = {GK: "Gardien", DEF: "Défenseur", MID: "Milieu", FWD: "Attaquant"};
 const PLURIEL = {GK: "gardiens", DEF: "défenseurs", MID: "milieux", FWD: "attaquants"};
@@ -44,6 +44,12 @@ let FAM_POSTE = {"Gardien":"GK","Defenseur central":"DEF","Lateral":"DEF","Later
 // serveur : {poste de la case: {poste tenu: malus}}.  Et de combien un
 // poste se dessine devant ou derrière sa ligne.
 let MALUS_POSTES = {}, MALUS_GK = 30, PROF_POSTE = {"Milieu defensif": -0.045, "Milieu offensif": 0.045};
+// ... et ce que les attributs y changent (scoring.POIDS_POSTE) : hors de
+// son poste, une carte paie la moitié de la distance moins ce que ses
+// attributs disent du nouveau poste, jusqu'à un petit bonus.
+let POIDS_POSTES = {}, BONUS_POSTE_MAX = 3, PART_DISTANCE = 0.5, PART_ECART = 0.6;
+let LIBELLES_FORMATION = {"4-3-3": "4-3-3 (1)"};
+const nomFormation = f => LIBELLES_FORMATION[f] || f;
 
 // ---- utilitaires ----
 const $ = s => document.querySelector(s);
@@ -255,8 +261,9 @@ function rendreMarche() {
   const cle = {ovr: c => -c.ovr, prix: c => -c.prix, rapport: c => -(c.ovr - 40) / Math.max(c.prix, 0.1), forme: c => -formeMoy(c), age: c => c.age || 99, part: c => -c.part, nom: c => 0}[tri];
   rows.sort((a, b) => cle(a) - cle(b) || a.nom.localeCompare(b.nom));
   $("#marche-compteur").textContent = `${rows.length} cartes`;
+  // dix-huit cartes, réparties comme le manager veut : on compte, on ne plafonne plus
   const ME = $("#marche-effectif"); ME.replaceChildren(el("span", {class: "etiq"}, "Effectif"), el("b", {class: "num"}, `${idsEffectif().length} / ${TAILLE}`),
-    ...FAMS.map(f => el("span", {class: "quota" + (nbFam(f) >= QUOTA[f] ? " plein" : "")}, `${FAM_COURT[f]} `, el("b", {}, `${nbFam(f)}/${QUOTA[f]}`))));
+    ...FAMS.map(f => el("span", {class: "quota"}, `${FAM_COURT[f]} `, el("b", {}, String(nbFam(f))))));
   document.querySelectorAll(".vue button").forEach(b => { if (b.dataset.vue === marcheVue) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   const L = $("#marche-liste"); L.replaceChildren(); L.className = marcheVue === "cartes" ? "cartes-grille" : "liste";
   for (const c of rows.slice(0, marcheLimite)) L.append(marcheVue === "cartes" ? carteMarche(c) : ligneCarte(c));
@@ -277,7 +284,7 @@ function carteMarche(c, opts = {}) {
   const delta = mien ? c.prix - G.equipe.effectif[c.id] : 0;
   const haut = el("div", {class: "cj-haut"},
     el("div", {class: "cj-ovr anton" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)),
-    el("div", {class: "cj-pos"}, el("span", {class: "fam " + c.fam}, FAM_COURT[c.fam])),
+    el("div", {class: "cj-pos"}, el("span", {class: "fam " + c.fam}, POSTE_ABBR[c.poste] || FAM_COURT[c.fam])),
     c.age ? el("div", {class: "cj-age"}, ageTxt(c)) : null,
     el("img", {class: "cj-logo", src: `/images/logos/${c.team_id}.png`, alt: "", loading: "lazy", onerror: e => e.target.remove()}),
     c.pays ? el("div", {class: "cj-drapeau", title: c.pays}, drapeau(c.pays)) : null,
@@ -286,7 +293,7 @@ function carteMarche(c, opts = {}) {
     vignetteDe(c));
   const corps = el("div", {class: "cj-corps"},
     el("div", {class: "nom", title: c.nom}, c.nom),
-    el("div", {class: "sous"}, `${c.club} · ${POSTE_COURT[c.poste] || c.poste}`),
+    el("div", {class: "sous"}, `${codesDe(c)} · ${c.club}`),
     el("div", {class: "cj-milieu"}, barresForme(c), c.part > 0 ? el("span", {class: "part"}, Math.round(c.part * 100) + " %") : null));
   // The drawn card IS the card.  The CSS escutcheon stays underneath as the
   // fallback: it is what you see while the PNG loads, and what stays if the
@@ -347,7 +354,7 @@ function ligneCarte(c) {
   l.style.setProperty("--clubc", c.couleur);
   const delta = mien ? c.prix - G.equipe.effectif[c.id] : 0;
   l.append(carteDessinee(c, 120),
-    el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, `${c.club} · ${POSTE_COURT[c.poste] || c.poste}${c.age ? " · " + c.age + " ans" : ""}${c.part > 0 ? " · " + Math.round(c.part * 100) + " % des équipes" : ""}`)),
+    el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, `${codesDe(c)} · ${c.club}${c.age ? " · " + c.age + " ans" : ""}${c.part > 0 ? " · " + Math.round(c.part * 100) + " % des équipes" : ""}`)),
     barresForme(c),
     el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr), tendance(c)),
     el("div", {class: "prix num"}, fM(c.prix), mien && Math.abs(delta) >= 0.005 ? el("div", {class: "delta " + (delta > 0 ? "plus" : "moins")}, fM(delta, true)) : null));
@@ -368,22 +375,34 @@ function slotsFam(formation) { return slotsPostes(formation).map(p => FAM_POSTE[
 // (scoring.malus_poste) : un central au poste de latéral perd 4 sur
 // chaque attribut, au poste de buteur 14, dans les buts 30.  L'OVR
 // affiché sur la case est celui qu'il vaut là où il est.
+function scorePoste(attributs, poste) {
+  const poids = POIDS_POSTES[posteBase(poste)];
+  if (!poids || !attributs) return null;
+  return Object.entries(poids).reduce((s, [ax, w]) => s + w * (attributs[ax] ?? 40), 0);
+}
 function malusDe(id, poste) {
   const c = carte(id); if (!c || !poste) return 0;
   const ligne = MALUS_POSTES[poste];
   const tenus = (c.postes && c.postes.length) ? c.postes : [c.poste];
-  if (!ligne) return tenus.includes(poste) ? 0 : 8;
-  return Math.min(...tenus.map(p => ligne[p] ?? 8));
+  const d = !ligne ? (tenus.includes(poste) ? 0 : 8) : Math.min(...tenus.map(p => ligne[p] ?? 8));
+  if (d === 0 || d >= MALUS_GK || !c.attributs) return d;
+  const a = scorePoste(c.attributs, poste), b = scorePoste(c.attributs, c.poste);
+  const ecart = a === null || b === null ? 0 : a - b;
+  return Math.max(-BONUS_POSTE_MAX, Math.min(MALUS_GK, Math.round(PART_DISTANCE * d - PART_ECART * ecart)));
 }
-function ovrAu(id, poste) { return Math.max(40, ovr(id) - malusDe(id, poste)); }
+function ovrAu(id, poste) { return Math.max(40, Math.min(99, ovr(id) - malusDe(id, poste))); }
 function aLePoste(id, poste) { return malusDe(id, poste) === 0; }
 function horsPoste(id, poste) { return malusDe(id, poste) > 0; }
 // loin de chez lui : un attaquant central en défense, quelqu'un dans les buts
 function loinDuPoste(id, poste) { return malusDe(id, poste) >= 14; }
-const POSTE_ABBR = {"Gardien": "GB", "Defenseur central": "DC", "Lateral": "LAT",
-  "Lateral gauche": "LG", "Lateral droit": "LD",
-  "Milieu defensif": "MDF", "Milieu relayeur": "MC", "Milieu offensif": "MO",
-  "Ailier": "AIL", "Ailier droit": "AD", "Ailier gauche": "AG", "Buteur": "BU"};
+// Les codes de poste, comme FIFA les écrit (scoring.CODE_POSTE, servi par
+// le serveur) : GB, DC, DG, DD, MDC, MC, MOC, AG, AD, BU.
+let POSTE_ABBR = {"Gardien": "GB", "Defenseur central": "DC", "Lateral": "DG/DD",
+  "Lateral gauche": "DG", "Lateral droit": "DD",
+  "Milieu defensif": "MDC", "Milieu relayeur": "MC", "Milieu offensif": "MOC",
+  "Ailier": "AG/AD", "Ailier droit": "AD", "Ailier gauche": "AG", "Buteur": "BU"};
+// les postes tenus d'une carte, en codes : « AD / BU »
+const codesDe = c => ((c.postes && c.postes.length) ? c.postes : [c.poste]).map(p => POSTE_ABBR[p] || p).join(" / ");
 function legal(fams) { return fams.length === 11 && fams.every(x => !!x); }
 // A card is eligible wherever the player really played, not only at the one
 // label the barème shows: Valverde spent a third of his season at right
@@ -493,7 +512,7 @@ function rendreEquipe(recalc = true) {
     // eleven empty boxes and a bench of sixteen
     if (!G.compo?.titulaires?.length && idsEffectif().length >= 11) return auto(C.formation);
   }
-  const sel = $("#formation"); if (!sel.options.length) for (const f of Object.keys(FORMATIONS)) sel.append(el("option", {value: f}, f));
+  const sel = $("#formation"); if (!sel.options.length) for (const f of Object.keys(FORMATIONS)) sel.append(el("option", {value: f}, nomFormation(f)));
   sel.value = C.formation;
   const postes = slotsPostes(C.formation);
   const T = $("#terrain"); T.replaceChildren();
@@ -516,11 +535,14 @@ function rendreEquipe(recalc = true) {
   // eleven is worth where it stands.
   const postesC = slotsPostes(C.formation);
   const dehors = C.slots.map((id, s) => id === null ? 0 : malusDe(id, postesC[s]));
-  const nDehors = dehors.filter(x => x > 0).length, perdu = dehors.reduce((a, b) => a + b, 0);
+  const nDehors = dehors.filter(x => x > 0).length, perdu = dehors.filter(x => x > 0).reduce((a, b) => a + b, 0);
+  const nBonus = dehors.filter(x => x < 0).length;
   if (nDehors) A.append(el("div", {class: "info"},
     `${nDehors} joueur${nDehors > 1 ? "s" : ""} hors de son poste : `
-    + `${perdu} points d'OVR perdus en tout pendant le match, chacun selon la distance entre la case et ce qu'il a vraiment tenu `
-    + `(orange : un cran, rouge : loin de chez lui). C'est permis, ça coûte.`));
+    + `${perdu} points d'OVR perdus en tout pendant le match, selon la distance avec ce qu'il a tenu et ce que ses attributs valent là `
+    + `(orange : un peu, rouge : loin de chez lui). C'est permis, ça coûte.`));
+  if (nBonus) A.append(el("div", {class: "info"},
+    `${nBonus} joueur${nBonus > 1 ? "s" : ""} dont les attributs valent mieux à ce poste qu'au sien (case verte).`));
   const moyenne = C.slots.every(x => x !== null)
     ? C.slots.reduce((a, id, s) => a + ovrAu(id, postesC[s]), 0) / 11 : null;
   if (moyenne !== null) A.append(el("div", {class: "compteur"}, `Onze au poste : ${moyenne.toFixed(1)} d'OVR en moyenne.`));
@@ -638,8 +660,8 @@ async function rendreClub() {
   const ligne = x => {
     const c = x.carte; const l = el("div", {class: "ligne club-ligne" + (x.enchere_id ? " en-vente" : "")}); l.style.setProperty("--clubc", c.couleur);
     const delta = (x.cote || 0) - x.prix_achat;
-    l.append(carteDessinee(c, 120), el("div", {class: "qui", tabindex: "0", onclick: () => ouvrirFiche(c.id)}, el("div", {class: "nom"}, c.nom, el("span", {class: "compteur"}, ` n° ${x.numero}`)), el("div", {class: "sous"}, `${c.club} · acheté ${fM(x.prix_achat)} · cote ${fM(x.cote)} `, el("span", {class: "delta " + (delta >= 0 ? "plus" : "moins")}, fM(delta, true)))),
-      el("span", {class: "fam " + c.fam}, FAM_COURT[c.fam]), el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr), tendance(c)));
+    l.append(carteDessinee(c, 120), el("div", {class: "qui", tabindex: "0", onclick: () => ouvrirFiche(c.id)}, el("div", {class: "nom"}, c.nom, el("span", {class: "compteur"}, ` n° ${x.numero}`)), el("div", {class: "sous"}, el("b", {}, codesDe(c)), ` · ${c.club} · acheté ${fM(x.prix_achat)} · cote ${fM(x.cote)} `, el("span", {class: "delta " + (delta >= 0 ? "plus" : "moins")}, fM(delta, true)))),
+      el("span", {class: "fam " + c.fam}, POSTE_ABBR[c.poste] || FAM_COURT[c.fam]), el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr), tendance(c)));
     const acts = el("div", {class: "club-actions"});
     if (x.enchere_id) acts.append(el("span", {class: "compteur"}, "en vente"), el("button", {onclick: () => montrer("encheres")}, "Voir"));
     else {
@@ -773,10 +795,13 @@ function slotEl(s, poste) {
   const malus = i === null ? 0 : malusDe(i, poste);
   if (malus >= 14) classes.push("faute");
   else if (malus > 0) classes.push("dephase");
+  else if (malus < 0) classes.push("bonus");
   const nomPoste = POSTE_COURT[poste] || poste;
   const titre = i === null ? `Case ${nomPoste.toLowerCase()} vide`
     : malus > 0
-      ? `${carte(i).nom} joue ${nomPoste.toLowerCase()}, loin de ce qu'il a tenu (${(carte(i).postes || [carte(i).poste]).map(x => (POSTE_COURT[x] || x).toLowerCase()).join(", ")}) : −${malus} sur chaque attribut, OVR ${ovrAu(i, poste)} à ce poste.`
+      ? `${carte(i).nom} joue ${nomPoste.toLowerCase()}, loin de ce qu'il a tenu (${codesDe(carte(i))}) : −${malus} sur chaque attribut, OVR ${ovrAu(i, poste)} à ce poste.`
+      : malus < 0
+      ? `${carte(i).nom} joue ${nomPoste.toLowerCase()} : ses attributs y sont même mieux qu'à son poste, +${-malus} sur chacun, OVR ${ovrAu(i, poste)}.`
       : `${carte(i).nom} — ${nomPoste}. Glisse-le ailleurs, ou touche-le puis touche sa destination.`;
   const d = el("div", {class: classes.join(" "), tabindex: "0", title: titre,
     style: PROF_POSTE[poste] ? `--prof:${PROF_POSTE[poste]}` : null,
@@ -797,8 +822,8 @@ function slotEl(s, poste) {
   zonePrise(d, {type: "slot", i: s});
   d.style.setProperty("--clubc", c.couleur);
   d.append(carteDessinee(c, 170));
-  d.append(el("div", {class: "slot-poste" + (malus >= 14 ? " loin" : malus > 0 ? " dephase" : "")},
-    (POSTE_ABBR[poste] || fam) + (malus > 0 ? ` · ${ovrAu(i, poste)}` : "")));
+  d.append(el("div", {class: "slot-poste" + (malus >= 14 ? " loin" : malus > 0 ? " dephase" : malus < 0 ? " bonus" : "")},
+    (POSTE_ABBR[poste] || fam) + (malus !== 0 ? ` · ${ovrAu(i, poste)}` : "")));
   if (C.cap === i) d.append(el("div", {class: "cap"}, "C"));
   d.append(el("button", {class: "slot-menu", title: "Options", onclick: e => { e.stopPropagation(); PRISE = null; menuSlot(s); }}, "···"));
   return d;
@@ -809,16 +834,17 @@ function menuSlot(s) {
   const c = carte(i);
   const box = el("div", {class: "fiche"}, el("h3", {class: "anton"}, c.nom),
     el("p", {class: "compteur"}, `${POSTE_COURT[poste] || poste} · OVR ${ovr(i)}`
-      + (horsPoste(i, poste) ? ` (${ovrAu(i, poste)} à ce poste)` : "") + ` · a tenu `
-      + (c.postes || []).map(x => (POSTE_COURT[x] || x).toLowerCase()).join(", ")),
-    horsPoste(i, poste) ? el("div", {class: "avert"},
-      `Hors de son poste : −${malusDe(i, poste)} sur chacun de ses attributs pendant le match.`) : null);
+      + (malusDe(i, poste) !== 0 ? ` (${ovrAu(i, poste)} à ce poste)` : "") + ` · a tenu ${codesDe(c)}`),
+    malusDe(i, poste) > 0 ? el("div", {class: "avert"},
+      `Hors de son poste : −${malusDe(i, poste)} sur chacun de ses attributs pendant le match.`)
+    : malusDe(i, poste) < 0 ? el("div", {class: "info"},
+      `Ses attributs valent mieux ici qu'à son poste : +${-malusDe(i, poste)} sur chacun pendant le match.`) : null);
   const acts = el("div", {class: "actions", style: "justify-content:flex-start"});
   acts.append(el("button", {class: "primaire", onclick: () => { C.cap = i; dlg.close(); rendreEquipe(false); }}, "Nommer capitaine"));
   // the bench, those who really hold the position first
   const remplacants = C.banc.slice().sort((x, y) => ovrAu(y, poste) - ovrAu(x, poste));
   for (const b of remplacants) acts.append(el("button", {onclick: () => { C.banc = C.banc.map(x => x === b ? i : x); C.slots[s] = b; if (C.cap === i) C.cap = b; dlg.close(); rendreEquipe(false); }},
-    `Remplacer par ${carte(b).nom} (${ovrAu(b, poste)})${aLePoste(b, poste) ? "" : ` — hors poste, −${malusDe(b, poste)}`}`));
+    `Remplacer par ${carte(b).nom} (${ovrAu(b, poste)})${malusDe(b, poste) > 0 ? ` — hors poste, −${malusDe(b, poste)}` : malusDe(b, poste) < 0 ? ` — +${-malusDe(b, poste)} là` : ""}`));
   acts.append(el("button", {onclick: () => { C.slots[s] = null; C.banc.unshift(i); if (C.cap === i) C.cap = null; dlg.close(); rendreEquipe(false); }}, "Mettre sur le banc"));
   acts.append(el("button", {onclick: () => { dlg.close(); ouvrirFiche(i); }}, "Voir la fiche"), el("button", {class: "discret", onclick: () => dlg.close()}, "Fermer"));
   box.append(acts); dlg.append(box); dlg.showModal();
@@ -827,7 +853,7 @@ function ligneBanc(i, r) {
   const c = carte(i);
   const choisi = PRISE && PRISE.type === "banc" && PRISE.i === r;
   const l = el("div", {class: "ligne" + (choisi ? " prise" : ""), tabindex: "0",
-    title: `${c.nom} — ${famillesDe(c).map(f => NOM_FAM[f]).join(", ")}. Glisse-le sur le terrain.`,
+    title: `${c.nom} — ${codesDe(c)}. Glisse-le sur le terrain.`,
     onclick: () => { if (PRISE && PRISE.type === "slot") deposer(PRISE, {type: "banc"}); else prendre({type: "banc", i: r}); },
     onkeydown: e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (PRISE && PRISE.type === "slot") deposer(PRISE, {type: "banc"}); else prendre({type: "banc", i: r}); } }});
   l.style.setProperty("--clubc", c.couleur);
@@ -835,8 +861,8 @@ function ligneBanc(i, r) {
   const ord = el("div", {class: "ordre"},
     el("button", {title: "Monter", disabled: r === 0, onclick: e => { e.stopPropagation(); [C.banc[r - 1], C.banc[r]] = [C.banc[r], C.banc[r - 1]]; rendreEquipe(false); }}, "▲"),
     el("button", {title: "Descendre", disabled: r === C.banc.length - 1, onclick: e => { e.stopPropagation(); [C.banc[r + 1], C.banc[r]] = [C.banc[r], C.banc[r + 1]]; rendreEquipe(false); }}, "▼"));
-  l.append(ord, carteDessinee(c, 120), el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, c.club)),
-    el("span", {class: "fams"}, ...famillesDe(c).map(f => el("span", {class: "fam " + f}, f))),
+  l.append(ord, carteDessinee(c, 120), el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, `${codesDe(c)} · ${c.club}`)),
+    el("span", {class: "fams"}, el("span", {class: "fam " + c.fam}, POSTE_ABBR[c.poste] || c.poste)),
     el("div", {class: "ovr num"}, String(c.ovr), tendance(c)));
   return l;
 }
@@ -1065,7 +1091,7 @@ function colonneCompo(m, cote, mien) {
   const c = el("div", {class: "compo-col " + (mien ? "mien" : "adverse")});
   c.append(el("div", {class: "compo-tete"},
     el("b", {class: "anton"}, m.noms[cote === "a" ? 0 : 1]),
-    el("span", {class: "compo-forme"}, m.formation?.[cote] || "")));
+    el("span", {class: "compo-forme"}, nomFormation(m.formation?.[cote] || ""))));
   for (const j of sur) {
     const f = fiches[j.pid] || {};
     const faits = [];
@@ -2200,7 +2226,7 @@ function cartons(m, c) {
 // la mise en évidence de la sélection.  Il n'est rebâti que lorsque la
 // liste des joueurs change vraiment — un changement fait, un expulsé, un
 // blessé sorti.
-const CHG = {cle: null, noeud: null, sortant: null, entrant: null, maj: null, refresh: null, perm: []};
+const CHG = {cle: null, noeud: null, sel: [], maj: null, refresh: null};
 
 function jaugeEndurance(v) {
   const n = v === undefined || v === null ? 100 : v;
@@ -2221,9 +2247,9 @@ function poserEndurance(noeud, v) {
 
 function ligneJoueur(j, endu, role, onclick) {
   return el("button", {class: "chg-j", "data-pid": j.pid, "data-role": role, onclick},
-    el("span", {class: "fam " + j.fam}, FAM_COURT[j.fam] || j.fam),
+    el("span", {class: "fam " + j.fam}, POSTE_ABBR[j.slot] || POSTE_ABBR[j.poste] || FAM_COURT[j.fam] || j.fam),
     el("div", {class: "qui"}, el("span", {class: "nom"}, j.nom),
-      el("span", {class: "sous"}, POSTE_ABBR[j.slot] || j.slot || "")),
+      el("span", {class: "sous"}, POSTE_COURT[j.slot || j.poste] || j.slot || j.poste || "")),
     jaugeEndurance(endu?.[j.pid]),
     el("b", {class: "num"}, String(j.ovr)));
 }
@@ -2256,8 +2282,7 @@ function blocChangements(d, route = "/lobby/changement", rendre = rendreLobby) {
                               g.blesses.map(j => j.pid), g.restants > 0]);
   if (CHG.noeud && CHG.cle === cle) { CHG.refresh(d); return CHG.noeud; }
   CHG.cle = cle;
-  CHG.sortant = null;
-  CHG.entrant = null;
+  CHG.sel = [];
   CHG.noeud = construireChangements(d, route, rendre);
   return CHG.noeud;
 }
@@ -2266,6 +2291,7 @@ function construireChangements(d, route, rendre) {
   const m = d.match, cote = d.cote === "b" ? "b" : "a";
   const {surTerrain, banc, blesses, endu, restants} = gensDuBanc(m, cote);
   const b = el("div", {class: "changements"});
+  const routePerm = route.replace("changement", "permutation");
 
   // Une blessure arrête le match : tant que le manager n'a pas dit qui
   // entre, l'horloge ne repart pas.  C'est la seule décision qui bloque.
@@ -2290,94 +2316,82 @@ function construireChangements(d, route, rendre) {
     zoneBlessure.append(bl);
   }
 
+  // UN SEUL geste pour les deux décisions.  Touche un joueur sur le
+  // terrain et un sur le banc : c'est un changement.  Touche deux
+  // joueurs sur le terrain : ils permutent leurs postes — ce n'est pas
+  // un changement, ça n'en coûte pas un, et il n'y a pas de limite.
   const compteur = el("div", {class: "etiq"}, "");
-  b.append(compteur);
-  const routePerm = route.replace("changement", "permutation");
-  if (!banc.length) {
-    b.append(el("p", {class: "compteur"}, "Personne sur le banc. Nomme des remplaçants sur l'écran Équipe avant de lancer un match."));
-    b.append(blocPermutation(d, routePerm, rendre, surTerrain, endu));
-    CHG.refresh = dd => majCompteur(dd, compteur, zoneBlessure, b);
-    CHG.refresh(d);
-    return b;
-  }
-  if (restants <= 0) {
-    b.append(el("p", {class: "compteur"}, "Tu as fait tous tes changements."));
-    b.append(blocPermutation(d, routePerm, rendre, surTerrain, endu));
-    CHG.refresh = dd => majCompteur(dd, compteur, zoneBlessure, b);
-    CHG.refresh(d);
-    return b;
-  }
-
+  b.append(compteur, el("p", {class: "compteur"},
+    "Un du terrain et un du banc : il entre à sa place. Deux du terrain : ils échangent leurs postes, sans compter comme un changement."));
   const choix = el("div", {class: "chg-choix"});
   const maj = () => {
+    const s = CHG.sel;
     choix.querySelectorAll("[data-pid]").forEach(n => n.classList.toggle("choisi",
-      (n.dataset.role === "out" && +n.dataset.pid === CHG.sortant)
-      || (n.dataset.role === "in" && +n.dataset.pid === CHG.entrant)));
-    valider.disabled = !(CHG.sortant && CHG.entrant);
+      s.some(x => x.role === n.dataset.role && x.pid === +n.dataset.pid)));
+    const dessus = s.filter(x => x.role === "out"), dedans = s.filter(x => x.role === "in");
+    const nom = pid => (surTerrain.concat(banc).find(j => j.pid === pid)?.nom || "").split(" ").slice(-1)[0];
+    if (dessus.length === 2) {
+      valider.disabled = false;
+      valider.textContent = `Permuter ${nom(dessus[0].pid)} et ${nom(dessus[1].pid)}`;
+      valider.dataset.mode = "perm";
+    } else if (dessus.length === 1 && dedans.length === 1) {
+      valider.disabled = restants <= 0;
+      valider.textContent = restants <= 0 ? "Plus de changement possible" : `${nom(dedans[0].pid)} entre pour ${nom(dessus[0].pid)}`;
+      valider.dataset.mode = "chg";
+    } else {
+      valider.disabled = true;
+      valider.textContent = dessus.length === 1 ? "Choisis qui entre, ou un deuxième joueur du terrain" : "Choisis les joueurs";
+      valider.dataset.mode = "";
+    }
+  };
+  const toucher = (j, role) => {
+    const deja = CHG.sel.some(x => x.role === role && x.pid === j.pid);
+    let s = CHG.sel.filter(x => !(x.role === role && x.pid === j.pid));
+    if (!deja) {
+      // on l'ajoute, en poussant le plus ancien du même rôle si la place
+      // est prise (deux du terrain au plus, un du banc)
+      const max = role === "out" ? 2 : 1;
+      const memes = s.filter(x => x.role === role);
+      if (memes.length >= max) s = s.filter(x => x !== memes[0]);
+      // deux du terrain et un du banc ne vont pas ensemble
+      if (role === "out" && s.some(x => x.role === "out")) s = s.filter(x => x.role !== "in");
+      if (role === "in") { const out = s.filter(x => x.role === "out"); s = s.filter(x => x.role !== "out").concat(out.slice(-1)); }
+      s.push({role, pid: j.pid});
+    }
+    CHG.sel = s;
+    maj();
   };
   const colonne = (titre, gens, role) => {
     const c = el("div", {}, el("div", {class: "etiq"}, titre));
-    for (const j of gens)
-      c.append(ligneJoueur(j, endu, role, () => {
-        if (role === "out") CHG.sortant = j.pid; else CHG.entrant = j.pid;
-        maj();
-      }));
+    for (const j of gens) c.append(ligneJoueur(j, endu, role, () => toucher(j, role)));
+    if (!gens.length) c.append(el("p", {class: "compteur"}, role === "in" ? "Personne sur le banc." : "Personne."));
     return c;
   };
   const valider = el("button", {class: "primaire", disabled: true, onclick: async () => {
-    const paire = {sortant: CHG.sortant, entrant: CHG.entrant};
-    CHG.sortant = null; CHG.entrant = null;
+    const s = CHG.sel, mode = valider.dataset.mode;
+    CHG.sel = [];
     maj();
-    try { await rendre(await api(route, paire)); toast("Changement enregistré"); }
-    catch (e) { toast(e.message); }
-  }}, "Faire le changement");
+    try {
+      if (mode === "perm") {
+        const [x, y] = s.filter(v => v.role === "out");
+        await rendre(await api(routePerm, {un: x.pid, deux: y.pid})); toast("Permutation enregistrée");
+      } else if (mode === "chg") {
+        await rendre(await api(route, {sortant: s.find(v => v.role === "out").pid, entrant: s.find(v => v.role === "in").pid}));
+        toast("Changement enregistré");
+      }
+    } catch (e) { toast(e.message); }
+  }}, "Choisis les joueurs");
   // Le plus fatigué d'abord : c'est lui qu'on cherche quand on ouvre ce
   // panneau à la soixante-dixième minute.  L'ordre est fixé à la
   // construction, pas à chaque sondage : une liste qui se réordonne sous
   // le curseur est pire qu'une liste mal triée.
   const parFatigue = [...surTerrain].sort((x, y) => (endu[x.pid] ?? 100) - (endu[y.pid] ?? 100));
-  choix.append(colonne("Il sort", parFatigue, "out"), colonne("Il entre", banc, "in"));
+  choix.append(colonne("Sur le terrain", parFatigue, "out"), colonne("Sur le banc", banc, "in"));
   b.append(choix, valider);
-  b.append(blocPermutation(d, routePerm, rendre, surTerrain, endu));
+  CHG.sel = [];
   CHG.maj = maj;
   CHG.refresh = dd => { majCompteur(dd, compteur, zoneBlessure, b); maj(); };
   CHG.refresh(d);
-  return b;
-}
-
-// Échanger les postes de deux joueurs sur le terrain : Valverde monte de
-// latéral à milieu et Camavinga descend, ou les deux ailiers changent
-// d'aile.  Personne ne sort, ça ne compte pas comme un changement, et
-// chacun paie le poste où il se retrouve (scoring.malus_poste).
-function blocPermutation(d, route, rendre, surTerrain, endu) {
-  const b = el("div", {class: "permutation"});
-  b.append(el("div", {class: "etiq"}, "Postes — échanger deux joueurs"),
-    el("p", {class: "compteur"}, "Touche deux joueurs : ils échangent leurs postes à la minute suivante. Ça ne coûte pas de changement."));
-  const liste = el("div", {class: "chg-choix"});
-  const maj = () => {
-    liste.querySelectorAll("[data-pid]").forEach(n => n.classList.toggle("choisi", CHG.perm.includes(+n.dataset.pid)));
-    const [x, y] = CHG.perm;
-    const nom = pid => (surTerrain.find(j => j.pid === pid)?.nom || "").split(" ").slice(-1)[0];
-    valider.disabled = !(x && y);
-    valider.textContent = x && y ? `Échanger ${nom(x)} et ${nom(y)}` : "Échanger leurs postes";
-  };
-  const colonneG = el("div", {}), colonneD = el("div", {});
-  surTerrain.forEach((j, i) => (i % 2 ? colonneD : colonneG).append(ligneJoueur(j, endu, "perm", () => {
-    if (CHG.perm.includes(j.pid)) CHG.perm = CHG.perm.filter(p => p !== j.pid);
-    else CHG.perm = [...CHG.perm.slice(-1), j.pid];
-    maj();
-  })));
-  liste.append(colonneG, colonneD);
-  const valider = el("button", {disabled: true, onclick: async () => {
-    const [un, deux] = CHG.perm;
-    CHG.perm = [];
-    maj();
-    try { await rendre(await api(route, {un, deux})); toast("Échange de postes enregistré"); }
-    catch (e) { toast(e.message); }
-  }}, "Échanger leurs postes");
-  CHG.perm = [];
-  b.append(liste, valider);
-  maj();
   return b;
 }
 
@@ -2385,14 +2399,16 @@ function blocPermutation(d, route, rendre, surTerrain, endu) {
 function majCompteur(d, compteur, zoneBlessure, racine) {
   const m = d.match, cote = d.cote === "b" ? "b" : "a";
   const {endu, restants} = gensDuBanc(m, cote);
-  compteur.textContent = `Remplacements — il t'en reste ${Math.max(0, restants)}`;
+  compteur.textContent = `Changements et permutations — ${Math.max(0, restants)} changement${restants > 1 ? "s" : ""} restant${restants > 1 ? "s" : ""}`;
   const postes = m.postes?.[cote] || {};
   racine.querySelectorAll(".chg-j").forEach(n => {
     const j = n.querySelector(".endu");
     if (j) poserEndurance(j, endu[+n.dataset.pid]);
     // le poste qu'il tient MAINTENANT : un échange de postes le change
     const p = postes[+n.dataset.pid], sous = n.querySelector(".sous");
-    if (p && sous) sous.textContent = (POSTE_ABBR[p.slot] || p.slot || "") + (p.malus ? ` · −${p.malus}` : "");
+    if (p && sous) sous.textContent = (POSTE_COURT[p.slot] || p.slot || "") + (p.malus > 0 ? ` · −${p.malus}` : p.malus < 0 ? ` · +${-p.malus}` : "");
+    const badge = n.querySelector(".fam");
+    if (p && badge) badge.textContent = POSTE_ABBR[p.slot] || badge.textContent;
   });
   const etat = zoneBlessure.querySelector(".etat");
   if (etat) etat.textContent = m.pause
@@ -2464,7 +2480,7 @@ function construireAjuster(d, routeTac, routePause, rendre) {
   const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, "Formation"));
   for (const f of Object.keys(RANGS))
     g.append(el("button", {class: "tac", "data-form": f,
-      onclick: () => { tac.formation = f; envoyer(); }}, f));
+      onclick: () => { tac.formation = f; envoyer(); }}, nomFormation(f)));
   p.append(el("div", {class: "tactiques"}, g));
   p.append(depliant("match", "Consignes aux lignes",
     el("p", {class: "compteur"},
@@ -2776,7 +2792,7 @@ async function ouvrirFiche(id) {
   img.addEventListener("error", () => img.remove());
   const cote = el("div", {class: "fiche-cote"});
   cote.append(el("div", {class: "etiq"}, `${d.club} · ${d.ligue}`), el("h3", {class: "anton"}, d.nom),
-    el("div", {class: "fiche-ligne"}, el("span", {class: "fam " + d.fam}, FAM_COURT[d.fam]), el("span", {}, POSTE_COURT[d.poste] || d.poste), d.age ? el("span", {}, `· ${d.age} ans`) : null, d.pays ? el("span", {title: d.pays}, `· ${drapeau(d.pays)} ${d.pays}`) : null, d.numero ? el("span", {}, `· n° ${d.numero}`) : null,
+    el("div", {class: "fiche-ligne"}, el("span", {class: "fam " + d.fam}, POSTE_ABBR[d.poste] || FAM_COURT[d.fam]), el("span", {}, `${POSTE_COURT[d.poste] || d.poste} · a tenu ${codesDe(d)}`), d.age ? el("span", {}, `· ${d.age} ans`) : null, d.pays ? el("span", {title: d.pays}, `· ${drapeau(d.pays)} ${d.pays}`) : null, d.numero ? el("span", {}, `· n° ${d.numero}`) : null,
       el("span", {title: d.pied ? "Pied fort, d'après FotMob" : "Pied fort inconnu : la donnée n'a pas été récupérée (donnees/pieds.py)"},
         "· " + (PIEDS[d.pied] || "pied inconnu"))),
     el("div", {class: "compteur"}, `${d.matchs} matchs, ${d.minutes} min cette saison · ${Math.round(d.part * 100)} % des équipes`),
@@ -2900,6 +2916,12 @@ function sparkline(vals, fmt = f1) {
     if (s.malus_postes) MALUS_POSTES = s.malus_postes;
     if (s.malus_gardien) MALUS_GK = s.malus_gardien;
     if (s.profondeur_poste) PROF_POSTE = s.profondeur_poste;
+    if (s.poids_postes) POIDS_POSTES = s.poids_postes;
+    if (s.bonus_poste_max != null) BONUS_POSTE_MAX = s.bonus_poste_max;
+    if (s.part_distance != null) PART_DISTANCE = s.part_distance;
+    if (s.part_ecart != null) PART_ECART = s.part_ecart;
+    if (s.codes_poste) POSTE_ABBR = s.codes_poste;
+    if (s.libelles_formation) LIBELLES_FORMATION = s.libelles_formation;
     if (s.affinites) AFFINITES = s.affinites;
     if (s.aise) AISE = s.aise;
     const moi = await api("/moi"); connecte(moi);

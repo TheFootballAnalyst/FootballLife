@@ -278,7 +278,10 @@ def saison(jeu=Depends(bd)):
         # ce qu'une carte perd à chaque poste, et de combien un poste se
         # dessine devant ou derrière sa ligne
         "malus_postes": S.matrice_malus(), "malus_gardien": S.MALUS_GARDIEN,
+        "poids_postes": S.POIDS_POSTE, "bonus_poste_max": S.BONUS_POSTE_MAX, "part_distance": S.PART_DISTANCE,
+        "part_ecart": S.PART_ECART,
         "profondeur_poste": S.PROFONDEUR_POSTE,
+        "codes_poste": S.CODE_POSTE, "libelles_formation": S.LIBELLE_FORMATION,
         # Ce qu'un réglage demande à un joueur, et comment ça se dit : le
         # moteur en est la seule source, l'écran s'en sert pour lire les
         # profils des cartes sans avoir à les recevoir déjà interprétés.
@@ -341,6 +344,7 @@ def cartes_toutes(jeu):
             "club": r["club"] or "", "couleur": r["couleur"] or "#14161E", "team_id": r["team_id"],
             "ligue": ligues.get(ligue_club.get(r["team_id"], (0,))[0], ""),
             "ovr": r["ovr"], "prix": r["prix"], "part": round(r["part"], 3),
+            "attributs": json.loads(r["attributs"] or "{}"),
             "valeur_base": r["valeur_base"], "ovr_base": r["ovr_base"], "valeur_marche": valeurs.get(r["player_id"]),
             "age": r["age"], "numero": r["numero"], "pays": r["pays"], "pied": r["pied"],
             "matchs": r["matchs"], "minutes": int(r["minutes"] or 0), "arrivee": r["arrivee"],

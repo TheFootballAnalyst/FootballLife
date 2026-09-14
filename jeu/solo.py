@@ -222,11 +222,12 @@ def onze_club(jeu, saison: str, team_id: int, formation: str = "4-3-3") -> list[
     cartes = _cartes_club(jeu, saison, team_id)
     postes = S.postes_formation(formation)
     fams = S.familles_formation(formation)
-    ordre = S.repartir([c["tenus"] for c in cartes], formation, [c["ovr"] for c in cartes])
+    ordre = S.repartir([c["tenus"] for c in cartes], formation, [c["ovr"] for c in cartes],
+                       [c["attributs"] for c in cartes])
     sortis = []
     for i, k in enumerate(ordre):
         c = cartes[k]
-        malus = S.malus_poste(c["tenus"], postes[i])
+        malus = S.malus_poste(c["tenus"], postes[i], c["attributs"], c["poste"])
         j = c | {"fam": fams[i], "slot": postes[i], "hors_poste": malus > 0, "malus": malus}
         # the card as it is stays next to the card as it is played, so a
         # formation changed during the match recomputes the penalty

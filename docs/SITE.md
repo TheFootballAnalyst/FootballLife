@@ -20,11 +20,9 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 | Classement | mondial, plus les ligues privées : créer une ligue donne un code, le partager suffit |
 | Admin | verrouiller ou rouvrir la journée, charger les prestations notées, clôturer |
 
-Règles appliquées côté serveur : 18 cartes sur la feuille (11 + 7), au
-plus 3 gardiens, 7 défenseurs, 7 milieux, 5 attaquants — les quotas
-dépassent volontairement dix-huit, ils sont là pour empêcher une équipe
-de huit attaquants, pas pour dicter sa forme ; la réserve du club n'a
-plus de plafond ; onze titulaires, **n'importe qui à n'importe quelle
+Règles appliquées côté serveur : 18 cartes sur la feuille (11 + 7),
+réparties comme le manager veut — plus aucun quota par ligne ; la
+réserve du club n'a pas de plafond ; onze titulaires, **n'importe qui à n'importe quelle
 case** — le poste se paie dans le match, il ne se refuse pas (voir « La
 composition ») ; capitaine titulaire ;
 composition refusée après la clôture ; marché fermé entre la clôture et
@@ -184,13 +182,14 @@ son xG, pleine si elle est rentrée.
 
 ## Ce que tu décides pendant le match
 
-**Échanger deux postes.** Sans faire de changement, deux joueurs sur le
-terrain peuvent échanger leurs cases : Valverde monte de latéral droit
-à milieu relayeur et le relayeur descend, les deux ailiers changent
-d'aile. Ça se fait dans l'onglet Tactique, sous les remplacements, en
-touchant deux joueurs ; ça prend effet à la minute suivante, ça ne
-compte pas dans les cinq changements et il n'y a pas de limite. Chacun
-paie le poste où il se retrouve, comme sur l'écran Équipe.
+**Changements et permutations, un seul geste.** Dans l'onglet Tactique,
+deux listes : le terrain et le banc. Un du terrain et un du banc, c'est
+un changement. Deux du terrain, c'est une **permutation** : ils
+échangent leurs postes — Valverde monte de DD à MC et le relayeur
+descend, les deux ailiers changent d'aile — sans compter dans les cinq
+changements et sans limite. Tout prend effet à la minute suivante, et
+chacun paie (ou gagne) le poste où il se retrouve, comme sur l'écran
+Équipe.
 
 **Les coups de pied arrêtés** ont leur tireur, lu dans ton onze et pas
 choisi : le meilleur finisseur prend les penaltys, le meilleur créateur
@@ -486,14 +485,26 @@ Le onze se range en glissant une carte sur une case, ou en la touchant
 puis en touchant sa destination — c'est le même geste, un glissé trop
 court est une touche. **N'importe quelle carte peut aller sur n'importe
 quelle case**, et deux titulaires qu'on glisse l'un sur l'autre
-échangent leurs postes. Ce qui se paie, c'est la **distance** entre la
-case et le poste le plus proche que le joueur a vraiment tenu
-(`scoring.malus_poste`) : un central au poste de latéral perd 4 sur
-chaque attribut, sur une aile 8, en pointe 14, et un gardien dans le
-champ (ou un joueur de champ dans les buts) 30. Un ailier droit mis à
-gauche perd 2. La case le dit — orange pour un cran, rouge pour loin de
-chez lui — avec **l'OVR qu'il vaut à ce poste**, et l'écran donne l'OVR
-moyen du onze au poste. Le bouton « meilleur onze » prend, case par
+échangent leurs postes. Ce qui se paie (`scoring.malus_poste`) a deux
+parts. La **distance** entre la case et le poste le plus proche que le
+joueur a vraiment tenu : 4 pour un cran (central → latéral, relayeur →
+pivot), 8 pour deux, 14 pour trois, 30 entre les buts et le champ, 2
+pour la mauvaise aile. Et **ses attributs** : chaque poste pèse les six
+axes à sa façon (`scoring.POIDS_POSTE`, la finition d'un buteur, la
+défense d'un central), et hors de son poste une carte paie la moitié de
+la distance moins ce que ses attributs valent de plus au nouveau poste
+qu'au sien. Raphinha, avec sa finition, joue buteur pour rien ; un
+central en pointe paie la distance et sa finition. Quand les attributs
+l'emportent, c'est un **bonus**, au plus +3, rare et mérité. La case le
+dit — orange pour un peu, rouge pour loin de chez lui, vert pour un
+bonus — avec **l'OVR qu'il vaut à ce poste**, et l'écran donne l'OVR
+moyen du onze au poste.
+
+Les postes s'écrivent comme dans FIFA — GB, DC, DG, DD, MDC, MC, MOC,
+AG, AD, BU — partout : sur les cases, dans la ligne de chaque joueur du
+club et des listes (ses postes tenus en premier), sur la fiche. Cinq
+4-3-3 se distinguent par leur milieu : (1) MC · MDC · MC, (2) MC · MC ·
+MC, (3) MC · MOC · MC, (4) MDC · MDC · MC, (5) MDC · MC · MOC. Le bouton « meilleur onze » prend, case par
 case, la carte qui vaut le plus *là* ; côté moteur, un onze de club ou
 un changement de formation résolvent la même question par une vraie
 affectation (hongroise) plutôt que case par case, ce qui évite la chaîne
