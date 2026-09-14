@@ -306,10 +306,25 @@ function recrue(c) {
   const j = G.saison?.derniere?.numero ?? 0;
   return c.arrivee > 0 && j - c.arrivee < 3;
 }
+// D'où vient la carte et où elle en est : la note initiale de la saison
+// (ovr_base, celle de l'amorce) et une flèche — verte si elle est montée
+// depuis, rouge si elle a baissé, un trait bleu si elle n'a pas bougé.
+function tendance(c, compact = false) {
+  if (c.ovr_base == null || c.ovr == null) return null;
+  const d = c.ovr - c.ovr_base;
+  const cls = d > 0 ? "plus" : d < 0 ? "moins" : "egal";
+  const fleche = d > 0 ? "▲" : d < 0 ? "▼" : "—";
+  return el("span", {class: "tend " + cls,
+    title: `Note initiale ${c.ovr_base}, aujourd'hui ${c.ovr}` + (d ? ` (${d > 0 ? "+" : ""}${d})` : " (inchangée)")},
+    fleche + (compact ? "" : " " + c.ovr_base));
+}
+
 // The drawn card (moteur/carte_design), the one the game trades, with the
 // light HTML box as a fallback while it loads or if the render is missing.
 function carteDessinee(c, largeur = 170, secours = null) {
   const d = el("div", {class: "dessin"});
+  const t = tendance(c);                      // sous l'OVR : d'où elle vient
+  if (t) d.append(t);
   secours = secours || el("div", {class: "mini"}, el("div", {},
     el("div", {class: "mh"}, el("div", {class: "o num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)), vignetteDe(c)),
     el("div", {class: "n"}, (c.nom || "").split(" ").slice(-1)[0])));
@@ -334,7 +349,7 @@ function ligneCarte(c) {
   l.append(carteDessinee(c, 120),
     el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, `${c.club} · ${POSTE_COURT[c.poste] || c.poste}${c.age ? " · " + c.age + " ans" : ""}${c.part > 0 ? " · " + Math.round(c.part * 100) + " % des équipes" : ""}`)),
     barresForme(c),
-    el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)),
+    el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr), tendance(c)),
     el("div", {class: "prix num"}, fM(c.prix), mien && Math.abs(delta) >= 0.005 ? el("div", {class: "delta " + (delta > 0 ? "plus" : "moins")}, fM(delta, true)) : null));
   l.append(boutonAchatVente(c, mien));
   return l;
@@ -624,7 +639,7 @@ async function rendreClub() {
     const c = x.carte; const l = el("div", {class: "ligne club-ligne" + (x.enchere_id ? " en-vente" : "")}); l.style.setProperty("--clubc", c.couleur);
     const delta = (x.cote || 0) - x.prix_achat;
     l.append(carteDessinee(c, 120), el("div", {class: "qui", tabindex: "0", onclick: () => ouvrirFiche(c.id)}, el("div", {class: "nom"}, c.nom, el("span", {class: "compteur"}, ` n° ${x.numero}`)), el("div", {class: "sous"}, `${c.club} · acheté ${fM(x.prix_achat)} · cote ${fM(x.cote)} `, el("span", {class: "delta " + (delta >= 0 ? "plus" : "moins")}, fM(delta, true)))),
-      el("span", {class: "fam " + c.fam}, FAM_COURT[c.fam]), el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)));
+      el("span", {class: "fam " + c.fam}, FAM_COURT[c.fam]), el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr), tendance(c)));
     const acts = el("div", {class: "club-actions"});
     if (x.enchere_id) acts.append(el("span", {class: "compteur"}, "en vente"), el("button", {onclick: () => montrer("encheres")}, "Voir"));
     else {
@@ -822,7 +837,7 @@ function ligneBanc(i, r) {
     el("button", {title: "Descendre", disabled: r === C.banc.length - 1, onclick: e => { e.stopPropagation(); [C.banc[r + 1], C.banc[r]] = [C.banc[r], C.banc[r + 1]]; rendreEquipe(false); }}, "▼"));
   l.append(ord, carteDessinee(c, 120), el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, c.club)),
     el("span", {class: "fams"}, ...famillesDe(c).map(f => el("span", {class: "fam " + f}, f))),
-    el("div", {class: "ovr num"}, String(c.ovr)));
+    el("div", {class: "ovr num"}, String(c.ovr), tendance(c)));
   return l;
 }
 async function envoyer() {
@@ -2765,7 +2780,7 @@ async function ouvrirFiche(id) {
       el("span", {title: d.pied ? "Pied fort, d'après FotMob" : "Pied fort inconnu : la donnée n'a pas été récupérée (donnees/pieds.py)"},
         "· " + (PIEDS[d.pied] || "pied inconnu"))),
     el("div", {class: "compteur"}, `${d.matchs} matchs, ${d.minutes} min cette saison · ${Math.round(d.part * 100)} % des équipes`),
-    el("div", {style: "display:flex;gap:14px;align-items:baseline;margin-top:6px"}, el("div", {class: "ovr num" + (d.ovr >= 80 ? " haut" : ""), style: "font-size:40px"}, String(d.ovr)), el("div", {class: "prix num", style: "font-size:22px"}, fM(d.prix))));
+    el("div", {style: "display:flex;gap:14px;align-items:baseline;margin-top:6px"}, el("div", {class: "ovr num" + (d.ovr >= 80 ? " haut" : ""), style: "font-size:40px"}, String(d.ovr), tendance(d)), el("div", {class: "prix num", style: "font-size:22px"}, fM(d.prix))));
   const dep = d.valeur_base != null ? `${fM(d.valeur_base)} à OVR ${d.ovr_base}` : "—";
   cote.append(el("div", {class: "compteur", style: "margin-top:6px"}, `Départ de saison : ${dep}`),
     el("div", {class: "compteur"}, d.valeur_marche != null ? `Valeur marchande réelle (FotMob) : ${fM(d.valeur_marche)}` : "Valeur marchande réelle inconnue : prix estimé d'après l'OVR"),

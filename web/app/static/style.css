@@ -831,3 +831,11 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 @keyframes popsurgir{from{opacity:0;transform:translate(-50%,-50%) scale(.6)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 @media (max-width:640px){.t2d-popup .titre{font-size:30px}.t2d-popup{padding:12px 20px}}
 @media (prefers-reduced-motion: reduce){.t2d-popup.on{animation:none;opacity:1;transform:translate(-50%,-50%)}}
+
+/* La tendance d'une carte : note initiale et flèche (montée, baisse, inchangée) */
+.tend{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:12px;letter-spacing:.03em;white-space:nowrap;line-height:1.2}
+.tend.plus{color:#4CAF7A}.tend.moins{color:#E0564F}.tend.egal{color:#4FC3F7}
+.ovr > .tend{display:block;font-size:11.5px;text-align:center;margin-top:1px}
+.dessin > .tend{position:absolute;right:6%;top:26%;z-index:2;font-size:12px;padding:1px 5px;border-radius:8px;background:rgba(8,10,18,.82);border:1px solid rgba(255,255,255,.18)}
+.ligne > .dessin > .tend{display:none}
+@media (max-width:640px){.dessin > .tend{font-size:11px;padding:0 4px}}
