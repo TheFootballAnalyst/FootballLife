@@ -43,7 +43,12 @@ from jeu import simulation as SM
 # the window the laws give, and the minute had moved on before the change
 # was recorded.  A single-player match can also be stopped outright
 # (`suspendre`), which is what an injury does.
-DUREE_REELLE = 360          # seconds of real time for the ninety minutes
+DUREE_REELLE = 360          # seconds of real time for the ninety minutes, ranked
+# A match against the machine (challenge, campaign) may run slower: six
+# minutes for ninety is a highlights reel, twelve or eighteen is a match
+# one follows from the bench.  A ranked match keeps the common clock —
+# two managers cannot each choose their own.
+DUREES = (360, 720, 1080)
 ECART_ELO_MAX = 250         # ranked pairing: never further apart than this
 K_CLASSE = 24               # ladder step, gentler than the gameweek's 32
 ATTENTE_MAX = 900           # a waiting entry older than this is stale
@@ -58,7 +63,7 @@ def _t(iso: str) -> datetime:
 
 
 def minute_courante(debut: str | None, maintenant_: datetime | None = None,
-                    pause: str | None = None, cumul: int = 0) -> int:
+                    pause: str | None = None, cumul: int = 0, duree: int | None = None) -> int:
     """The virtual minute a match kicked off at `debut` has reached.
 
     `pause` is the instant the clock was stopped, if it is stopped now, and
@@ -68,7 +73,13 @@ def minute_courante(debut: str | None, maintenant_: datetime | None = None,
         return 0
     fin = _t(pause) if pause else (maintenant_ or datetime.now(timezone.utc))
     ecoule = (fin - _t(debut)).total_seconds() - max(0, cumul)
-    return max(0, min(SM.MINUTES, int(ecoule / DUREE_REELLE * SM.MINUTES)))
+    return max(0, min(SM.MINUTES, int(ecoule / (duree or DUREE_REELLE) * SM.MINUTES)))
+
+
+def duree_de(r) -> int:
+    """The real seconds this match takes for its ninety minutes."""
+    d = _champ(r, "duree")
+    return int(d) if d else DUREE_REELLE
 
 
 def _champ(r, cle, defaut=None):
@@ -81,7 +92,8 @@ def _champ(r, cle, defaut=None):
 
 def minute_de(r, maintenant_: datetime | None = None) -> int:
     """The minute of a stored match, its pauses taken out."""
-    return minute_courante(r["debut"], maintenant_, _champ(r, "pause"), _champ(r, "pause_cumul", 0) or 0)
+    return minute_courante(r["debut"], maintenant_, _champ(r, "pause"), _champ(r, "pause_cumul", 0) or 0,
+                           duree_de(r))
 
 
 def en_pause(r) -> bool:
@@ -217,7 +229,7 @@ def en_cours(jeu, saison: str, equipe_id: int):
 
 def rejoindre(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict | None,
               formation: str = "4-3-3", defi: bool = False, graine: int | None = None,
-              banc: list[int] | None = None) -> int:
+              banc: list[int] | None = None, duree: int | None = None) -> int:
     """Enter the lobby.  Pairs with whoever is waiting at a close ranked
     Elo, else opens a waiting entry — or kicks off at once against a
     generated eleven when `defi`.  Returns the rencontre_id."""
@@ -256,12 +268,15 @@ def rejoindre(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict 
         onze_b = json.dumps(pris)
         banc_b = json.dumps(banc_defi(jeu, saison, niveau, graine, pris))
         tac_b = json.dumps(vars(SM.Tactique(**_tactique_defi(graine)).valide()))
+    # the clock: a challenge takes the pace its manager asked for, a ranked
+    # match the common one
+    duree_match = duree if defi and duree in DUREES else DUREE_REELLE
     cur = jeu.execute("""INSERT INTO rencontre(saison, equipe_a, equipe_b, defi, onze_a, onze_b, banc_a, banc_b,
-                            tactique_a, tactique_b, formation_a, formation_b, graine, debut, elo_a_avant, cree_le)
-                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                            tactique_a, tactique_b, formation_a, formation_b, graine, debut, elo_a_avant, cree_le, duree)
+                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                       (saison, equipe_id, None, int(defi), json.dumps(onze), onze_b, json.dumps(banc), banc_b,
                        tac, tac_b, formation, "4-3-3" if defi else None, graine,
-                       maintenant() if defi else None, elo, maintenant()))
+                       maintenant() if defi else None, elo, maintenant(), duree_match))
     jeu.commit()
     return cur.lastrowid
 
@@ -582,7 +597,7 @@ def arbitrer(jeu, r, f: dict) -> dict:
 def etat(jeu, saison: str, equipe_id: int) -> dict:
     """What the lobby screen shows: waiting, running (with the sheet so
     far) or nothing, plus the manager's ranked standing."""
-    out = {"duree": DUREE_REELLE, "minutes": SM.MINUTES, "etat": "libre", "match": None,
+    out = {"duree": DUREE_REELLE, "durees": list(DUREES), "minutes": SM.MINUTES, "etat": "libre", "match": None,
            "tactiques": {"tempo": list(SM.TEMPO), "bloc": list(SM.BLOC), "risque": list(SM.RISQUE)}}
     r = en_cours(jeu, saison, equipe_id)
     if r and r["debut"]:
@@ -601,6 +616,7 @@ def etat(jeu, saison: str, equipe_id: int) -> dict:
         out["match"] = {"rencontre_id": r["rencontre_id"], "depuis": r["cree_le"]}
         return out
     f = json.loads(r["feuille"]) if r["feuille"] else arbitrer(jeu, r, feuille(jeu, saison, r))
+    out["duree"] = duree_de(r)
     out["etat"] = "fini" if r["resultat"] else "en_cours"
     out["cote"] = "a" if r["equipe_a"] == equipe_id else "b"
     out["match"] = f | {"debut": r["debut"], "elo_avant": [r["elo_a_avant"], r["elo_b_avant"]],

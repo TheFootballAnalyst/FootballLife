@@ -292,6 +292,7 @@ def saison(jeu=Depends(bd)):
         "aise": {"max": SM.AISE_MAX, "z": SM.AISE_Z, "seuil": SM.ECART_AISE},
         "causeries": list(SM.CAUSERIES),
         "mi_temps": SM.MI_TEMPS, "duree_causerie": SM.DUREE_CAUSERIE,
+        "durees_match": list(LB.DUREES), "duree_match": LB.DUREE_REELLE,
     }
 
 
@@ -748,6 +749,7 @@ class EntreeLobby(BaseModel):
     banc: list[int] = []
     tactique: Optional[dict] = None
     defi: bool = False
+    duree: Optional[int] = None          # real seconds for ninety minutes, challenges only
 
 
 class Changement(BaseModel):
@@ -801,7 +803,8 @@ def equipe_tactique(t: TactiqueClub, u=Depends(exiger), jeu=Depends(bd)):
 def lobby_rejoindre(c: EntreeLobby, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     try:
-        rid = LB.rejoindre(jeu, SAISON, e["equipe_id"], c.onze, c.tactique, c.formation, c.defi, banc=c.banc)
+        rid = LB.rejoindre(jeu, SAISON, e["equipe_id"], c.onze, c.tactique, c.formation, c.defi, banc=c.banc,
+                           duree=c.duree)
     except LB.ErreurLobby as err:
         raise HTTPException(400, str(err))
     return {"rencontre_id": rid} | LB.etat(jeu, SAISON, e["equipe_id"])
@@ -896,6 +899,7 @@ class TourSolo(BaseModel):
     onze: list[int]
     banc: list[int] = []
     tactique: Optional[dict] = None
+    duree: Optional[int] = None
 
 
 @app.get("/api/solo")
@@ -930,7 +934,7 @@ def solo_jouer(t: TourSolo, u=Depends(exiger), jeu=Depends(bd)):
     to kick off, so it is played straight through."""
     e = equipe_de(jeu, u)
     try:
-        rid = SO.lancer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique, t.formation, banc=t.banc)
+        rid = SO.lancer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique, t.formation, banc=t.banc, duree=t.duree)
         r = None if rid else SO.jouer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique,
                                            t.formation, banc=t.banc)
     except (SO.ErreurSolo, LB.ErreurLobby) as err:

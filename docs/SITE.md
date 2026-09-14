@@ -11,7 +11,7 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 |---|---|
 | Connexion | créer un compte (pseudo, mot de passe, nom d'équipe) ; le premier compte est administrateur |
 | Cartes | toutes les cartes (écussons ou liste), filtres par poste, ligue, tri (OVR, prix, OVR par M€, forme, âge, popularité), fiche joueur, et le nombre de ventes en cours par joueur |
-| Packs | la boutique de la banque : quinze packs (trois niveaux, mixte ou par poste), ouverture animée, les cartes vont en réserve |
+| Packs | la boutique de la banque : vingt packs (bronze, argent, or, ultra ; mixte ou par ligne), ouverture animée, les cartes vont en réserve. L'Ultra Pack, 200 M€, fait dix cartes dont trois de 80 et plus garanties et sept de 75 et plus |
 | Enchères | l'hôtel des ventes : mises à prix, achat immédiat, offres (argent bloqué), fin de vente ; tes ventes et tes offres |
 | Lobby | le match classé : ton onze contre celui d'un autre manager, joué avec les cartes sur un terrain 2D où elles jouent vraiment les actions, six minutes pour quatre-vingt-dix, tactique, formation et remplacements en direct ; ton Elo classé et tes derniers matchs |
 | Solo | la campagne : tu prends la place d'un vrai club dans une vraie compétition et tu joues son calendrier contre les onze des autres clubs ; crédits et packs selon la place ou le tour atteint |
@@ -162,6 +162,16 @@ Si personne n'attend, le bouton « défi » te fait jouer tout de suite
 contre un onze assemblé à ton niveau. Un défi ne touche pas ton Elo
 classé : le classement n'enregistre que ce qui s'est joué contre
 quelqu'un.
+
+## Le rythme du match
+
+Un match classé entre deux managers dure six minutes réelles pour
+quatre-vingt-dix, horloge commune. Contre la machine — défi, campagne —
+tu choisis le rythme au coup d'envoi : 6, 12 ou 18 minutes. Six, c'est
+un résumé ; douze, le réglage par défaut, laisse le temps de voir une
+passe partir et arriver ; dix-huit se suit comme depuis le banc. Le
+choix est mémorisé, l'horloge est celle de la rencontre
+(`rencontre.duree`), et les courses des joueurs s'allongent avec elle.
 
 ## L'écran de match
 
@@ -567,7 +577,9 @@ triangle. Trois milieux axiaux dans ces trois cases ne coûtent qu'un
 cran au relayeur qui joue pivot.
 
 Un champ de recherche au-dessus du banc filtre le banc et le club par
-nom et allume la carte sur le terrain.
+nom et allume la carte sur le terrain ; « Mon club » se filtre aussi par
+poste tenu (GB, DC, DG… en codes) et se trie par OVR, évolution depuis
+le début de saison, cote, prix d'achat, plus-value ou nom.
 
 Le rangement est enregistré case par case : il revient tel que tu l'as
 laissé au rechargement.

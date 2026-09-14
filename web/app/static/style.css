@@ -850,3 +850,11 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 
 .slot.bonus .mini > div{outline:2px solid #4CAF7A;outline-offset:2px}
 .slot-poste.bonus{background:#2E7D5B;color:#eafff4;border-color:#6ad3a3}
+
+.filtres-club{display:flex;gap:8px;flex-wrap:wrap}
+.filtres-club select{max-width:220px}
+.rythme{margin:8px 0}
+.rythme .compteur{margin-left:8px}
+.pack.ultra{--tier:rgba(120,90,255,.5);border-color:rgba(150,120,255,.55)}
+.pack.ultra .pack-carte{background:linear-gradient(170deg,#7B6CFF,#2A1E7A)}
+.pack.ultra .pack-prix{color:#c9bfff}

@@ -44,14 +44,21 @@ QUOTA: dict[str, int] = {}
 TAILLE_EFFECTIF = 18
 RESERVE_MAX = None          # no cap: a club may hold as many cards as it buys
 
-TIERS = {"bronze": (0, 59), "argent": (60, 74), "or": (75, 99)}
-CARTES_PAR_PACK = 3
-# a gold pack guarantees one gold card, the other two are silver
+TIERS = {"bronze": (0, 59), "argent": (60, 74), "or": (75, 99), "elite": (80, 99)}
+CARTES_PAR_PACK = 3          # the three small packs; a pack's real size is len(tirages)
+# a gold pack guarantees one gold card, the other two are silver; the ultra
+# pack is ten cards, three of them 80 or better
 PACKS = {
     "bronze": {"prix": 6.0, "tirages": ("bronze", "bronze", "bronze"), "nom": "Pack Bronze", "desc": "3 cartes de moins de 60"},
     "argent": {"prix": 25.0, "tirages": ("argent", "argent", "argent"), "nom": "Pack Argent", "desc": "3 cartes de 60 à 74"},
     "or":     {"prix": 50.0, "tirages": ("or", "argent", "argent"), "nom": "Pack Or", "desc": "1 carte de 75 et plus, 2 cartes de 60 à 74"},
+    "ultra":  {"prix": 200.0, "tirages": ("elite",) * 3 + ("or",) * 7, "nom": "Ultra Pack",
+               "desc": "10 cartes : 3 de 80 et plus garanties, 7 de 75 et plus"},
 }
+
+
+def taille_pack(cle: str) -> int:
+    return len(PACKS[cle]["tirages"])
 SUPPLEMENT_POSTE = 0.2        # +20 % for a pack of one family
 PLAFOND_MIN, PLAFOND_PART = 3, 0.25    # copies of a player: max(3, 25 % of the teams)
 RACHAT_BANQUE = 0.40
@@ -102,31 +109,43 @@ def copies_en_circulation(jeu, saison: str) -> dict[int, int]:
         "SELECT player_id, COUNT(*) FROM exemplaire WHERE saison=? AND detruit=0 GROUP BY player_id", (saison,))}
 
 
-def eligibles(jeu, saison: str, tier: str, fam: str | None, plafond: int) -> list[tuple[int, float, int]]:
+def _cartes_tirables(jeu, saison: str, plafond: int) -> list[tuple[int, float, int, str]]:
+    """Every card a pack could draw, with its family, copies under the cap
+    already taken out — read ONCE, since the catalogue asks twenty times."""
+    circ = copies_en_circulation(jeu, saison)
+    return [(pid, prix, ovr, S.FAMILLE_POSTE.get(poste, "MID"))
+            for pid, prix, ovr, poste in jeu.execute(
+                "SELECT c.player_id, c.prix, c.ovr, j.poste FROM carte c JOIN joueur j ON j.player_id=c.player_id "
+                "WHERE c.saison=?", (saison,))
+            if circ.get(pid, 0) < plafond]
+
+
+def eligibles(jeu, saison: str, tier: str, fam: str | None, plafond: int,
+              source: list | None = None) -> list[tuple[int, float, int]]:
     """[(player_id, cote, ovr)] the pack can draw from."""
     lo, hi = TIERS[tier]
-    circ = copies_en_circulation(jeu, saison)
-    out = []
-    for pid, prix, ovr, poste in jeu.execute(
-            "SELECT c.player_id, c.prix, c.ovr, j.poste FROM carte c JOIN joueur j ON j.player_id=c.player_id "
-            "WHERE c.saison=? AND c.ovr BETWEEN ? AND ?", (saison, lo, hi)):
-        if fam and S.FAMILLE_POSTE.get(poste, "MID") != fam:
-            continue
-        if circ.get(pid, 0) >= plafond:
-            continue
-        out.append((pid, prix, ovr))
-    return out
+    source = source if source is not None else _cartes_tirables(jeu, saison, plafond)
+    return [(pid, prix, ovr) for pid, prix, ovr, f in source
+            if lo <= ovr <= hi and (not fam or f == fam)]
 
 
 def catalogue_packs(jeu, saison: str, ligue_jeu_id: int) -> list[dict]:
+    """The twenty packs, and whether each can still be filled.  One read
+    of the cards for the lot: the old version scanned them sixty times and
+    the packs screen took a second to open."""
     plafond = plafond_copies(jeu, ligue_jeu_id)
+    source = _cartes_tirables(jeu, saison, plafond)
     out = []
     for cle, p in PACKS.items():
         for fam in (None, "GK", "DEF", "MID", "FWD"):
-            dispo = min(len(eligibles(jeu, saison, t, fam, plafond)) for t in set(p["tirages"]))
+            besoin = {t: p["tirages"].count(t) for t in set(p["tirages"])}
+            n = {t: len(eligibles(jeu, saison, t, fam, plafond, source)) for t in besoin}
+            # enough distinct cards for every draw of every tier the pack makes
+            dispo = min(n[t] for t in besoin)
+            ok = all(n[t] >= besoin[t] for t in besoin) and len({pid for t in besoin for pid, _, _ in eligibles(jeu, saison, t, fam, plafond, source)}) >= taille_pack(cle)
             prix = round(p["prix"] * (1 + SUPPLEMENT_POSTE if fam else 1), 1)
             out.append({"type": cle, "fam": fam, "nom": p["nom"] + (f" · {fam}" if fam else ""), "desc": p["desc"],
-                        "prix": prix, "cartes": CARTES_PAR_PACK, "disponible": dispo >= CARTES_PAR_PACK, "eligibles": dispo})
+                        "prix": prix, "cartes": taille_pack(cle), "disponible": ok, "eligibles": dispo})
     return out
 
 
@@ -163,14 +182,15 @@ def ouvrir_pack(jeu, saison: str, equipe_id: int, type_pack: str, fam: str | Non
     elif budget + 1e-9 < prix:
         raise ErreurMarche(f"Budget insuffisant : le pack coûte {prix:.1f} M€")
     reserve = _un(jeu, "SELECT COUNT(*) FROM exemplaire WHERE equipe_id=? AND detruit=0 AND dans_effectif=0", (equipe_id,))[0]
-    if RESERVE_MAX is not None and reserve + CARTES_PAR_PACK > RESERVE_MAX:
+    if RESERVE_MAX is not None and reserve + taille_pack(type_pack) > RESERVE_MAX:
         raise ErreurMarche(f"Réserve pleine ({RESERVE_MAX} cartes) : vends ou aligne avant d'ouvrir")
     rng = rng or random.SystemRandom()
     plafond = plafond_copies(jeu, lid)
+    source = _cartes_tirables(jeu, saison, plafond)
     pris: set[int] = set()
     tirage = []
     for tier in p["tirages"]:
-        cands = [c for c in eligibles(jeu, saison, tier, fam, plafond) if c[0] not in pris]
+        cands = [c for c in eligibles(jeu, saison, tier, fam, plafond, source) if c[0] not in pris]
         if not cands:
             raise ErreurMarche("Plus assez de cartes disponibles pour ce pack")
         c = rng.choice(cands)

@@ -109,7 +109,12 @@
         <div class="terrain" id="terrain"></div>
         <p class="info" id="compo-etat"></p>
         <div class="pan" style="margin-top:20px">
-          <div class="tete"><h2 class="anton">Mon club</h2><span class="compteur" id="club-compteur"></span></div>
+          <div class="tete"><h2 class="anton">Mon club</h2><span class="compteur" id="club-compteur"></span>
+            <div class="droite filtres-club">
+              <select id="club-poste"><option value="">Tous les postes</option></select>
+              <select id="club-tri"><option value="ovr">Tri : OVR</option><option value="tendance">Tri : évolution</option><option value="cote">Tri : cote</option><option value="achat">Tri : prix d'achat</option><option value="plus">Tri : plus-value</option><option value="nom">Tri : nom</option></select>
+            </div></div>
+          <p class="compteur">La recherche par nom, au-dessus du banc, filtre aussi cette liste.</p>
           <div class="club" id="club-liste"></div>
         </div>
       </div>

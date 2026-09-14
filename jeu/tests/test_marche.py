@@ -129,3 +129,25 @@ def test_the_copy_cap_can_be_raised_or_lifted_from_the_environment(monkeypatch):
     assert MA.plafond_copies(jeu, 1) == MA.PLAFOND_MIN
     monkeypatch.delenv("FL_PLAFOND_COPIES")
     assert MA.plafond_copies(jeu, 1) == MA.PLAFOND_MIN
+
+
+def test_the_ultra_pack_is_ten_cards_three_of_them_elite(monkeypatch):
+    jeu = base_marche()
+    monkeypatch.setenv("FL_PLAFOND_COPIES", "0")
+    # a base with enough gold and elite cards: eleven at 82, twenty at 76
+    for k in range(31):
+        pid = 500 + k
+        jeu.execute("INSERT INTO joueur(player_id, nom, nom_normalise, team_id, poste, postes) VALUES (?,?,?,1,'Buteur','[\"Buteur\"]')",
+                    (pid, f"U{pid}", f"u{pid}"))
+        jeu.execute("INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, attributs, matchs, minutes, maj) VALUES (?,?,7,?,?,'{}',10,900,'x')",
+                    (pid, SAISON, 82 if k < 11 else 76, 40.0))
+    jeu.execute("UPDATE equipe SET budget=1000 WHERE equipe_id=1")
+    jeu.commit()
+    cat = {(p["type"], p["fam"]): p for p in MA.catalogue_packs(jeu, SAISON, 1)}
+    assert cat[("ultra", None)]["cartes"] == 10 and cat[("ultra", None)]["disponible"]
+    assert cat[("ultra", None)]["prix"] == 200.0
+    assert not cat[("ultra", "GK")]["disponible"]           # no ten keepers at that level
+    cartes = MA.ouvrir_pack(jeu, SAISON, 1, "ultra")
+    assert len(cartes) == 10 and len({c["player_id"] for c in cartes}) == 10
+    assert sum(1 for c in cartes if c["ovr"] >= 80) >= 3 and all(c["ovr"] >= 75 for c in cartes)
+    assert abs(budget(jeu, 1) - 800) < 1e-6

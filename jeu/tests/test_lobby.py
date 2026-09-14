@@ -432,3 +432,19 @@ def test_two_players_can_exchange_their_positions_during_a_match():
         assert apres[ONZE[1]]["slot"] == avant[ONZE[5]]["slot"] and apres[ONZE[5]]["slot"] == avant[ONZE[1]]["slot"]
     # it is not a substitution: the five changes are all still there
     assert f["changements"][0] == 0
+
+
+def test_a_challenge_runs_at_the_pace_its_manager_chose():
+    jeu = base_avec_equipes(1)
+    rid = LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True, banc=BANC, duree=1080)
+    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (rid,)).fetchone()
+    assert LB.duree_de(r) == 1080
+    # three times slower: after DUREE_REELLE seconds it is only at the half hour
+    r = _reculer(jeu, r, LB.DUREE_REELLE)
+    assert LB.minute_de(r) == 30
+    assert LB.etat(jeu, "2025/26", 1)["duree"] == 1080
+    # an unknown pace, or a ranked match, keeps the common clock
+    LB.quitter(jeu, "2025/26", 1)
+    jeu.execute("DELETE FROM rencontre"); jeu.commit()
+    rid = LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True, banc=BANC, duree=999)
+    assert LB.duree_de(jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (rid,)).fetchone()) == LB.DUREE_REELLE

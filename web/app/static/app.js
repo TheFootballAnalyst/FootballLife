@@ -154,7 +154,7 @@ try { marcheVue = localStorage.getItem("fl_vue") || "cartes"; } catch (e) {}
 document.querySelectorAll(".vue button").forEach(b => b.addEventListener("click", () => { marcheVue = b.dataset.vue; try { localStorage.setItem("fl_vue", marcheVue); } catch (e) {} rendreMarche(); }));
 document.querySelectorAll("#pills-fam button").forEach(b => b.addEventListener("click", () => { $("#f-fam").value = b.dataset.fam; document.querySelectorAll("#pills-fam button").forEach(x => x === b ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current")); marcheLimite = 60; rendreMarche(); }));
 // ---- the market: packs, club, auctions ----
-const TIER_TXT = {bronze: "Bronze", argent: "Argent", or: "Or"};
+const TIER_TXT = {bronze: "Bronze", argent: "Argent", or: "Or", ultra: "Ultra"};
 const resteTxt = fin => { const ms = new Date(fin) - Date.now(); if (ms <= 0) return "terminée"; const h = Math.floor(ms / 3.6e6), m = Math.floor(ms % 3.6e6 / 6e4); return h ? `${h} h ${String(m).padStart(2, "0")}` : `${m} min`; };
 async function rendrePacks() {
   G.packs = await api("/packs");
@@ -404,6 +404,10 @@ let POSTE_ABBR = {"Gardien": "GB", "Defenseur central": "DC", "Lateral": "DG/DD"
   "Ailier": "AG/AD", "Ailier droit": "AD", "Ailier gauche": "AG", "Buteur": "BU"};
 // les postes tenus d'une carte, en codes : « AD / BU »
 const codesDe = c => ((c.postes && c.postes.length) ? c.postes : [c.poste]).map(p => POSTE_ABBR[p] || p).join(" / ");
+// les postes qu'on peut filtrer, en codes
+const FILTRES_POSTE = {GB: "GB · gardien", DC: "DC · défenseur central", DG: "DG · latéral gauche", DD: "DD · latéral droit",
+  MDC: "MDC · milieu défensif", MC: "MC · milieu relayeur", MOC: "MOC · meneur", MG: "MG · milieu gauche", MD: "MD · milieu droit",
+  AG: "AG · ailier gauche", AD: "AD · ailier droit", BU: "BU · buteur"};
 function legal(fams) { return fams.length === 11 && fams.every(x => !!x); }
 // A card is eligible wherever the player really played, not only at the one
 // label the barème shows: Valverde spent a third of his season at right
@@ -654,9 +658,20 @@ function bilanAise() {
 async function rendreClub() {
   const d = await api("/club"); G.club = d.cartes;
   const R = $("#club-liste"); R.replaceChildren();
+  // les filtres : le nom (le champ au-dessus du banc), le poste tenu, le tri
   const q = normEq();
-  const garde = x => !q || norm(x.carte.nom).includes(q) || norm(x.carte.club || "").includes(q);
-  const eff = d.cartes.filter(x => x.dans_effectif && garde(x)), res = d.cartes.filter(x => !x.dans_effectif && garde(x));
+  const selPoste = $("#club-poste");
+  if (selPoste && selPoste.options.length <= 1) {
+    for (const [code, lib] of Object.entries(FILTRES_POSTE)) selPoste.append(el("option", {value: code}, lib));
+  }
+  const codeVoulu = selPoste ? selPoste.value : "";
+  const tri = $("#club-tri") ? $("#club-tri").value : "ovr";
+  const tient = (c, code) => ((c.postes && c.postes.length) ? c.postes : [c.poste]).some(p => (POSTE_ABBR[p] || "").split("/").includes(code));
+  const garde = x => (!q || norm(x.carte.nom).includes(q) || norm(x.carte.club || "").includes(q)) && (!codeVoulu || tient(x.carte, codeVoulu));
+  const cle = {ovr: x => -x.carte.ovr, tendance: x => -(x.carte.ovr - (x.carte.ovr_base ?? x.carte.ovr)), cote: x => -(x.cote || 0),
+               achat: x => -x.prix_achat, plus: x => -((x.cote || 0) - x.prix_achat), nom: x => 0}[tri] || (x => -x.carte.ovr);
+  const ordre = (a, b) => cle(a) - cle(b) || a.carte.nom.localeCompare(b.carte.nom);
+  const eff = d.cartes.filter(x => x.dans_effectif && garde(x)).sort(ordre), res = d.cartes.filter(x => !x.dans_effectif && garde(x)).sort(ordre);
   $("#club-compteur").textContent = `${eff.length} / ${d.effectif_max} dans l'effectif · ${res.length}${d.reserve_max == null ? "" : " / " + d.reserve_max} en réserve`;
   const ligne = x => {
     const c = x.carte; const l = el("div", {class: "ligne club-ligne" + (x.enchere_id ? " en-vente" : "")}); l.style.setProperty("--clubc", c.couleur);
@@ -1013,10 +1028,28 @@ function selecteurTactique(tac, onChange) {
   return d;
 }
 
+// Le rythme d'un match contre la machine : six minutes pour quatre-vingt-dix
+// est un résumé, douze ou dix-huit un match qu'on suit du banc.  Mémorisé.
+let RYTHME = 720;
+try { RYTHME = +localStorage.getItem("fl_rythme") || 720; } catch (e) {}
+function selecteurRythme(d) {
+  const choix = (d.durees || G.saison?.durees_match || [360, 720, 1080]);
+  if (!choix.includes(RYTHME)) RYTHME = choix[Math.min(1, choix.length - 1)];
+  const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, "Rythme"));
+  const maj = () => g.querySelectorAll("button").forEach(b => b.classList.toggle("actif", +b.dataset.d === RYTHME));
+  for (const s of choix)
+    g.append(el("button", {class: "tac", "data-d": String(s), title: `${Math.round(s / 60)} minutes réelles pour les 90`,
+      onclick: () => { RYTHME = s; try { localStorage.setItem("fl_rythme", String(s)); } catch (e) {} maj(); }},
+      `${Math.round(s / 60)} min`));
+  maj();
+  return el("div", {class: "tactiques rythme"}, g,
+    el("span", {class: "compteur"}, "Un match classé contre un autre manager reste à 6 minutes, l'horloge est commune."));
+}
+
 function panneauEntree(d) {
   const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Lance un match"));
   p.append(el("p", {class: "compteur"},
-    `Ton onze joue contre celui d'un autre manager, avec les attributs de tes cartes. ${Math.round(d.duree / 60)} minutes pour 90, tu ajustes en direct.`));
+    `Ton onze joue contre celui d'un autre manager, avec les attributs de tes cartes. ${Math.round(d.duree / 60)} minutes pour 90 en classé, tu ajustes en direct.`));
   const onze = C.slots.every(x => x !== null) ? C.slots.slice() : null;
   if (!onze) {
     p.append(el("div", {class: "avert"}, "Ton onze n'est pas complet : va dans Équipe le compléter, il sert aussi ici."));
@@ -1043,6 +1076,7 @@ function panneauEntree(d) {
   p.append(el("p", {class: "compteur"},
     "Réglée une fois, elle sert à tous tes matchs — tu la retrouves aussi sur l'écran Équipe."));
   const acts = el("div", {class: "actions", style: "justify-content:flex-start"});
+  p.append(selecteurRythme(d));
   acts.append(el("button", {class: "primaire", onclick: () => entrerLobby(onze, false)}, "Chercher un adversaire"),
     el("button", {onclick: () => entrerLobby(onze, true)}, "Jouer un défi tout de suite"));
   p.append(acts);
@@ -1051,7 +1085,7 @@ function panneauEntree(d) {
 }
 
 async function entrerLobby(onze, defi) {
-  try { await rendreLobby(await api("/lobby/rejoindre", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac, defi})); }
+  try { await rendreLobby(await api("/lobby/rejoindre", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac, defi, duree: defi ? RYTHME : null})); }
   catch (e) { toast(e.message); }
 }
 
@@ -1411,6 +1445,7 @@ function panneauCampagne(d) {
             + (c.prochain.aller ? ` · aller ${c.prochain.aller.moi} – ${c.prochain.aller.lui}` : ""))));
       p.append(ligne);
       p.append(selecteurTactique(LOBBY.tac, () => {}));
+      p.append(selecteurRythme({durees: G.saison?.durees_match}));
       p.append(el("div", {class: "actions"},
         el("button", {class: "primaire", onclick: () => jouerSolo(onze)},
           c.prochain.manche === 2 ? "Jouer le match retour" : "Jouer le match")));
@@ -1504,7 +1539,7 @@ async function jouerSolo(onze) {
   // a victory.
   const place = SOLO.d?.campagne?.place;
   let r;
-  try { r = await api("/solo/jouer", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac}); }
+  try { r = await api("/solo/jouer", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac, duree: RYTHME}); }
   catch (e) { toast(e.message); return; }
   await rafraichir(false);
   await rendreSolo(r);
@@ -1718,22 +1753,29 @@ function jauges(m) {
 // Où se trouve un point du terrain À L'ÉCRAN.  Tu attaques toujours vers
 // la droite, quel que soit ton côté de la feuille, donc le camp adverse
 // est dessiné en miroir.
-function ecran(cote, x, y, moi) {
+function ecran(cote, x, y, moi, brut = false) {
   // Les deux camps jouent la même forme en miroir : sans écart, leurs
   // milieux se posent exactement au même endroit et les noms se
-  // chevauchent.  On les décale en largeur ET en profondeur, chacun d'un
-  // côté, pour que les vingt-deux restent lisibles.
+  // chevauchent.  On les décale un peu en largeur et en profondeur,
+  // chacun d'un côté, pour que les vingt-deux restent lisibles.  Pas le
+  // gardien ni le ballon (`brut`) : un gardien décalé n'est plus dans
+  // l'axe de son but, et le ballon doit être exactement où il est.
   const mien = cote === moi;
-  const xx = Math.max(0.02, Math.min(0.98, x + (mien ? -0.018 : 0.018)));
+  const dx = brut ? 0 : (mien ? -0.012 : 0.012), dy = brut ? 0 : (mien ? -0.035 : 0.035);
+  const xx = Math.max(0.02, Math.min(0.98, x + dx));
   const gauche = mien ? xx : 1 - xx;
-  const haut = (mien ? y : 1 - y) + (mien ? -0.055 : 0.055);
+  const haut = (mien ? y : 1 - y) + dy;
   return [gauche, Math.max(0.05, Math.min(0.95, haut))];
 }
 
-// Le but qu'attaque un camp, à l'écran.
+// Le but qu'attaque un camp, à l'écran.  La cage fait 19 % de la hauteur
+// du terrain : une frappe cadrée tombe ENTRE les poteaux — à 0,30 les
+// frappes au ras du poteau sortaient de la cage et tout ressemblait à
+// un poteau rentrant.
+const LARGEUR_BUT = 0.16;
 function buts(cote, moi, t) {
   const gauche = cote === moi ? 0.975 : 0.025;
-  return [gauche, 0.5 + ((t === undefined ? 0.5 : t) - 0.5) * 0.30];
+  return [gauche, 0.5 + ((t === undefined ? 0.5 : t) - 0.5) * LARGEUR_BUT];
 }
 
 // ---------------------------------------------------------------------------
@@ -1882,15 +1924,17 @@ function placeGardien(sien, phase, xb, yb) {
   const contre = !sien && (phase.k === "tir" || phase.k === "but" || phase.k === "rate");
   if (contre) {
     const t = phase.t === undefined ? (T2D.dernierTir ?? 0.5) : phase.t;
-    const yt = 0.5 + (t - 0.5) * 0.30;
-    if (phase.k === "but") return [0.035, 0.5 + (yt - 0.5) * -0.6];        // battu, de l'autre côté
+    const yt = 0.5 + (t - 0.5) * LARGEUR_BUT;
+    if (phase.k === "but") return [0.03, 0.5 + (yt - 0.5) * -0.7];         // battu, parti de l'autre côté
     return [0.03, 1 - yt];                                                    // le but visé, vu de sa ligne
   }
   if (sien && (phase.k === "arret" || phase.k === "relance" || phase.k === "degagement")) return null; // porteur : il est au ballon
-  // le ballon vu de lui : yb est déjà dans son repère
+  // Dans l'axe, sur sa ligne, la plupart du temps.  Il ne s'en écarte
+  // qu'un peu, vers le côté du ballon quand celui-ci approche, et il
+  // avance de quelques mètres quand le jeu est loin.
   const loin = Math.max(0, Math.min(1, xb));                                  // 0 : sur sa ligne, 1 : tout là-bas
-  const x = 0.035 + 0.05 * loin;
-  const y = 0.5 + (yb - 0.5) * (0.20 + 0.15 * (1 - loin));
+  const x = 0.03 + 0.045 * loin;
+  const y = 0.5 + (yb - 0.5) * (0.06 + 0.16 * (1 - loin));
   return [x, y];
 }
 
@@ -1946,11 +1990,13 @@ function bougerTerrain(t, cote, zone, moi, ph) {
   }
   for (const [cle, p] of Object.entries(T2D.pions)) {
     const c = cle.slice(0, 1), v = places[cle];
-    const [g, h] = ecran(c, clamp(v.x, 0.02, 0.97), clamp(v.y, 0.04, 0.96), moi);
+    const [g, h] = ecran(c, clamp(v.x, 0.02, 0.97), clamp(v.y, 0.04, 0.96), moi, v.gk || cle === porteurCle);
     p.style.left = (g * 100) + "%";
     p.style.top = (h * 100) + "%";
-    // le porteur arrive avec le ballon, les autres à leur rythme
-    p.style.transitionDuration = cle === porteurCle && T2D.dureeBallon ? T2D.dureeBallon + "ms" : "";
+    // le porteur arrive avec le ballon, les autres au rythme du match :
+    // plus la minute est longue, plus les courses sont posées
+    const lent = Math.round(Math.max(700, Math.min(1600, (T2D.dureeBallon || 500) * 1.3)));
+    p.style.transitionDuration = (cle === porteurCle && T2D.dureeBallon ? T2D.dureeBallon : lent) + "ms";
   }
 }
 
@@ -1958,7 +2004,7 @@ function bougerTerrain(t, cote, zone, moi, ph) {
 // ligne, à l'endroit visé par la frappe — pas au milieu de sa surface.
 function ballonArret(ph) {
   const t = T2D.dernierTir ?? 0.5;
-  return [0.03, 1 - (0.5 + (t - 0.5) * 0.30)];
+  return [0.03, 1 - (0.5 + (t - 0.5) * LARGEUR_BUT)];
 }
 
 // Une phase : le ballon va où elle dit, le porteur s'allume, et pour un
@@ -1999,10 +2045,10 @@ function jouerPhase(t, ph, moi) {
       if (cage) { cage.classList.remove("ondule"); void cage.offsetWidth; cage.classList.add("ondule"); }
     }
   } else if (ph.k === "arret") {
-    [g, h] = ecran(cote, ...ballonArret(ph), moi);
+    [g, h] = ecran(cote, ...ballonArret(ph), moi, true);
   } else {
     const [bx, by] = ballonDe(ph);
-    [g, h] = ecran(cote, bx, by, moi);
+    [g, h] = ecran(cote, bx, by, moi, true);
   }
   b.style.left = (g * 100) + "%"; b.style.top = (h * 100) + "%";
   ombre.style.left = (g * 100) + "%"; ombre.style.top = (h * 100) + "%";
@@ -2054,7 +2100,6 @@ const DUREE_POPUP = 3800;
 function surgir(t, evt, moi) {
   const p = t.querySelector(".t2d-popup");
   if (!p) return;
-  clearTimeout(T2D.popupTimer);
   moi = moi === "b" || moi === 1 ? 1 : 0;                 // T2D.moi est « a » ou « b »
   const mien = evt.cote === "AB"[moi];
   let titre, sous, classe = evt.type;
@@ -2064,6 +2109,10 @@ function surgir(t, evt, moi) {
   } else if (evt.type === "rouge") { titre = "CARTON ROUGE"; sous = evt.texte; }
   else if (evt.type === "penalty_manque") { titre = "PENALTY MANQUÉ"; sous = evt.texte; }
   else return;
+  // Le minuteur ne s'annule qu'ici, une fois sûr qu'une pop-up remplace
+  // l'autre : l'annuler pour un événement sans pop-up (la faute qui suit
+  // un penalty) laissait la précédente à l'écran jusqu'au but suivant.
+  clearTimeout(T2D.popupTimer);
   const score = evt.score ? (moi === 0 ? `${evt.score[0]} – ${evt.score[1]}` : `${evt.score[1]} – ${evt.score[0]}`) : "";
   p.replaceChildren(el("div", {class: "titre anton"}, titre),
     el("div", {class: "sous"}, sous),
@@ -2797,6 +2846,7 @@ $("#btn-auto").addEventListener("click", () => auto(C.formation));
 // la recherche : un instant après la frappe, pas à chaque touche
 let EQ_RECH = null;
 $("#eq-nom").addEventListener("input", () => { clearTimeout(EQ_RECH); EQ_RECH = setTimeout(() => rendreEquipe(false), 160); });
+for (const id of ["club-poste", "club-tri"]) $("#" + id).addEventListener("change", () => rendreClub());
 $("#btn-envoyer").addEventListener("click", envoyer);
 $("#fiche").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
 

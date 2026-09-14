@@ -273,6 +273,7 @@ CREATE TABLE IF NOT EXISTS rencontre (
     arrets_vus       TEXT,                          -- JSON [player_id] the referee already stopped play for
     causerie_a       TEXT, causerie_b TEXT,          -- ce que chaque manager a dit à la mi-temps
     permutations     TEXT NOT NULL DEFAULT '{}',    -- JSON {minute: [[[pid, pid], ...] A, [...] B]} : deux joueurs échangent leurs postes
+    duree            INTEGER,                       -- secondes réelles pour les 90 minutes (NULL : lobby.DUREE_REELLE)
     cree_le          TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_rencontre_attente ON rencontre(saison, equipe_b, debut);

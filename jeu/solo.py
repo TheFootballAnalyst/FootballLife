@@ -659,7 +659,7 @@ def match_en_cours(jeu, camp):
 
 
 def lancer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict | None,
-                formation: str = "4-3-3", banc: list[int] | None = None) -> int:
+                formation: str = "4-3-3", banc: list[int] | None = None, duree: int | None = None) -> int:
     """Kick YOUR match of the round off, live.
 
     It is an ordinary `rencontre` row tied to the campaign, so it uses the
@@ -696,8 +696,8 @@ def lancer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dic
     rempl = {str(m): ([], [[s, e] for s, e in paires]) for m, paires in plan.items()}
     cur = jeu.execute("""INSERT INTO rencontre(saison, equipe_a, equipe_b, defi, onze_a, banc_a, tactique_a,
                             onze_b, banc_b, tactique_b, formation_a, formation_b, remplacements, graine,
-                            debut, campagne_id, tour, nom_adverse, domicile, cree_le)
-                         VALUES (?,?,?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                            debut, campagne_id, tour, nom_adverse, domicile, cree_le, duree)
+                         VALUES (?,?,?,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                       (saison, equipe_id, None,
                        json.dumps(onze), json.dumps(banc),
                        json.dumps(vars(SM.Tactique(**(tactique or {})).valide())),
@@ -705,7 +705,8 @@ def lancer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dic
                        json.dumps([j["pid"] for j in eq_adv.banc]),
                        json.dumps(vars(eq_adv.tactique)), formation, eq_adv.formation,
                        json.dumps(rempl), g, LB.maintenant(), camp["campagne_id"], tour,
-                       clubs[adv]["nom"], int(a == moi), maintenant()))
+                       clubs[adv]["nom"], int(a == moi), maintenant(),
+                       duree if duree in LB.DUREES else LB.DUREE_REELLE))
     jeu.commit()
     return cur.lastrowid
 
@@ -996,7 +997,7 @@ def etat(jeu, saison: str, equipe_id: int) -> dict:
         cloturer_tour(jeu, saison, equipe_id)
         return etat(jeu, saison, equipe_id)
     live = (LB.arbitrer(jeu, r, LB.feuille(jeu, saison, r))
-            | {"duree": LB.DUREE_REELLE, "minutes": SM.MINUTES,
+            | {"duree": LB.duree_de(r), "minutes": SM.MINUTES,
                "cote": "a", "domicile": bool(r["domicile"])}
             if r is not None else None)
     clubs = _clubs_du(jeu, saison, camp)
