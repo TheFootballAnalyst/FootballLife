@@ -6,9 +6,9 @@ const QUOTA = {};
 const FAMS = ["GK", "DEF", "MID", "FWD"];
 const NOM_FAM = {GK: "Gardien", DEF: "Défenseur", MID: "Milieu", FWD: "Attaquant"};
 const PLURIEL = {GK: "gardiens", DEF: "défenseurs", MID: "milieux", FWD: "attaquants"};
-const POSTE_COURT = {"Gardien":"Gardien","Defenseur central":"Défenseur central","Lateral":"Latéral","Lateral gauche":"Latéral gauche","Lateral droit":"Latéral droit","Milieu defensif":"Milieu défensif","Milieu relayeur":"Milieu relayeur","Milieu offensif":"Meneur","Ailier":"Ailier","Ailier droit":"Ailier droit","Ailier gauche":"Ailier gauche","Buteur":"Buteur"};
+const POSTE_COURT = {"Gardien":"Gardien","Defenseur central":"Défenseur central","Lateral":"Latéral","Lateral gauche":"Latéral gauche","Lateral droit":"Latéral droit","Milieu defensif":"Milieu défensif","Milieu relayeur":"Milieu relayeur","Milieu offensif":"Meneur","Milieu de couloir":"Milieu de couloir","Milieu gauche":"Milieu gauche","Milieu droit":"Milieu droit","Ailier":"Ailier","Ailier droit":"Ailier droit","Ailier gauche":"Ailier gauche","Buteur":"Buteur"};
 // Un poste sans son côté : « Lateral gauche » → « Lateral ».
-const posteBase = p => (p || "").replace(/ (gauche|droit)$/, "");
+const posteBase = p => (p === "Milieu gauche" || p === "Milieu droit") ? "Milieu de couloir" : (p || "").replace(/ (gauche|droit)$/, "");
 const ATTR_NOMS = {FIN:"Finition",CRE:"Création",PRO:"Progression",DEF:"Défense",DRI:"Dribble",CON:"Conservation",ARR:"Arrêts",EVI:"Buts évités",SOR:"Sorties",REL:"Jeu long",BUT:"Imbattabilité"};
 const ATTR_NOMS_GARDIEN = {PRO:"Jeu court"};   // a keeper's PRO axis is his short passing (jeu/bareme.py)
 const PIEDS = {gauche: "gaucher", droit: "droitier", deux: "ambidextre"};
@@ -38,7 +38,7 @@ let TAILLE = 18, BANC_MAX = 7, FORMATIONS = {"4-3-3": [1,4,3,3]}, LIMITES = {GK:
 let RANGS = {"4-3-3": [["Gardien"], ["Lateral gauche","Defenseur central","Defenseur central","Lateral droit"],
   ["Milieu relayeur","Milieu defensif","Milieu relayeur"], ["Ailier gauche","Buteur","Ailier droit"]]};
 let FAM_POSTE = {"Gardien":"GK","Defenseur central":"DEF","Lateral":"DEF","Lateral gauche":"DEF","Lateral droit":"DEF",
-  "Milieu defensif":"MID","Milieu relayeur":"MID","Milieu offensif":"MID","Ailier":"FWD","Ailier droit":"FWD",
+  "Milieu defensif":"MID","Milieu relayeur":"MID","Milieu offensif":"MID","Milieu de couloir":"MID","Milieu gauche":"MID","Milieu droit":"MID","Ailier":"FWD","Ailier droit":"FWD",
   "Ailier gauche":"FWD","Buteur":"FWD"};
 // Ce qu'une carte perd à chaque poste (scoring.malus_poste), servi par le
 // serveur : {poste de la case: {poste tenu: malus}}.  Et de combien un
@@ -400,6 +400,7 @@ function loinDuPoste(id, poste) { return malusDe(id, poste) >= 14; }
 let POSTE_ABBR = {"Gardien": "GB", "Defenseur central": "DC", "Lateral": "DG/DD",
   "Lateral gauche": "DG", "Lateral droit": "DD",
   "Milieu defensif": "MDC", "Milieu relayeur": "MC", "Milieu offensif": "MOC",
+  "Milieu de couloir": "MG/MD", "Milieu gauche": "MG", "Milieu droit": "MD",
   "Ailier": "AG/AD", "Ailier droit": "AD", "Ailier gauche": "AG", "Buteur": "BU"};
 // les postes tenus d'une carte, en codes : « AD / BU »
 const codesDe = c => ((c.postes && c.postes.length) ? c.postes : [c.poste]).map(p => POSTE_ABBR[p] || p).join(" / ");
@@ -1762,6 +1763,7 @@ const JEU_POSTE = {
   "Milieu defensif":   {av: 0.120, rec: -0.120, lar: -0.18, surface: 0.05},
   "Milieu relayeur":   {av: 0.210, rec: -0.165, lar: -0.06, surface: 0.20},
   "Milieu offensif":   {av: 0.235, rec: -0.205, lar: -0.12, surface: 0.35},
+  "Milieu de couloir": {av: 0.240, rec: -0.200, lar: 0.24, surface: 0.28},
   "Ailier":            {av: 0.200, rec: -0.225, lar: 0.26, surface: 0.40},
   "Ailier droit":      {av: 0.200, rec: -0.225, lar: 0.26, surface: 0.40},
   "Ailier gauche":     {av: 0.200, rec: -0.225, lar: 0.26, surface: 0.40},
@@ -1772,7 +1774,7 @@ const JEU_DEFAUT = {av: 0.18, rec: -0.15, lar: 0.0, surface: 0.2};
 const CONSIGNE_JEU = {
   lateraux:   {poste: ["Lateral"],
                bas: {av: -0.20, lar: -0.02}, axe: {av: -0.07, lar: -0.26}},
-  ailiers:    {poste: ["Ailier", "Ailier droit", "Ailier gauche"],
+  ailiers:    {poste: ["Ailier", "Ailier droit", "Ailier gauche", "Milieu de couloir"],
                ligne: {lar: 0.16}, interieur: {lar: -0.36, av: 0.05, surface: 0.12}},
   milieux:    {poste: ["Milieu defensif", "Milieu relayeur", "Milieu offensif"],
                projection: {av: 0.14, surface: 0.18}, bas: {av: -0.11, surface: -0.10},

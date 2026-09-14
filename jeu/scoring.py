@@ -54,9 +54,11 @@ FORMATIONS_RANGS = {
                   ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
                   ("Milieu defensif", "Milieu relayeur", "Milieu offensif"),
                   ("Ailier gauche", "Buteur", "Ailier droit")],
+    # A flat four in midfield is MG · MC · MDC · MD, as FIFA writes it: a
+    # wide midfielder, not a winger.
     "4-4-2": [("Gardien",),
               ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
-              ("Ailier gauche", "Milieu relayeur", "Milieu defensif", "Ailier droit"),
+              ("Milieu gauche", "Milieu relayeur", "Milieu defensif", "Milieu droit"),
               ("Buteur", "Buteur")],
     "4-2-3-1": [("Gardien",),
                 ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
@@ -66,11 +68,11 @@ FORMATIONS_RANGS = {
     "4-1-4-1": [("Gardien",),
                 ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
                 ("Milieu defensif",),
-                ("Ailier gauche", "Milieu relayeur", "Milieu relayeur", "Ailier droit"),
+                ("Milieu gauche", "Milieu relayeur", "Milieu relayeur", "Milieu droit"),
                 ("Buteur",)],
     "4-5-1": [("Gardien",),
               ("Lateral gauche", "Defenseur central", "Defenseur central", "Lateral droit"),
-              ("Ailier gauche", "Milieu relayeur", "Milieu defensif", "Milieu offensif", "Ailier droit"),
+              ("Milieu gauche", "Milieu relayeur", "Milieu defensif", "Milieu offensif", "Milieu droit"),
               ("Buteur",)],
     "3-5-2": [("Gardien",),
               ("Defenseur central", "Defenseur central", "Defenseur central"),
@@ -91,7 +93,7 @@ FORMATIONS_RANGS = {
               ("Buteur", "Buteur")],
     "5-4-1": [("Gardien",),
               ("Lateral gauche", "Defenseur central", "Defenseur central", "Defenseur central", "Lateral droit"),
-              ("Ailier gauche", "Milieu relayeur", "Milieu defensif", "Ailier droit"),
+              ("Milieu gauche", "Milieu relayeur", "Milieu defensif", "Milieu droit"),
               ("Buteur",)],
 }
 # How far in front of its row a position stands, in fractions of the
@@ -106,6 +108,8 @@ FAMILLE_POSTE = {
     "Milieu defensif": "MID",
     "Milieu relayeur": "MID",
     "Milieu offensif": "MID",
+    # the wide midfielder of a flat four (MG/MD): a midfielder, not a winger
+    "Milieu de couloir": "MID", "Milieu gauche": "MID", "Milieu droit": "MID",
     "Ailier": "FWD", "Ailier droit": "FWD", "Ailier gauche": "FWD",
     "Buteur": "FWD",
 }
@@ -120,6 +124,7 @@ CODE_POSTE = {
     "Gardien": "GB", "Defenseur central": "DC",
     "Lateral": "DG/DD", "Lateral gauche": "DG", "Lateral droit": "DD",
     "Milieu defensif": "MDC", "Milieu relayeur": "MC", "Milieu offensif": "MOC",
+    "Milieu de couloir": "MG/MD", "Milieu gauche": "MG", "Milieu droit": "MD",
     "Ailier": "AG/AD", "Ailier gauche": "AG", "Ailier droit": "AD", "Buteur": "BU",
 }
 # What a formation is called on screen: the bare 4-3-3 is the first of five.
@@ -131,6 +136,7 @@ LIBELLE_POSTE = {
     "Milieu defensif": "milieu défensif", "Milieu relayeur": "milieu relayeur",
     "Milieu offensif": "meneur", "Ailier": "ailier", "Ailier gauche": "ailier gauche",
     "Ailier droit": "ailier droit", "Buteur": "buteur",
+    "Milieu de couloir": "milieu de couloir", "Milieu gauche": "milieu gauche", "Milieu droit": "milieu droit",
 }
 
 
@@ -139,7 +145,10 @@ def libelle_poste(poste: str | None) -> str:
 
 
 def poste_base(poste: str) -> str:
-    """A position without its side: "Lateral gauche" -> "Lateral"."""
+    """A position without its side: "Lateral gauche" -> "Lateral",
+    "Milieu droit" -> "Milieu de couloir"."""
+    if poste in ("Milieu gauche", "Milieu droit"):
+        return "Milieu de couloir"
     for suffixe in (" gauche", " droit"):
         if poste.endswith(suffixe):
             return poste[:-len(suffixe)]
@@ -184,11 +193,12 @@ PART_POSTE_ELIGIBLE = 0.20
 # the field, or a field player in goal, is another sport.
 VOISINS = {
     "Defenseur central": ("Lateral", "Milieu defensif"),
-    "Lateral": ("Defenseur central", "Ailier", "Milieu relayeur"),
+    "Lateral": ("Defenseur central", "Ailier", "Milieu relayeur", "Milieu de couloir"),
     "Milieu defensif": ("Defenseur central", "Milieu relayeur"),
-    "Milieu relayeur": ("Milieu defensif", "Milieu offensif", "Lateral"),
+    "Milieu relayeur": ("Milieu defensif", "Milieu offensif", "Lateral", "Milieu de couloir"),
     "Milieu offensif": ("Milieu relayeur", "Ailier", "Buteur"),
-    "Ailier": ("Lateral", "Milieu offensif", "Buteur"),
+    "Milieu de couloir": ("Lateral", "Milieu relayeur", "Ailier"),
+    "Ailier": ("Lateral", "Milieu offensif", "Buteur", "Milieu de couloir"),
     "Buteur": ("Milieu offensif", "Ailier"),
 }
 MALUS_DISTANCE = (0, 4, 8, 14, 20)    # by graph distance, the last for anything farther
@@ -206,6 +216,7 @@ POIDS_POSTE = {
     "Milieu defensif":   {"DEF": .35, "CON": .30, "PRO": .15, "CRE": .10, "DRI": .05, "FIN": .05},
     "Milieu relayeur":   {"CON": .30, "CRE": .25, "PRO": .15, "DEF": .15, "DRI": .10, "FIN": .05},
     "Milieu offensif":   {"CRE": .35, "DRI": .20, "FIN": .15, "PRO": .15, "CON": .15, "DEF": .00},
+    "Milieu de couloir": {"PRO": .25, "DRI": .20, "CRE": .20, "CON": .15, "DEF": .15, "FIN": .05},
     "Ailier":            {"DRI": .30, "FIN": .20, "CRE": .20, "PRO": .20, "CON": .10, "DEF": .00},
     "Buteur":            {"FIN": .50, "DRI": .15, "PRO": .10, "CRE": .10, "CON": .10, "DEF": .05},
 }

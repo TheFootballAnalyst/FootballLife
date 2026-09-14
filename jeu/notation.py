@@ -58,6 +58,11 @@ POSTE_SEUIL = {
     "Ailier": "Ailier",
     "Ailier droit": "Ailier",
     "Ailier gauche": "Ailier",
+    # the engine rates the wide midfielder of a flat four as a winger; the
+    # game only names him differently
+    "Milieu de couloir": "Ailier",
+    "Milieu gauche": "Ailier",
+    "Milieu droit": "Ailier",
     "Buteur": "Buteur",
 }
 

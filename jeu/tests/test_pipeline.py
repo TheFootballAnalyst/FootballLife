@@ -396,3 +396,26 @@ def test_the_engine_s_manual_positions_come_first_in_the_game(tmp_path, monkeypa
     assert poste == "Milieu relayeur" and json.loads(postes)[0] == "Milieu relayeur"
     # what he really held stays eligible behind it
     assert set(json.loads(avant[1] or "[]")) <= set(json.loads(postes)) | {"Milieu relayeur"}
+
+
+def test_the_side_of_a_flat_midfield_four_is_read_as_a_wide_midfielder():
+    """FotMob line 7, wide column: the engine says winger, the game says
+    MG/MD.  Everything else keeps the engine's label."""
+    from jeu import importer as I
+    assert I.poste_raffine("Ailier", 72) == "Milieu droit"
+    assert I.poste_raffine("Ailier", 78) == "Milieu gauche"
+    assert I.poste_raffine("Ailier", 82) == "Ailier"          # the attacking line of a 4-2-3-1
+    assert I.poste_raffine("Buteur", 72) == "Buteur" and I.poste_raffine("Ailier", None) == "Ailier"
+    # on an existing base, from the FotMob slots
+    jeu = base()
+    fot = sqlite3.connect(":memory:")
+    fot.execute("CREATE TABLE appearance(match_id, player_id, position_id)")
+    fot.execute("INSERT INTO appearance VALUES (100, 9, 72)")        # player 9 is an Ailier in the fixture
+    fot.execute("INSERT INTO appearance VALUES (100, 11, 104)")      # player 11 too, on the attacking line
+    assert I.raffiner_postes(fot, jeu) == 1
+    assert jeu.execute("SELECT poste FROM prestation WHERE player_id=9").fetchone()[0] == "Milieu droit"
+    assert jeu.execute("SELECT poste FROM prestation WHERE player_id=11").fetchone()[0] == "Ailier"
+    I.majorite_postes_et_clubs(jeu)
+    assert jeu.execute("SELECT poste FROM joueur WHERE player_id=9").fetchone()[0] == "Milieu droit"
+    # running it twice changes nothing more
+    assert I.raffiner_postes(fot, jeu) == 0

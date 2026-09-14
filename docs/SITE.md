@@ -537,8 +537,22 @@ jeu/demo.sqlite` (et sur `jeu/jeu_2526.sqlite`) pour l'appliquer sans
 tout réimporter. Le poste imposé passe devant, les autres qu'il a tenus
 restent jouables.
 
+**MG et MD.** Le côté d'un milieu à quatre (la case FotMob de la ligne
+7, en couloir, devant une défense à quatre) n'est pas une aile : le
+moteur le note comme un ailier, le jeu le nomme comme FIFA, milieu
+gauche ou milieu droit. Le 4-4-2, le 4-5-1, le 4-1-4-1 et le 5-4-1
+s'écrivent donc MG · … · MD ; les 4-3-3 et le 4-2-3-1 gardent leurs
+ailiers. MG/MD est à un cran du latéral, du relayeur et de l'ailier,
+et les consignes aux ailiers le concernent. Sur une base déjà
+construite : `py -m jeu.importer --postes-seulement --jeu
+jeu/demo.sqlite --fotmob moteur/fotmob_2526.db` relit les prestations
+depuis les cases FotMob ; 1246 prestations et 168 joueurs y passent en
+2025/26 (Pépé, Giuliano Simeone, Baena…). Le fichier versionné
+`jeu/postes_manuel.json` complète celui du moteur et impose, lui,
+Valverde en MC — sa carte est MC, jouable MD et DD.
+
 Les postes s'écrivent comme dans FIFA — GB, DC, DG, DD, MDC, MC, MOC,
-AG, AD, BU — partout : sur les cases, dans la ligne de chaque joueur du
+MG, MD, AG, AD, BU — partout : sur les cases, dans la ligne de chaque joueur du
 club et des listes (ses postes tenus en premier), sur la fiche. Cinq
 4-3-3 se distinguent par leur milieu : (1) MC · MDC · MC, (2) MC · MC ·
 MC, (3) MC · MOC · MC, (4) MDC · MDC · MC, (5) MDC · MC · MOC. Le bouton « meilleur onze » prend, case par

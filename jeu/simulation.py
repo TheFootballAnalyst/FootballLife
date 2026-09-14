@@ -226,8 +226,8 @@ AFFINITES = {
     # donc le réglage neutre, et un défaut ne rend personne plus à l'aise.
     "lateraux": {"bas": (("DEF", "CON"), ("Lateral",)),
                  "axe": (("CON", "CRE"), ("Lateral",))},
-    "ailiers": {"ligne": (("DRI", "PRO"), ("Ailier",)),
-                "interieur": (("FIN", "CRE"), ("Ailier",))},
+    "ailiers": {"ligne": (("DRI", "PRO"), ("Ailier", "Milieu de couloir")),
+                "interieur": (("FIN", "CRE"), ("Ailier", "Milieu de couloir"))},
     "milieux": {"bas": (("DEF", "CON"), ("Milieu defensif", "Milieu relayeur", "Milieu offensif")),
                 "projection": (("PRO", "FIN"), ("Milieu defensif", "Milieu relayeur", "Milieu offensif")),
                 "lateral": (("CRE", "PRO"), ("Milieu defensif", "Milieu relayeur", "Milieu offensif"))},

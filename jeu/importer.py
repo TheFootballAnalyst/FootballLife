@@ -205,10 +205,47 @@ def lire_stats(fot: sqlite3.Connection, match_ids) -> dict[tuple[int, int], dict
 COMPS_JEU = None        # None = no filter, the whole base
 
 
+# The engine reads the side of a flat midfield four (FotMob line 7, wide
+# column, four defenders) as a winger.  The game names him what FIFA does:
+# a wide midfielder, MG or MD — the card of a Valverde says MD, not AD.
+# The rating stays the engine's (notation.POSTE_SEUIL maps him back).
+def poste_raffine(poste: str | None, position_id: int | None) -> str | None:
+    if poste == "Ailier" and position_id is not None and position_id // 10 == 7:
+        return "Milieu droit" if position_id % 10 < 5 else "Milieu gauche"
+    return poste
+
+
+def slots_fotmob(fot: sqlite3.Connection, mids) -> dict[tuple[int, int], int]:
+    """{(match_id, player_id): FotMob position_id} for those matches."""
+    mids = list(mids)
+    if not mids:
+        return {}
+    marks = ",".join("?" * len(mids))
+    return {(mid, pid): pos for mid, pid, pos in fot.execute(
+        f"SELECT match_id, player_id, position_id FROM appearance WHERE match_id IN ({marks}) AND position_id IS NOT NULL",
+        mids)}
+
+
+def raffiner_postes(fot: sqlite3.Connection, jeu: sqlite3.Connection) -> int:
+    """Rewrite prestation.poste with the wide-midfield reading on an
+    existing base (--postes-seulement --fotmob).  Returns how many moved."""
+    n = 0
+    mids = [r[0] for r in jeu.execute("SELECT match_id FROM match")]
+    slots = slots_fotmob(fot, mids)
+    for mid, pid, poste in jeu.execute("SELECT match_id, player_id, poste FROM prestation").fetchall():
+        nouveau = poste_raffine("Ailier" if poste in ("Milieu gauche", "Milieu droit") else poste, slots.get((mid, pid)))
+        if nouveau != poste:
+            jeu.execute("UPDATE prestation SET poste=? WHERE match_id=? AND player_id=?", (nouveau, mid, pid))
+            n += 1
+    jeu.commit()
+    return n
+
+
 def importer_journee(fot: sqlite3.Connection, jeu: sqlite3.Connection,
                      saison: str, j: dict, comps=COMPS_JEU, adversaire=False) -> int:
     prestas, matchs = T.calculer(fot, j["du"], j["au"], comps=comps,
                                  seuil_min=1, adversaire=adversaire)
+    slots = slots_fotmob(fot, matchs)
     jeu.execute("""INSERT OR REPLACE INTO journee(journee_id, saison, numero, du, au, cloture, calculee)
                    VALUES ((SELECT journee_id FROM journee WHERE saison=? AND numero=?),
                            ?, ?, ?, ?, ?, 1)""",
@@ -239,11 +276,14 @@ def importer_journee(fot: sqlite3.Connection, jeu: sqlite3.Connection,
     stats = lire_stats(fot, list(matchs))
     n = 0
     for (mid, pid), p in prestas.items():
-        jeu.execute("""INSERT OR IGNORE INTO joueur(player_id, nom, nom_normalise, team_id, poste)
-                       VALUES (?,?,?,?,?)""",
-                    (pid, p["nom"], sans_accents(p["nom"]), None, p["poste"]))
+        # the note is the engine's, on the engine's label; the stored
+        # position is the game's reading of the same slot
         note = N.note_prestation(p)
         attrs = N.attributs_prestation(p)
+        poste_jeu = poste_raffine(p["poste"], slots.get((mid, pid)))
+        jeu.execute("""INSERT OR IGNORE INTO joueur(player_id, nom, nom_normalise, team_id, poste)
+                       VALUES (?,?,?,?,?)""",
+                    (pid, p["nom"], sans_accents(p["nom"]), None, poste_jeu))
         # Some cup sheets carry team_id 0 — FotMob did not resolve the club.
         # It is not a club the game knows, so it is stored as unknown rather
         # than as a dangling reference: the performance still counts.
@@ -255,7 +295,7 @@ def importer_journee(fot: sqlite3.Connection, jeu: sqlite3.Connection,
         jeu.execute("""INSERT OR REPLACE INTO prestation(match_id, player_id, team_id, poste, minutes,
                        entrant, brut, coef, points, note, statut, lignes, attributs, stats)
                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (mid, pid, tid[0] if tid else None, p["poste"], p["minutes"],
+                    (mid, pid, tid[0] if tid else None, poste_jeu, p["minutes"],
                      int(bool(p.get("entrant"))), p["brut"], p["coef"], p["points"], note,
                      T._statut_final(p, statuts), json.dumps(p["lignes"], ensure_ascii=False),
                      json.dumps(attrs), json.dumps(stats.get((mid, pid), {}))))
@@ -412,17 +452,25 @@ def postes_joues(jeu: sqlite3.Connection, pid: int | None = None) -> dict[int, l
 # midfield in a flat four reads as a winger — the engine is told by hand,
 # and the game follows the same file rather than keeping its own list.
 POSTES_MANUEL = MOTEUR / "postes_manuel.json"
+# ... and the game's own, versioned, read after it (it wins on a name in
+# both): the few players whose card the slot data gets wrong for the
+# game's purposes even once the engine is happy with them.
+POSTES_MANUEL_JEU = RACINE / "jeu" / "postes_manuel.json"
 
 
 def postes_manuels(jeu: sqlite3.Connection, fichier: pathlib.Path | None = None) -> dict[int, str]:
-    """{player_id: forced position} from the engine's manual file.  A name
-    with homonyms goes to the one who played the most, as the engine does."""
-    fichier = fichier or POSTES_MANUEL
-    if not fichier.exists():
-        return {}
-    try:
-        forces = json.loads(fichier.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
+    """{player_id: forced position} from the engine's manual file and the
+    game's.  A name with homonyms goes to the one who played the most, as
+    the engine does."""
+    forces: dict[str, str] = {}
+    for chemin in ([fichier] if fichier else [POSTES_MANUEL, POSTES_MANUEL_JEU]):
+        if not chemin.exists():
+            continue
+        try:
+            forces.update(json.loads(chemin.read_text(encoding="utf-8")))
+        except (json.JSONDecodeError, OSError):
+            continue
+    if not forces:
         return {}
     minutes = dict(jeu.execute("SELECT player_id, COALESCE(SUM(minutes), 0) FROM prestation GROUP BY player_id"))
     par_nom: dict[str, int] = {}
@@ -551,13 +599,16 @@ def main():
     ap.add_argument("--bareme-seulement", action="store_true",
                     help="only (re)compute the season barème windows (bareme_journee) from the FotMob base")
     ap.add_argument("--postes-seulement", action="store_true",
-                    help="only recompute the players' positions (majority, eligible ones, moteur/postes_manuel.json)")
+                    help="only recompute the players' positions: MG/MD from the FotMob slots when --fotmob "
+                         "exists, majority, eligible ones, moteur/postes_manuel.json and jeu/postes_manuel.json")
     a = ap.parse_args()
     if a.postes_seulement:
         jeu = ouvrir_jeu(pathlib.Path(a.jeu))
+        if pathlib.Path(a.fotmob).exists():
+            print(f"{raffiner_postes(sqlite3.connect(a.fotmob), jeu)} prestations relues en milieu de couloir")
         majorite_postes_et_clubs(jeu)
         forces = postes_manuels(jeu)
-        print(f"postes recalculés -> {a.jeu} ({len(forces)} imposés par moteur/postes_manuel.json)")
+        print(f"postes recalculés -> {a.jeu} ({len(forces)} imposés à la main)")
         return
     if a.bareme_seulement:
         jeu = ouvrir_jeu(pathlib.Path(a.jeu))

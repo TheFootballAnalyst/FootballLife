@@ -198,7 +198,7 @@ def test_the_formations_name_their_sides_and_a_pivot():
         assert len(postes) == 11 and postes[0] == "Gardien", nom
         for r in rangs:
             for p in r:
-                if S.poste_base(p) in ("Lateral", "Ailier"):
+                if S.poste_base(p) in ("Lateral", "Ailier", "Milieu de couloir"):
                     assert S.cote_poste(p) in ("gauche", "droit"), (nom, p)
             larges = [p for p in r if S.cote_poste(p)]
             if larges:
@@ -242,3 +242,15 @@ def test_the_attributes_can_erase_or_deepen_the_out_of_position_cost():
     assert [f for f in S.FORMATIONS_RANGS if f.startswith("4-3-3")] == ["4-3-3", "4-3-3 (2)", "4-3-3 (3)", "4-3-3 (4)", "4-3-3 (5)"]
     assert S.LIBELLE_FORMATION["4-3-3"] == "4-3-3 (1)"
     assert S.CODE_POSTE["Milieu defensif"] == "MDC" and S.CODE_POSTE["Lateral gauche"] == "DG"
+
+
+def test_the_wide_midfielder_is_a_midfielder_one_step_from_the_wing():
+    assert S.FAMILLE_POSTE["Milieu droit"] == "MID" and S.poste_base("Milieu gauche") == "Milieu de couloir"
+    assert S.CODE_POSTE["Milieu droit"] == "MD" and S.CODE_POSTE["Milieu gauche"] == "MG"
+    assert S.distance_poste(["Milieu droit"], "Ailier droit") == S.MALUS_DISTANCE[1]
+    assert S.distance_poste(["Milieu droit"], "Milieu gauche") == S.MALUS_COTE
+    assert S.distance_poste(["Milieu relayeur"], "Milieu droit") == S.MALUS_DISTANCE[1]
+    assert S.distance_poste(["Lateral"], "Milieu droit") == S.MALUS_DISTANCE[1]
+    # the flat fours are MG · … · MD, the 4-3-3s keep their wingers
+    assert S.postes_formation("4-4-2")[5] == "Milieu gauche" and S.postes_formation("4-4-2")[8] == "Milieu droit"
+    assert "Ailier gauche" in S.postes_formation("4-3-3") and "Milieu gauche" not in S.postes_formation("4-3-3")
