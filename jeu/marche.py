@@ -29,6 +29,7 @@ Money is in M€, like everywhere else in the game.
 from __future__ import annotations
 
 import json
+import os
 import random
 from datetime import datetime, timedelta, timezone
 
@@ -74,9 +75,24 @@ def _un(jeu, sql, args=()):
 # Supply
 # --------------------------------------------------------------------------
 
+SANS_PLAFOND = 10 ** 9        # what "no cap" reads as
+
+
 def plafond_copies(jeu, ligue_jeu_id: int) -> int:
+    """How many copies of one card the league allows: max(PLAFOND_MIN, a
+    quarter of the teams).  FL_PLAFOND_COPIES overrides the floor; 0 (or
+    empty) lifts the cap altogether — the demo runs like that."""
     n = _un(jeu, "SELECT COUNT(*) FROM equipe WHERE ligue_jeu_id=?", (ligue_jeu_id,))[0]
-    return max(PLAFOND_MIN, int(-(-PLAFOND_PART * n // 1)))
+    brut = os.environ.get("FL_PLAFOND_COPIES")
+    plancher = PLAFOND_MIN
+    if brut is not None:
+        try:
+            plancher = int(brut)
+        except ValueError:
+            plancher = PLAFOND_MIN
+        if plancher <= 0:
+            return SANS_PLAFOND
+    return max(plancher, int(-(-PLAFOND_PART * n // 1)))
 
 
 def copies_en_circulation(jeu, saison: str) -> dict[int, int]:

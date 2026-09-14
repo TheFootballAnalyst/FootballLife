@@ -36,12 +36,30 @@ def main():
                     help="FotMob base used to build the game base if --source is missing")
     a = ap.parse_args()
     src, dst = pathlib.Path(a.source), pathlib.Path(a.sortie)
-    if not src.exists():
+    # Une base du jeu VIDE vaut une base absente.  Lancer le site avant
+    # d'avoir construit la base créait un fichier au bon nom, avec le
+    # schéma et rien dedans ; la démo le copiait tel quel et s'arrêtait
+    # sur « aucune journée pour 2025/26 ».  On la reconstruit.
+    vide = False
+    if src.exists():
+        c = sqlite3.connect(src)
+        try:
+            n_j = c.execute("SELECT COUNT(*) FROM journee WHERE saison=?", (a.saison,)).fetchone()[0]
+            n_p = c.execute("SELECT COUNT(*) FROM prestation").fetchone()[0]
+        except sqlite3.Error:
+            n_j = n_p = 0
+        c.close()
+        vide = n_j == 0 or n_p == 0
+    if not src.exists() or vide:
         fot = pathlib.Path(a.fotmob)
         if not fot.exists():
-            sys.exit(f"La base du jeu {src} n'existe pas, et la base FotMob {fot} non plus.\n"
+            quoi = "est vide" if vide else "n'existe pas"
+            sys.exit(f"La base du jeu {src} {quoi}, et la base FotMob {fot} non plus.\n"
                      f"Récupère la release data-2025-26 (docs/GUIDE_DEBUTANT.md, étape 6), puis relance.")
-        print(f"La base du jeu {src} n'existe pas : import de la saison depuis {fot} (environ 1 min 30)...")
+        if vide:
+            print(f"La base du jeu {src} est vide (aucune journée, aucune prestation) : elle est reconstruite")
+            src.unlink()
+        print(f"Import de la saison depuis {fot} (environ 1 min 30)...")
         I.main_import(fot, src, a.saison)
     if dst.exists():
         dst.unlink()

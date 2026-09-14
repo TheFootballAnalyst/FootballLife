@@ -117,3 +117,15 @@ def test_bank_buys_back_at_a_share_of_the_cote_and_destroys():
     montant = MA.vendre_banque(jeu, SAISON, 1, x)
     assert abs(montant - MA.RACHAT_BANQUE * 9.0) < 1e-9 and abs(budget(jeu, 1) - (100 + montant)) < 1e-9
     assert MA.club(jeu, SAISON, 1) == [] and MA.copies_en_circulation(jeu, SAISON) == {}
+
+
+def test_the_copy_cap_can_be_raised_or_lifted_from_the_environment(monkeypatch):
+    jeu = base_marche()
+    monkeypatch.setenv("FL_PLAFOND_COPIES", "12")
+    assert MA.plafond_copies(jeu, 1) == 12
+    monkeypatch.setenv("FL_PLAFOND_COPIES", "0")
+    assert MA.plafond_copies(jeu, 1) == MA.SANS_PLAFOND
+    monkeypatch.setenv("FL_PLAFOND_COPIES", "n'importe quoi")
+    assert MA.plafond_copies(jeu, 1) == MA.PLAFOND_MIN
+    monkeypatch.delenv("FL_PLAFOND_COPIES")
+    assert MA.plafond_copies(jeu, 1) == MA.PLAFOND_MIN

@@ -43,7 +43,14 @@ py web/app/lancer.py                                 # sert http://localhost:800
 
 `lancer.py` choisit la base (`jeu/demo.sqlite` si elle existe), génère et
 garde un secret de session dans `jeu/.secret`, et dit au démarrage combien
-de cartes il voit et quelle journée est ouverte. Pour une autre base :
+de cartes il voit et quelle journée est ouverte. Il refuse de servir une
+base sans carte ; et `demo.py` reconstruit une base du jeu **vide**
+(un fichier au bon nom créé par un lancement prématuré) au lieu de la
+copier. Sur la base de démo, les packs sont **sans limite
+d'exemplaires** : avec dix milliards au premier compte, le plafond de
+trois copies par carte épuisait tous les packs en une soirée. `--copies
+3` remet la rareté d'une vraie ligue, `FL_PLAFOND_COPIES` fait pareil
+pour un serveur lancé autrement (0 = sans limite). Pour une autre base :
 `py web/app/lancer.py --jeu jeu/jeu_2627.sqlite --saison 2026/27`. La
 fenêtre reste occupée tant que le site tourne ; `Ctrl+C` l'arrête.
 

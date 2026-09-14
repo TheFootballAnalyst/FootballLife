@@ -24,6 +24,9 @@ def main():
     ap.add_argument("--saison", default=os.environ.get("FL_SAISON", "2025/26"))
     ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8000")))
     ap.add_argument("--hote", default="127.0.0.1")
+    ap.add_argument("--copies", type=int, default=None,
+                    help="exemplaires au plus d'une même carte dans la ligue (0 = sans limite) ; "
+                         "sur la base de démo, sans limite par défaut")
     a = ap.parse_args()
     jeu = pathlib.Path(a.jeu) if a.jeu else None
     if jeu is None:
@@ -49,7 +52,16 @@ def main():
     c.close()
     print(f"Base : {jeu}  ({n_cartes} cartes, {n_eq} équipes, saison {a.saison})")
     if not n_cartes:
-        print("ATTENTION : aucune carte pour cette saison dans cette base. Lance  py web/app/demo.py  puis relance.")
+        sys.exit("Aucune carte pour cette saison dans cette base : le site n'a rien à montrer.\n"
+                 "Lance  py web/app/demo.py  (qui reconstruit la base si elle est vide), puis relance.")
+    # Le plafond de copies.  Trois exemplaires par carte, c'est la rareté
+    # d'une vraie ligue ; sur la base de démo, avec un premier compte à
+    # dix milliards, ça épuise tous les packs en une soirée.  La démo est
+    # donc sans limite, sauf demande contraire.
+    copies = a.copies if a.copies is not None else (0 if jeu.name == "demo.sqlite" else None)
+    if copies is not None:
+        os.environ["FL_PLAFOND_COPIES"] = str(copies)
+        print("Exemplaires par carte : " + ("sans limite" if copies == 0 else str(copies)))
     if cour:
         print(f"Journée ouverte : J{cour[0]}, verrouillage {cour[1]}")
     else:

@@ -153,7 +153,7 @@ const resteTxt = fin => { const ms = new Date(fin) - Date.now(); if (ms <= 0) re
 async function rendrePacks() {
   G.packs = await api("/packs");
   const P = $("#packs-liste"); P.replaceChildren();
-  $("#packs-info").textContent = `Une carte ne peut exister qu'en ${G.packs.plafond} exemplaires dans la ligue. Réserve ${G.packs.reserve_max == null ? "illimitée" : G.packs.reserve_max + " cartes"}. La banque rachète à ${Math.round(G.packs.rachat * 100)} % de la cote.`;
+  $("#packs-info").textContent = `${G.packs.plafond >= 1e6 ? "Pas de limite d'exemplaires par carte dans cette ligue" : `Une carte ne peut exister qu'en ${G.packs.plafond} exemplaires dans la ligue`}. Réserve ${G.packs.reserve_max == null ? "illimitée" : G.packs.reserve_max + " cartes"}. La banque rachète à ${Math.round(G.packs.rachat * 100)} % de la cote.`;
   const offerts = Object.entries(G.packs.offerts || {}).filter(([, n]) => n > 0);
   if (offerts.length) {
     const b = el("div", {class: "panneau offerts"}, el("h3", {class: "anton"}, "Packs offerts"),
@@ -176,7 +176,7 @@ async function rendrePacks() {
       el("div", {class: "pack-visuel"}, el("div", {class: "pack-carte a"}), el("div", {class: "pack-carte b"}), el("div", {class: "pack-carte c"})),
       el("div", {class: "pack-desc"}, p.desc),
       el("div", {class: "pack-prix anton"}, fM(p.prix)),
-      el("button", {class: "primaire", disabled: !p.disponible || p.prix > G.equipe.budget + 1e-9, onclick: () => ouvrirPack(p)}, p.disponible ? "Ouvrir" : "Épuisé"));
+      el("button", {class: "primaire", disabled: !p.disponible || p.prix > G.equipe.budget + 1e-9, onclick: () => ouvrirPack(p), title: p.disponible ? "" : "Toutes les cartes de ce pack ont atteint leur nombre d'exemplaires : vends à la banque pour en libérer, ou lance le site avec --copies 0"}, p.disponible ? "Ouvrir" : "Épuisé"));
     P.append(k);
   }
 }
