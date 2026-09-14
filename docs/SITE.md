@@ -33,9 +33,9 @@ carte), recalculé à chaque clôture.
 
 ```
 py -m pip install fastapi "uvicorn[standard]" python-multipart
-py web/app/demo.py                                   # -> jeu/demo.sqlite (saison 25/26 à partir de J26)
-                                                     # construit d'abord jeu/jeu_2526.sqlite depuis
-                                                     # moteur/fotmob_2526.db s'il n'existe pas (1 min 30)
+py web/app/demo.py                                   # -> jeu/demo.sqlite : cartes = la saison 25/26 entière,
+                                                     # marché ouvert à J26 ; construit d'abord jeu/jeu_2526.sqlite
+                                                     # depuis moteur/fotmob_2526.db s'il n'existe pas (4 min en tout)
 py web/app/lancer.py                                 # sert http://localhost:8000 sur la base de démo
 ```
 
@@ -63,6 +63,18 @@ tient le fichier et SQLite répond « database is locked ».
 Puis http://localhost:8000. Le premier compte créé est administrateur. En
 démo, les prestations des journées 26 à 34 sont déjà en base : sur
 l'écran Admin, « Clôturer la journée » suffit à faire avancer la saison.
+
+**Sur quoi les cartes de la démo sont amorcées.** Sur la saison 2025/26
+**entière**, telle que le moteur la lit — chaque match de la base
+FotMob, Coupe du monde comprise, plus le palmarès de la saison — comme
+un vrai lancement le ferait avec la saison précédente. La démo amorçait
+avant sur les journées 1 à 25 seulement (encore possible : `--amorce
+1-25`), et ça coupait le printemps : Dembélé, blessé à l'automne et
+injouable à partir de mars, sortait 68e quand le barème du moteur le
+donne premier de loin. Amorcé sur la saison entière il est à 98, à
+égalité en tête. Les journées 26 à 34 que la démo rejoue ont donc aussi
+nourri l'amorce, ce qu'une démo supporte ; une vraie saison ne les voit
+jamais deux fois. `--etat 25` fixe la dernière journée considérée jouée.
 Les portraits sont lus dans `moteur/images/joueurs/` (release
 `data-2025-26` ou `donnees/portraits.py`) ; sans ce dossier, le marché
 affiche des initiales. La fiche d'un joueur (clic sur sa ligne) montre sa

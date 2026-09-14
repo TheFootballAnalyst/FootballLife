@@ -1,14 +1,20 @@
 """demo.py — prepare a demo game base from the 2025/26 season.
 
-    python3 web/app/demo.py [--source jeu/jeu_2526.sqlite] [--sortie jeu/demo.sqlite] [--amorce 1-25]
+    python3 web/app/demo.py [--source jeu/jeu_2526.sqlite] [--sortie jeu/demo.sqlite] [--amorce tout] [--etat 25]
 
-The demo season is 2025/26 itself: cards seeded on J1-J25 (as if that were
-last season; a longer seed gives credible cards, Dembélé's autumn injury
-no longer prices him as an unknown), the market open at J26, and every
-later gameweek's rated
-performances already in the base.  The admin advances the season from the
-site (Admin → clôturer la journée) without uploading anything, which
-makes a multi-player demo possible before the live season.
+The demo season is 2025/26 itself.  The cards are seeded on the WHOLE
+season as the engine reads it — every match in the FotMob base, World
+Cup included, plus the season's palmarès — exactly what a real launch
+would do with last season.  Seeding on J1-J25 alone (the old default,
+still available with --amorce 1-25) cut the spring: Dembélé, injured in
+the autumn and on fire from March, came out 68th when the engine's own
+season barème has him first by a distance.
+
+The state is then set at J25 (--etat): the market opens at J26 and every
+later gameweek's rated performances are already in the base, so the
+admin advances the season from the site (Admin → clôturer la journée)
+without uploading anything.  Those gameweeks also fed the seed, which a
+demo can live with; a real season never sees them twice.
 
 Compositions, teams and accounts of the source base are dropped.
 """
@@ -31,7 +37,11 @@ def main():
     ap.add_argument("--source", default=str(RACINE / "jeu" / "jeu_2526.sqlite"))
     ap.add_argument("--sortie", default=str(RACINE / "jeu" / "demo.sqlite"))
     ap.add_argument("--saison", default="2025/26")
-    ap.add_argument("--amorce", default="1-25")
+    ap.add_argument("--amorce", default="tout",
+                    help="journées qui font la carte : 1-25, ou tout (la saison entière lue dans la base FotMob, "
+                         "Coupe du monde et palmarès compris)")
+    ap.add_argument("--etat", type=int, default=None,
+                    help="dernière journée considérée jouée ; le marché ouvre à la suivante (25 par défaut)")
     ap.add_argument("--fotmob", default=str(RACINE / "moteur" / "fotmob_2526.db"),
                     help="FotMob base used to build the game base if --source is missing")
     a = ap.parse_args()
@@ -80,20 +90,34 @@ def main():
                      f"Récupère la release data-2025-26 (docs/GUIDE_DEBUTANT.md, étape 6), puis relance.")
         print(f"Calcul du barème de saison depuis {fot} (environ 1 min)...")
         I.importer_bareme(sqlite3.connect(fot), jeu, a.saison)
-    amorce = BT.parse_plage(a.amorce)
+    toute = a.amorce.strip().lower() in ("tout", "toute", "saison", "*")
+    plage = None if toute else BT.parse_plage(a.amorce)
+    etat = a.etat if a.etat else (25 if toute else plage[-1])
+    fot = None
+    if toute:
+        chemin_fot = pathlib.Path(a.fotmob)
+        if not chemin_fot.exists():
+            sys.exit(f"Amorcer sur la saison entière demande la base FotMob {chemin_fot} (release data-2025-26). "
+                     f"Sinon : --amorce 1-25 (les fenêtres déjà dans la base du jeu).")
+        fot = sqlite3.connect(chemin_fot)
     for t in ("resultat", "composition", "effectif", "transfert", "ligue_privee_membre", "ligue_privee",
               "equipe", "ligue_jeu", "utilisateur", "carte_historique", "carte"):
         jeu.execute(f"DELETE FROM {t}")
-    # gameweeks of the seed count as computed (their performances are the seed);
-    # the played half is open, its performances stay in the base for the admin close
-    jeu.execute("UPDATE journee SET calculee=1 WHERE saison=? AND numero<=?", (a.saison, amorce[-1]))
-    jeu.execute("UPDATE journee SET calculee=0, cloture='2099-01-01T00:00:00Z' WHERE saison=? AND numero>?", (a.saison, amorce[-1]))
+    # the gameweeks up to the state count as computed; the rest is open, its
+    # performances stay in the base for the admin close
+    jeu.execute("UPDATE journee SET calculee=1 WHERE saison=? AND numero<=?", (a.saison, etat))
+    jeu.execute("UPDATE journee SET calculee=0, cloture='2099-01-01T00:00:00Z' WHERE saison=? AND numero>?", (a.saison, etat))
     jeu.commit()
-    n, params = P.amorcer(jeu, a.saison, a.saison, (amorce[0], amorce[-1]), numero_etat=amorce[-1])
+    if toute:
+        print(f"Amorce sur la saison entière depuis {a.fotmob} (barème et palmarès du moteur, environ 1 min)...")
+    n, params = P.amorcer(jeu, a.saison, a.saison, None if toute else (plage[0], plage[-1]),
+                          numero_etat=etat, fot=fot)
     jeu.execute("VACUUM")
     jeu.commit()
-    print(f"{dst}: {n} cartes amorcées sur J{amorce[0]}-J{amorce[-1]} ({params['reguliers']} réguliers) ; "
-          f"marché ouvert à J{amorce[-1] + 1}")
+    quoi = "la saison entière" if toute else f"J{plage[0]}-J{plage[-1]}"
+    print(f"{dst}: {n} cartes amorcées sur {quoi} ({params['reguliers']} réguliers"
+          + (f", palmarès de {params['source']['palmares']} joueurs" if toute else "") + f") ; "
+          f"marché ouvert à J{etat + 1}")
 
 
 if __name__ == "__main__":
