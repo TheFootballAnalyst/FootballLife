@@ -257,10 +257,16 @@ souffler.
 
 ## Le terrain
 
-Le match se regarde, action par action. Les vingt-deux cartes sont
-posées dans leur formation sur un terrain 2D — **les tiennes cerclées de
-bleu, celles d'en face de rouge**, le porteur du ballon en doré — et
-chaque minute se joue vraiment : la relance du gardien, les passes qui
+Le match se regarde, action par action, comme depuis le banc. Vingt-deux
+**jetons** — pas des cartes, une carte se lit de près, un terrain se lit
+en positions — ronds, **bleus pour les tiens, rouges pour eux**, le poste
+tenu dedans, le nom dessous, l'endurance en dessous, le porteur du
+ballon cerclé d'or ; un vrai ballon dessiné, qui roule pendant le
+trajet et dont l'ombre suit ; des cages avec leurs filets, qui
+**ondulent quand ça rentre**. Le gardien ferme l'angle sur la droite
+entre le ballon et son but, avance quand le ballon est loin, va au
+point visé sur une frappe, l'a dans les gants sur un arrêt, part du
+mauvais côté sur un but. Chaque minute se joue vraiment : la relance du gardien, les passes qui
 montent, la conduite dans la surface, **la frappe qui part du pied vers
 un point du but**, l'arrêt, le ballon qui file à côté, la perte de
 balle, le coup de sifflet sur une faute — les vingt-deux s'arrêtent et
@@ -275,10 +281,14 @@ haut le garde haut — c'est ce qui fait qu'un siège se voit, avec le
 bloc adverse tassé devant sa surface et les latéraux montés. Les
 receveurs sont choisis par proximité : le latéral gauche reçoit à
 gauche, une passe qui traverse le terrain est un *renversement*. Les
-deux blocs coulissent vers le ballon, celui qui défend davantage ; deux
-coéquipiers se proposent en soutien, l'adversaire le plus proche vient
-au contact ; et personne n'est aligné au laser. Tout ça est du dessin :
-le score vient des dés du moteur et rien de tout ceci ne les touche.
+deux blocs coulissent vers le ballon, celui qui défend davantage ; un
+coéquipier se propose en soutien, l'adversaire le plus proche vient au
+contact ; chacun garde un léger écart qui lui est propre, fixe pour tout
+le match, si bien que personne n'est aligné au laser et personne ne
+tremble. Un arrêt de jeu ne se marque que quand il pèse — but, carton,
+blessure, penalty ; une faute est un coup de sifflet et un coup franc
+joué dans la foulée, pas une pause. Tout ça est du dessin : le score
+vient des dés du moteur et rien de tout ceci ne les touche.
 
 **L'écran suit l'animation, pas le serveur.** Le serveur a une minute
 d'avance sur ce que le terrain montre. Le score, l'horloge, le fil du

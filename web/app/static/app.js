@@ -1653,15 +1653,25 @@ function terrain2d() {
   t.append(el("div", {class: "t2d-fond"},
     el("div", {class: "t2d-ligne-mediane"}), el("div", {class: "t2d-rond"}),
     el("div", {class: "t2d-surface gauche"}), el("div", {class: "t2d-surface droite"}),
-    el("div", {class: "t2d-but gauche"}), el("div", {class: "t2d-but droite"})));
-  t.append(el("div", {class: "t2d-jeu"}), el("div", {class: "t2d-ballon"}),
+    el("div", {class: "t2d-six gauche"}), el("div", {class: "t2d-six droite"})));
+  // les cages, avec leurs filets : un but les fait onduler
+  for (const c of ["gauche", "droite"]) {
+    const cage = el("div", {class: "t2d-cage " + c});
+    cage.innerHTML = `<svg viewBox="0 0 10 40" preserveAspectRatio="none"><defs><pattern id="filet-${c}" width="2.2" height="2.2" patternUnits="userSpaceOnUse"><path d="M0 0H2.2M0 0V2.2" stroke="rgba(255,255,255,.55)" stroke-width=".35" fill="none"/></pattern></defs><rect class="filet" x="0" y="0" width="10" height="40" fill="url(#filet-${c})"/><rect class="poteaux" x="${c === "gauche" ? 9 : 0}" y="0" width="1" height="40" fill="#fff"/></svg>`;
+    t.append(cage);
+  }
+  const ballon = el("div", {class: "t2d-ballon"});
+  ballon.innerHTML = '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="9.2" fill="#fff" stroke="#1a1a1a" stroke-width="1"/><polygon points="10,5.2 13.6,7.8 12.2,12 7.8,12 6.4,7.8" fill="#1a1a1a"/><polygon points="2.4,7.6 4.9,5.4 6.4,7.8 5,10.6 1.9,10.4" fill="#1a1a1a"/><polygon points="17.6,7.6 15.1,5.4 13.6,7.8 15,10.6 18.1,10.4" fill="#1a1a1a"/><polygon points="6.2,18.4 7.8,12 10,13.6 9.6,18.9" fill="#1a1a1a"/><polygon points="13.8,18.4 12.2,12 10,13.6 10.4,18.9" fill="#1a1a1a"/><polygon points="8.4,1 10,3.6 11.6,1" fill="#1a1a1a"/></svg>';
+  t.append(el("div", {class: "t2d-jeu"}), el("div", {class: "t2d-ombre"}), ballon,
     el("div", {class: "t2d-bandeau", hidden: true}), el("div", {class: "t2d-popup", hidden: true}));
   return t;
 }
 
-// On dessine les vingt-deux cartes UNE FOIS ; ensuite seuls leur position
-// et leur barre d'endurance changent, donc une phase coûte deux écritures
-// de style par joueur et rien n'est reconstruit.
+// Vingt-deux JETONS, pas vingt-deux cartes.  Une carte est faite pour
+// être lue de près ; sur un terrain, ce qu'on lit, c'est une position,
+// un côté, une distance — comme sur la tablette d'un entraîneur.  Le
+// jeton porte le poste tenu, le nom dessous, l'endurance en dessous.
+// Dessinés une fois ; ensuite seule leur position change.
 function peuplerTerrain(t, m, moi) {
   const jeu = t.querySelector(".t2d-jeu");
   jeu.replaceChildren();
@@ -1671,14 +1681,17 @@ function peuplerTerrain(t, m, moi) {
     const joueurs = (m.sur_le_terrain?.[cote] || []).map(pid => tous.find(j => j.pid === pid)).filter(Boolean);
     const places = placesDe(joueurs, m.formation?.[cote]);
     joueurs.forEach((j, i) => {
-      const p = el("div", {class: "t2d-pion " + (cote === moi ? "mien" : "adverse"),
-        title: `${j.nom} · ${j.ovr}${j.slot ? " · " + j.slot : ""}`});
-      p.append(el("span", {class: "t2d-anneau"}), carteDessinee(j, 120),
-        el("span", {class: "t2d-jauge"}, el("i", {})),
-        el("span", {class: "t2d-nom"}, (j.nom || "").split(" ").slice(-1)[0]));
+      const poste = j.slot || j.poste || "Milieu relayeur";
+      const gk = posteBase(poste) === "Gardien";
+      const p = el("div", {class: "t2d-pion " + (cote === moi ? "mien" : "adverse") + (gk ? " gk" : ""),
+        title: `${j.nom} · ${j.ovr}${j.slot ? " · " + (POSTE_COURT[j.slot] || j.slot) : ""}`});
+      p.append(el("span", {class: "t2d-jeton"}, POSTE_ABBR[poste] || (gk ? "GB" : "")),
+        el("span", {class: "t2d-nom"}, (j.nom || "").split(" ").slice(-1)[0]),
+        el("span", {class: "t2d-jauge"}, el("i", {})));
       p.dataset.pid = j.pid; p.dataset.cote = cote;
       p._base = places[i] || [0.4, 0.5];
-      p._poste = j.slot || j.poste || "Milieu relayeur";
+      p._poste = poste;
+      p._gk = gk;
       jeu.append(p);
       T2D.pions[cote + ":" + j.pid] = p;
     });
@@ -1850,14 +1863,33 @@ function ballonDe(ph) {
   return [ZONE_X[ph.z] ?? 0.4, ph.y === undefined ? 0.5 : ph.y];
 }
 
-// Un petit écart propre à chaque joueur et à chaque minute : il change
-// lentement, ce qui donne du vivant sans donner de la nervosité.
-function grain(pid, minute) {
-  let h = (pid * 2654435761 + minute * 97) >>> 0;
+// Un petit écart propre à chaque joueur, FIXE pour tout le match : les
+// lignes ne sont pas au laser, et personne ne tremble entre deux phases.
+function grain(pid) {
+  let h = (pid * 2654435761) >>> 0;
   h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995) >>> 0; h ^= h >>> 15;
-  const a = ((h & 0xffff) / 0xffff - 0.5) * 0.05;
-  const b = (((h >>> 16) & 0xffff) / 0xffff - 0.5) * 0.06;
-  return [a, b];
+  return [((h & 0xffff) / 0xffff - 0.5) * 0.022, (((h >>> 16) & 0xffff) / 0xffff - 0.5) * 0.03];
+}
+
+// Où va le gardien, dans SON repère.  Il ferme l'angle : sur la droite
+// entre le ballon et le milieu de son but, un peu devant sa ligne, plus
+// avancé quand le ballon est loin.  Sur une frappe il va au point
+// visé ; sur un arrêt il y est, le ballon dans les gants ; sur un but
+// il est parti du mauvais côté.
+function placeGardien(sien, phase, xb, yb) {
+  const contre = !sien && (phase.k === "tir" || phase.k === "but" || phase.k === "rate");
+  if (contre) {
+    const t = phase.t === undefined ? (T2D.dernierTir ?? 0.5) : phase.t;
+    const yt = 0.5 + (t - 0.5) * 0.30;
+    if (phase.k === "but") return [0.035, 0.5 + (yt - 0.5) * -0.6];        // battu, de l'autre côté
+    return [0.03, 1 - yt];                                                    // le but visé, vu de sa ligne
+  }
+  if (sien && (phase.k === "arret" || phase.k === "relance" || phase.k === "degagement")) return null; // porteur : il est au ballon
+  // le ballon vu de lui : yb est déjà dans son repère
+  const loin = Math.max(0, Math.min(1, xb));                                  // 0 : sur sa ligne, 1 : tout là-bas
+  const x = 0.035 + 0.05 * loin;
+  const y = 0.5 + (yb - 0.5) * (0.20 + 0.15 * (1 - loin));
+  return [x, y];
 }
 
 function bougerTerrain(t, cote, zone, moi, ph) {
@@ -1874,37 +1906,45 @@ function bougerTerrain(t, cote, zone, moi, ph) {
     const c = cle.slice(0, 1);
     const sien = c === camp;
     // le ballon vu de CE camp
-    const yb = sien ? by : 1 - by;
-    let [x, y] = placeJoueur(p, sien, progression, phase, T2D.consignes?.[c]);
-    // le bloc coulisse vers le ballon, celui qui défend davantage
-    y += (yb - 0.5) * (sien ? 0.16 : 0.28);
-    const g = grain(+p.dataset.pid, T2D.m);
-    x += g[0]; y += g[1];
-    places[cle] = {x, y, sien, gk: posteBase(p._poste) === "Gardien"};
+    const xb = sien ? bx : 1 - bx, yb = sien ? by : 1 - by;
+    let x, y;
+    if (p._gk) {
+      const g = placeGardien(sien, phase, xb, yb);
+      [x, y] = g || [0.035, 0.5];
+    } else {
+      [x, y] = placeJoueur(p, sien, progression, phase, T2D.consignes?.[c]);
+      // le bloc coulisse vers le ballon, celui qui défend davantage
+      y += (yb - 0.5) * (sien ? 0.12 : 0.22);
+      const g = grain(+p.dataset.pid);
+      x += g[0]; y += g[1];
+    }
+    places[cle] = {x, y, sien, gk: p._gk};
   }
   const porteur = places[porteurCle];
   if (porteur) {
-    // le porteur vient au ballon ; sur une frappe il est déjà là
-    porteur.x = bx; porteur.y = by;
+    // le porteur vient au ballon ; sur une frappe il est déjà là ; sur un
+    // arrêt, le gardien est sur sa ligne, au point visé
+    if (phase._arret) { const [ax, ay] = ballonArret(phase); porteur.x = ax; porteur.y = ay; }
+    else { porteur.x = bx; porteur.y = by; }
     if (!SUR_LE_BUT.has(phase.k) && !ARRETS_JEU.has(phase.k)) {
       const dist = v => Math.hypot(v.x - bx, v.y - by);
-      // deux soutiens se proposent
-      const soutiens = Object.entries(places)
+      // un soutien se propose
+      const soutien = Object.entries(places)
         .filter(([cle, v]) => cle !== porteurCle && v.sien && !v.gk)
-        .sort((a, b) => dist(a[1]) - dist(b[1])).slice(0, 2);
-      for (const [, v] of soutiens) { v.x += (bx - v.x) * 0.22; v.y += (by - v.y) * 0.22; }
+        .sort((a, b) => dist(a[1]) - dist(b[1]))[0];
+      if (soutien) { const v = soutien[1]; v.x += (bx - v.x) * 0.18; v.y += (by - v.y) * 0.18; }
       // et l'adversaire le plus proche vient au contact — dans SON repère
       // le ballon est en miroir
       const bxa = 1 - bx, bya = 1 - by;
       const presseur = Object.entries(places)
         .filter(([, v]) => !v.sien && !v.gk)
         .sort((a, b) => Math.hypot(a[1].x - bxa, a[1].y - bya) - Math.hypot(b[1].x - bxa, b[1].y - bya))[0];
-      if (presseur) { const v = presseur[1]; v.x += (bxa - v.x) * 0.45; v.y += (bya - v.y) * 0.45; }
+      if (presseur) { const v = presseur[1]; v.x += (bxa - v.x) * 0.35; v.y += (bya - v.y) * 0.35; }
     }
   }
   for (const [cle, p] of Object.entries(T2D.pions)) {
     const c = cle.slice(0, 1), v = places[cle];
-    const [g, h] = ecran(c, clamp(v.x, 0.02, 0.96), clamp(v.y, 0.04, 0.96), moi);
+    const [g, h] = ecran(c, clamp(v.x, 0.02, 0.97), clamp(v.y, 0.04, 0.96), moi);
     p.style.left = (g * 100) + "%";
     p.style.top = (h * 100) + "%";
     // le porteur arrive avec le ballon, les autres à leur rythme
@@ -1912,39 +1952,63 @@ function bougerTerrain(t, cote, zone, moi, ph) {
   }
 }
 
+// Où est le ballon pour un arrêt du gardien : dans ses gants, sur sa
+// ligne, à l'endroit visé par la frappe — pas au milieu de sa surface.
+function ballonArret(ph) {
+  const t = T2D.dernierTir ?? 0.5;
+  return [0.03, 1 - (0.5 + (t - 0.5) * 0.30)];
+}
+
 // Une phase : le ballon va où elle dit, le porteur s'allume, et pour un
 // tir le ballon quitte vraiment le pied pour aller au but.
 function jouerPhase(t, ph, moi) {
-  const b = t.querySelector(".t2d-ballon");
+  const b = t.querySelector(".t2d-ballon"), ombre = t.querySelector(".t2d-ombre");
   const jeu = t.querySelector(".t2d-jeu");
-  if (!ph) { b.hidden = true; return; }
+  if (!ph) { b.hidden = true; ombre.hidden = true; return; }
   const cote = "ab"[ph.c];
+  if (ph.k === "arret") ph = {...ph, _arret: true};
   bougerTerrain(t, ph.c, ph.z, moi, ph);
   for (const p of Object.values(T2D.pions || {}))
     p.classList.toggle("ballon", p.dataset.cote === cote && +p.dataset.pid === ph.p);
   b.classList.toggle("tir", ph.k === "tir" || ph.k === "rate");
   b.classList.toggle("dedans", ph.k === "but");
-  T2D.arret = ARRETS_JEU.has(ph.k);
+  // Un arrêt de jeu ne se voit que quand il pèse : un but, un carton, une
+  // blessure, un penalty.  Une faute est un coup de sifflet et un coup
+  // franc joué dans la foulée — la montrer comme une pause cassait le
+  // fil du match vingt-cinq fois par mi-temps.
+  T2D.arret = ARRETS_LOURDS.has(ph.k);
   jeu.classList.toggle("arret", T2D.arret);
   jeu.classList.toggle("celebre", ph.k === "but");
-  b.style.transitionDuration = (T2D.dureeBallon || 400) + "ms";
+  const duree = T2D.dureeBallon || 400;
+  b.style.transitionDuration = duree + "ms";
+  ombre.style.transitionDuration = duree + "ms";
+  let g, h;
   if (ph.k === "tir" || ph.k === "but" || ph.k === "rate") {
     // une frappe manquée ne revient pas dans les pieds du tireur : elle
     // file à côté du but
-    const [g, h] = buts(cote, moi, ph.k === "rate" ? (T2D.dernierTir ?? 0.5) : ph.t);
+    [g, h] = buts(cote, moi, ph.k === "rate" ? (T2D.dernierTir ?? 0.5) : ph.t);
     const dehors = ph.k === "rate" ? (h < 0.5 ? -0.10 : 0.10) : 0;
     if (ph.k === "tir") T2D.dernierTir = ph.t;
-    if (ph.k !== "but") b.style.transitionDuration = "300ms";
-    b.style.left = (g * 100) + "%";
-    b.style.top = ((h + dehors) * 100) + "%";
-    b.hidden = false;
+    if (ph.k !== "but") { b.style.transitionDuration = "280ms"; ombre.style.transitionDuration = "280ms"; }
+    h += dehors;
+    if (ph.k === "but") {
+      // le filet ondule
+      const cage = t.querySelector(".t2d-cage." + (g > 0.5 ? "droite" : "gauche"));
+      if (cage) { cage.classList.remove("ondule"); void cage.offsetWidth; cage.classList.add("ondule"); }
+    }
+  } else if (ph.k === "arret") {
+    [g, h] = ecran(cote, ...ballonArret(ph), moi);
   } else {
     const [bx, by] = ballonDe(ph);
-    const [g, h] = ecran(cote, bx, by, moi);
-    b.style.left = (g * 100) + "%";
-    b.style.top = (h * 100) + "%";
-    b.hidden = false;
+    [g, h] = ecran(cote, bx, by, moi);
   }
+  b.style.left = (g * 100) + "%"; b.style.top = (h * 100) + "%";
+  ombre.style.left = (g * 100) + "%"; ombre.style.top = (h * 100) + "%";
+  b.hidden = false; ombre.hidden = false;
+  // il roule le temps du trajet
+  b.classList.add("en-vol");
+  clearTimeout(T2D.rouleTimer);
+  T2D.rouleTimer = setTimeout(() => b.classList.remove("en-vol"), Math.max(200, duree));
   // L'événement de la minute s'annonce QUAND sa phase se joue — le but
   // quand le ballon entre, la faute au coup de sifflet — jamais avant.
   if (T2D.attente && ph.k === T2D.attente.k) voir(T2D.attente.idx, T2D.attente.evt);
@@ -1956,11 +2020,13 @@ function jouerPhase(t, ph, moi) {
   if (nom) {
     const porteur = T2D.pions?.[cote + ":" + ph.p];
     const j = porteur ? porteur.getAttribute("title").split(" · ")[0] : "";
-    nom.textContent = ph.d || (PHASE_TXT[ph.k] || "") + (j ? " — " + j : "");
+    nom.textContent = (PHASE_ICONE[ph.k] ? PHASE_ICONE[ph.k] + " " : "") + (ph.d || (PHASE_TXT[ph.k] || "") + (j ? " — " + j : ""));
     nom.className = "t2d-action " + ph.k;
   }
 }
 
+const PHASE_ICONE = {faute: "🟡", carton: "🟨", horsjeu: "🚩", corner: "⛳", but: "⚽", blessure: "🚑", penalty: "⚠"};
+const ARRETS_LOURDS = new Set(["but", "blessure", "carton", "penalty"]);
 const ARRETS_JEU = new Set(["faute", "horsjeu", "but", "blessure", "carton", "penalty"]);
 const PHASE_TXT = {
   relance: "Relance", passe: "Passe", conduite: "Il perce", tir: "Frappe !", but: "BUT",
@@ -2023,8 +2089,8 @@ function voir(idx, evt) {
 // Le moteur d'animation : une phase à la fois, enchaînées par setTimeout
 // plutôt que par un intervalle fixe — le nombre de phases change d'une
 // minute à l'autre, et un arrêt de jeu dure plus longtemps qu'une passe.
-const POIDS_PHASE = {faute: 1.8, horsjeu: 1.6, but: 2.4, blessure: 2.2, carton: 1.5,
-                     tir: 1.2, arret: 1.4, coupfranc: 1.2, corner: 1.3, penalty: 1.8, engagement: 1.2};
+const POIDS_PHASE = {faute: 1.0, duel: 0.7, horsjeu: 1.1, but: 2.4, blessure: 2.0, carton: 1.4,
+                     tir: 1.2, arret: 1.4, coupfranc: 0.9, corner: 1.2, penalty: 1.8, engagement: 1.1};
 // quelle phase porte l'événement de la minute
 const EVT_PHASE = {but: "but", arret: "arret", occasion: "rate", corner: "corner", faute: "faute",
                    jaune: "carton", rouge: "carton", horsjeu: "horsjeu", blessure: "blessure",
