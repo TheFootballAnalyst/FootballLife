@@ -378,3 +378,21 @@ def test_the_perimeter_is_the_eight_leagues_the_engine_rates():
     assert 77 in dedans and 78 in dedans
     # and the five-league perimeter is what it used to be, if anyone asks
     assert 77 not in P.clubs_perimetre(jeu, "2025/26", ligues=(47, 87, 55, 54, 53))
+
+
+def test_the_engine_s_manual_positions_come_first_in_the_game(tmp_path, monkeypatch):
+    """moteur/postes_manuel.json is the engine's own list of hand-set
+    positions; the game reads the same file, so a player the slot data
+    reads wrong is fixed once for both."""
+    from jeu import importer as I
+    jeu = base()
+    nom = jeu.execute("SELECT nom FROM joueur WHERE player_id=2").fetchone()[0]
+    avant = jeu.execute("SELECT poste, postes FROM joueur WHERE player_id=2").fetchone()
+    f = tmp_path / "postes_manuel.json"
+    f.write_text(json.dumps({nom: "Milieu relayeur", "Personne Inconnue": "Buteur", nom + "x": "Poste bidon"}), encoding="utf-8")
+    monkeypatch.setattr(I, "POSTES_MANUEL", f)
+    I.majorite_postes_et_clubs(jeu)
+    poste, postes = jeu.execute("SELECT poste, postes FROM joueur WHERE player_id=2").fetchone()
+    assert poste == "Milieu relayeur" and json.loads(postes)[0] == "Milieu relayeur"
+    # what he really held stays eligible behind it
+    assert set(json.loads(avant[1] or "[]")) <= set(json.loads(postes)) | {"Milieu relayeur"}

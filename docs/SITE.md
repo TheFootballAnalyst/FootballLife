@@ -522,6 +522,21 @@ dit — orange pour un peu, rouge pour loin de chez lui, vert pour un
 bonus — avec **l'OVR qu'il vaut à ce poste**, et l'écran donne l'OVR
 moyen du onze au poste.
 
+**D'où vient le poste d'une carte.** Des feuilles de match FotMob : la
+case que le joueur occupait dans le onze, lue par le moteur match par
+match (un couloir bas d'une défense à quatre est un latéral, le côté
+d'un milieu à quatre est un ailier, l'axe le plus bas du milieu est le
+6…). Le poste principal est celui où il a passé le plus de minutes,
+et la carte est éligible partout où il a joué un cinquième de son
+temps. Quand cette lecture se trompe sur quelqu'un — Valverde sort
+ailier parce que le Real l'aligne à droite d'un milieu à quatre —
+c'est `moteur/postes_manuel.json` qui tranche, le même fichier que le
+moteur utilise pour son propre classement : `{"Federico Valverde":
+"Milieu relayeur"}`, puis `py -m jeu.importer --postes-seulement --jeu
+jeu/demo.sqlite` (et sur `jeu/jeu_2526.sqlite`) pour l'appliquer sans
+tout réimporter. Le poste imposé passe devant, les autres qu'il a tenus
+restent jouables.
+
 Les postes s'écrivent comme dans FIFA — GB, DC, DG, DD, MDC, MC, MOC,
 AG, AD, BU — partout : sur les cases, dans la ligne de chaque joueur du
 club et des listes (ses postes tenus en premier), sur la fiche. Cinq

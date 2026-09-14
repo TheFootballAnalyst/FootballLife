@@ -407,9 +407,41 @@ def postes_joues(jeu: sqlite3.Connection, pid: int | None = None) -> dict[int, l
     return out
 
 
+# The engine's own manual positions (moteur/postes_manuel.json, {name:
+# position}): where the slot data reads a player wrong — Valverde's right
+# midfield in a flat four reads as a winger — the engine is told by hand,
+# and the game follows the same file rather than keeping its own list.
+POSTES_MANUEL = MOTEUR / "postes_manuel.json"
+
+
+def postes_manuels(jeu: sqlite3.Connection, fichier: pathlib.Path | None = None) -> dict[int, str]:
+    """{player_id: forced position} from the engine's manual file.  A name
+    with homonyms goes to the one who played the most, as the engine does."""
+    fichier = fichier or POSTES_MANUEL
+    if not fichier.exists():
+        return {}
+    try:
+        forces = json.loads(fichier.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    minutes = dict(jeu.execute("SELECT player_id, COALESCE(SUM(minutes), 0) FROM prestation GROUP BY player_id"))
+    par_nom: dict[str, int] = {}
+    for pid, nom in jeu.execute("SELECT player_id, nom FROM joueur"):
+        if nom not in par_nom or minutes.get(pid, 0) > minutes.get(par_nom[nom], 0):
+            par_nom[nom] = pid
+    out = {}
+    for nom, poste in forces.items():
+        pid = par_nom.get(nom)
+        if pid is not None and poste in S.FAMILLE_POSTE:
+            out[pid] = poste
+    return out
+
+
 def majorite_postes_et_clubs(jeu: sqlite3.Connection) -> None:
     """Set joueur.poste / team_id to the season's majority (by minutes) and
-    joueur.postes to every position the player really held."""
+    joueur.postes to every position the player really held — unless the
+    engine's manual file says otherwise, in which case that position comes
+    first and the others he held stay eligible."""
     rows = jeu.execute("""
         SELECT player_id, poste, team_id, SUM(minutes) m
         FROM prestation GROUP BY player_id, poste, team_id""").fetchall()
@@ -418,10 +450,13 @@ def majorite_postes_et_clubs(jeu: sqlite3.Connection) -> None:
         if pid not in best or m > best[pid][0]:
             best[pid] = (m, poste, tid)
     eligibles = postes_joues(jeu)
+    forces = postes_manuels(jeu)
     for pid, (_, poste, tid) in best.items():
         liste = eligibles.get(pid) or [poste]
         # the displayed position is the first of the list — the best position
         # of the family he spent most minutes in — so it never contradicts it
+        if pid in forces:
+            liste = [forces[pid]] + [q for q in liste if q != forces[pid]]
         jeu.execute("UPDATE joueur SET poste=?, team_id=?, postes=? WHERE player_id=?",
                     (liste[0], tid, json.dumps(liste), pid))
     jeu.commit()
@@ -515,7 +550,15 @@ def main():
                     help="only fill the raw match actions (prestation.stats) from the FotMob base")
     ap.add_argument("--bareme-seulement", action="store_true",
                     help="only (re)compute the season barème windows (bareme_journee) from the FotMob base")
+    ap.add_argument("--postes-seulement", action="store_true",
+                    help="only recompute the players' positions (majority, eligible ones, moteur/postes_manuel.json)")
     a = ap.parse_args()
+    if a.postes_seulement:
+        jeu = ouvrir_jeu(pathlib.Path(a.jeu))
+        majorite_postes_et_clubs(jeu)
+        forces = postes_manuels(jeu)
+        print(f"postes recalculés -> {a.jeu} ({len(forces)} imposés par moteur/postes_manuel.json)")
+        return
     if a.bareme_seulement:
         jeu = ouvrir_jeu(pathlib.Path(a.jeu))
         print(f"{importer_bareme(sqlite3.connect(a.fotmob), jeu, a.saison)} fenêtres joueur x journée -> {a.jeu}")
