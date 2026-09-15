@@ -635,6 +635,9 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 /* Un tir part vraiment du pied vers le but : rapide et en ligne droite. */
 .t2d-ballon.tir{transition:left .3s linear,top .3s linear;box-shadow:0 0 12px #fff,0 0 22px var(--or2)}
 .t2d-ballon.dedans{transition:none;box-shadow:0 0 14px #7ce2ad,0 0 26px #7ce2ad;background:#eafff4}
+/* Avec la simulation, les positions sont écrites 25 fois par seconde :
+   plus de transition CSS, elle se battrait avec le tic. */
+.terrain2d.sim .t2d-pion,.terrain2d.sim .t2d-ballon,.terrain2d.sim .t2d-ombre{transition:none}
 .terrain2d.suspendu{filter:saturate(.55) brightness(.85)}
 .terrain2d.suspendu::after{content:"match arrêté";position:absolute;inset:auto 0 0 0;text-align:center;
   padding:4px;background:rgba(8,10,18,.8);font-family:"Barlow Condensed",sans-serif;letter-spacing:.1em;

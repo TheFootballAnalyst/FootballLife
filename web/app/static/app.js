@@ -1938,10 +1938,13 @@ function placeGardien(sien, phase, xb, yb) {
   return [x, y];
 }
 
-function bougerTerrain(t, cote, zone, moi, ph) {
+function bougerTerrain(t, cote, zone, moi, ph, suivant) {
   if (!T2D.pions) return;
   const phase = ph || {k: "passe", z: zone, c: cote, y: 0.5, p: null};
   if (phase.c === undefined || phase.c === null) return;
+  // Avec la simulation (sim2d.js), les jetons ne sont plus POSÉS : ils
+  // reçoivent le contexte de la phase et y courent à chaque tic.
+  if (window.SIM && SIM.actif) { SIM.phaseDe(phase, suivant); return; }
   // la progression : 0 devant son propre but, 1 dans la surface adverse
   const progression = clamp(((phase.z === undefined ? 1 : phase.z) - 0.5) / 2.5, 0, 1);
   const [bx, by] = ballonDe(phase);
@@ -2015,7 +2018,7 @@ function jouerPhase(t, ph, moi) {
   if (!ph) { b.hidden = true; ombre.hidden = true; return; }
   const cote = "ab"[ph.c];
   if (ph.k === "arret") ph = {...ph, _arret: true};
-  bougerTerrain(t, ph.c, ph.z, moi, ph);
+  bougerTerrain(t, ph.c, ph.z, moi, ph, T2D.phases[T2D.i] || null);
   for (const p of Object.values(T2D.pions || {}))
     p.classList.toggle("ballon", p.dataset.cote === cote && +p.dataset.pid === ph.p);
   b.classList.toggle("tir", ph.k === "tir" || ph.k === "rate");
@@ -2050,13 +2053,16 @@ function jouerPhase(t, ph, moi) {
     const [bx, by] = ballonDe(ph);
     [g, h] = ecran(cote, bx, by, moi, true);
   }
-  b.style.left = (g * 100) + "%"; b.style.top = (h * 100) + "%";
-  ombre.style.left = (g * 100) + "%"; ombre.style.top = (h * 100) + "%";
   b.hidden = false; ombre.hidden = false;
-  // il roule le temps du trajet
-  b.classList.add("en-vol");
-  clearTimeout(T2D.rouleTimer);
-  T2D.rouleTimer = setTimeout(() => b.classList.remove("en-vol"), Math.max(200, duree));
+  if (window.SIM && SIM.actif) SIM.envoyer(g, h, ph, duree);   // il y va à sa vitesse
+  else {
+    b.style.left = (g * 100) + "%"; b.style.top = (h * 100) + "%";
+    ombre.style.left = (g * 100) + "%"; ombre.style.top = (h * 100) + "%";
+    // il roule le temps du trajet
+    b.classList.add("en-vol");
+    clearTimeout(T2D.rouleTimer);
+    T2D.rouleTimer = setTimeout(() => b.classList.remove("en-vol"), Math.max(200, duree));
+  }
   // L'événement de la minute s'annonce QUAND sa phase se joue — le but
   // quand le ballon entre, la faute au coup de sifflet — jamais avant.
   if (T2D.attente && ph.k === T2D.attente.k) voir(T2D.attente.idx, T2D.attente.evt);
@@ -2213,6 +2219,7 @@ function programmer(d) {
 function arreterTerrain(oublier) {
   if (T2D.timer) { clearTimeout(T2D.timer); T2D.timer = null; }
   if (oublier) {
+    if (window.SIM) SIM.stop();
     T2D.noeud = null; T2D.cle = null; T2D.m = 0; T2D.dernier = null; T2D.phases = []; T2D.i = 0;
     T2D.vus = new Set(); T2D.score = null; T2D.attente = null; T2D.rid = null; T2D.tete = null;
   }
@@ -2284,8 +2291,12 @@ function panneauTerrain(d, moi) {
     peuplerTerrain(t, m, moi);
     T2D.noeud = p; T2D.cle = cle;
     if (T2D.m > m.minute) T2D.m = Math.max(0, m.minute - 1);
+    if (window.SIM) SIM.init(t, moi);
   }
   const t = p.querySelector(".terrain2d");
+  // le panneau revient à l'écran après un détour par un autre onglet :
+  // la simulation, qui s'était endormie, repart
+  if (window.SIM && SIM.t === t && !SIM.timer) { SIM.actif = true; SIM.start(); }
   T2D.fil = m.fil || [];
   T2D.cible = m.minute;
   T2D.evts = m.evenements || [];

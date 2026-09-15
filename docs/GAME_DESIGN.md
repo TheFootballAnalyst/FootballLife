@@ -337,6 +337,80 @@ same size — and five instructions pulling the same way cannot compound:
 the product on any one trait is bounded. They are also drawn: what you
 ask of a line shows in how it moves on the pitch.
 
+**The pitch is an agent simulation driven by the engine** (voie A).
+The engine keeps every outcome; the screen no longer *places* the
+twenty-two at each phase, it lets them *play* between phases: each
+token has a position, a speed and a place in the team shape, and
+twenty-five times a second it picks where to go — the block in
+possession climbs with the ball, the defending block sits compact,
+the holder comes to the ball and carries it, the next receiver is
+already on the move, two men offer support, forwards run in behind
+without going offside, the nearest opponent presses while the second
+cuts the passing lane and a neighbour covers, nobody stands on anyone,
+the ball travels at its own speed. It is deterministic per player
+(fixed offsets from the pid) and touches nothing in the result.
+
+**Voie B — the emergent engine — what it would need.** In B the
+outcome *comes from* the simulation: a goal is scored because a run
+beat a line and a shot beat a keeper, not because a die said so. That
+is a different engine, not an extension of this one. What it needs:
+
+1. *A physical layer.* A 105 × 68 pitch, twenty-two bodies with
+   position, velocity, acceleration, turning; a ball with its own
+   physics (ground pass, lofted ball, bounce, spin is optional). Player
+   speed, acceleration and stamina curves must come from somewhere: the
+   card has six axes and none of them is physical. FotMob gives no
+   tracking data, so a *physical profile* per card has to be built —
+   from position, age, minutes, carries and dribbles as proxies, or
+   supplied by hand (`moteur/`-side file, like the feet).
+2. *A decision layer.* Every 100 ms each player perceives (ball,
+   teammates, opponents, space), scores a handful of options (pass to
+   X, carry, shoot, press, cover, hold the line) with a utility that the
+   attributes shape, and adds noise. Execution then fails or succeeds
+   according to the attributes (a pass has an error angle; a shot has a
+   placement error; a duel is a contest). This is where the six axes
+   would finally act *on the pitch* rather than on a die.
+3. *Rules.* Offside from positions, fouls from contacts, corners,
+   throw-ins (today there are none), goal kicks, cards, injuries,
+   substitutions, half-time — all currently produced by the statistical
+   engine, all to be re-implemented on top of positions.
+4. *Compute.* 90 minutes at 10 Hz is 54 000 steps × 22 players; a pure
+   Python loop takes minutes per match. The core has to be vectorised
+   (numpy) or compiled (a small Rust/C module), and the match simulated
+   *once* on the server, producing an authoritative *trace* (positions
+   every 200 ms, a few MB compressed) that the browser replays. The
+   client then interpolates and no longer needs `sim2d.js`'s guesses.
+5. *Calibration — the real cost.* The current engine is calibrated
+   against the season's real distributions (goals, shots, xG,
+   possession, home advantage, and the effect of an 87 against a 75).
+   B must reproduce the same distributions or the game gets *worse*
+   for a long time while looking better. Without tracking data the
+   movement can only be calibrated by eye and by aggregate real-world
+   numbers (≈900 passes and ≈82 % completion per match, 10–11 km per
+   player, ≈25 shots, ≈2.7 goals). Plan a harness that runs a thousand
+   matches and compares, and expect most of the effort to go there.
+6. *Determinism and replay.* Fixed time step, seeded noise, the trace
+   stored: a replayed match must be the same match, as it is today.
+
+The sane path is a **hybrid**: keep the statistical engine authoritative
+for outcomes (what voie A does), grow B underneath as the *positional
+layer* that enacts the die's outcome physically, and flip to
+B-authoritative only when its calibration harness matches the engine
+on every distribution that matters.
+
+**A 3D view — what it would need.** Nothing about the result, and very
+little about the football: the "does it look like football" question
+lives entirely in the movement model (`sim2d.js` today, B tomorrow),
+and a 3D view is a *rendering* of the same positions. Concretely:
+three.js from the allowed CDN; a pitch model, a ball, a TV camera that
+follows play (or a free camera); either stylised players (capsules
+with shirt number and name, no skeleton — a few days on top of the
+current simulation, which already yields positions every 40 ms) or
+animated humanoids (rigged models with run/kick/tackle clips, weeks
+plus an artist, heavy on phones). Portraits stay out of 3D as they stay
+off the server. Recommendation: get the 2D movement right first; the
+3D view inherits it for free.
+
 **Legs are part of the decision.** Everyone on the pitch burns stamina
 minute after minute, at the cost of the line he plays in and of the way
 his manager makes him play: pressing high and going direct cost legs,

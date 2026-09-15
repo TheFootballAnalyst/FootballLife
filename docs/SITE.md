@@ -332,6 +332,26 @@ se marcher dessus, et sur une frappe les attaquants rentrent dans la
 surface pendant que la défense adverse couvre son but. Les consignes du
 manager changent ces courses.
 
+**Les jetons vivent entre deux phases** (`web/app/static/sim2d.js`).
+Chaque jeton est un agent : une position, une vitesse, une place dans
+la forme de son équipe, et vingt-cinq fois par seconde il choisit où
+aller — puis il y court à la vitesse d'un joueur, pas d'un curseur. Le
+bloc en possession monte avec le ballon (une équipe fait quarante
+mètres de long), le bloc qui défend se tasse vers lui ; le porteur
+vient au ballon et le conduit ; celui qui va recevoir la passe
+suivante est déjà en route avant qu'elle parte ; deux coéquipiers se
+proposent en soutien, les attaquants font des appels dans le dos de la
+ligne en restant en jeu ; l'adversaire le plus proche presse, le second
+coupe la ligne de passe vers le prochain receveur, le voisin du
+presseur vient couvrir sa place ; deux jetons ne se marchent jamais
+dessus ; le ballon voyage à sa vitesse — une ouverture met plus
+longtemps qu'une remise, une frappe file, une conduite colle au pied ;
+sur un but, les coéquipiers courent vers le buteur. Le moteur décide
+toujours de tout ce qui compte (qui a le ballon, où, ce qu'il en fait,
+ce que ça donne) : la simulation ne fait que rendre visible ce qu'il
+raconte, et le rythme choisi (6, 12 ou 18 minutes) règle la vitesse
+des courses.
+
 Rien n'est inventé par la page : le moteur rend `fil`, une ligne par
 minute (quel camp a le ballon, dans quelle zone, quel joueur le porte,
 quel événement) et, dans chaque ligne, `s` — **les phases** de cette
