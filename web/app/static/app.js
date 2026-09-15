@@ -2498,12 +2498,14 @@ function construireChangements(d, route, rendre) {
       }
     } catch (e) { toast(e.message); }
   }}, "Choisis les joueurs");
-  // Le plus fatigué d'abord : c'est lui qu'on cherche quand on ouvre ce
-  // panneau à la soixante-dixième minute.  L'ordre est fixé à la
-  // construction, pas à chaque sondage : une liste qui se réordonne sous
-  // le curseur est pire qu'une liste mal triée.
-  const parFatigue = [...surTerrain].sort((x, y) => (endu[x.pid] ?? 100) - (endu[y.pid] ?? 100));
-  choix.append(colonne("Sur le terrain", parFatigue, "out"), colonne("Sur le banc", banc, "in"));
+  // Dans l'ordre du terrain lu de l'attaque vers le but : attaquants,
+  // milieux, défenseurs, gardien — et dans une ligne, de gauche à droite
+  // comme sur la pelouse.  L'ordre est fixé à la construction, pas à
+  // chaque sondage : une liste qui se réordonne sous le curseur est pire
+  // qu'une liste mal triée.  La fatigue se lit sur la barre.
+  const rangLigne = j => ({FWD: 0, MID: 1, DEF: 2, GK: 3}[FAM_POSTE[j.slot || j.poste] || j.fam] ?? 1);
+  const parLigne = gens => gens.map((j, i) => [j, i]).sort((x, y) => rangLigne(x[0]) - rangLigne(y[0]) || x[1] - y[1]).map(x => x[0]);
+  choix.append(colonne("Sur le terrain", parLigne([...surTerrain].reverse()), "out"), colonne("Sur le banc", parLigne(banc), "in"));
   b.append(choix, valider);
   CHG.sel = [];
   CHG.maj = maj;
