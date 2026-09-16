@@ -574,8 +574,62 @@ def date_de_la_base(jeu: sqlite3.Connection) -> date:
     return date.today()
 
 
-def importer_physique(jeu: sqlite3.Connection, fichier: pathlib.Path = MOTEUR / "physique_ea.csv",
-                      quand: date | None = None) -> int:
+FICHES_PHYSIQUE = (MOTEUR / "physique_ea.csv", MOTEUR / "physique_complement.csv")
+PHYSIQUE_EXCLUS = MOTEUR / "physique_exclus.json"
+
+
+def _exclus_physique(fichier: pathlib.Path | None = None) -> set[int]:
+    """The FotMob ids whose EA row is a known false match (a shared EA id
+    settled by hand in moteur/physique_exclus.json)."""
+    fichier = fichier or PHYSIQUE_EXCLUS
+    if not fichier.exists():
+        return set()
+    try:
+        return {int(k) for k in json.loads(fichier.read_text(encoding="utf-8")) if not k.startswith("_")}
+    except (json.JSONDecodeError, OSError, ValueError):
+        return set()
+
+
+def defauts_physique(jeu: sqlite3.Connection) -> int:
+    """A player without an EA row gets the MEDIAN profile of his position,
+    computed on the real profiles of this base and flagged `defaut`: a
+    winger nobody rated still accelerates like a winger, not like a
+    fifty everywhere.  Nothing else (feet, birth date, side) is made up.
+    Returns how many players got a default."""
+    reels: dict[str, list[dict]] = {}
+    for poste, brut in jeu.execute("SELECT poste, physique FROM joueur WHERE physique IS NOT NULL"):
+        try:
+            p = json.loads(brut)
+        except (TypeError, ValueError):
+            continue
+        if p.get("defaut"):
+            continue
+        reels.setdefault(S.poste_base(poste), []).append(p)
+    if not reels:
+        return 0
+    def mediane(vals):
+        vals = sorted(vals)
+        return vals[len(vals) // 2] if vals else None
+    cles = PHYSIQUE_EA + ("taille", "poids")
+    par_poste = {}
+    for poste, ps in reels.items():
+        if len(ps) < 20:
+            continue
+        par_poste[poste] = {k: mediane([p[k] for p in ps if p.get(k) is not None]) for k in cles}
+    tous = {k: mediane([p[k] for ps in reels.values() for p in ps if p.get(k) is not None]) for k in cles}
+    n = 0
+    for pid, poste in jeu.execute("SELECT player_id, poste FROM joueur WHERE physique IS NULL").fetchall():
+        d = dict(par_poste.get(S.poste_base(poste), tous))
+        d = {k: v for k, v in d.items() if v is not None}
+        d["defaut"] = True
+        jeu.execute("UPDATE joueur SET physique=? WHERE player_id=?", (json.dumps(d), pid))
+        n += 1
+    jeu.commit()
+    return n
+
+
+def importer_physique(jeu: sqlite3.Connection, fichier=None, quand: date | None = None,
+                      defauts: bool = True) -> int:
     """joueur.{pied, pied_faible, naissance, age, cote, physique} depuis la
     fiche EA (moteur/physique_ea.csv), jointe par fotmob_id.
 
@@ -587,44 +641,61 @@ def importer_physique(jeu: sqlite3.Connection, fichier: pathlib.Path = MOTEUR / 
       - le profil physique (accélération, vitesse, agilité, équilibre,
         réactions, endurance, force, détente, agressivité, taille, poids,
         gestes techniques), pour la simulation.
-    Un joueur absent du fichier garde ce qu'il avait.  Retourne combien de
-    joueurs ont été renseignés."""
-    if not fichier.exists():
+    Deux fiches se lisent à la suite (la première passe et le complément,
+    FICHES_PHYSIQUE ; le complément n'a ni date de naissance ni poste EA,
+    donc ni côté ni date pour ses joueurs) ; les identifiants de
+    moteur/physique_exclus.json sont ignorés.  Un joueur absent des fiches
+    garde ce qu'il avait, et reçoit avec `defauts` le profil médian de son
+    poste (defauts_physique).  Retourne combien de joueurs ont une vraie
+    fiche."""
+    fichiers = [fichier] if fichier else [f for f in FICHES_PHYSIQUE if f.exists()]
+    fichiers = [f for f in fichiers if f.exists()]
+    if not fichiers:
         return 0
     quand = quand or date_de_la_base(jeu)
+    exclus = _exclus_physique()
     connus = {pid: (postes, poste) for pid, postes, poste in jeu.execute("SELECT player_id, postes, poste FROM joueur")}
+    # a default written by an earlier pass must not survive a real row
+    jeu.execute("UPDATE joueur SET physique=NULL WHERE physique LIKE '%\"defaut\": true%'")
     n = 0
-    with fichier.open(encoding="utf-8-sig", newline="") as f:
-        for r in csv.DictReader(f):
+    lignes = []
+    for chemin in fichiers:
+        with chemin.open(encoding="utf-8-sig", newline="") as f:
+            lignes.extend(csv.DictReader(f))
+    vus: set[int] = set()
+    for r in lignes:
+        try:
+            pid = int(r["fotmob_id"])
+        except (KeyError, ValueError):
+            continue
+        if pid not in connus or pid in exclus or pid in vus:
+            continue
+        vus.add(pid)
+        def num(cle):
             try:
-                pid = int(r["fotmob_id"])
-            except (KeyError, ValueError):
-                continue
-            if pid not in connus:
-                continue
-            def num(cle):
-                try:
-                    return int(float(r.get(cle) or ""))
-                except ValueError:
-                    return None
-            pied = PIED_EA.get((r.get("pied_fort") or "").strip())
-            faible = num("mauvais_pied")
-            naissance = (r.get("naissance") or "").strip() or None
-            age = _age_au(naissance, quand) if naissance else num("age")
-            cote = COTE_EA.get((r.get("poste") or "").strip().upper())
-            physique = {k: num(k) for k in PHYSIQUE_EA}
-            physique |= {"taille": num("taille_cm"), "poids": num("poids_kg"), "gestes": num("gestes"),
-                         "note_physique": num("note_physique"), "note_ea": num("note"), "poste_ea": (r.get("poste") or "").strip()}
-            physique = {k: v for k, v in physique.items() if v is not None and v != ""}
-            postes_j, poste_j = connus[pid]
-            liste = json.loads(postes_j) if postes_j else [poste_j]
-            jeu.execute("""UPDATE joueur SET pied=COALESCE(?, pied), pied_faible=COALESCE(?, pied_faible),
-                           naissance=COALESCE(?, naissance), age=COALESCE(?, age), cote=COALESCE(?, cote),
-                           physique=?, postes=? WHERE player_id=?""",
-                        (pied, faible, naissance, age, cote, json.dumps(physique),
-                         json.dumps(lateraliser(liste, cote)), pid))
-            n += 1
+                return int(float(r.get(cle) or ""))
+            except ValueError:
+                return None
+        pied = PIED_EA.get((r.get("pied_fort") or "").strip())
+        faible = num("mauvais_pied")
+        naissance = (r.get("naissance") or "").strip() or None
+        age = _age_au(naissance, quand) if naissance else num("age")
+        cote = COTE_EA.get((r.get("poste") or "").strip().upper())
+        physique = {k: num(k) for k in PHYSIQUE_EA}
+        physique |= {"taille": num("taille_cm"), "poids": num("poids_kg"), "gestes": num("gestes"),
+                     "note_physique": num("note_physique"), "note_ea": num("note"), "poste_ea": (r.get("poste") or "").strip()}
+        physique = {k: v for k, v in physique.items() if v is not None and v != ""}
+        postes_j, poste_j = connus[pid]
+        liste = json.loads(postes_j) if postes_j else [poste_j]
+        jeu.execute("""UPDATE joueur SET pied=COALESCE(?, pied), pied_faible=COALESCE(?, pied_faible),
+                       naissance=COALESCE(?, naissance), age=COALESCE(?, age), cote=COALESCE(?, cote),
+                       physique=?, postes=? WHERE player_id=?""",
+                    (pied, faible, naissance, age, cote, json.dumps(physique),
+                     json.dumps(lateraliser(liste, cote)), pid))
+        n += 1
     jeu.commit()
+    if defauts:
+        defauts_physique(jeu)
     return n
 
 

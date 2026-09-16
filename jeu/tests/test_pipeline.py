@@ -476,3 +476,33 @@ def test_the_base_stands_at_its_last_calculated_match():
     assert I.date_de_la_base(jeu) == date(2025, 1, 1)          # the one calculated match
     jeu.execute("UPDATE journee SET calculee=0")
     assert I.date_de_la_base(jeu) == date.today()
+
+
+COMPLEMENT_EA = """fotmob_id,nom_fotmob,ea_id,nom_ea,equipe_ea,age,taille_cm,poids_kg,pied_fort,mauvais_pied,gestes,acceleration,vitesse_pointe,agilite,equilibre,reactions,endurance,force,detente,agressivite,note_physique
+11,J11,1011,J11,A,25,176,73,Left,4,5,95,95,94,84,85,84,65,74,58,69
+"""
+
+
+def test_two_sheets_exclusions_and_the_median_profile_of_the_position(tmp_path, monkeypatch):
+    from datetime import date
+    jeu = base()
+    un = tmp_path / "physique_ea.csv"; un.write_text(FICHE_EA, encoding="utf-8")
+    deux = tmp_path / "physique_complement.csv"; deux.write_text(COMPLEMENT_EA, encoding="utf-8")
+    exclus = tmp_path / "physique_exclus.json"; exclus.write_text('{"_note": "x", "9": "homonyme"}', encoding="utf-8")
+    monkeypatch.setattr(I, "FICHES_PHYSIQUE", (un, deux))
+    monkeypatch.setattr(I, "PHYSIQUE_EXCLUS", exclus)
+    n = I.importer_physique(jeu, quand=date(2026, 3, 12))
+    assert n == 3                                   # 4, 10 from the first sheet, 11 from the complement; 9 excluded
+    # the complement has neither birth date nor EA position: age from its column, no side
+    j11 = jeu.execute("SELECT age, naissance, cote, pied, pied_faible, physique FROM joueur WHERE player_id=11").fetchone()
+    assert (j11[0], j11[1], j11[2], j11[3], j11[4]) == (25, None, None, "droit", 4)
+    assert json.loads(j11[5])["acceleration"] == 95
+    # the excluded one gets no row, so the median of its position instead
+    j9 = json.loads(jeu.execute("SELECT physique FROM joueur WHERE player_id=9").fetchone()[0])
+    assert j9["defaut"] is True and "acceleration" in j9
+    assert jeu.execute("SELECT pied FROM joueur WHERE player_id=9").fetchone()[0] is None
+    # everybody has a profile now, real or default
+    assert jeu.execute("SELECT COUNT(*) FROM joueur WHERE physique IS NULL").fetchone()[0] == 0
+    # a second pass replaces defaults, never a real row
+    assert I.importer_physique(jeu, quand=date(2026, 3, 12)) == 3
+    assert json.loads(jeu.execute("SELECT physique FROM joueur WHERE player_id=11").fetchone()[0])["acceleration"] == 95

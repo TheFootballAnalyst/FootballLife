@@ -1,0 +1,59 @@
+{
+ "Gardien": {
+  "acceleration": 40,
+  "vitesse_pointe": 40,
+  "agilite": 38,
+  "equilibre": 39,
+  "reactions": 65,
+  "endurance": 30,
+  "force": 63,
+  "detente": 60,
+  "agressivite": 25,
+  "taille_cm": 190,
+  "poids_kg": 82,
+  "n": 559
+ },
+ "Milieu": {
+  "acceleration": 67,
+  "vitesse_pointe": 69,
+  "agilite": 62,
+  "equilibre": 62,
+  "reactions": 67,
+  "endurance": 71,
+  "force": 75,
+  "detente": 75,
+  "agressivite": 70,
+  "taille_cm": 185,
+  "poids_kg": 78,
+  "n": 2017
+ },
+ "Buteur": {
+  "acceleration": 70,
+  "vitesse_pointe": 69,
+  "agilite": 71,
+  "equilibre": 70,
+  "reactions": 68,
+  "endurance": 72,
+  "force": 68,
+  "detente": 71,
+  "agressivite": 65,
+  "taille_cm": 182,
+  "poids_kg": 75,
+  "n": 2302
+ },
+ "Ailier": {
+  "acceleration": 77,
+  "vitesse_pointe": 76,
+  "agilite": 76,
+  "equilibre": 74,
+  "reactions": 66,
+  "endurance": 71,
+  "force": 61,
+  "detente": 67,
+  "agressivite": 58,
+  "taille_cm": 179,
+  "poids_kg": 72,
+  "n": 1376
+ },
+ "_note": "Valeurs medianes par poste, a donner aux joueurs sans profil EA. Calculees sur les 7072 profils apparies. Un lateral inconnu vaut mieux qu'un 50 partout."
+}

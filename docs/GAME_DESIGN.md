@@ -435,6 +435,16 @@ the season barème; the physical profile is the raw material of voie B,
 where it will drive speed, duels and decisions. Feet are shown as two
 gauges on two foot icons, never as stars: the strong foot full, the
 weak foot at its EA quality, both full for an ambidextrous player.
+Two sheets are read in a row (the first pass and a complement matched
+on usage names, without birth date or EA position); shared EA ids
+settled by hand are excluded (`moteur/physique_exclus.json`); a player
+with no row gets the median profile of his position, computed on the
+base's real rows and flagged as such. `moteur/mesures_fotmob_ucl.json`
+holds what FotMob really measured for 583 players in the Champions
+League (top speed, distance and sprints per 90): EA stamina correlates
++0.81 with distance, top speed +0.78 with measured top speed, and ten
+EA points are worth 1.41 km/h — the conversion voie B will use (keepers
+excluded: they never sprint).
 One caveat: the sheet's preferred-foot column is mirrored (Salah reads
 right-footed, Mbappé left-footed); the importer reads it the other way
 round and says so (`importer.PIED_EA`).

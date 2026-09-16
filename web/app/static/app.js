@@ -69,7 +69,14 @@ function blocPhysique(d) {
   if (ph.poids) mesures.push(`${ph.poids} kg`);
   if (ph.gestes) mesures.push(`gestes techniques ${ph.gestes}/5`);
   if (ph.note_physique) mesures.push(`physique ${ph.note_physique}`);
-  if (mesures.length) b.append(el("div", {class: "compteur"}, mesures.join(" · ") + " · d'après la fiche EA Sports, qui colle à la réalité"));
+  if (ph.defaut) b.append(el("div", {class: "compteur"}, "Pas de fiche EA pour lui : le profil est la médiane des joueurs de son poste" + (mesures.length ? " (" + mesures.join(" · ") + ")" : "") + "."));
+  else if (mesures.length) b.append(el("div", {class: "compteur"}, mesures.join(" · ") + " · d'après la fiche EA Sports, qui colle à la réalité"));
+  const m = d.mesures;
+  if (m && m.n) {
+    const km = v => (Math.round(v / 100) / 10).toLocaleString("fr-FR", {minimumFractionDigits: 1, maximumFractionDigits: 1});
+    b.append(el("div", {class: "compteur mesure", title: "Suivi FotMob en Ligue des champions, ramené à 90 minutes"},
+      `Mesuré en Ligue des champions (${m.n} match${m.n > 1 ? "s" : ""}) : pointe ${(Math.round(m.vmax * 10) / 10).toLocaleString("fr-FR")} km/h · ${km(m.dist90)} km par 90 min · ${Math.round(m.nsprint90)} sprints par 90 min`));
+  }
   return b;
 }
 const dateFr = iso => { if (!iso) return ""; const [a, m, j] = iso.split("-"); return `${+j} ${["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."][+m - 1] || ""} ${a}`; };

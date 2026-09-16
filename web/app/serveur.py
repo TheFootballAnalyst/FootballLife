@@ -414,7 +414,21 @@ def carte(pid: int, jeu=Depends(bd)):
         prestas.append({k: r[k] for k in ("numero", "note", "minutes", "competition", "date_utc")}
                        | {"faits": {k: st[k] for k in ("buts", "pd", "tirs", "arrets", "enc") if st.get(k)}})
     return c | {"historique": hist, "attributs": attributs, "prestations": prestas,
-                "physique": physique, "potentiel": potentiel}
+                "physique": physique, "potentiel": potentiel, "mesures": mesures_reelles().get(str(pid))}
+
+
+_MESURES = None
+def mesures_reelles() -> dict:
+    """What FotMob really measured in the Champions League (top speed,
+    distance, sprints per 90), by FotMob id — moteur/mesures_fotmob_ucl.json."""
+    global _MESURES
+    if _MESURES is None:
+        f = RACINE / "moteur" / "mesures_fotmob_ucl.json"
+        try:
+            _MESURES = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+        except (OSError, ValueError):
+            _MESURES = {}
+    return _MESURES
 
 
 @app.get("/api/cartes/{pid}/detail")

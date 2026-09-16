@@ -1,0 +1,16 @@
+{
+  "_note": "Identifiants FotMob a IGNORER dans les fiches physiques : un identifiant EA partage entre deux joueurs (donnees/physique/audit_suspects.csv), tranche par le club et le poste. La fiche reste au joueur qui joue bien dans l'equipe EA indiquee.",
+  "1532261": "Idrissa Gueye (Metz, buteur) n'est pas Idrissa Gana Gueye (Everton)",
+  "1130583": "Samu (Mallorca, milieu) n'est pas Samuel Aghehowa (Porto)",
+  "672721": "Pepe (Pafos) n'est pas Pepe (Porto)",
+  "1833525": "Alex Fernandez (CA Antoniano) n'est pas Alex Fernandez (Cadiz)",
+  "261348": "Matheus (Crvena Zvezda, gardien) n'est pas Matheus Silva (Qarabag, lateral)",
+  "1459257": "Pedro Lima (AVS, milieu) n'est pas Pedro Lima (Wolves, lateral prete a Porto)",
+  "1469120": "Amorim (Alverca) n'est pas Mathias de Amorim (Famalicao)",
+  "1206146": "Javi Hernandez (Ebro) n'est pas Javi Hernandez (Espanyol)",
+  "1327406": "Alvaro Rodriguez (Elche, buteur) n'est pas Alvaro Rodriguez (Eibar, lateral)",
+  "639699": "Juanpe (CD Azuaga) n'est pas Juanpe (Malaga)",
+  "1402068": "Ruan (Alanyaspor) n'est pas Ruan (Goztepe)",
+  "1478295": "Rayan (Bournemouth, ailier) n'est pas Rayan Fofana (Lens)",
+  "816001": "Carvalho (Braga, defenseur central) n'est pas Joao Carvalho (Braga, gardien)"
+}

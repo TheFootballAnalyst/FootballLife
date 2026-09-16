@@ -606,6 +606,23 @@ porte le côté. Sur une base déjà construite : `py -m jeu.importer
 --physique-seulement --jeu jeu/demo.sqlite` (et `demo.py` le fait tout
 seul quand la base ne l'a pas encore).
 
+La fiche est en deux passes qui se lisent à la suite,
+`moteur/physique_ea.csv` puis `moteur/physique_complement.csv` (le
+complément, apparié sur les noms d'usage, n'a ni date de naissance ni
+poste EA : ses joueurs n'ont donc ni côté ni date, Vinícius reste AG/AD
+tant qu'on ne lui met pas un poste). `moteur/physique_exclus.json`
+liste les identifiants à ignorer : un identifiant EA partagé entre deux
+joueurs (`donnees/physique/audit_suspects.csv`), tranché par le club et
+le poste. Un joueur sans fiche reçoit le **profil médian de son poste**,
+calculé sur les vraies fiches de la base et signalé comme tel sur sa
+fiche : un ailier inconnu accélère comme un ailier, pas comme un 50
+partout. Et pour 583 joueurs, la fiche montre ce que FotMob a
+**réellement mesuré en Ligue des champions** (pointe en km/h, distance
+et sprints par 90 minutes, `moteur/mesures_fotmob_ucl.json`) — la
+règle de conversion mesurée, dix points de note EA pour 1,41 km/h,
+servira au moteur émergent. Les scripts d'appariement et l'état des
+lieux sont dans `donnees/physique/`.
+
 La même fiche donne **le pied fort et la qualité du mauvais pied** (1 à
 5), **la date de naissance** — l'âge est calculé à la date où en est la
 base, pas au jour de l'import — et **le profil physique** :
