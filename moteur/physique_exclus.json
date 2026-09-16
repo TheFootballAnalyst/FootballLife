@@ -1,16 +1,42 @@
 {
-  "_note": "Identifiants FotMob a IGNORER dans les fiches physiques : un identifiant EA partage entre deux joueurs (donnees/physique/audit_suspects.csv), tranche par le club et le poste. La fiche reste au joueur qui joue bien dans l'equipe EA indiquee.",
-  "1532261": "Idrissa Gueye (Metz, buteur) n'est pas Idrissa Gana Gueye (Everton)",
-  "1130583": "Samu (Mallorca, milieu) n'est pas Samuel Aghehowa (Porto)",
+  "_note": "Identifiants FotMob a corriger dans les fiches physiques (donnees/physique/audit_suspects.csv), tranches par le club et le poste. Une chaine : la ligne est IGNOREE. Un objet {vers, note} : la ligne est REATTRIBUEE a cet autre identifiant FotMob (l'appariement par le nom avait garde l'homonyme et laisse tomber le vrai joueur).",
+  "1532261": {
+    "vers": 179410,
+    "note": "la fiche Idrissa Gueye (Everton, MDC) est celle d'Idrissa Gana Gueye, pas du buteur de Metz"
+  },
+  "1130583": {
+    "vers": 1414859,
+    "note": "la fiche Samu (Porto, BU) est celle de Samuel Aghehowa, pas du milieu de Majorque"
+  },
+  "1833525": {
+    "vers": 213500,
+    "note": "la fiche Alex Fernandez (Cadiz) est celle du joueur de Cadiz, pas de CA Antoniano"
+  },
+  "1459257": {
+    "vers": 1610952,
+    "note": "la fiche Pedro Lima (Porto, DD) est celle du lateral de Wolverhampton prete a Porto, pas du milieu d'AVS"
+  },
+  "1206146": {
+    "vers": 1427828,
+    "note": "la fiche Javi Hernandez (Espanyol) est celle du joueur de l'Espanyol, pas d'Ebro"
+  },
+  "1327406": {
+    "vers": 820259,
+    "note": "la fiche Alvaro Rodriguez (Eibar, DD) est celle du lateral d'Eibar, pas du buteur d'Elche"
+  },
+  "639699": {
+    "vers": 714418,
+    "note": "la fiche Juanpe (Malaga) est celle du joueur de Malaga, pas de CD Azuaga"
+  },
+  "1402068": {
+    "vers": 876341,
+    "note": "la fiche Ruan (Goztepe) est celle du joueur de Goztepe, pas d'Alanyaspor"
+  },
   "672721": "Pepe (Pafos) n'est pas Pepe (Porto)",
-  "1833525": "Alex Fernandez (CA Antoniano) n'est pas Alex Fernandez (Cadiz)",
   "261348": "Matheus (Crvena Zvezda, gardien) n'est pas Matheus Silva (Qarabag, lateral)",
-  "1459257": "Pedro Lima (AVS, milieu) n'est pas Pedro Lima (Wolves, lateral prete a Porto)",
   "1469120": "Amorim (Alverca) n'est pas Mathias de Amorim (Famalicao)",
-  "1206146": "Javi Hernandez (Ebro) n'est pas Javi Hernandez (Espanyol)",
-  "1327406": "Alvaro Rodriguez (Elche, buteur) n'est pas Alvaro Rodriguez (Eibar, lateral)",
-  "639699": "Juanpe (CD Azuaga) n'est pas Juanpe (Malaga)",
-  "1402068": "Ruan (Alanyaspor) n'est pas Ruan (Goztepe)",
   "1478295": "Rayan (Bournemouth, ailier) n'est pas Rayan Fofana (Lens)",
-  "816001": "Carvalho (Braga, defenseur central) n'est pas Joao Carvalho (Braga, gardien)"
+  "816001": "Carvalho (Braga, defenseur central) n'est pas Joao Carvalho (Braga, gardien)",
+  "1231073": "Enol Rodriguez (Huesca) n'est pas Guruzeta (Eibar) : ni nom ni club en commun",
+  "985327": "Manuel Sanchez (Ceuta) n'est pas Manu Nieto (Andorra) : ni nom ni club en commun"
 }

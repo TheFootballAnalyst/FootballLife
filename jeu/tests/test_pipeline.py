@@ -489,13 +489,18 @@ def test_two_sheets_exclusions_and_the_median_profile_of_the_position(tmp_path, 
     un = tmp_path / "physique_ea.csv"; un.write_text(FICHE_EA, encoding="utf-8")
     deux = tmp_path / "physique_complement.csv"; deux.write_text(COMPLEMENT_EA, encoding="utf-8")
     exclus = tmp_path / "physique_exclus.json"; exclus.write_text('{"_note": "x", "9": "homonyme"}', encoding="utf-8")
-    monkeypatch.setattr(I, "FICHES_PHYSIQUE", (un, deux))
+    exclus.write_text('{"_note": "x", "9": "homonyme", "4": {"vers": 5, "note": "la fiche est celle du 5"}}', encoding="utf-8")
+    monkeypatch.setattr(I, "FICHES_PHYSIQUE", ((un, True), (deux, False)))
     monkeypatch.setattr(I, "PHYSIQUE_EXCLUS", exclus)
     n = I.importer_physique(jeu, quand=date(2026, 3, 12))
-    assert n == 3                                   # 4, 10 from the first sheet, 11 from the complement; 9 excluded
-    # the complement has neither birth date nor EA position: age from its column, no side
+    assert n == 3                                   # 4 (given to 5) and 10 from the first sheet, 11 from the complement; 9 excluded
+    # the row kept under the homonym's id goes to the real player
+    assert jeu.execute("SELECT physique FROM joueur WHERE player_id=5").fetchone()[0] is not None
+    assert json.loads(jeu.execute("SELECT physique FROM joueur WHERE player_id=5").fetchone()[0])["vitesse_pointe"] == 95
+    assert json.loads(jeu.execute("SELECT physique FROM joueur WHERE player_id=4").fetchone()[0]).get("defaut") is True
+    # the complement (no birth date here): age from its column, no side; its foot column is the right way round
     j11 = jeu.execute("SELECT age, naissance, cote, pied, pied_faible, physique FROM joueur WHERE player_id=11").fetchone()
-    assert (j11[0], j11[1], j11[2], j11[3], j11[4]) == (25, None, None, "droit", 4)
+    assert (j11[0], j11[1], j11[2], j11[3], j11[4]) == (25, None, None, "gauche", 4)
     assert json.loads(j11[5])["acceleration"] == 95
     # the excluded one gets no row, so the median of its position instead
     j9 = json.loads(jeu.execute("SELECT physique FROM joueur WHERE player_id=9").fetchone()[0])

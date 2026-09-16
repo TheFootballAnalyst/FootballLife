@@ -62,7 +62,7 @@ def lire(dossier):
             "poste": r.get("position", ""), "note": r.get("overallRating", ""),
             "taille_cm": r.get("height", ""), "poids_kg": r.get("weight", ""),
             # 1 = gauche, 2 = droit dans le jeu de donnees
-            "pied_fort": {"1": "Left", "2": "Right"}.get(r.get("preferredFoot", ""), ""),
+            "pied_fort": {"1": "Right", "2": "Left"}.get(r.get("preferredFoot", ""), ""),
             "mauvais_pied": r.get("weakFootAbility", ""), "gestes": r.get("skillMoves", ""),
             "acceleration": r.get("acceleration", ""), "vitesse_pointe": r.get("sprintSpeed", ""),
             "agilite": r.get("agility", ""), "equilibre": r.get("balance", ""),

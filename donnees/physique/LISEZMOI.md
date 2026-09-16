@@ -1,42 +1,56 @@
-# Profils physiques — état des lieux
+# Profils physiques — version corrigée
 
-## Ce qu'il y a dedans
+Extraction du **jeu de données EA FC 26** (16 228 joueurs), figée au
+**16 septembre 2026**. Ne pas ré-extraire en cours de saison : les notes EA
+changent chaque semaine et la valeur des cartes bougerait sans raison de jeu.
 
-| fichier | contenu |
-|---|---|
-| `physique_joueurs.csv` | 6 592 profils, première passe (nom complet) |
-| `physique_complement.csv` | 480 profils, seconde passe (noms d'usage, diacritiques, clubs) |
-| `defauts_par_poste.json` | médianes par poste, pour les joueurs sans profil |
-| `mesures_fotmob_ucl.json` | 583 joueurs **réellement mesurés** en Ligue des champions |
-| `physique_toujours_absents.csv` | 2 636 joueurs sans profil, dont 169 à plus de 900 min |
-| `audit_suspects.csv` | 30 identifiants EA partagés, à trancher à l'œil |
+## Quatre corrections depuis la version précédente
 
-Les deux CSV de profils se concatènent : même en-tête, indexés sur
-`fotmob_id`. Total **7 072 profils**.
+**Le pied fort était inversé.** Le code 1 d'EA vaut *droitier*, le 2
+*gaucher* — vérifié sur Messi et Salah à 2, Mbappé et Kane à 1. Le tableau
+faisait l'inverse. **C'est corrigé à la source** : si `PIED_EA` compensait
+l'erreur côté import, il faut le remettre à l'endroit dans le même commit.
 
-## Les colonnes
+**Le complément porte désormais les mêmes colonnes** que la première passe :
+`naissance`, `poste`, `championnat`, `note`. En-têtes strictement identiques,
+les deux fichiers se concatènent.
 
-`acceleration`, `vitesse_pointe`, `agilite`, `equilibre`, `reactions`,
-`endurance`, `force`, `detente`, `agressivite` — sur 1 à 99, échelle EA FC 26.
-`taille_cm`, `poids_kg` pour la masse. `pied_fort` (Left/Right),
-`mauvais_pied` et `gestes` de 1 à 5 étoiles. Plus `age` et `naissance`.
+**542 joueurs récupérés au lieu de 480**, grâce à trois corrections
+d'appariement : les apostrophes soudées (« N'Dicka » donne « ndicka »), les
+patronymes composés (« Thuram-Ulien » rejoint « Thuram »), et un filtre par
+ligne de terrain qui tranche les homonymes — un gardien ne peut pas être
+apparié à un attaquant.
+
+**55 identifiants EA partagés résolus.** Quand deux joueurs pointaient le même
+EA, on garde celui dont le nom colle le mieux. Il n'en reste que deux, dans
+`audit_suspects.csv`.
 
 ## Couverture
 
-85 % des joueurs au-delà de 900 minutes, 88 % au-delà de 1800, 90 % pour les
-titulaires réguliers. Les absents jouent en moyenne 270 minutes, dans des
-championnats qu'EA ne couvre pas (Tondela, Rio Ave, Telstar).
+| temps de jeu | couverture |
+|---|---|
+| au-delà de 900 min | **92 %** (2 489 / 2 699) |
+| au-delà de 1800 min | **95 %** (1 580 / 1 655) |
+| au-delà de 2700 min | **97 %** (749 / 772) |
 
-**Pour eux, utiliser `defauts_par_poste.json`** plutôt qu'une valeur neutre :
-un ailier inconnu prend 77 d'accélération, pas 50.
+**7 134 profils au total.** Les 158 absents à plus de 900 minutes jouent à
+Tondela, Rio Ave ou Telstar : EA ne couvre pas ces divisions, la donnée
+n'existe nulle part. Leur donner `defauts_par_poste.json`.
 
-## Calibration — la partie qui compte
+## Fichiers
 
-`mesures_fotmob_ucl.json` contient des mesures **réelles** issues du suivi
-FotMob en Ligue des champions : vitesse de pointe en km/h, distance parcourue,
-distance en sprint, nombre de sprints, le tout ramené à 90 minutes.
+| fichier | contenu |
+|---|---|
+| `physique_joueurs.csv` | 6 592 profils, première passe |
+| `physique_complement.csv` | 542 profils, seconde passe, même en-tête |
+| `defauts_par_poste.json` | médianes par poste pour les joueurs sans profil |
+| `mesures_fotmob_ucl.json` | 583 joueurs **mesurés** en Ligue des champions |
+| `physique_toujours_absents.csv` | 2 521 sans profil, dont 158 à plus de 900 min |
+| `audit_suspects.csv` | 2 cas restants à trancher à l'œil |
 
-Corrélations vérifiées entre notes EA et mesures :
+## Calibration
+
+Corrélations vérifiées entre notes EA et mesures réelles :
 
 | note EA | mesure | corrélation |
 |---|---|---|
@@ -44,31 +58,17 @@ Corrélations vérifiées entre notes EA et mesures :
 | `vitesse_pointe` | vitesse de pointe réelle | **+0,78** |
 | `acceleration` | sprints par 90 min | **+0,75** |
 
-**Conversion mesurée : 10 points de note EA valent 1,41 km/h réels.** C'est
-la relation à utiliser pour transformer les notes en vitesses du moteur.
+**10 points de note EA valent 1,41 km/h réels.**
 
 ## Trois pièges
 
-**Les gardiens sont faussés.** Leur vitesse réelle n'est pas mesurable en
-match — ils ne sprintent jamais. Les six joueurs les plus surestimés par EA
-sont tous des gardiens. Les exclure de toute calibration.
+**Les gardiens sont faussés** : leur vitesse n'est pas mesurable en match, ils
+ne sprintent jamais. Les exclure de toute calibration.
 
-**Les championnats mineurs sont sous-notés.** EA note bas par manque
-d'attention, pas par mesure. Un joueur de Pro League y perd quelques points.
+**Les championnats mineurs sont sous-notés** par manque d'attention d'EA, pas
+par mesure.
 
-**Les homonymes ont coûté cher.** 37 faux positifs ont été retirés à la main
-après trois tentatives d'automatisation ratées : aucune règle ne sépare
-« Joe » pour « Joseph », légitime, de « Eric » pour « Guilherme », qui ne
-l'est pas. Relancer `audit_physique.py` après tout nouvel import.
-
-## Les scripts
-
-```
-python3 importe_ea.py --dossier kaggle --db moteur/fotmob_2526.db
-python3 complete_physique.py --manquants manquants.csv --dossier kaggle
-python3 audit_physique.py --fichiers physique_joueurs.csv physique_complement.csv --db moteur/fotmob_2526.db
-```
-
-Source : jeu de données EA FC 26 (16 228 joueurs), à figer à une date donnée.
-Les notes changent chaque semaine pendant la saison ; sans version figée, la
-valeur des cartes bougerait sans raison de jeu.
+**Les homonymes.** 39 faux positifs ont été retirés à la main après quatre
+tentatives d'automatisation : aucune règle ne sépare « Joe » pour « Joseph »,
+légitime, de « Eric » pour « Guilherme », qui ne l'est pas. Relancer
+`audit_physique.py` après tout nouvel import.

@@ -1,481 +1,543 @@
-fotmob_id,nom_fotmob,ea_id,nom_ea,equipe_ea,age,taille_cm,poids_kg,pied_fort,mauvais_pied,gestes,acceleration,vitesse_pointe,agilite,equilibre,reactions,endurance,force,detente,agressivite,note_physique
-846033,Vinícius Júnior,238794,Vini Jr.,Real Madrid,25,176,73,Left,4,5,95,95,94,84,85,84,65,74,58,69
-288406,Alejandro Grimaldo,210035,Grimaldo,Leverkusen,30,171,68,Right,2,4,76,68,84,86,85,91,54,68,69,67
-1412132,Kenan Yildiz,277954,Kenan Yıldız,Juventus,21,185,75,Left,5,4,85,84,83,74,72,72,67,80,50,66
-678234,Mikel Oyarzabal,230142,Oyarzabal,Real Sociedad,29,181,78,Right,3,3,78,76,77,77,82,79,57,77,62,65
-603669,Ugurcan Çakir,226300,Uğurcan Çakır,Galatasaray,30,191,82,Left,3,1,53,56,64,58,77,40,69,70,34,80
-1102708,Germán Valera,254860,Valera,Elche CF,24,170,68,Right,3,3,81,88,81,79,66,54,46,55,36,46
-1031325,Martín Zubimendi,248148,Zubimendi,Arsenal,27,180,74,Left,4,3,67,66,74,75,84,85,67,71,74,73
-524434,João Palhinha,229391,Palhinha,Spurs,30,190,83,Left,4,2,54,58,51,50,79,79,86,83,91,85
-319784,Alisson Becker,212831,Alisson,Liverpool,33,193,91,Left,3,1,60,49,40,37,87,32,78,82,27,90
-188058,Daniel Burn,198032,Dan Burn,Newcastle Utd,34,201,104,Right,3,2,34,49,32,32,77,78,90,70,86,85
-534955,Aaron Escandell,220383,Aarón,R. Oviedo,30,185,71,Left,4,1,40,34,44,56,73,45,54,60,27,73
-670009,Dimitrios Giannoulis,236457,Dimitris Giannoulis,FC Augsburg,30,175,71,Right,2,3,79,86,77,75,73,90,56,64,66,67
-1314412,Romulo Cruz,73398,Rômulo,RB Leipzig,24,193,80,Left,3,3,83,82,79,53,65,72,84,94,64,78
-586388,Aleksandr Golovin,225663,Alexandr Golovin,AS Monaco,30,178,69,Left,4,4,73,73,85,77,77,79,56,61,76,66
-179410,Idrissa Gana Gueye,193474,Idrissa Gueye,Everton,36,174,66,Left,3,3,66,55,77,76,81,82,58,75,83,70
-1031656,Maxi Araújo,254817,Maximiliano Araújo,Sporting CP,26,177,75,Right,2,4,87,84,85,70,75,78,60,76,72,68
-291399,Abdülkerim Bardakci,229905,Abdülkerim Bardakcı,Galatasaray,31,185,80,Right,2,2,58,60,62,64,75,82,87,86,84,85
-178732,Lukasz Skorupski,189908,Łukasz Skorupski,Bologna,35,188,90,Left,3,1,51,51,48,38,76,31,58,63,33,78
-1254166,Alejandro Balde,263578,Balde,FC Barcelona,22,175,69,Right,4,3,90,91,81,77,80,77,68,83,47,67
-1325998,Iván Fresneda,266253,Fresneda,Sporting CP,21,181,79,Left,4,3,78,79,71,74,67,80,67,75,62,70
-1311946,Jochem Ritmeester van de Kamp,275861,Jochem van de Kamp,SC Telstar,22,177,72,Left,3,3,75,78,74,55,65,82,62,63,69,68
-1015183,Mohammed Ihattaren,246960,Mohamed Ihattaren,Fortuna Sittard,24,183,75,Right,2,4,61,51,70,65,67,69,74,66,54,68
-291635,Pedro Bigas,206222,Bigas,Elche CF,35,181,78,Right,2,2,57,57,62,66,69,72,82,80,82,79
-1414859,Samuel Aghehowa,277581,Samu,FC Porto,22,193,90,Left,3,3,75,83,57,50,79,74,90,94,74,83
-1002618,Ander Barrenetxea,246672,Barrenetxea,Real Sociedad,24,175,74,Left,4,3,81,81,85,82,76,74,66,74,62,68
-612863,Frank Anguissa,227236,André-Franck Zambo Anguissa,SSC Napoli,30,184,83,Left,3,3,74,76,74,71,84,89,82,87,85,85
-857269,Gleison Bremer,239580,Bremer,Juventus,29,187,84,Left,2,2,78,86,65,63,78,65,84,92,84,80
-684981,Aaron Martin Caricol,236295,Aarón Martín,Genoa,29,178,70,Right,3,3,69,50,77,75,72,81,57,68,61,64
-890232,Baris Alper Yilmaz,263205,Barış Alper Yılmaz,Galatasaray,26,186,80,Left,3,4,92,93,85,81,80,93,90,92,86,90
-620026,Hee-Chan Hwang,226380,Hwang Hee Chan,Wolves,30,177,77,Left,4,3,86,76,77,71,75,66,68,81,68,68
-1073742,Julio Enciso,255434,Julio César Enciso,Strasbourg,22,173,64,Left,3,3,77,72,81,80,67,61,42,50,61,51
-1237856,Patrick Sequeira,270054,Patrick Gilmar Sequeira,Casa Pia AC,27,190,84,Left,3,1,38,30,47,50,65,25,60,59,27,67
-1478295,Rayan,77633,Rayan Fofana,RC Lens,20,180,75,Left,3,3,71,77,68,65,60,53,58,67,45,55
-1321124,Rome Owusu-Oduro,272958,Rome-Jayden Owusu-Oduro,AZ,21,188,82,Left,3,1,40,39,39,31,68,35,60,60,16,70
-1106742,Sergio Carreira,252866,Carreira,Celta,25,170,65,Left,3,3,78,74,75,74,76,76,63,75,55,65
-1506480,Yarek Gasiorowski,278661,Yarek,PSV,21,192,75,Right,3,2,60,68,69,66,71,66,64,73,70,66
-952528,Adrián De La Fuente,245290,Dela,Levante UD,27,179,78,Left,3,2,69,74,62,55,69,75,72,79,73,73
-681213,Ionut Radu,234102,Ionuț Andrei Radu,Celta,29,188,70,Left,2,1,52,48,43,40,72,32,58,64,22,70
-391058,José Gayà,211688,Gayà,Valencia CF,31,172,66,Right,3,4,79,81,82,80,82,80,66,73,77,72
-1451265,Malick Diouf,274915,El Hadji Malick Diouf,West Ham,21,183,75,Right,2,3,78,82,68,67,72,78,80,91,66,77
-992060,Tom Krauss,251392,Tom Krauß,1. FC Köln,25,183,76,Left,3,2,74,69,69,68,73,81,75,78,86,79
-1107910,Valentino Livramento,262118,Tino Livramento,Newcastle Utd,23,181,71,Left,4,3,80,84,76,79,78,80,71,75,74,74
-814663,Alejandro Catena,243976,Catena,CA Osasuna,31,194,82,Left,3,2,64,64,58,52,76,78,77,84,78,78
-178899,Ertugrul Taskiran,194372,Ertuğrul Taşkıran,Alanyaspor,36,191,83,Left,2,1,52,56,54,32,65,27,43,52,29,66
-774448,Ferdi Kadioglu,235152,Ferdi Kadıoğlu,Brighton,26,174,68,Left,4,3,88,77,89,86,75,79,62,71,62,67
-282462,Íñigo Ruíz de Galarreta,205157,Ruiz de Galarreta,Athletic Club,32,175,69,Left,3,3,73,66,81,87,79,84,70,69,82,76
-1075457,Chuchu Ramírez,252164,Jesús Ramírez,Nacional,28,184,76,Left,3,2,77,79,72,67,67,75,68,78,54,67
-1486541,Forzan Assan Ouedraogo,276602,Assan Ouédraogo,RB Leipzig,20,191,84,Left,3,4,76,76,83,77,64,57,77,80,49,67
-601145,Habibou Mouhamadou Diallo,225293,Habib Diallo,FC Metz,31,186,79,Left,3,3,69,73,66,69,66,71,81,87,60,75
-1249284,Jon Aramburu,259848,Jon Mikel Aramburu,Real Sociedad,23,176,71,Left,3,2,71,67,67,70,77,76,68,73,79,72
-360918,Jonny Otto,210455,Jonny,D. Alavés,32,170,70,Left,3,3,75,67,72,77,71,71,62,74,76,68
-1051411,Kacper Kozlowski,252508,Kacper Kozłowski,Gaziantep,22,182,68,Left,4,4,77,61,80,83,70,74,67,74,66,69
-424380,Samet Akaydin,263021,Samet Akaydın,Çaykur Rizespor,32,190,82,Left,2,2,55,55,52,38,69,70,78,78,76,76
-935550,Torbjørn Heggem,248342,Torbjørn L. Heggem,Bologna,27,192,79,Right,5,2,70,75,61,60,71,79,82,84,68,79
-1230287,Dorgeles Nene,260236,Nene Dorgeles,Fenerbahçe,23,174,65,Right,4,3,88,86,90,84,69,71,46,66,52,54
-305679,Emre Kilinç,239045,Emre Kılınç,Samsunspor,31,174,68,Right,2,3,80,69,88,78,70,82,55,59,52,61
-1187734,Flavien Boyomo,259066,Flavien-Enzo Boyomo,CA Osasuna,24,181,86,Left,2,2,72,75,61,57,70,80,83,88,76,81
-841672,Nicolás González,240690,Nico Gonzalez,Atlético de Madrid,28,180,72,Right,2,4,79,84,79,75,75,73,51,78,67,61
-1121170,Ransford Königsdörffer,255036,Ransford-Yeboah Königsdörffer,Hamburger SV,24,182,78,Left,3,3,85,77,81,80,69,74,64,79,48,64
-530468,Antonio Sivera,222464,Sivera,D. Alavés,29,185,79,Left,3,1,58,55,61,53,69,42,63,69,25,75
-873568,Bilal Bayazit,240856,Bilal Bayazıt,Kayserispor,27,185,76,Left,2,1,23,25,33,32,66,20,40,41,19,70
-592910,Dimitrios Limnios,240271,Dimitris Limnios,Fortuna Sittard,28,178,71,Left,3,3,78,71,77,79,66,68,55,68,50,58
-1067256,Djordje Petrovic,269626,Đorđe Petrović,AFC Bournemouth,26,194,89,Left,2,1,40,43,45,34,79,37,73,67,27,78
-1202070,Isak Steiner Jensen,264263,Isak Jensen,AZ,22,185,84,Left,3,3,81,80,61,60,66,75,84,74,47,74
-1323827,Jon Gorrotxategi,74091,Gorrotxa,Real Sociedad,24,177,70,Left,3,2,70,73,68,73,70,90,78,74,70,79
-1112072,Jon Pacheco,255854,Pacheco,D. Alavés,25,184,77,Right,3,2,47,49,39,59,74,58,72,73,70,68
-1280020,Julen Agirrezabala,263880,Agirrezabala,Valencia CF,25,187,80,Right,3,1,30,36,33,35,69,26,60,56,24,77
-1016132,Kouadio Koné,250723,Kouadio Manu Koné,AS Roma,25,185,80,Left,3,4,77,72,79,72,79,82,82,83,82,82
-1220269,Maximilien Balard,261386,Max Balard,NAC Breda,25,178,68,Left,3,3,65,69,80,82,69,74,71,64,69,71
-402419,Przemyslaw Frankowski,212138,Przemysław Frankowski,Stade Rennais FC,31,175,70,Left,3,3,86,87,74,75,76,78,67,76,69,71
-1060604,Abner,263815,Abner Vinícius,OL,26,182,74,Right,2,3,78,79,79,73,70,69,61,69,69,65
-873270,Anastasios Douvikas,261478,Tasos Douvikas,Como,26,186,76,Left,4,3,82,77,74,66,70,76,70,80,58,70
-1286190,Anselmo MacNulty,262889,Anselmo García MacNulty,PEC Zwolle,23,187,78,Right,3,2,64,66,66,62,62,73,79,77,75,77
-1392779,Etta Eyong,271414,Karl Edouard Etta Eyong,Levante UD,22,181,75,Left,3,3,65,66,55,71,66,44,69,70,58,61
-802329,Gaizka Larrazabal,251025,Larrazabal,Casa Pia AC,28,180,78,Left,3,3,80,81,80,75,72,80,78,74,71,77
-698653,Igor Zubeldia,233738,Zubeldia,Real Sociedad,29,181,73,Left,3,2,73,78,73,74,79,77,81,85,85,81
-846966,Javier Puado,244622,Puado,RCD Espanyol,28,177,69,Left,3,4,79,81,81,75,77,82,73,84,66,74
-1281461,José Ángel Carmona,264172,Carmona,Sevilla FC,24,183,80,Left,3,3,77,82,72,65,74,74,64,74,65,67
-958640,Akor Adams,266256,Akor Jerome Adams,Sevilla FC,26,190,92,Left,3,3,75,78,67,65,68,72,82,83,58,75
-1102732,Ferrán Jutglà,265800,Jutglà,Celta,27,175,67,Left,4,3,79,73,79,86,76,74,79,83,74,77
-623698,In-Beom Hwang,228010,Hwang In Beom,Feyenoord,29,178,68,Left,5,4,64,61,80,83,78,86,58,63,59,65
-1393672,Jean Bahoya,269728,Jean-Mattéo Bahoya,Frankfurt,21,180,76,Left,3,4,91,97,83,75,66,66,60,69,43,59
-940976,Kang-In Lee,243780,Lee Kang In,Paris SG,25,173,66,Right,3,4,75,69,86,87,76,73,56,70,72,64
-299358,Mame Baba Thiam,217007,Mame Thiam,Eyüpspor,33,185,79,Left,3,3,72,76,74,64,69,66,77,79,64,72
-1666494,Christ Inao Oulaï,74735,Christ Ravynel Inao Oulaï,Trabzonspor,20,173,63,Left,3,3,76,73,84,87,49,68,38,46,55,49
-1200721,Facundo Cáseres,256526,Facundo Agustín Cáseres,Gil Vicente,25,178,70,Left,3,2,68,66,69,65,67,72,49,61,73,60
-921825,Jon Moncayola,247495,Moncayola,CA Osasuna,28,182,78,Left,4,3,64,63,66,65,76,74,66,66,75,70
-1539619,Juma Bah,75148,Abdulai Juma Bah,OGC Nice,20,195,82,Left,2,2,58,73,45,49,70,66,81,80,71,75
-1570655,Luis Fernando,277790,Luis Fernando Paz,Bolívar,22,167,70,Left,3,2,73,66,64,75,58,63,48,52,53,53
-1323897,Marc Pubill,266039,Pubill,Atlético de Madrid,23,190,82,Left,3,2,76,81,75,58,71,81,80,83,69,78
-1227326,Pablo,264290,Pablo Felipe,Gil Vicente,22,184,76,Left,3,3,73,69,68,64,70,69,69,76,62,68
-1580528,Raúl Asencio,75605,Asencio,Real Madrid,23,184,79,Left,3,2,73,74,60,74,75,71,74,85,83,76
-1310480,Sergi Altimira,276471,Altimira,Real Betis,24,188,80,Left,3,3,54,65,65,53,76,75,74,70,65,72
-869364,Tommie van de Looi,240685,Tom van de Looi,FC Famalicão,26,186,80,Left,3,3,72,62,73,65,67,74,74,78,65,72
-1044194,Vinícius,275360,Vinícius Lopes,Santa Clara,27,180,74,Left,3,3,77,76,70,68,70,65,65,75,57,64
-863858,Yusuf Sari,241389,Yusuf Sarı,Başakşehir,27,168,55,Right,2,4,90,80,91,92,70,72,59,65,42,59
-952095,Óscar Mingueza,259694,Mingueza,Celta,27,184,75,Left,3,2,78,82,75,62,80,82,73,84,75,76
-1113785,Hannibal Mejbri,258171,Hannibal,Burnley,23,182,70,Left,3,3,74,77,78,77,73,90,76,76,88,82
-474589,José Giménez,216460,José María Giménez,Atlético de Madrid,31,185,79,Left,3,2,68,77,60,57,78,71,85,87,87,82
-411605,Mehmet Umut Nayir,230624,Umut Nayir,Konyaspor,33,191,75,Left,2,3,59,66,62,45,71,72,79,83,75,77
-575855,Michal Nalepa,234918,Michał Nalepa,Gençlerbirliği,31,170,74,Left,3,3,70,66,74,86,62,78,72,72,79,75
-940443,Nabili Touaizi,254244,Nabil Touaizi,FC Alverca,25,183,75,Left,3,3,81,74,76,60,62,59,59,71,55,59
-433677,Ui-Jo Hwang,212260,Hwang Ui Jo,Alanyaspor,33,185,78,Left,4,3,76,77,72,65,71,75,71,80,62,71
-178893,Veysel Sari,194077,Veysel Sarı,Antalyaspor,37,184,76,Left,2,2,34,34,51,55,62,70,81,69,70,75
-361712,Adam Dzwigala,211362,Adam Dźwigała,FC St. Pauli,30,185,80,Left,3,2,66,69,61,67,62,70,75,75,76,74
-665188,Albert Gudmundsson,238004,Albert Guðmundsson,Fiorentina,29,178,78,Left,4,3,86,87,83,74,79,71,71,85,55,69
-640231,Antonio Raillo,228805,Raíllo,RCD Mallorca,34,187,80,Left,3,2,41,41,32,49,80,89,81,79,85,84
-712040,Bahadir Han Güngördü,235460,Bahadır Güngördü,Konyaspor,30,190,84,Left,2,1,24,28,25,29,64,23,66,56,22,67
-395914,Charalambos Lykogiannis,210381,Charalampos Lykogiannis,Bologna,32,191,90,Right,3,2,71,82,40,47,66,67,80,79,61,73
-882163,Chukwubuike Adamu,257877,Junior Adamu,SC Freiburg,25,183,81,Left,3,3,79,76,79,73,69,74,72,81,48,68
-421365,Djené,217940,Dakonam Djené,Getafe CF,34,178,72,Left,4,2,68,64,66,70,77,73,76,81,83,77
-1524671,Francisco Chissumba,70671,Chissumba,FC Alverca,21,180,73,Right,2,2,80,82,77,70,64,77,69,71,62,70
-875672,Hamed Traorè,240787,Hamed Junior Traoré,OM,26,177,77,Left,3,3,80,76,79,72,73,68,58,73,59,61
-891469,Ugurcan Yazgili,245355,Uğurcan Yazğılı,Konyaspor,27,184,79,Left,2,2,55,51,54,59,55,61,76,72,72,71
-1186553,Alexsandro Ribeiro,269493,Alexsandro,LOSC Lille,26,191,92,Right,5,2,56,74,38,35,79,72,84,83,82,81
-1210647,Beñat Turrientes,262510,Turrientes,Real Sociedad,24,181,70,Left,3,2,66,65,71,82,71,76,59,63,71,66
-1005366,Bünyamin Balci,253463,Bünyamin Balcı,Antalyaspor,26,173,69,Left,2,2,72,76,70,81,64,78,61,65,63,66
-316544,Irfan Kahveci,225403,İrfan Can Kahveci,Fenerbahçe,30,176,75,Right,3,3,74,72,77,85,74,68,66,61,68,67
-201102,Jonathan Buatu,209816,Buatu,Gil Vicente,32,187,83,Left,3,2,58,54,45,44,66,79,82,77,71,79
-335444,Robin Yalcin,211987,Robin Yalçın,Eyüpspor,32,183,77,Left,3,2,63,59,67,66,68,66,71,70,60,68
-820537,Tayyip Talha Sanuç,242919,Tayyip Sanuç,Gaziantep,26,188,85,Left,2,2,51,61,52,53,63,68,76,72,75,74
-815997,Thalisson,279928,Thalisson Kelven,Gençlerbirliği,28,184,79,Left,3,2,67,65,54,58,64,69,76,77,58,71
-637756,Carles Alena,233113,Aleñá,D. Alavés,28,180,73,Right,2,4,66,66,71,70,75,61,61,54,55,59
-816001,Carvalho,77188,João Carvalho,SC Braga,22,192,78,Left,2,1,16,25,31,23,40,22,59,48,23,62
-310289,Guilherme,224885,Guilherme Sityá,Konyaspor,36,180,79,Right,3,3,81,79,79,75,69,88,78,80,66,78
-523749,Jae-Sung Lee,221671,Lee Jae Sung,1. FSV Mainz 05,33,181,74,Right,3,3,74,71,84,82,78,85,56,87,62,66
-435902,Joao Camacho,213705,Camacho,Karagümrük SK,32,174,74,Left,3,4,80,80,82,80,71,74,56,60,62,62
-797901,Jorge de Frutos,243559,De Frutos,Rayo Vallecano,29,173,72,Left,4,4,80,82,79,81,75,79,57,69,58,63
-896402,José Copete,263396,Copete,Valencia CF,26,192,73,Right,2,2,56,45,35,50,73,65,69,76,75,70
-1460534,Junior Kroupi,277909,Eli Junior Kroupi,AFC Bournemouth,20,179,70,Left,3,3,81,80,75,72,67,63,55,80,48,57
-1107280,Pape Sarr,259868,Pape Matar Sarr,Spurs,23,184,70,Left,3,2,71,66,75,72,82,85,71,76,76,76
-992071,Ridvan Yilmaz,252208,Rıdvan Yılmaz,Beşiktaş,25,174,60,Right,2,2,90,86,91,84,76,75,55,70,62,62
-309353,Seba Pérez,214606,Sebastián Pérez,Casa Pia AC,33,175,72,Left,3,3,65,66,62,69,68,71,69,56,79,71
-1071102,Adriano,271297,Adriano Firmino,Santa Clara,26,187,73,Left,3,2,58,53,57,54,70,60,74,70,71,70
-776151,Ben White,231936,Benjamin White,Arsenal,28,185,77,Left,4,2,68,71,68,61,84,78,77,82,81,78
-1199959,Equi Fernández,262151,Ezequiel Fernández,Leverkusen,23,178,76,Right,5,2,70,70,73,79,70,78,79,76,77,78
-839232,Fernando Calero,240289,Calero,RCD Espanyol,30,183,71,Left,4,2,59,60,67,65,73,50,73,76,72,67
-522234,Gerard Gumbau,214944,Gumbau,Rayo Vallecano,31,187,77,Right,3,3,43,44,58,57,72,65,71,67,64,68
-1131957,Jon Olasagasti,262500,Olasagasti,Levante UD,25,176,74,Right,3,2,65,62,65,73,73,81,68,70,71,72
-1605720,Mootaz Nourani,70065,Motez Nourani,Nacional,24,177,73,Left,3,3,68,69,74,77,52,54,50,45,54,52
-1035208,Victor Okoh Boniface,247679,Victor Boniface,SV Werder Bremen,25,190,91,Left,3,4,65,69,68,60,78,55,90,87,79,79
-213501,Álvaro Morata,201153,Morata,Como,33,190,84,Left,4,3,79,78,76,63,81,79,79,91,69,78
-1469120,Amorim,277811,Mathias de Amorim,FC Famalicão,21,174,70,Left,3,3,73,68,68,76,72,69,62,64,62,64
-1079065,Arda Kizildag,252753,Arda Kızıldağ,Gaziantep,27,187,77,Left,3,2,52,69,55,63,63,65,69,72,71,69
-1298907,Cristhian Mosquera,264846,Mosquera,Arsenal,22,188,79,Left,3,2,73,74,68,69,75,79,74,85,77,76
-182917,David de Gea,193080,De Gea,Fiorentina,35,192,76,Left,2,1,47,45,60,40,85,30,38,57,15,84
-950417,Güven Yalcin,245368,Güven Yalçın,Alanyaspor,27,184,77,Left,3,3,76,74,72,64,64,64,68,77,42,62
-1328820,Hyun-Ju Lee,276600,Lee Hyun Ju,Arouca,23,172,68,Left,3,3,81,59,87,86,66,71,48,54,38,52
-1286950,Jankat Yilmaz,271211,Jankat Yılmaz,Galatasaray,21,193,75,Right,3,1,27,24,24,24,50,21,64,55,20,65
-1693546,Mohamed Meïté,75598,Mohamed Kader Meïté,Stade Rennais FC,18,192,80,Left,3,3,62,67,58,47,59,60,83,83,42,69
-774237,Willum Willumsson,270578,Willum Þór Willumsson,Birmingham City,27,193,84,Right,3,3,52,58,62,65,63,90,77,64,58,76
-1184694,Alberto Moleiro,264388,Moleiro,Villarreal CF,22,171,68,Left,4,4,84,83,85,83,72,76,60,73,60,65
-1398327,Baran Gezek,274548,Baran Ali Gezek,Kayserispor,20,170,65,Left,3,2,49,34,57,72,58,47,38,44,50,43
-1300864,Eyüp Aydin,278168,Eyüp Aydın,Galatasaray,21,181,80,Right,4,2,67,65,73,69,64,68,65,64,72,67
-442593,Kiki Afonso,213795,Kiki,AVS Futebol SAD,31,181,76,Right,3,2,83,84,63,64,67,73,68,76,62,68
-848568,Pape Guèye,254525,Pape Habib Gueye,Kasımpaşa,26,188,84,Left,3,3,78,77,68,66,65,71,82,86,75,78
-1072200,Rodrigo Riquelme,252324,Riquelme,Real Betis,26,174,68,Left,3,3,83,85,83,81,74,69,53,66,59,59
-949673,Woo-Yeong Jeong,239138,Jeong Woo Yeong,Union Berlin,26,179,71,Left,4,3,78,74,86,83,69,75,54,69,55,60
-1403350,Andreas-Richardos Ntoi,72863,Andreas Ntoi,Rio Ave FC,23,190,84,Left,3,2,60,64,46,56,61,68,83,82,70,77
-1324871,Ben Gannon Doak,266815,Ben Doak,AFC Bournemouth,20,176,64,Left,4,4,90,89,86,85,66,65,57,64,60,60
-823592,Oladapo Afolayan,242946,Dapo Afolayan,FC St. Pauli,28,180,71,Left,4,3,84,75,77,77,71,72,65,75,74,69
-1401248,Rémy Lascary,274692,Rémy Labeau Lascary,Stade Brestois 29,23,184,72,Left,3,3,75,77,57,60,71,63,62,75,46,60
-1435689,Semih Kilicsoy,274616,Semih Kılıçsoy,Cagliari,20,178,80,Left,4,3,78,76,74,80,62,69,71,78,70,71
-1116778,Szymon Wlodarczyk,257340,Szymon Włodarczyk,Excelsior,23,188,77,Left,3,2,68,74,73,63,64,75,71,79,62,71
-1122478,Ángel Algobia,246592,Algobia,AVS Futebol SAD,27,180,78,Left,3,2,52,53,57,61,62,66,59,59,65,62
-629594,Alfonso Pedraza,228302,Pedraza,Villarreal CF,30,184,73,Right,2,3,77,77,75,68,72,68,72,79,69,71
-750027,Brahim Díaz,231410,Brahim,Real Madrid,26,170,68,Left,5,4,83,82,88,90,80,69,58,60,46,58
-627223,Daniel Agyei,228382,Dan Agyei,Kocaelispor,29,183,77,Right,3,3,88,87,82,67,58,76,72,84,68,73
-1413843,Gilberto Batista,276442,Gilberto,Moreirense FC,22,187,73,Left,3,2,63,62,38,57,49,70,73,74,60,70
-1437425,Gustavo Mendonça,72654,Gustavo,AVS Futebol SAD,23,178,72,Left,3,2,76,72,63,72,68,78,67,73,74,71
-602095,Gökhan Sazdagi,263808,Gökhan Sazdağı,Kayserispor,31,179,72,Left,3,2,70,68,69,68,66,73,57,65,58,62
-477472,José Luis Morales,216475,Morales,Levante UD,38,180,70,Left,4,4,77,79,78,80,74,70,66,74,58,66
-1199722,Max Svensson,260340,Svensson,Casa Pia AC,24,182,75,Left,3,3,79,76,76,67,62,76,68,76,60,69
-1044355,Stefán Sigurdarson,73914,Stefán Ingi Sigurðarson,Sandefjord,25,191,85,Left,4,2,63,58,50,48,64,55,83,79,51,69
-980288,Thomas Leon Keller,251289,Thomas Keller,Heidenheim,26,186,82,Left,3,2,65,52,56,53,64,54,77,77,69,70
-955627,Yalçin Kayan,252917,Yalçın Kayan,Eyüpspor,27,180,74,Right,3,3,69,68,69,65,67,73,67,68,65,68
-1355552,Alisson Santos,79270,Alisson,Sporting CP,23,177,70,Left,4,3,82,83,84,76,59,69,54,57,45,56
-540073,Gian-Luca Waldschmidt,220085,Luca Waldschmidt,1. FC Köln,30,181,74,Right,3,3,73,63,77,76,69,67,61,68,44,59
-938521,Halil Dervisoglu,250807,Halil İbrahim Dervişoğlu,Çaykur Rizespor,26,183,76,Left,3,3,71,72,70,60,61,66,60,71,58,62
-1085809,Hyeok-Kyu Kwon,253202,Kwon Hyeok Kyu,FC Nantes,25,192,77,Left,5,3,70,66,59,53,59,85,81,78,67,79
-1140003,Ilya Zabarnyi,258781,Illia Zabarnyi,Paris SG,23,189,80,Left,3,2,76,84,64,56,79,73,80,88,76,78
-719018,Kubilay Kanatsizkus,232329,Kubilay Kanatsızkuş,Kasımpaşa,29,190,79,Right,3,3,67,66,56,55,60,69,78,79,53,71
-571379,Marnon-Thomas Busch,224980,Marnon Busch,Heidenheim,31,182,80,Left,2,2,84,85,72,71,68,73,74,79,73,74
-1315351,Taha Altikardes,266794,Taha Altıkardeş,Göztepe,22,188,75,Left,2,2,61,67,67,54,62,70,71,63,74,71
-977421,Çagtay Kurukalip,252572,Çağtay Kurukalıp,Karagümrük SK,24,172,70,Right,2,2,80,74,80,78,56,59,52,59,63,56
-1210344,Anil Yasar,275694,Anıl Yaşar,Çaykur Rizespor,24,192,79,Right,2,2,58,61,44,46,54,68,66,67,71,68
-282692,Cristian Portu,205070,Portu,Girona FC,34,167,66,Left,4,3,82,79,75,79,74,75,70,80,78,73
-1124533,Kilian Sildillia,260930,Kiliann Sildillia,PSV,24,186,84,Left,3,2,70,69,66,66,67,70,71,79,71,71
-828159,Min-Jae Kim,237086,Kim Min Jae,FC Bayern München,29,190,81,Left,3,2,73,73,65,65,81,79,85,82,86,84
-1092015,Oguz Aydin,264001,Oğuz Aydın,Fenerbahçe,25,183,76,Left,4,3,86,85,84,75,72,80,61,71,66,67
-1202587,Ramon Terrats,259521,Terrats,RCD Espanyol,25,181,71,Right,3,3,60,61,68,63,75,74,70,69,73,72
-1125999,Yusuf Barasi,259621,Yusuf Barası,Kasımpaşa,23,182,72,Left,4,3,78,73,73,66,62,69,60,72,50,61
-1112511,Alejandro Francés,254310,Francés,Girona FC,23,181,70,Left,4,2,77,73,72,74,74,78,76,86,75,77
-956736,Derry Murkin,269248,Derry John Murkin,FC Utrecht,26,183,81,Right,4,2,84,81,70,73,64,85,74,72,79,78
-1511063,Jan Ziólkowski,276680,Jan Ziółkowski,AS Roma,21,194,76,Left,2,2,60,64,48,49,63,66,69,69,65,67
-526968,Pacha Espino,247131,Alfonso Espino,Rayo Vallecano,34,172,71,Right,3,3,83,85,71,77,66,88,78,83,81,81
-724909,Radoslaw Majecki,235413,Radosław Majecki,Stade Brestois 29,26,193,78,Left,3,1,29,34,39,29,74,23,61,58,41,76
-1256478,Adrià Altimira,269228,Altimira,Villarreal CF,25,176,69,Left,3,3,73,73,66,80,70,75,60,71,66,66
-644722,Bahadir Öztürk,240333,Bahadır Öztürk,Antalyaspor,30,185,75,Left,2,2,35,34,37,51,62,72,70,61,72,70
-925345,Hyun-Seok Hong,244108,Hong Hyeon Seok,FC Nantes,27,177,74,Right,3,3,77,67,84,81,72,74,59,60,69,65
-1427828,Javi Hernandez,276976,Javi Hernández,RCD Espanyol,22,176,67,Right,3,3,75,73,79,77,65,58,47,55,51,51
-1617146,Jorge Cabello,71388,Cabello,Levante UD,22,180,71,Right,3,2,68,67,63,62,65,68,63,71,68,66
-1098365,Jorge Herrando,272433,Herrando,CA Osasuna,25,192,76,Right,3,2,53,45,51,55,74,66,61,72,77,66
-437329,Mbwana Samatta,218066,Ally Samatta,Havre AC,33,183,75,Left,4,3,73,76,70,70,68,69,75,83,69,73
-1576040,Mustafa Hekimoglu,278999,Mustafa Erhan Hekimoğlu,Beşiktaş,19,185,70,Left,3,2,72,76,73,60,61,73,71,85,60,70
-888745,Nicolas-Gerrit Kühn,239977,Nicolas Kühn,Como,26,175,69,Right,5,4,90,92,89,85,79,82,67,74,65,71
-1044472,Nökkvi Thorisson,277121,Nökkvi Þórisson,Sparta Rotterdam,26,188,78,Right,4,3,60,76,58,52,52,50,68,69,34,57
-1669441,Christ-Owen Kouassi,74502,Owen Kouassi,Lecce,23,184,78,Left,3,2,67,73,52,56,66,81,74,79,71,75
-822236,Dennis Tørset Johnsen,237502,Dennis Johnsen,Cremonese,28,185,75,Left,3,4,92,92,85,73,70,77,73,78,48,69
-860975,Joseph Willock,237329,Joe Willock,Newcastle Utd,26,186,71,Left,3,3,74,75,79,67,75,71,65,75,70,68
-1418816,Kaua,277929,Kauã Santos,Frankfurt,23,196,84,Left,1,1,32,28,31,22,70,24,64,58,29,62
-317564,Kepa Arrizabalaga,206585,Kepa,Arsenal,31,189,89,Left,4,1,38,42,45,38,77,35,55,60,20,77
-1188625,Serdar Saatci,264066,Serdar Saatçı,Trabzonspor,23,190,90,Left,2,2,73,65,57,49,64,58,85,83,71,75
-693736,Unai Elgezabal,233588,Elgezabal,Levante UD,33,185,74,Left,3,2,53,62,53,49,73,77,78,73,75,77
-75307,Daniel Parejo,189513,Parejo,Villarreal CF,37,182,74,Left,4,3,40,38,58,74,75,68,67,61,65,67
-850962,Hákon Rafn Valdimarsson,264133,Hákon Valdimarsson,Brentford,24,195,89,Left,2,1,20,20,32,44,65,35,50,46,26,68
-1131992,Jakub Kaluzinski,255776,Jakub Kałuziński,Antalyaspor,23,184,74,Left,3,2,63,67,78,83,68,71,58,57,58,61
-1108328,Kazimcan Karatas,262607,Kazımcan Karataş,Galatasaray,23,182,74,Right,2,2,72,77,73,70,64,71,69,69,73,70
-1080917,Omar Traoré,257136,Omar Haktab Traoré,Heidenheim,28,187,80,Left,3,3,86,83,69,74,65,85,65,75,73,72
-903995,Tarik Cetin,252799,Tarık Çetin,Fenerbahçe,29,193,86,Left,2,1,21,18,24,21,54,28,61,54,26,65
-636570,Álvaro Odriozola,234035,Odriozola,Real Sociedad,30,176,66,Left,3,3,65,78,71,78,72,73,58,68,62,63
-73409,Ørjan Håskjold Nyland,185427,Ørjan Nyland,Sevilla FC,35,192,90,Left,4,1,47,48,45,53,73,33,70,67,26,74
-997497,Ali Kol,258238,Ali Yavuz Kol,Kasımpaşa,25,175,70,Left,3,3,76,77,78,76,56,66,67,76,54,65
-1282765,Bertug Yildirim,267905,Bertuğ Yıldırım,Stade Rennais FC,23,186,78,Left,2,3,60,70,62,56,63,67,76,76,68,72
-1300653,Demir Tiknaz,277871,Demir Ege Tıknaz,Beşiktaş,21,193,76,Left,3,2,66,72,60,56,72,80,73,73,74,75
-848349,Firatcan Üzüm,251134,Fıratcan Üzüm,Gençlerbirliği,27,178,70,Left,3,2,69,68,66,74,62,50,56,56,30,49
-891651,Furkan Bayir,264000,Furkan Bayır,Göztepe,26,188,80,Left,2,2,60,62,61,52,70,70,70,69,75,71
-1356431,Hevertton Santos,276412,Hevertton,Gil Vicente,25,183,73,Left,2,3,79,79,70,62,63,73,71,73,70,71
-1130733,Mathias Fjørtoft Løvik,264294,Mathias Løvik,Parma,22,183,78,Right,4,2,82,81,77,68,57,70,64,72,61,65
-1139499,Oskar Siira Sivertsen,254307,Oskar Sivertsen,Go Ahead Eagles,22,177,72,Left,3,3,83,78,85,80,50,50,33,51,35,39
-876341,Ruan,247027,Ruan,Göztepe,31,170,65,Left,2,3,85,87,86,75,59,75,61,69,68,66
-965022,Sergio Bermejo,252864,Bermejo,Gil Vicente,28,170,63,Right,2,3,77,78,90,74,67,60,56,57,35,53
-1794261,Yassir Salah Rahmouni,79243,Yassir Rahmouni,Go Ahead Eagles,20,186,71,Left,3,2,61,64,77,65,49,56,51,45,48,51
-213471,Aitor Fernández,193314,Aitor,CA Osasuna,35,182,78,Left,2,1,58,53,55,48,76,39,52,65,15,76
-1425768,Antonio Espigares,270732,Espigares,Gil Vicente,21,180,80,Left,3,2,62,62,60,59,63,66,62,69,69,65
-982246,Daniel Neil,258483,Dan Neil,Sunderland,24,178,65,Left,4,2,74,72,76,73,69,91,70,74,78,77
-860920,Edward Nketiah,236988,Eddie Nketiah,Crystal Palace,27,180,73,Left,3,3,83,79,79,75,74,66,63,79,58,64
-768331,Igor Julio,241585,Igor,West Ham,28,185,84,Right,2,2,58,68,61,48,70,65,90,80,87,83
-1614872,Inigo Arguibide,71277,Arguibide,CA Osasuna,21,178,75,Left,3,3,60,54,53,68,55,41,53,45,50,49
-1187478,José Salinas,258684,Salinas,RCD Espanyol,25,179,69,Right,2,2,75,79,66,65,68,79,58,70,73,67
-1001348,Kartal Yilmaz,254296,Kartal Yılmaz,Beşiktaş,25,178,70,Left,3,3,66,67,71,76,61,70,67,69,67,68
-865931,Max Kilman,245336,Maximilian Kilman,West Ham,29,194,89,Right,4,2,53,65,50,34,78,72,85,75,73,79
-1393387,Muhammed Mehmet Damar,271246,Muhammed Damar,TSG Hoffenheim,22,185,73,Left,4,4,67,68,77,69,71,67,63,61,48,61
-614269,Samet Yalçin,72731,Samet Yalçın,Kocaelispor,32,180,78,Left,2,2,58,67,63,51,57,67,56,51,54,58
-1079233,Simão,252284,Simão Bertelli,AVS Futebol SAD,32,187,83,Left,2,1,29,25,32,31,58,17,62,56,21,68
-645142,Yasir Subasi,228918,Yasir Subaşı,Konyaspor,30,180,73,Right,2,2,69,70,74,66,58,67,65,61,56,64
-707777,Irfan Egribayat,234341,İrfan Can Eğribayat,Fenerbahçe,28,193,79,Left,2,1,47,48,48,27,69,21,59,62,18,73
-657217,Mads Valentin Pedersen,229640,Mads Pedersen,FC Augsburg,29,174,72,Right,3,3,81,74,82,79,71,69,58,65,82,66
-653592,Matheus,230625,Matheus Reis,Sporting CP,31,184,80,Right,2,3,75,77,75,59,75,80,79,82,82,80
-68813,Przemyslaw Tyton,176094,Przemysław Tytoń,FC Twente,39,195,88,Left,2,1,51,49,48,40,69,30,71,68,32,63
-1211447,Talha Sariarslan,274549,Talha Sarıarslan,Kayserispor,22,175,68,Left,2,2,52,43,52,71,56,59,48,54,40,49
-820085,Ali Yanar,277284,Ali Emre Yanar,Kasımpaşa,28,190,82,Left,3,1,27,20,27,23,51,21,59,51,25,59
-866967,Altay Bayindir,243647,Altay Bayındır,Man Utd,28,198,88,Left,2,1,30,31,51,24,69,31,68,61,29,75
-1431121,Asier Osambela,71598,Osambela,CA Osasuna,21,186,78,Left,3,2,64,63,51,57,60,60,69,67,62,65
-1041660,Eren Elmali,259754,Eren Elmalı,Galatasaray,25,183,76,Right,2,2,80,85,79,71,70,86,76,81,69,77
-958222,Giorgos Liavas,80593,Georgios Liavas,Rio Ave FC,25,181,76,Left,2,2,59,65,53,70,62,78,70,66,70,72
-671529,Konstantinos Tsimikas,232223,Kostas Tsimikas,AS Roma,30,179,77,Right,3,3,79,78,77,73,74,69,69,77,80,72
-156546,Kostas Lamprou,199568,Konstantinos Lamprou,NAC Breda,34,178,84,Right,3,1,39,36,41,50,68,18,45,49,27,63
-1307639,Max Weiss,269096,Max Weiß,Burnley,22,190,84,Left,2,1,35,34,33,40,67,28,62,58,18,61
-1610952,Pedro Lima,73049,Pedro Lima,FC Porto,20,178,57,Left,2,3,77,75,81,75,63,59,54,66,59,57
-1184772,Ángel Fortuno,258948,Fortuño,RCD Espanyol,24,183,77,Left,3,1,44,40,45,53,64,31,55,57,33,65
-1429871,Ali Dembélé,273936,Ali Bina Dembélé,Torino,22,185,69,Left,3,2,66,67,66,63,57,54,62,62,61,60
-939593,Thorir Helgason,263657,Þórir Jóhann Helgason,Lecce,25,187,66,Left,3,2,68,66,62,62,69,71,58,54,52,60
-1094045,Ben Alexander Voll,251433,Ben Voll,FC St. Pauli,25,195,86,Left,3,1,24,25,27,24,60,22,67,56,21,66
-1316088,Benja Domínguez,269558,Benjamín Domínguez,Bologna,22,172,68,Left,3,4,83,84,77,80,64,74,42,53,58,54
-568571,Joseph Gomez,225100,Joe Gomez,Liverpool,29,188,77,Left,3,3,72,76,61,64,78,57,78,85,77,73
-678192,Jon Guridi,238126,Guridi,D. Alavés,31,179,70,Right,3,3,61,60,69,77,73,58,57,63,48,56
-1083562,Juan Cabal,251870,Juan David Cabal,Juventus,25,186,80,Right,3,3,71,73,67,62,69,54,74,82,71,69
-935622,Marcus Holmgren Pedersen,243481,Marcus Pedersen,Torino,25,184,76,Left,4,3,88,89,80,71,64,78,62,65,61,66
-1649316,Aaron Martin Luis,72561,Aarón Martín,CD Mirandés,19,175,76,Left,3,3,71,71,71,80,68,79,66,70,65,69
-324910,Abdul Rahman Baba,209620,Rahman Baba,PAOK FC,31,180,73,Right,4,3,74,80,72,72,74,81,77,84,77,78
-500882,Adedeji Oshilaja,204458,Deji Oshilaja,Mansfield Town,33,181,75,Left,4,2,73,71,68,63,63,75,86,92,77,82
-1113675,Ademipo Odubeko,258515,Mipo Odubeko,Shelbourne,23,187,72,Left,4,2,77,79,54,51,57,60,70,74,53,64
-1526776,Adriano,73050,Adriano Amorim,Raków,24,175,69,Left,3,3,81,82,87,82,57,77,48,61,45,55
-566241,Ahmet Metin Arslan,231424,Ahmet Arslan,Rot-Weiss Essen,32,180,77,Left,4,3,70,63,75,74,66,72,64,61,70,67
-1575777,Aingeru Olabarrieta,279603,Olabarrieta,FC Andorra,20,181,70,Right,3,3,55,57,68,66,60,56,55,58,33,51
-1121005,Alejandro Meléndez,255572,Meléndez,Albacete BP,27,178,66,Left,3,2,65,58,71,73,62,57,51,49,59,54
-785855,Alejandro Pozo,235983,Álex Pozo,Jagiellonia,27,173,64,Left,3,3,76,71,84,83,67,75,42,61,50,53
-1200629,Alessandro Pio Riccio,278014,Alessandro Riccio,Sampdoria,24,187,78,Left,3,2,55,49,33,56,65,69,65,66,66,66
-1247997,Alexander Mitchell,263686,Alex Mitchell,Plymouth Argyle,24,191,81,Left,3,2,51,51,34,52,58,69,83,75,75,78
-1503318,Alisson Santana,77883,Alisson,Shakhtar Donetsk,20,183,79,Right,2,3,79,84,70,71,58,67,58,69,55,60
-607331,Alistair Coote,226429,Ali Coote,Shelbourne,28,170,65,Left,4,3,70,73,80,79,51,63,34,39,41,43
-928440,Alistair McCann,243520,Ali McCann,Preston,26,176,69,Left,4,2,63,67,76,78,71,86,64,65,84,74
-820259,Alvaro Rodriguez,237206,Alvaro Rodríguez,SD Eibar,31,181,75,Left,3,2,66,65,58,65,64,71,66,67,65,67
-1435810,Ander Astralaga,277642,Astralaga,Granada CF,22,190,77,Left,3,1,22,27,37,29,58,17,64,53,20,64
-789558,Andrew Fisher,234260,Andy Fisher,Swansea City,28,183,73,Left,3,1,36,31,41,43,64,35,42,45,25,65
-1253909,Andu Yobel Kelati,73149,Andu Kelati,Holstein Kiel,23,179,70,Left,3,3,73,53,72,62,48,43,49,49,38,45
-1055316,Anis Ben Slimane,255210,Anis Slimane,Norwich,25,188,86,Left,4,3,66,65,68,67,66,73,81,71,62,75
-1010186,Antonio Casas,73408,Casas,Venezia,26,183,80,Left,3,2,77,78,67,66,65,72,80,84,65,75
-1127223,Antonio Pacheco,269644,Pacheco,Albacete BP,24,184,72,Left,3,3,59,59,69,59,61,65,59,61,64,62
-434593,Antonio Puertas,213577,Puertas,Albacete BP,34,183,77,Left,3,3,70,70,72,71,66,61,67,73,65,65
-1093698,Aritz Aldasoro,262501,Aldasoro,R. Racing Club,27,176,72,Left,2,2,69,67,78,75,67,80,63,58,69,68
-999989,Aritz Arambarri,254003,Arambarri,SD Eibar,28,186,76,Left,3,2,50,51,47,50,60,70,77,76,67,73
-1180735,Arjany Martha,264221,Ar'jany Martha,Rotherham Utd,22,180,67,Right,2,3,86,78,87,68,64,67,46,54,58,54
-650234,Arnor Sigurdsson,238196,Arnór Sigurðsson,Malmö FF,27,177,75,Left,3,3,76,75,80,74,64,69,60,60,48,60
-670031,Asier Villalibre,193794,Villalibre,R. Racing Club,28,184,87,Right,3,3,69,72,70,65,64,69,92,88,66,81
-1298713,Babajide Adeeko,263211,Baba Adeeko,Wigan Athletic,23,175,70,Left,4,2,67,64,74,70,60,74,58,52,55,61
-629562,Baris Atik,233520,Barış Atik,1. FC Magdeburg,31,169,73,Left,4,4,80,67,92,88,62,85,44,55,57,57
-450742,Bartlomiej Dragowski,215502,Bartłomiej Drągowski,Panathinaikos,28,191,74,Left,3,1,40,45,33,54,73,34,56,59,19,73
-1132121,Bartlomiej Wdowik,255760,Bartłomiej Wdowik,Jagiellonia,25,184,72,Right,2,2,77,62,64,69,66,75,62,69,58,65
-1081241,Benjamin Chrisene,256556,Ben Chrisene,Norwich,22,183,80,Right,3,3,71,73,67,65,63,70,62,65,56,63
-1257745,Benjamin Old,262289,Ben Old,AS Saint-Étienne,23,173,73,Right,2,3,83,82,86,85,64,75,65,64,75,69
-765715,Benjamin Woodburn,236248,Ben Woodburn,Salford City,26,174,72,Left,4,3,77,66,80,84,60,71,45,48,50,53
-1268012,Benony Andrésson,76016,Benoný Breki Andrésson,Stockport,20,180,72,Left,3,2,66,69,66,62,60,54,60,65,42,55
-759811,Bradley Collins,225543,Brad Collins,Burton Albion,29,184,69,Left,3,1,41,45,45,58,59,25,51,56,20,66
-956166,Brendan Sarpong-Wiredu,246723,Brendan Wiredu,Plymouth Argyle,26,191,86,Left,3,2,80,79,73,70,61,73,78,83,70,75
-1069934,Bryan Solhaug Fiabema,251884,Bryan Fiabema,Lech Poznań,23,182,82,Left,4,3,84,89,73,76,58,53,66,72,46,59
-1669636,Carlos Guirao,74545,Guirao,CD Leganés,23,175,68,Left,3,2,60,55,56,75,65,57,61,66,65,61
-674841,Cedric Gondo,230940,Cedric Diomandè Gondo,Reggiana,29,187,75,Left,3,2,76,66,56,54,58,65,70,78,54,66
-1229058,Charlie Patino,260144,Patiño,RC Deportivo,22,182,71,Right,3,2,69,62,76,60,58,79,52,61,68,62
-352866,Cheyenne Dunkley,226102,Chey Dunkley,Chesterfield,34,188,85,Left,3,2,50,48,49,49,62,67,86,67,66,76
-956937,Christian Sánchez,245601,Christian Joel Sánchez,R. Sporting,26,193,88,Right,3,1,42,36,45,34,64,27,73,66,26,64
-867841,Connor Lemonheigh-Evans,222714,Connor Evans,MK Dons,29,179,73,Left,3,3,72,75,74,73,61,72,60,65,55,62
-932181,Daniel Grant,243163,Danny Grant,Shamrock Rovers,26,178,70,Left,2,3,76,77,75,69,57,67,47,55,45,52
-1447955,Daniel Gudjohnsen,275062,Daníel Guðjohnsen,Malmö FF,20,188,78,Left,3,2,65,72,71,52,57,66,72,73,50,66
-827248,Daniel Happe,238179,Dan Happe,Leyton Orient,27,195,85,Right,3,2,55,54,40,44,60,78,87,77,65,80
-1132342,Daniel Imray,73615,Danny Imray,Blackpool,22,178,66,Left,2,2,83,74,81,84,60,89,57,71,76,70
-820174,Daniel Mândroiu,240978,Danny Mândroiu,Shamrock Rovers,27,180,73,Left,4,4,66,61,64,67,60,63,62,62,58,61
-1100273,Diego Collado,269637,Collado,Cultural Leonesa,25,183,71,Left,4,3,60,65,66,62,59,67,58,65,31,55
-1403389,Diego Hormigo,275622,Hormigo,Granada CF,23,182,75,Right,3,3,62,58,49,61,63,59,56,61,50,56
-829101,Edward McGinty,237927,Ed McGinty,Shamrock Rovers,26,194,83,Right,2,1,55,55,44,52,60,39,58,61,24,62
-1344543,Efe Sarikaya,269187,Efe Sarıkaya,Grenoble Foot 38,20,185,74,Right,2,2,65,78,53,55,53,74,77,73,64,73
-1088860,Eggert Aron Gudmundsson,70843,Eggert Aron Guðmundsson,SK Brann,22,175,73,Left,3,3,64,66,79,73,63,73,60,57,60,63
-841966,Elías Ólafsson,246704,Elías Rafn Ólafsson,FC Midtjylland,26,201,85,Left,3,1,33,33,39,32,56,44,75,69,44,71
-526450,Emmanuel Quartsin Gyasi,220491,Emmanuel Gyasi,Palermo,32,181,70,Left,3,3,81,78,75,73,76,84,65,71,57,68
-722830,Eneko Jauregi,242333,Jauregi,Málaga CF,29,184,81,Left,3,2,59,64,57,57,61,32,83,82,65,67
-917294,Enric Franquesa,252146,Franquesa,CD Leganés,29,175,71,Right,2,2,78,72,75,78,68,80,60,68,62,66
-1081707,Erencan Yardimci,252846,Erencan Yardımcı,Braunschweig,24,188,78,Left,3,2,71,74,70,59,69,72,76,81,55,71
-1232793,Fernando Medrano,264347,Medrano,CD Mirandés,26,172,64,Right,2,2,81,83,72,84,58,79,45,64,50,55
-502931,Filip Jagiello,220912,Filip Jagiełło,Lech Poznań,28,180,70,Left,2,3,71,71,73,68,62,72,61,69,55,63
-951738,Francisco Montero,244938,Montero,Málaga CF,27,185,80,Right,3,2,66,68,59,67,64,59,75,75,76,71
-630228,Fredrik André Bjørkan,233800,Fredrik Bjørkan,FK Bodø/Glimt,27,180,73,Right,3,3,81,81,76,76,70,91,70,78,65,75
-601990,Fredrik Pallesen Knudsen,238263,Fredrik Knudsen,SK Brann,29,190,83,Left,3,2,36,38,36,46,68,72,85,71,75,79
-1669642,Gady Beyuku,73767,Gady-Pierre Beyuku,Modena,20,185,75,Left,3,2,75,75,78,64,51,64,63,74,67,65
-930627,Gerard Garner,258589,Ged Garner,Newport County,27,183,73,Right,2,2,70,70,66,73,56,67,75,72,41,66
-832736,Gian-Luca Itter,237024,Luca Itter,Fürth,27,183,74,Right,2,3,80,68,66,67,66,75,70,79,61,70
-617220,Gonzalo Melero,227508,Melero,CD Leganés,32,183,77,Left,3,3,50,51,59,63,71,69,81,78,68,75
-1026781,Gue-Sung Cho,247686,Cho Gue Sung,FC Midtjylland,28,188,82,Left,5,3,73,77,76,56,70,76,80,82,68,77
-1383059,Gísli Thórdarson,76294,Gísli Þórðarson,Lech Poznań,21,191,80,Left,3,2,70,71,64,44,62,67,58,54,71,63
-1232253,Han-Beom Lee,261062,Lee Han Beom,FC Midtjylland,24,190,84,Left,3,2,53,56,49,63,62,58,78,74,67,71
-1232560,Hyun-Jun Yang,260397,Yang Hyun Jun,Celtic,24,176,69,Left,4,4,80,83,87,79,73,77,63,73,74,69
-1111061,Imanol Garcia de Albeniz,263006,Imanol,FC Andorra,26,177,69,Right,2,2,66,67,68,78,63,71,41,56,64,54
-1587610,Jacob Hodl,74115,Jacob Peter Hödl,SK Sturm Graz,19,175,70,Right,3,2,58,62,57,75,53,53,47,39,50,49
-738046,Jacob Lungi Sørensen,233705,Jacob Sørensen,SK Brann,28,184,77,Left,4,2,61,65,73,66,65,75,71,72,61,70
-573748,Jaime Mata,223578,Mata,UD Las Palmas,37,186,80,Left,3,3,49,40,54,34,70,51,72,69,74,67
-1660227,Jakub Zewlakow,74399,Jakub Żewłakow,Legia Warszawa,19,182,75,Left,3,3,64,66,62,62,43,47,44,38,41,44
-710328,Jannes-Kilian Horn,231874,Jannes Horn,SK Rapid,29,186,79,Right,3,2,76,69,65,63,66,72,74,80,67,72
-1088754,Jesus Owono,265405,Owono,FC Andorra,25,181,75,Left,3,1,24,33,37,48,62,22,50,47,21,63
-1341538,Ji-Soo Kim,267844,Kim Ji Soo,Kaiserslautern,21,192,83,Left,4,2,43,58,38,41,60,55,79,69,62,69
-1107283,Ji-Sung Eom,260492,Eom Ji Sung,Swansea City,24,178,70,Left,3,3,82,87,89,78,70,79,60,61,59,65
-922539,Jin-Woo Jeon,242004,Jeon Jin Woo,Jeonbuk Hyundai,26,181,69,Left,4,3,87,90,87,75,72,65,65,67,39,60
-1662432,Jiri Panos,74627,Jiří Maxim Panoš,Viktoria Plzeň,18,178,71,Right,3,3,74,71,72,72,57,58,45,44,41,47
-1057432,Johan Gomez,263153,Johan Arath Gómez,Braunschweig,24,178,75,Left,4,3,84,75,81,78,65,85,66,76,47,67
-1336887,John McKiernan,266709,JJ McKiernan,Burton Albion,24,184,74,Left,2,3,73,77,77,72,58,68,63,67,59,64
-610519,Jokin Ezkieta,225395,Ezkieta,R. Racing Club,29,193,80,Left,3,1,41,49,42,41,72,38,66,64,25,69
-1299596,Jokin Gabilondo,265437,Gabilondo,Málaga CF,27,178,71,Left,3,2,77,79,80,69,58,71,58,69,67,64
-1287788,Jon Magunazelaia,264665,Magunazelaia,SD Eibar,24,180,75,Left,3,3,75,73,70,81,55,58,54,65,60,57
-873236,Jon Thorsteinsson,241474,Jón Dagur Þorsteinsson,Hertha BSC,27,177,66,Left,4,3,77,80,80,76,65,75,67,61,72,70
-1432344,Jonas Adjei Adjetey,276634,Jonas Adjetey,FC Basel 1893,22,188,82,Left,4,2,72,69,69,69,70,74,73,78,59,71
-1174734,Jonas Thomas Kersken,257914,Jonas Kersken,Arminia Bielefeld,25,190,88,Left,3,1,34,35,34,25,65,25,68,59,25,70
-1378854,Jonas Torrissen Therkelsen,271993,Jonas Therkelsen,Holstein Kiel,23,184,82,Left,3,4,81,81,81,72,62,68,63,71,59,64
-1171023,Jonathan Gomez,266118,Jonathan Germán Gómez,Albacete BP,22,178,71,Right,3,2,73,75,76,70,58,65,48,60,56,54
-791835,Jonathan Lunney,236379,JJ Lunney,Shelbourne,28,175,70,Right,3,2,62,52,66,68,58,73,65,62,64,67
-1096390,Jonathan Russell,242436,Jon Russell,Barnsley,25,194,81,Left,3,2,48,51,34,42,65,71,82,72,69,76
-213482,Jorge Pulido,200519,Pulido,SD Huesca,35,186,72,Left,3,2,50,33,58,39,69,79,83,78,78,81
-969252,Joshua Griffiths,252773,Josh Griffiths,West Brom,24,198,87,Left,3,1,26,35,37,49,61,21,63,55,20,63
-1068590,Joshua Honohan,252754,Josh Honohan,Shamrock Rovers,25,178,68,Left,3,2,70,69,52,66,56,68,72,75,70,71
-783699,José Antonio Caro,234779,Caro,UD Las Palmas,32,184,83,Left,3,1,38,39,45,30,71,41,76,69,22,72
-659203,José Carlos Lazo,229631,Lazo,Albacete BP,30,180,69,Left,5,3,76,75,79,72,65,56,57,57,42,54
-1187691,Joël Monteiro,258924,Joël Almada Monteiro,BSC Young Boys,26,191,81,Left,3,3,80,82,71,67,69,77,83,90,65,78
-1225417,Juan Carlos Arana,269639,Arana,R. Racing Club,26,182,73,Left,3,3,68,74,77,73,65,67,68,73,45,63
-1610383,Juan Guevara,74050,Juan José Guevara,SC Bastia,25,180,72,Left,2,2,58,65,54,63,58,54,73,71,60,66
-1526611,Juanma Herzog,278403,Herzog,UD Las Palmas,22,186,85,Left,3,2,70,72,64,47,69,65,79,86,72,74
-714418,Juanpe,234769,Juanpe,Málaga CF,30,183,72,Left,3,2,68,74,61,63,58,83,72,71,63,73
-1098594,Julen Lobete,255398,Lobete,Málaga CF,25,180,72,Left,4,3,74,68,71,80,67,64,61,72,44,59
-1386482,Jun-Ho Bae,266774,Bae Jun Ho,Stoke City,22,178,70,Left,4,3,75,74,80,82,69,72,48,51,54,55
-1081240,Junior Quitirna,252970,Armando Quitirna,Wycombe,26,170,70,Right,4,4,71,73,90,90,61,65,38,47,48,47
-766160,Kady Malinowski,236420,Kady,Qarabağ FK,30,173,68,Right,2,3,73,74,72,76,69,63,71,73,60,67
-934960,Kasper Waarts Høgh,243203,Kasper Høgh,FK Bodø/Glimt,25,186,77,Left,3,2,76,79,75,72,68,70,78,83,68,74
-1213117,Kevin Medina,264176,Kevin,Córdoba CF,25,173,69,Left,5,3,82,80,85,86,68,55,37,47,54,45
-1089762,Kgaogelo Chauke,260927,Kegs Chauke,Burton Albion,23,177,65,Left,3,3,74,69,73,75,61,69,59,63,62,62
-1559822,King Manu,278832,King Samuel Manu,Energie Cottbus,22,195,83,Left,2,2,57,66,53,45,54,67,82,76,61,74
-1091973,Koba Koindredi,252025,Koba Leïn Koindredi,FC Basel 1893,24,184,80,Right,3,3,66,65,75,73,61,65,79,74,50,69
-1587901,Kofi Amoako,279490,Kofi Jeremy Amoako,Dynamo Dresden,21,186,77,Left,3,2,71,71,74,55,62,60,64,69,62,63
-1333743,Kouadio Ange Ahoussou,266543,Ange Ahoussou,SK Rapid,22,194,79,Right,3,2,60,62,56,54,59,66,77,76,63,71
-670029,Lander Olaetxea,229765,Olaetxea,SD Eibar,33,179,75,Left,3,2,71,64,70,67,71,80,76,75,66,75
-639140,Liberto,231125,Liberto Beltrán,SD Huesca,29,172,66,Right,3,3,88,86,76,72,58,71,46,60,37,51
-1398971,Luca Trslic,78523,Luka Trslic,FC Schweinfurt 05,25,190,80,Left,2,2,56,65,49,48,57,55,67,63,54,61
-962113,Lukasz Poreba,246301,Łukasz Poręba,SV Elversberg,26,179,76,Left,3,2,68,66,72,75,71,69,72,71,60,69
-659018,Mads Bech,234472,Mads Bech Sørensen,FC Midtjylland,27,193,92,Right,3,2,42,63,47,35,73,73,85,75,72,79
-1602352,Malick Junior Yalcouyé,70841,Malick Yalcouyé,Swansea City,20,169,69,Left,2,3,84,82,81,90,69,92,57,72,68,69
-1323982,Marcos Cuenca,278530,Cuenca,Real Zaragoza,23,184,78,Left,3,3,76,70,69,62,50,68,66,78,41,62
-1395746,Marcos Luna,270415,Luna,UD Almería,23,180,80,Left,3,2,70,74,61,73,61,82,84,80,67,80
-261348,Matheus,257265,Matheus Silva,Qarabağ FK,28,182,73,Left,3,3,83,82,72,68,66,70,65,78,72,68
-813711,Matias Antonini Lui,236889,Matias Antonini,Catanzaro,28,191,80,Left,3,2,61,62,64,63,60,69,72,74,61,69
-1206281,Matthew Healy,273573,Matt Healy,Shamrock Rovers,24,186,76,Left,2,2,60,52,51,49,58,74,66,58,54,65
-173408,Matthew James,186139,Matty James,Wrexham,34,181,86,Left,3,3,52,49,56,59,66,63,72,68,68,69
-302785,Matthew Pearson,208014,Matty Pearson,Doncaster,32,190,78,Left,3,2,48,53,47,54,63,73,81,73,70,76
-127133,Matthew Phillips,188166,Matt Phillips,Oxford United,35,183,75,Left,4,4,67,66,68,66,67,56,75,69,54,66
-968936,Matthew Pollock,246695,Mattie Pollock,Watford,24,190,80,Left,2,2,53,50,45,42,65,70,85,80,69,78
-1577815,Matthew Young,279028,Matt Young,Salford City,19,191,87,Left,2,1,36,41,39,28,54,20,59,54,20,58
-1070404,Maurits Kjærgaard,260876,Maurits Kjaergaard,RB Salzburg,23,192,77,Right,3,4,71,78,73,62,73,77,79,77,73,77
-1140917,Maximilian Grosser,257779,Maximilian Großer,Arminia Bielefeld,24,189,81,Left,3,2,57,62,61,63,64,71,80,74,71,76
-753799,Maximilian Krauss,244109,Maximilian Krauß,FC Hansa Rostock,29,170,70,Left,4,3,89,85,90,90,64,82,50,57,37,56
-1237634,Mehmet Aydin,261446,Mehmet Can Aydın,Braunschweig,24,179,76,Left,3,3,79,68,79,78,65,72,62,68,78,68
-1006676,Memeh Caleb Okoli,261281,Caleb Okoli,Leicester City,24,191,91,Left,2,2,56,59,54,58,69,66,88,79,69,78
-766622,Michael Johnston,238505,Mikey Johnston,West Brom,27,178,66,Left,3,4,88,83,91,86,70,65,46,62,27,48
-1437855,Michal Gurgul,274830,Michał Gurgul,Lech Poznań,20,181,70,Right,3,2,70,74,67,66,62,81,64,68,60,68
-488960,Michal Helik,219293,Michał Helik,Oxford United,30,191,80,Left,3,2,51,63,46,58,67,73,85,80,75,80
-1065940,Michal Karbownik,248149,Michał Karbownik,Hertha BSC,25,175,64,Left,4,2,82,83,80,84,67,77,52,67,58,60
-1119683,Miguel Atienza,254786,Atienza,Burgos CF,27,186,77,Left,3,3,53,56,59,50,70,70,76,58,64,71
-902901,Miguel de la Fuente,240589,Miguel,CD Leganés,26,181,86,Left,3,3,68,69,71,69,65,74,82,84,61,76
-1358582,Miguel Ángel Brau,72423,Brau,Coventry City,24,183,76,Right,2,2,71,71,66,64,65,67,57,63,66,62
-1609329,Min-Hyeok Yang,71106,Yang Min Hyeok,Portsmouth,20,171,61,Left,3,3,79,80,84,85,68,75,43,49,52,53
-867082,Mitchell Clark,240604,Mitch Clark,Port Vale,27,173,69,Left,2,2,71,73,78,81,59,60,59,63,68,61
-440531,Mitchell Pinnock,213969,Mitch Pinnock,Bromley FC,31,185,76,Right,3,3,75,77,66,62,62,79,71,71,45,68
-1064272,Mohamed Diomande,255928,Mohammed Diomande,Rangers,24,183,75,Right,5,3,79,74,79,81,75,72,70,77,73,71
-819696,Mohamed Mady Camara,237520,Mady Camara,PAOK FC,29,182,75,Left,3,4,72,76,73,72,65,81,82,92,85,83
-1288294,Monju Momuluh,272660,Thaddäus-Monju Momuluh,Arminia Bielefeld,24,181,82,Left,3,3,83,86,80,65,55,47,55,60,35,49
-1229109,Monsef Bakrar,277303,Mounsef Bakrar,Dinamo Zagreb,25,183,79,Left,3,3,58,60,63,70,60,59,68,67,33,59
-1394109,Moussa Kounfolo Yeo,277119,Moussa Yeo,RB Salzburg,22,174,55,Left,3,3,76,71,83,90,61,63,28,43,64,45
-1206282,Nicholas Tsaroulla,241039,Nick Tsaroulla,Notts County,27,173,70,Right,3,3,83,81,85,85,58,79,47,54,59,58
-1437228,Nicolas Oliveira,274038,Nicolas-Bernd Oliveira,Jahn Regensburg,22,187,81,Left,3,2,68,79,56,63,58,62,67,60,51,62
-643659,Nikola Tzanev,230971,Nik Tzanev,Newport County,29,195,90,Left,1,1,47,45,35,54,55,25,54,54,34,59
-1186576,Noah Holm,258710,Noah Jean Holm,SK Brann,25,186,87,Left,3,3,72,69,68,79,60,65,87,84,68,78
-917774,Odin Lurås Bjørtuft,242623,Odin Luraas Bjørtuft,FK Bodø/Glimt,27,188,80,Left,3,2,66,59,58,61,79,76,77,77,64,74
-1086551,Ole Blomberg,258892,Ole Didrik Blomberg,FK Bodø/Glimt,26,177,71,Left,3,3,77,75,74,73,67,79,65,70,67,69
-845695,Oleksii Kashchuk,277456,Oleksiy Kashchuk,Qarabağ FK,26,180,67,Right,3,3,70,71,65,78,67,62,58,58,37,55
-1117751,Oliver Casey,247350,Olly Casey,Blackpool,25,188,80,Left,2,2,54,56,46,55,63,69,75,71,67,72
-291175,Oliver Norburn,206202,Ollie Norburn,Notts County,33,185,82,Left,3,3,62,75,73,68,63,76,74,69,73,74
-1113786,Oliver O'Neill,270679,Ollie O'Neill,Leyton Orient,23,185,73,Left,3,3,81,79,81,72,61,73,53,62,63,60
-1089768,Oliver Wright,268839,Ollie Wright,Accrington,23,187,77,Left,3,1,29,28,40,31,53,17,55,49,17,55
-1344572,Ollie Arblaster,271063,Oliver Arblaster,Sheffield Utd,22,178,73,Left,4,2,67,64,72,73,70,76,69,68,69,71
-1273294,Oscar Fraulo,265518,Oscar Luigi Fraulo,M'gladbach,22,180,77,Left,3,3,74,64,73,71,70,88,64,64,69,71
-293564,Patrick Barrett,205139,Paddy Barrett,Shelbourne,32,182,92,Left,2,2,41,33,50,35,55,36,81,70,74,68
-206695,Pawel Wszolek,203568,Paweł Wszołek,Legia Warszawa,34,186,77,Left,2,3,78,78,76,72,65,82,61,74,63,67
-792071,Peru Nolaskoain,241489,Nolaskoain,SD Eibar,27,186,81,Left,3,2,52,56,63,54,65,76,84,76,82,81
-1280257,Petter Nosakhare Dahl,277501,Petter Nosa Dahl,SK Rapid,22,180,70,Left,4,4,88,86,82,85,58,53,53,67,53,54
-1220633,Prince Adu,74753,Prince Kwabena Adu,Viktoria Plzeň,22,179,78,Left,2,3,70,76,61,63,71,60,73,76,54,66
-862717,Przemyslaw Placheta,239439,Przemysław Płacheta,Oxford United,28,178,72,Right,3,3,89,93,90,85,62,76,48,56,46,55
-934862,Przemyslaw Wisniewski,243185,Przemysław Wiśniewski,Spezia,27,195,88,Left,3,2,81,87,62,48,68,74,91,89,69,82
-672721,Pêpê,238896,Pepê,FC Porto,29,173,72,Left,2,4,86,85,87,80,79,73,52,61,54,58
-1702428,Raees Bangura-Williams,76196,Ra'ees Bangura-Williams,Millwall,21,180,67,Right,4,4,83,80,75,73,60,56,55,64,42,53
-463923,Rafal Augustyniak,218985,Rafał Augustyniak,Legia Warszawa,32,185,82,Left,3,2,64,65,56,54,60,73,84,77,75,79
-1101043,Raphael Borges Rodrigues,253403,Raphael,Wigan Athletic,22,173,70,Left,3,3,82,85,77,81,58,63,70,70,58,66
-670395,Rico Preissinger,238636,Rico Preißinger,Preußen Münster,29,185,78,Right,3,2,66,48,65,63,64,90,74,73,75,78
-894804,Robert Atkinson,241824,Rob Atkinson,Bristol City,27,193,85,Right,3,2,54,65,43,40,65,71,85,80,71,78
-865059,Robin Heusser,269604,Robin Heußer,Braunschweig,28,170,73,Left,3,2,71,57,85,86,68,90,75,68,71,78
-1396101,Saul del Cerro,271358,del Cerro,Burgos CF,22,185,75,Right,3,2,47,52,57,53,57,69,66,60,66,66
-1072820,Serge Raux Yao,251167,Serge-Philippe Raux-Yao,SK Rapid,27,197,86,Right,3,2,61,65,47,32,69,72,90,85,71,81
-745212,Sergi Maestre,201413,Maestre,Cultural Leonesa,35,187,77,Right,3,2,43,44,30,32,58,62,74,60,70,70
-713924,Sergio Akieme,226103,Akieme,Stade de Reims,28,175,74,Right,3,3,76,80,72,80,67,78,71,80,70,73
-303224,Sergio Postigo,214639,Postigo,CD Mirandés,37,185,78,Left,3,2,34,53,46,44,60,54,74,64,70,68
-848102,Seung-Ho Paik,237424,Paik Seung Ho,Birmingham City,29,180,78,Left,5,3,72,63,77,81,69,89,73,71,63,75
-488970,Sinan Bakis,230623,Sinan Bakış,Real Zaragoza,32,188,78,Left,3,2,37,35,39,56,50,51,78,68,49,65
-849404,Sivert Heggheim Mannsverk,263823,Sivert Mannsverk,Sparta Praha,24,185,77,Left,3,2,68,54,70,74,65,84,72,71,69,74
-1306211,Slawomir Abramowicz,267994,Sławomir Abramowicz,Jagiellonia,22,187,80,Right,2,1,35,37,39,35,60,16,45,49,16,69
-1123524,Solomon Brynn,242853,Sol Brynn,Middlesbrough,25,184,80,Left,2,1,34,32,32,44,60,27,40,44,25,65
-540975,Sondre Brunstad Fet,225077,Sondre Fet,FK Bodø/Glimt,29,177,74,Left,3,2,71,68,74,70,72,87,67,68,66,72
-1127585,Sondre Klingen Langås,277305,Sondre Langås,Derby County,25,190,83,Left,3,2,87,86,72,63,68,80,87,91,83,85
-1249185,Soufian El-Faouzi,262936,Soufiane El-Faouzi,FC Schalke 04,23,177,74,Left,4,3,63,66,82,72,62,87,59,52,49,64
-745912,Stefan Thordarson,262551,Stefán Teitur Þórðarson,Preston,27,189,76,Left,4,2,63,55,56,61,69,76,68,67,70,70
-1135782,Taha Abdi Ali,260972,Taha Ali,Malmö FF,28,174,63,Left,2,5,92,81,94,87,56,76,34,49,57,50
-1668236,Teddy Averlant,79610,Teddy Andami Averlant,Amiens SC,26,180,69,Left,3,3,70,66,71,68,41,55,58,50,33,52
-942893,Thelonius Bair,245563,Theo Bair,Lausanne-Sport,26,191,96,Left,3,2,73,76,62,54,69,65,93,91,64,80
-1392303,Thiago Ojeda,270738,Thiago Ezequiel Ojeda,Cultural Leonesa,23,187,72,Left,3,3,62,58,64,54,63,64,59,62,65,62
-1286791,Thomas Davies,278073,Tom Davies,Newport County,22,180,70,Right,3,2,71,74,69,65,53,59,56,59,59,58
-877647,Thomas Hamer,243252,Tom Hamer,Lincoln City,26,188,80,Left,4,2,73,68,63,67,62,87,79,80,82,82
-331527,Thomas Meissner,209491,Thomas Meißner,FC Schweinfurt 05,35,191,82,Left,3,2,54,56,34,57,62,64,79,73,61,71
-662353,Tobias Mullarkey,229232,Toby Mullarkey,Fleetwood Town,29,193,88,Left,3,2,62,73,51,48,58,84,77,74,60,75
-1089611,Tyreik Samuel Wright,260473,Tyreik Wright,Bradford City,24,179,72,Right,3,3,83,85,76,74,60,63,43,53,40,48
-867647,Victor Mollejo,245999,Mollejo,Burgos CF,25,177,63,Right,4,3,84,82,79,83,70,83,71,87,67,74
-1402324,Vivaldo Semedo,273918,Vivaldo,Watford,21,192,85,Right,3,2,72,77,65,38,57,47,82,89,60,69
-1098785,William Fish,256611,Will Fish,Cardiff City,23,185,73,Left,2,2,60,64,41,50,66,75,80,80,72,77
-728941,Yegor Nazaryna,242021,Yehor Nazaryna,Shakhtar Donetsk,28,183,75,Left,3,3,67,70,73,66,69,69,65,67,55,64
-789639,Zachary Hemming,240597,Zach Hemming,Chesterfield,26,188,70,Left,2,1,31,24,63,32,60,25,50,49,34,64
-1081050,Zachary Jeacock,250865,Zach Jeacock,Lincoln City,25,191,77,Left,3,1,32,24,29,34,53,26,48,44,18,57
-213500,Álex Fernández,199247,Álex Fernández,Cádiz CF,33,182,72,Left,4,3,57,37,76,71,74,73,59,61,64,64
-1108844,Álvaro Carrillo,278630,Carrillo,SD Huesca,24,182,72,Left,3,2,68,65,55,70,65,73,71,71,69,71
-1199649,Álvaro Mantilla,269197,Mantilla,R. Racing Club,26,184,71,Left,3,2,51,57,46,63,58,77,72,74,47,68
+fotmob_id,nom_fotmob,ea_id,nom_ea,equipe_ea,championnat,naissance,age,poste,note,taille_cm,poids_kg,pied_fort,mauvais_pied,gestes,acceleration,vitesse_pointe,agilite,equilibre,reactions,endurance,force,detente,agressivite,note_physique
+846033,Vinícius Júnior,238794,Vini Jr.,Real Madrid,LALIGA EA SPORTS,2000-07-12,25,LW,89,176,73,Right,4,5,95,95,94,84,85,84,65,74,58,69
+288406,Alejandro Grimaldo,210035,Grimaldo,Leverkusen,Bundesliga,1995-09-20,30,LM,84,171,68,Left,2,4,76,68,84,86,85,91,54,68,69,67
+1412132,Kenan Yildiz,277954,Kenan Yıldız,Juventus,Serie A Enilive,2005-05-04,21,CAM,79,185,75,Right,5,4,85,84,83,74,72,72,67,80,50,66
+678234,Mikel Oyarzabal,230142,Oyarzabal,Real Sociedad,LALIGA EA SPORTS,1997-04-21,29,ST,82,181,78,Left,3,3,78,76,77,77,82,79,57,77,62,65
+603669,Ugurcan Çakir,226300,Uğurcan Çakır,Galatasaray,Trendyol Süper Lig,1996-04-05,30,GK,80,191,82,Right,3,1,53,56,64,58,77,40,69,70,34,80
+1102708,Germán Valera,254860,Valera,Elche CF,LALIGA EA SPORTS,2002-03-16,24,RM,71,170,68,Left,3,3,81,88,81,79,66,54,46,55,36,46
+1031325,Martín Zubimendi,248148,Zubimendi,Arsenal,Premier League,1999-02-02,27,CDM,83,180,74,Right,4,3,67,66,74,75,84,85,67,71,74,73
+524434,João Palhinha,229391,Palhinha,Spurs,Premier League,1995-07-09,30,CDM,83,190,83,Right,4,2,54,58,51,50,79,79,86,83,91,85
+319784,Alisson Becker,212831,Alisson,Liverpool,Premier League,1992-10-02,33,GK,89,193,91,Right,3,1,60,49,40,37,87,32,78,82,27,90
+188058,Daniel Burn,198032,Dan Burn,Newcastle Utd,Premier League,1992-05-09,34,CB,79,201,104,Left,3,2,34,49,32,32,77,78,90,70,86,85
+534955,Aaron Escandell,220383,Aarón,R. Oviedo,LALIGA EA SPORTS,1995-09-27,30,GK,75,185,71,Right,4,1,40,34,44,56,73,45,54,60,27,73
+670009,Dimitrios Giannoulis,236457,Dimitris Giannoulis,FC Augsburg,Bundesliga,1995-10-17,30,LB,76,175,71,Left,2,3,79,86,77,75,73,90,56,64,66,67
+787242,Evan N'Dicka,236403,Evan Ndicka,AS Roma,Serie A Enilive,1999-08-20,26,CB,81,192,82,Left,3,2,69,78,50,55,81,83,81,85,81,82
+586388,Aleksandr Golovin,225663,Alexandr Golovin,AS Monaco,Ligue 1 McDonald's,1996-05-30,30,LM,79,178,69,Right,4,4,73,73,85,77,77,79,56,61,76,66
+1031656,Maxi Araújo,254817,Maximiliano Araújo,Sporting CP,Liga Portugal,2000-02-15,26,LM,77,177,75,Left,2,4,87,84,85,70,75,78,60,76,72,68
+291399,Abdülkerim Bardakci,229905,Abdülkerim Bardakcı,Galatasaray,Trendyol Süper Lig,1994-09-07,31,CB,80,185,80,Left,2,2,58,60,62,64,75,82,87,86,84,85
+980793,Khéphren Thuram-Ulien,247246,Khéphren Thuram,Juventus,Serie A Enilive,2001-03-26,25,CM,81,192,80,Right,3,3,76,80,75,65,79,81,79,87,84,81
+178732,Lukasz Skorupski,189908,Łukasz Skorupski,Bologna,Serie A Enilive,1991-05-05,35,GK,79,188,90,Right,3,1,51,51,48,38,76,31,58,63,33,78
+564847,Viktor Tsigankov,244369,Viktor Tsygankov,Girona FC,LALIGA EA SPORTS,1997-11-15,28,RM,79,178,73,Left,4,4,82,82,81,72,76,75,52,62,63,60
+1254166,Alejandro Balde,263578,Balde,FC Barcelona,LALIGA EA SPORTS,2003-10-18,22,LB,83,175,69,Left,4,3,90,91,81,77,80,77,68,83,47,67
+1325998,Iván Fresneda,266253,Fresneda,Sporting CP,Liga Portugal,2004-09-20,21,RB,74,181,79,Right,4,3,78,79,71,74,67,80,67,75,62,70
+1311946,Jochem Ritmeester van de Kamp,275861,Jochem van de Kamp,SC Telstar,Eredivisie,2003-11-02,22,CAM,66,177,72,Right,3,3,75,78,74,55,65,82,62,63,69,68
+1015183,Mohammed Ihattaren,246960,Mohamed Ihattaren,Fortuna Sittard,Eredivisie,2002-02-12,24,CAM,71,183,75,Left,2,4,61,51,70,65,67,69,74,66,54,68
+291635,Pedro Bigas,206222,Bigas,Elche CF,LALIGA EA SPORTS,1990-09-15,35,CB,74,181,78,Left,2,2,57,57,62,66,69,72,82,80,82,79
+1002618,Ander Barrenetxea,246672,Barrenetxea,Real Sociedad,LALIGA EA SPORTS,2001-12-27,24,LM,77,175,74,Right,4,3,81,81,85,82,76,74,66,74,62,68
+612863,Frank Anguissa,227236,André-Franck Zambo Anguissa,SSC Napoli,Serie A Enilive,1995-11-16,30,CM,82,184,83,Right,3,3,74,76,74,71,84,89,82,87,85,85
+857269,Gleison Bremer,239580,Bremer,Juventus,Serie A Enilive,1997-03-18,29,CB,85,187,84,Right,2,2,78,86,65,63,78,65,84,92,84,80
+684981,Aaron Martin Caricol,236295,Aarón Martín,Genoa,Serie A Enilive,1997-04-22,29,LB,74,178,70,Left,3,3,69,50,77,75,72,81,57,68,61,64
+890232,Baris Alper Yilmaz,263205,Barış Alper Yılmaz,Galatasaray,Trendyol Süper Lig,2000-05-23,26,LM,80,186,80,Right,3,4,92,93,85,81,80,93,90,92,86,90
+620026,Hee-Chan Hwang,226380,Hwang Hee Chan,Wolves,Premier League,1996-01-26,30,ST,75,177,77,Right,4,3,86,76,77,71,75,66,68,81,68,68
+1073742,Julio Enciso,255434,Julio César Enciso,Strasbourg,Ligue 1 McDonald's,2004-01-23,22,CAM,73,173,64,Right,3,3,77,72,81,80,67,61,42,50,61,51
+1237856,Patrick Sequeira,270054,Patrick Gilmar Sequeira,Casa Pia AC,Liga Portugal,1999-03-01,27,GK,71,190,84,Right,3,1,38,30,47,50,65,25,60,59,27,67
+1321124,Rome Owusu-Oduro,272958,Rome-Jayden Owusu-Oduro,AZ,Eredivisie,2004-07-02,21,GK,71,188,82,Right,3,1,40,39,39,31,68,35,60,60,16,70
+1106742,Sergio Carreira,252866,Carreira,Celta,LALIGA EA SPORTS,2000-10-13,25,RM,75,170,65,Right,3,3,78,74,75,74,76,76,63,75,55,65
+1506480,Yarek Gasiorowski,278661,Yarek,PSV,Eredivisie,2005-01-12,21,CB,73,192,75,Left,3,2,60,68,69,66,71,66,64,73,70,66
+952528,Adrián De La Fuente,245290,Dela,Levante UD,LALIGA EA SPORTS,1999-02-26,27,CB,72,179,78,Right,3,2,69,74,62,55,69,75,72,79,73,73
+681213,Ionut Radu,234102,Ionuț Andrei Radu,Celta,LALIGA EA SPORTS,1997-05-28,29,GK,74,188,70,Right,2,1,52,48,43,40,72,32,58,64,22,70
+391058,José Gayà,211688,Gayà,Valencia CF,LALIGA EA SPORTS,1995-05-25,31,LB,81,172,66,Left,3,4,79,81,82,80,82,80,66,73,77,72
+1451265,Malick Diouf,274915,El Hadji Malick Diouf,West Ham,Premier League,2004-12-29,21,LB,75,183,75,Left,2,3,78,82,68,67,72,78,80,91,66,77
+992060,Tom Krauss,251392,Tom Krauß,1. FC Köln,Bundesliga,2001-06-22,25,CDM,75,183,76,Right,3,2,74,69,69,68,73,81,75,78,86,79
+1107910,Valentino Livramento,262118,Tino Livramento,Newcastle Utd,Premier League,2002-11-12,23,RB,80,181,71,Right,4,3,80,84,76,79,78,80,71,75,74,74
+814663,Alejandro Catena,243976,Catena,CA Osasuna,LALIGA EA SPORTS,1994-10-28,31,CB,79,194,82,Right,3,2,64,64,58,52,76,78,77,84,78,78
+178899,Ertugrul Taskiran,194372,Ertuğrul Taşkıran,Alanyaspor,Trendyol Süper Lig,1989-11-05,36,GK,69,191,83,Right,2,1,52,56,54,32,65,27,43,52,29,66
+774448,Ferdi Kadioglu,235152,Ferdi Kadıoğlu,Brighton,Premier League,1999-10-07,26,RB,79,174,68,Right,4,3,88,77,89,86,75,79,62,71,62,67
+282462,Íñigo Ruíz de Galarreta,205157,Ruiz de Galarreta,Athletic Club,LALIGA EA SPORTS,1993-08-06,32,CDM,80,175,69,Right,3,3,73,66,81,87,79,84,70,69,82,76
+689065,Alexis Claude,236477,Alexis Claude-Maurice,FC Augsburg,Bundesliga,1998-06-06,28,CAM,77,175,62,Right,3,4,78,73,87,84,73,74,61,72,69,66
+1075457,Chuchu Ramírez,252164,Jesús Ramírez,Nacional,Liga Portugal,1998-05-04,28,ST,69,184,76,Right,3,2,77,79,72,67,67,75,68,78,54,67
+1486541,Forzan Assan Ouedraogo,276602,Assan Ouédraogo,RB Leipzig,Bundesliga,2006-05-09,20,CAM,69,191,84,Right,3,4,76,76,83,77,64,57,77,80,49,67
+601145,Habibou Mouhamadou Diallo,225293,Habib Diallo,FC Metz,Ligue 1 McDonald's,1995-06-15,31,ST,72,186,79,Right,3,3,69,73,66,69,66,71,81,87,60,75
+1249284,Jon Aramburu,259848,Jon Mikel Aramburu,Real Sociedad,LALIGA EA SPORTS,2002-07-23,23,RB,77,176,71,Right,3,2,71,67,67,70,77,76,68,73,79,72
+360918,Jonny Otto,210455,Jonny,D. Alavés,LALIGA EA SPORTS,1994-03-03,32,RB,74,170,70,Right,3,3,75,67,72,77,71,71,62,74,76,68
+1051411,Kacper Kozlowski,252508,Kacper Kozłowski,Gaziantep,Trendyol Süper Lig,2003-10-16,22,CM,70,182,68,Right,4,4,77,61,80,83,70,74,67,74,66,69
+424380,Samet Akaydin,263021,Samet Akaydın,Çaykur Rizespor,Trendyol Süper Lig,1994-03-13,32,CB,70,190,82,Right,2,2,55,55,52,38,69,70,78,78,76,76
+935550,Torbjørn Heggem,248342,Torbjørn L. Heggem,Bologna,Serie A Enilive,1999-01-12,27,CB,73,192,79,Left,5,2,70,75,61,60,71,79,82,84,68,79
+1230287,Dorgeles Nene,260236,Nene Dorgeles,Fenerbahçe,Trendyol Süper Lig,2002-12-23,23,ST,71,174,65,Left,4,3,88,86,90,84,69,71,46,66,52,54
+305679,Emre Kilinç,239045,Emre Kılınç,Samsunspor,Trendyol Süper Lig,1994-08-23,31,LM,73,174,68,Left,2,3,80,69,88,78,70,82,55,59,52,61
+1187734,Flavien Boyomo,259066,Flavien-Enzo Boyomo,CA Osasuna,LALIGA EA SPORTS,2001-10-07,24,CB,78,181,86,Right,2,2,72,75,61,57,70,80,83,88,76,81
+841672,Nicolás González,240690,Nico Gonzalez,Atlético de Madrid,LALIGA EA SPORTS,1998-04-06,28,RM,78,180,72,Left,2,4,79,84,79,75,75,73,51,78,67,61
+1121170,Ransford Königsdörffer,255036,Ransford-Yeboah Königsdörffer,Hamburger SV,Bundesliga,2001-09-13,24,ST,71,182,78,Right,3,3,85,77,81,80,69,74,64,79,48,64
+530468,Antonio Sivera,222464,Sivera,D. Alavés,LALIGA EA SPORTS,1996-08-11,29,GK,76,185,79,Right,3,1,58,55,61,53,69,42,63,69,25,75
+1037491,Arseniy Batahov,74295,Arseniy Batagov,Trabzonspor,Trendyol Süper Lig,2002-03-05,24,CB,72,185,75,Left,3,2,67,68,48,66,71,70,71,78,65,70
+1565010,Arthur Avom,69997,Arthur Avom Ebong,FC Lorient,Ligue 1 McDonald's,2004-12-15,21,CM,71,173,68,Right,2,3,71,69,72,75,66,81,63,68,64,68
+873568,Bilal Bayazit,240856,Bilal Bayazıt,Kayserispor,Trendyol Süper Lig,1999-04-08,27,GK,70,185,76,Right,2,1,23,25,33,32,66,20,40,41,19,70
+592910,Dimitrios Limnios,240271,Dimitris Limnios,Fortuna Sittard,Eredivisie,1998-05-27,28,LM,69,178,71,Right,3,3,78,71,77,79,66,68,55,68,50,58
+1067256,Djordje Petrovic,269626,Đorđe Petrović,AFC Bournemouth,Premier League,1999-10-08,26,GK,80,194,89,Right,2,1,40,43,45,34,79,37,73,67,27,78
+1202070,Isak Steiner Jensen,264263,Isak Jensen,AZ,Eredivisie,2003-12-23,22,LM,70,185,84,Right,3,3,81,80,61,60,66,75,84,74,47,74
+1323827,Jon Gorrotxategi,74091,Gorrotxa,Real Sociedad,LALIGA EA SPORTS,2002-02-02,24,CDM,73,177,70,Right,3,2,70,73,68,73,70,90,78,74,70,79
+1112072,Jon Pacheco,255854,Pacheco,D. Alavés,LALIGA EA SPORTS,2001-01-08,25,CB,74,184,77,Left,3,2,47,49,39,59,74,58,72,73,70,68
+1280020,Julen Agirrezabala,263880,Agirrezabala,Valencia CF,LALIGA EA SPORTS,2000-12-26,25,GK,76,187,80,Left,3,1,30,36,33,35,69,26,60,56,24,77
+1016132,Kouadio Koné,250723,Kouadio Manu Koné,AS Roma,Serie A Enilive,2001-05-17,25,CM,79,185,80,Right,3,4,77,72,79,72,79,82,82,83,82,82
+1220269,Maximilien Balard,261386,Max Balard,NAC Breda,Eredivisie,2000-11-20,25,CM,67,178,68,Right,3,3,65,69,80,82,69,74,71,64,69,71
+402419,Przemyslaw Frankowski,212138,Przemysław Frankowski,Stade Rennais FC,Ligue 1 McDonald's,1995-04-12,31,RB,75,175,70,Right,3,3,86,87,74,75,76,78,67,76,69,71
+1060604,Abner,263815,Abner Vinícius,OL,Ligue 1 McDonald's,2000-05-27,26,LB,74,182,74,Left,2,3,78,79,79,73,70,69,61,69,69,65
+873270,Anastasios Douvikas,261478,Tasos Douvikas,Como,Serie A Enilive,1999-08-02,26,ST,73,186,76,Right,4,3,82,77,74,66,70,76,70,80,58,70
+1286190,Anselmo MacNulty,262889,Anselmo García MacNulty,PEC Zwolle,Eredivisie,2003-02-19,23,CB,68,187,78,Left,3,2,64,66,66,62,62,73,79,77,75,77
+1392779,Etta Eyong,271414,Karl Edouard Etta Eyong,Levante UD,LALIGA EA SPORTS,2003-10-14,22,ST,66,181,75,Right,3,3,65,66,55,71,66,44,69,70,58,61
+802329,Gaizka Larrazabal,251025,Larrazabal,Casa Pia AC,Liga Portugal,1997-12-17,28,RM,71,180,78,Right,3,3,80,81,80,75,72,80,78,74,71,77
+698653,Igor Zubeldia,233738,Zubeldia,Real Sociedad,LALIGA EA SPORTS,1997-03-30,29,CB,78,181,73,Right,3,2,73,78,73,74,79,77,81,85,85,81
+846966,Javier Puado,244622,Puado,RCD Espanyol,LALIGA EA SPORTS,1998-05-25,28,ST,78,177,69,Right,3,4,79,81,81,75,77,82,73,84,66,74
+1281461,José Ángel Carmona,264172,Carmona,Sevilla FC,LALIGA EA SPORTS,2002-01-29,24,RB,76,183,80,Right,3,3,77,82,72,65,74,74,64,74,65,67
+958640,Akor Adams,266256,Akor Jerome Adams,Sevilla FC,LALIGA EA SPORTS,2000-01-29,26,ST,73,190,92,Right,3,3,75,78,67,65,68,72,82,83,58,75
+1102732,Ferrán Jutglà,265800,Jutglà,Celta,LALIGA EA SPORTS,1999-02-01,27,ST,75,175,67,Right,4,3,79,73,79,86,76,74,79,83,74,77
+623698,In-Beom Hwang,228010,Hwang In Beom,Feyenoord,Eredivisie,1996-09-20,29,CM,77,178,68,Right,5,4,64,61,80,83,78,86,58,63,59,65
+1393672,Jean Bahoya,269728,Jean-Mattéo Bahoya,Frankfurt,Bundesliga,2005-05-07,21,LM,75,180,76,Right,3,4,91,97,83,75,66,66,60,69,43,59
+940976,Kang-In Lee,243780,Lee Kang In,Paris SG,Ligue 1 McDonald's,2001-02-19,25,RW,79,173,66,Left,3,4,75,69,86,87,76,73,56,70,72,64
+299358,Mame Baba Thiam,217007,Mame Thiam,Eyüpspor,Trendyol Süper Lig,1992-10-09,33,ST,75,185,79,Right,3,3,72,76,74,64,69,66,77,79,64,72
+1666494,Christ Inao Oulaï,74735,Christ Ravynel Inao Oulaï,Trabzonspor,Trendyol Süper Lig,2006-04-06,20,CAM,64,173,63,Right,3,3,76,73,84,87,49,68,38,46,55,49
+1200721,Facundo Cáseres,256526,Facundo Agustín Cáseres,Gil Vicente,Liga Portugal,2001-05-28,25,CDM,69,178,70,Right,3,2,68,66,69,65,67,72,49,61,73,60
+921825,Jon Moncayola,247495,Moncayola,CA Osasuna,LALIGA EA SPORTS,1998-05-13,28,CM,78,182,78,Right,4,3,64,63,66,65,76,74,66,66,75,70
+1539619,Juma Bah,75148,Abdulai Juma Bah,OGC Nice,Ligue 1 McDonald's,2006-04-11,20,CB,72,195,82,Right,2,2,58,73,45,49,70,66,81,80,71,75
+1570655,Luis Fernando,277790,Luis Fernando Paz,Bolívar,Libertadores,2004-06-09,22,RB,62,167,70,Right,3,2,73,66,64,75,58,63,48,52,53,53
+1323897,Marc Pubill,266039,Pubill,Atlético de Madrid,LALIGA EA SPORTS,2003-06-20,23,RB,73,190,82,Right,3,2,76,81,75,58,71,81,80,83,69,78
+1227326,Pablo,264290,Pablo Felipe,Gil Vicente,Liga Portugal,2004-01-02,22,ST,69,184,76,Right,3,3,73,69,68,64,70,69,69,76,62,68
+1580528,Raúl Asencio,75605,Asencio,Real Madrid,LALIGA EA SPORTS,2003-02-13,23,CB,77,184,79,Right,3,2,73,74,60,74,75,71,74,85,83,76
+1310480,Sergi Altimira,276471,Altimira,Real Betis,LALIGA EA SPORTS,2001-08-25,24,CDM,77,188,80,Right,3,3,54,65,65,53,76,75,74,70,65,72
+869364,Tommie van de Looi,240685,Tom van de Looi,FC Famalicão,Liga Portugal,1999-07-02,26,CDM,69,186,80,Right,3,3,72,62,73,65,67,74,74,78,65,72
+1044194,Vinícius,275360,Vinícius Lopes,Santa Clara,Liga Portugal,1999-05-07,27,RW,73,180,74,Right,3,3,77,76,70,68,70,65,65,75,57,64
+863858,Yusuf Sari,241389,Yusuf Sarı,Başakşehir,Trendyol Süper Lig,1998-11-20,27,RM,75,168,55,Left,2,4,90,80,91,92,70,72,59,65,42,59
+952095,Óscar Mingueza,259694,Mingueza,Celta,LALIGA EA SPORTS,1999-05-13,27,RB,80,184,75,Right,3,2,78,82,75,62,80,82,73,84,75,76
+1113785,Hannibal Mejbri,258171,Hannibal,Burnley,Premier League,2003-01-21,23,CM,74,182,70,Right,3,3,74,77,78,77,73,90,76,76,88,82
+474589,José Giménez,216460,José María Giménez,Atlético de Madrid,LALIGA EA SPORTS,1995-01-20,31,CB,83,185,79,Right,3,2,68,77,60,57,78,71,85,87,87,82
+411605,Mehmet Umut Nayir,230624,Umut Nayir,Konyaspor,Trendyol Süper Lig,1993-06-28,33,ST,70,191,75,Right,2,3,59,66,62,45,71,72,79,83,75,77
+575855,Michal Nalepa,234918,Michał Nalepa,Gençlerbirliği,Trendyol Süper Lig,1995-03-24,31,CM,66,170,74,Right,3,3,70,66,74,86,62,78,72,72,79,75
+940443,Nabili Touaizi,254244,Nabil Touaizi,FC Alverca,Liga Portugal,2001-02-01,25,ST,64,183,75,Right,3,3,81,74,76,60,62,59,59,71,55,59
+433677,Ui-Jo Hwang,212260,Hwang Ui Jo,Alanyaspor,Trendyol Süper Lig,1992-08-28,33,ST,71,185,78,Right,4,3,76,77,72,65,71,75,71,80,62,71
+178893,Veysel Sari,194077,Veysel Sarı,Antalyaspor,Trendyol Süper Lig,1988-07-25,37,CB,67,184,76,Right,2,2,34,34,51,55,62,70,81,69,70,75
+361712,Adam Dzwigala,211362,Adam Dźwigała,FC St. Pauli,Bundesliga,1995-09-25,30,CB,68,185,80,Right,3,2,66,69,61,67,62,70,75,75,76,74
+665188,Albert Gudmundsson,238004,Albert Guðmundsson,Fiorentina,Serie A Enilive,1997-06-15,29,ST,79,178,78,Right,4,3,86,87,83,74,79,71,71,85,55,69
+640231,Antonio Raillo,228805,Raíllo,RCD Mallorca,LALIGA EA SPORTS,1991-10-08,34,CB,81,187,80,Right,3,2,41,41,32,49,80,89,81,79,85,84
+712040,Bahadir Han Güngördü,235460,Bahadır Güngördü,Konyaspor,Trendyol Süper Lig,1996-01-16,30,GK,68,190,84,Right,2,1,24,28,25,29,64,23,66,56,22,67
+395914,Charalambos Lykogiannis,210381,Charalampos Lykogiannis,Bologna,Serie A Enilive,1993-10-22,32,LB,73,191,90,Left,3,2,71,82,40,47,66,67,80,79,61,73
+882163,Chukwubuike Adamu,257877,Junior Adamu,SC Freiburg,Bundesliga,2001-06-06,25,ST,71,183,81,Right,3,3,79,76,79,73,69,74,72,81,48,68
+421365,Djené,217940,Dakonam Djené,Getafe CF,LALIGA EA SPORTS,1991-12-31,34,CB,77,178,72,Right,4,2,68,64,66,70,77,73,76,81,83,77
+1524671,Francisco Chissumba,70671,Chissumba,FC Alverca,Liga Portugal,2005-05-29,21,LB,70,180,73,Left,2,2,80,82,77,70,64,77,69,71,62,70
+875672,Hamed Traorè,240787,Hamed Junior Traoré,OM,Ligue 1 McDonald's,2000-02-16,26,LM,77,177,77,Right,3,3,80,76,79,72,73,68,58,73,59,61
+459658,Ruslan Malinovsky,231969,Ruslan Malinovskyi,Genoa,Serie A Enilive,1993-05-04,33,CM,76,181,79,Left,4,4,68,65,68,72,74,68,74,79,76,73
+891469,Ugurcan Yazgili,245355,Uğurcan Yazğılı,Konyaspor,Trendyol Süper Lig,1999-04-09,27,CB,65,184,79,Right,2,2,55,51,54,59,55,61,76,72,72,71
+1186553,Alexsandro Ribeiro,269493,Alexsandro,LOSC Lille,Ligue 1 McDonald's,1999-08-09,26,CB,80,191,92,Left,5,2,56,74,38,35,79,72,84,83,82,81
+1210647,Beñat Turrientes,262510,Turrientes,Real Sociedad,LALIGA EA SPORTS,2002-01-31,24,CM,73,181,70,Right,3,2,66,65,71,82,71,76,59,63,71,66
+1005366,Bünyamin Balci,253463,Bünyamin Balcı,Antalyaspor,Trendyol Süper Lig,2000-05-31,26,RB,69,173,69,Right,2,2,72,76,70,81,64,78,61,65,63,66
+316544,Irfan Kahveci,225403,İrfan Can Kahveci,Fenerbahçe,Trendyol Süper Lig,1995-07-15,30,RW,78,176,75,Left,3,3,74,72,77,85,74,68,66,61,68,67
+201102,Jonathan Buatu,209816,Buatu,Gil Vicente,Liga Portugal,1993-09-27,32,CB,69,187,83,Right,3,2,58,54,45,44,66,79,82,77,71,79
+335444,Robin Yalcin,211987,Robin Yalçın,Eyüpspor,Trendyol Süper Lig,1994-01-25,32,CB,67,183,77,Right,3,2,63,59,67,66,68,66,71,70,60,68
+820537,Tayyip Talha Sanuç,242919,Tayyip Sanuç,Gaziantep,Trendyol Süper Lig,1999-12-17,26,CB,68,188,85,Right,2,2,51,61,52,53,63,68,76,72,75,74
+815997,Thalisson,279928,Thalisson Kelven,Gençlerbirliği,Trendyol Süper Lig,1998-05-07,28,CB,66,184,79,Right,3,2,67,65,54,58,64,69,76,77,58,71
+1644278,Alexander Røssing,72319,Alexander Røssing-Lelesiit,Hamburger SV,Bundesliga,2007-01-20,19,LW,60,184,69,Right,3,4,72,76,70,81,47,36,37,38,44,38
+637756,Carles Alena,233113,Aleñá,D. Alavés,LALIGA EA SPORTS,1998-01-05,28,RM,73,180,73,Left,2,4,66,66,71,70,75,61,61,54,55,59
+310289,Guilherme,224885,Guilherme Sityá,Konyaspor,Trendyol Süper Lig,1990-04-01,36,LB,76,180,79,Left,3,3,81,79,79,75,69,88,78,80,66,78
+523749,Jae-Sung Lee,221671,Lee Jae Sung,1. FSV Mainz 05,Bundesliga,1992-08-10,33,CAM,77,181,74,Left,3,3,74,71,84,82,78,85,56,87,62,66
+435902,Joao Camacho,213705,Camacho,Karagümrük SK,Trendyol Süper Lig,1994-06-23,32,LM,73,174,74,Right,3,4,80,80,82,80,71,74,56,60,62,62
+613714,Jordan Pefok,227558,Jordan Siebatcheu,CD Tondela,Liga Portugal,1996-04-26,30,ST,73,191,86,Right,3,3,54,50,65,54,74,74,87,84,50,76
+797901,Jorge de Frutos,243559,De Frutos,Rayo Vallecano,LALIGA EA SPORTS,1997-02-20,29,RM,78,173,72,Right,4,4,80,82,79,81,75,79,57,69,58,63
+896402,José Copete,263396,Copete,Valencia CF,LALIGA EA SPORTS,1999-10-10,26,CB,75,192,73,Left,2,2,56,45,35,50,73,65,69,76,75,70
+1460534,Junior Kroupi,277909,Eli Junior Kroupi,AFC Bournemouth,Premier League,2006-06-23,20,ST,74,179,70,Right,3,3,81,80,75,72,67,63,55,80,48,57
+1107280,Pape Sarr,259868,Pape Matar Sarr,Spurs,Premier League,2002-09-14,23,CM,79,184,70,Right,3,2,71,66,75,72,82,85,71,76,76,76
+992071,Ridvan Yilmaz,252208,Rıdvan Yılmaz,Beşiktaş,Trendyol Süper Lig,2001-05-21,25,LB,73,174,60,Left,2,2,90,86,91,84,76,75,55,70,62,62
+309353,Seba Pérez,214606,Sebastián Pérez,Casa Pia AC,Liga Portugal,1993-03-29,33,CDM,71,175,72,Right,3,3,65,66,62,69,68,71,69,56,79,71
+1071102,Adriano,271297,Adriano Firmino,Santa Clara,Liga Portugal,1999-11-04,26,CDM,70,187,73,Right,3,2,58,53,57,54,70,60,74,70,71,70
+776151,Ben White,231936,Benjamin White,Arsenal,Premier League,1997-10-08,28,RB,83,185,77,Right,4,2,68,71,68,61,84,78,77,82,81,78
+784246,Daniel Raba,241463,Dani Raba,Valencia CF,LALIGA EA SPORTS,1995-10-29,30,RM,76,184,76,Left,3,4,74,68,67,54,75,56,71,71,55,64
+1199959,Equi Fernández,262151,Ezequiel Fernández,Leverkusen,Bundesliga,2002-07-25,23,CDM,75,178,76,Left,5,2,70,70,73,79,70,78,79,76,77,78
+839232,Fernando Calero,240289,Calero,RCD Espanyol,LALIGA EA SPORTS,1995-09-14,30,CB,73,183,71,Right,4,2,59,60,67,65,73,50,73,76,72,67
+522234,Gerard Gumbau,214944,Gumbau,Rayo Vallecano,LALIGA EA SPORTS,1994-12-18,31,CM,73,187,77,Left,3,3,43,44,58,57,72,65,71,67,64,68
+1131957,Jon Olasagasti,262500,Olasagasti,Levante UD,LALIGA EA SPORTS,2000-08-16,25,CM,74,176,74,Left,3,2,65,62,65,73,73,81,68,70,71,72
+1605720,Mootaz Nourani,70065,Motez Nourani,Nacional,Liga Portugal,2002-01-11,24,LM,60,177,73,Right,3,3,68,69,74,77,52,54,50,45,54,52
+1035208,Victor Okoh Boniface,247679,Victor Boniface,SV Werder Bremen,Bundesliga,2000-12-23,25,ST,81,190,91,Right,3,4,65,69,68,60,78,55,90,87,79,79
+213501,Álvaro Morata,201153,Morata,Como,Serie A Enilive,1992-10-23,33,ST,81,190,84,Right,4,3,79,78,76,63,81,79,79,91,69,78
+1079065,Arda Kizildag,252753,Arda Kızıldağ,Gaziantep,Trendyol Süper Lig,1998-10-15,27,CB,69,187,77,Right,3,2,52,69,55,63,63,65,69,72,71,69
+1298907,Cristhian Mosquera,264846,Mosquera,Arsenal,Premier League,2004-06-27,22,CB,77,188,79,Right,3,2,73,74,68,69,75,79,74,85,77,76
+182917,David de Gea,193080,De Gea,Fiorentina,Serie A Enilive,1990-11-07,35,GK,85,192,76,Right,2,1,47,45,60,40,85,30,38,57,15,84
+935380,Enrico Del Prato,252442,Enrico Delprato,Parma,Serie A Enilive,1999-11-10,26,RB,75,183,74,Right,3,2,77,84,59,65,70,85,69,76,74,74
+950417,Güven Yalcin,245368,Güven Yalçın,Alanyaspor,Trendyol Süper Lig,1999-01-18,27,ST,70,184,77,Right,3,3,76,74,72,64,64,64,68,77,42,62
+1328820,Hyun-Ju Lee,276600,Lee Hyun Ju,Arouca,Liga Portugal,2003-02-07,23,CAM,68,172,68,Right,3,3,81,59,87,86,66,71,48,54,38,52
+1286950,Jankat Yilmaz,271211,Jankat Yılmaz,Galatasaray,Trendyol Süper Lig,2004-08-16,21,GK,64,193,75,Left,3,1,27,24,24,24,50,21,64,55,20,65
+1693546,Mohamed Meïté,75598,Mohamed Kader Meïté,Stade Rennais FC,Ligue 1 McDonald's,2007-10-11,18,ST,69,192,80,Right,3,3,62,67,58,47,59,60,83,83,42,69
+774237,Willum Willumsson,270578,Willum Þór Willumsson,Birmingham City,EFL Championship,1998-10-23,27,CAM,70,193,84,Left,3,3,52,58,62,65,63,90,77,64,58,76
+1184694,Alberto Moleiro,264388,Moleiro,Villarreal CF,LALIGA EA SPORTS,2003-09-30,22,LM,79,171,68,Right,4,4,84,83,85,83,72,76,60,73,60,65
+1398327,Baran Gezek,274548,Baran Ali Gezek,Kayserispor,Trendyol Süper Lig,2005-08-26,20,CM,61,170,65,Right,3,2,49,34,57,72,58,47,38,44,50,43
+1300864,Eyüp Aydin,278168,Eyüp Aydın,Galatasaray,Trendyol Süper Lig,2004-08-02,21,CDM,66,181,80,Left,4,2,67,65,73,69,64,68,65,64,72,67
+848568,Pape Guèye,254525,Pape Habib Gueye,Kasımpaşa,Trendyol Süper Lig,1999-09-20,26,ST,68,188,84,Right,3,3,78,77,68,66,65,71,82,86,75,78
+1072200,Rodrigo Riquelme,252324,Riquelme,Real Betis,LALIGA EA SPORTS,2000-04-02,26,LM,77,174,68,Right,3,3,83,85,83,81,74,69,53,66,59,59
+949673,Woo-Yeong Jeong,239138,Jeong Woo Yeong,Union Berlin,Bundesliga,1999-09-20,26,CAM,73,179,71,Right,4,3,78,74,86,83,69,75,54,69,55,60
+1053676,Abdoulaye N'Diaye,259150,Abdoulaye Ndiaye,Parma,Serie A Enilive,2002-04-10,24,CB,75,185,75,Left,2,2,60,72,42,55,70,63,80,83,75,75
+1403350,Andreas-Richardos Ntoi,72863,Andreas Ntoi,Rio Ave FC,Liga Portugal,2003-02-02,23,CB,72,190,84,Right,3,2,60,64,46,56,61,68,83,82,70,77
+1324871,Ben Gannon Doak,266815,Ben Doak,AFC Bournemouth,Premier League,2005-11-11,20,RM,71,176,64,Right,4,4,90,89,86,85,66,65,57,64,60,60
+823592,Oladapo Afolayan,242946,Dapo Afolayan,FC St. Pauli,Bundesliga,1997-09-11,28,RW,72,180,71,Right,4,3,84,75,77,77,71,72,65,75,74,69
+1401248,Rémy Lascary,274692,Rémy Labeau Lascary,Stade Brestois 29,Ligue 1 McDonald's,2003-03-03,23,ST,72,184,72,Right,3,3,75,77,57,60,71,63,62,75,46,60
+1435689,Semih Kilicsoy,274616,Semih Kılıçsoy,Cagliari,Serie A Enilive,2005-08-15,20,ST,70,178,80,Right,4,3,78,76,74,80,62,69,71,78,70,71
+1116778,Szymon Wlodarczyk,257340,Szymon Włodarczyk,Excelsior,Eredivisie,2003-01-05,23,ST,67,188,77,Right,3,2,68,74,73,63,64,75,71,79,62,71
+1122478,Ángel Algobia,246592,Algobia,AVS Futebol SAD,Liga Portugal,1999-06-23,27,CM,70,180,78,Right,3,2,52,53,57,61,62,66,59,59,65,62
+629594,Alfonso Pedraza,228302,Pedraza,Villarreal CF,LALIGA EA SPORTS,1996-04-09,30,LB,75,184,73,Left,2,3,77,77,75,68,72,68,72,79,69,71
+750027,Brahim Díaz,231410,Brahim,Real Madrid,LALIGA EA SPORTS,1999-08-03,26,RM,82,170,68,Right,5,4,83,82,88,90,80,69,58,60,46,58
+627223,Daniel Agyei,228382,Dan Agyei,Kocaelispor,Trendyol Süper Lig,1997-06-01,29,ST,65,183,77,Left,3,3,88,87,82,67,58,76,72,84,68,73
+1413843,Gilberto Batista,276442,Gilberto,Moreirense FC,Liga Portugal,2003-12-29,22,CB,65,187,73,Right,3,2,63,62,38,57,49,70,73,74,60,70
+1437425,Gustavo Mendonça,72654,Gustavo,AVS Futebol SAD,Liga Portugal,2003-03-11,23,CM,66,178,72,Right,3,2,76,72,63,72,68,78,67,73,74,71
+602095,Gökhan Sazdagi,263808,Gökhan Sazdağı,Kayserispor,Trendyol Süper Lig,1994-09-20,31,RB,69,179,72,Right,3,2,70,68,69,68,66,73,57,65,58,62
+477472,José Luis Morales,216475,Morales,Levante UD,LALIGA EA SPORTS,1987-07-23,38,ST,74,180,70,Right,4,4,77,79,78,80,74,70,66,74,58,66
+1431818,Lilian Rao-Lisoa,273835,Lilian Raolisoa,Angers SCO,Ligue 1 McDonald's,2000-06-16,26,RB,70,178,70,Right,3,2,70,71,62,69,65,61,57,66,59,59
+1199722,Max Svensson,260340,Svensson,Casa Pia AC,Liga Portugal,2001-11-08,24,ST,66,182,75,Right,3,3,79,76,76,67,62,76,68,76,60,69
+1044355,Stefán Sigurdarson,73914,Stefán Ingi Sigurðarson,Sandefjord,Eliteserien,2001-01-27,25,ST,66,191,85,Right,4,2,63,58,50,48,64,55,83,79,51,69
+980288,Thomas Leon Keller,251289,Thomas Keller,Heidenheim,Bundesliga,1999-08-05,26,CB,67,186,82,Right,3,2,65,52,56,53,64,54,77,77,69,70
+955627,Yalçin Kayan,252917,Yalçın Kayan,Eyüpspor,Trendyol Süper Lig,1999-01-30,27,CM,69,180,74,Left,3,3,69,68,69,65,67,73,67,68,65,68
+1355552,Alisson Santos,79270,Alisson,Sporting CP,Liga Portugal,2002-09-27,23,LW,66,177,70,Right,4,3,82,83,84,76,59,69,54,57,45,56
+540073,Gian-Luca Waldschmidt,220085,Luca Waldschmidt,1. FC Köln,Bundesliga,1996-05-19,30,CAM,72,181,74,Left,3,3,73,63,77,76,69,67,61,68,44,59
+938521,Halil Dervisoglu,250807,Halil İbrahim Dervişoğlu,Çaykur Rizespor,Trendyol Süper Lig,1999-12-08,26,ST,67,183,76,Right,3,3,71,72,70,60,61,66,60,71,58,62
+1085809,Hyeok-Kyu Kwon,253202,Kwon Hyeok Kyu,FC Nantes,Ligue 1 McDonald's,2001-03-13,25,CDM,67,192,77,Right,5,3,70,66,59,53,59,85,81,78,67,79
+1140003,Ilya Zabarnyi,258781,Illia Zabarnyi,Paris SG,Ligue 1 McDonald's,2002-09-01,23,CB,79,189,80,Right,3,2,76,84,64,56,79,73,80,88,76,78
+719018,Kubilay Kanatsizkus,232329,Kubilay Kanatsızkuş,Kasımpaşa,Trendyol Süper Lig,1997-03-28,29,ST,67,190,79,Left,3,3,67,66,56,55,60,69,78,79,53,71
+571379,Marnon-Thomas Busch,224980,Marnon Busch,Heidenheim,Bundesliga,1994-12-08,31,RB,72,182,80,Right,2,2,84,85,72,71,68,73,74,79,73,74
+1286471,Roger Brugué,241591,Brugui,Levante UD,LALIGA EA SPORTS,1996-11-04,29,ST,74,174,68,Left,3,3,90,87,91,80,76,83,64,84,65,70
+907495,Stanley N'Soki,241941,Stanley Nsoki,Union Berlin,Bundesliga,1999-04-09,27,CB,72,184,83,Left,2,2,70,84,64,65,63,75,78,83,73,77
+1315351,Taha Altikardes,266794,Taha Altıkardeş,Göztepe,Trendyol Süper Lig,2003-08-22,22,CB,67,188,75,Right,2,2,61,67,67,54,62,70,71,63,74,71
+977421,Çagtay Kurukalip,252572,Çağtay Kurukalıp,Karagümrük SK,Trendyol Süper Lig,2002-02-24,24,LB,61,172,70,Left,2,2,80,74,80,78,56,59,52,59,63,56
+1210344,Anil Yasar,275694,Anıl Yaşar,Çaykur Rizespor,Trendyol Süper Lig,2002-07-01,24,CB,63,192,79,Left,2,2,58,61,44,46,54,68,66,67,71,68
+282692,Cristian Portu,205070,Portu,Girona FC,LALIGA EA SPORTS,1992-05-21,34,RM,76,167,66,Right,4,3,82,79,75,79,74,75,70,80,78,73
+1124533,Kilian Sildillia,260930,Kiliann Sildillia,PSV,Eredivisie,2002-05-16,24,RB,73,186,84,Right,3,2,70,69,66,66,67,70,71,79,71,71
+828159,Min-Jae Kim,237086,Kim Min Jae,FC Bayern München,Bundesliga,1996-11-15,29,CB,82,190,81,Right,3,2,73,73,65,65,81,79,85,82,86,84
+1092015,Oguz Aydin,264001,Oğuz Aydın,Fenerbahçe,Trendyol Süper Lig,2000-10-27,25,LW,77,183,76,Right,4,3,86,85,84,75,72,80,61,71,66,67
+1202587,Ramon Terrats,259521,Terrats,RCD Espanyol,LALIGA EA SPORTS,2000-10-18,25,CM,77,181,71,Left,3,3,60,61,68,63,75,74,70,69,73,72
+1125999,Yusuf Barasi,259621,Yusuf Barası,Kasımpaşa,Trendyol Süper Lig,2003-03-31,23,ST,64,182,72,Right,4,3,78,73,73,66,62,69,60,72,50,61
+1112511,Alejandro Francés,254310,Francés,Girona FC,LALIGA EA SPORTS,2002-08-01,23,CB,75,181,70,Right,4,2,77,73,72,74,74,78,76,86,75,77
+956736,Derry Murkin,269248,Derry John Murkin,FC Utrecht,Eredivisie,1999-07-27,26,LB,68,183,81,Left,4,2,84,81,70,73,64,85,74,72,79,78
+1185629,Fabio Moreno Fell,79376,Fabio Luque-Notaro,FC Schweinfurt 05,3. Liga,2005-08-31,20,ST,58,190,79,Right,3,2,77,82,59,57,57,59,71,79,44,63
+1511063,Jan Ziólkowski,276680,Jan Ziółkowski,AS Roma,Serie A Enilive,2005-06-05,21,CB,65,194,76,Right,2,2,60,64,48,49,63,66,69,69,65,67
+526968,Pacha Espino,247131,Alfonso Espino,Rayo Vallecano,LALIGA EA SPORTS,1992-01-05,34,LB,74,172,71,Left,3,3,83,85,71,77,66,88,78,83,81,81
+724909,Radoslaw Majecki,235413,Radosław Majecki,Stade Brestois 29,Ligue 1 McDonald's,1999-11-16,26,GK,77,193,78,Right,3,1,29,34,39,29,74,23,61,58,41,76
+1256478,Adrià Altimira,269228,Altimira,Villarreal CF,LALIGA EA SPORTS,2001-03-28,25,RB,72,176,69,Right,3,3,73,73,66,80,70,75,60,71,66,66
+644722,Bahadir Öztürk,240333,Bahadır Öztürk,Antalyaspor,Trendyol Süper Lig,1995-10-01,30,CB,65,185,75,Right,2,2,35,34,37,51,62,72,70,61,72,70
+925345,Hyun-Seok Hong,244108,Hong Hyeon Seok,FC Nantes,Ligue 1 McDonald's,1999-06-16,27,CAM,73,177,74,Left,3,3,77,67,84,81,72,74,59,60,69,65
+1617146,Jorge Cabello,71388,Cabello,Levante UD,LALIGA EA SPORTS,2004-04-25,22,CB,67,180,71,Left,3,2,68,67,63,62,65,68,63,71,68,66
+1098365,Jorge Herrando,272433,Herrando,CA Osasuna,LALIGA EA SPORTS,2001-02-28,25,CB,74,192,76,Left,3,2,53,45,51,55,74,66,61,72,77,66
+1427018,Joseph Boende,278926,Joseph Nonge,Kocaelispor,Trendyol Süper Lig,2005-05-15,21,CM,64,184,70,Right,4,3,64,63,72,66,59,55,56,65,58,57
+912286,Lionel Mpasi-Nzau,223150,Lionel Mpasi,Havre AC,Ligue 1 McDonald's,1994-08-01,31,GK,67,182,78,Right,3,1,45,46,35,58,66,21,68,71,21,66
+437329,Mbwana Samatta,218066,Ally Samatta,Havre AC,Ligue 1 McDonald's,1992-12-23,33,ST,72,183,75,Right,4,3,73,76,70,70,68,69,75,83,69,73
+1576040,Mustafa Hekimoglu,278999,Mustafa Erhan Hekimoğlu,Beşiktaş,Trendyol Süper Lig,2007-04-22,19,ST,66,185,70,Right,3,2,72,76,73,60,61,73,71,85,60,70
+888745,Nicolas-Gerrit Kühn,239977,Nicolas Kühn,Como,Serie A Enilive,2000-01-01,26,RW,78,175,69,Left,5,4,90,92,89,85,79,82,67,74,65,71
+1044472,Nökkvi Thorisson,277121,Nökkvi Þórisson,Sparta Rotterdam,Eredivisie,1999-08-13,26,ST,65,188,78,Left,4,3,60,76,58,52,52,50,68,69,34,57
+1237455,Pablo Cunat,271532,Pablo Campos,Levante UD,LALIGA EA SPORTS,2002-04-28,24,GK,69,188,78,Left,3,1,24,29,30,36,66,29,67,57,27,68
+1669441,Christ-Owen Kouassi,74502,Owen Kouassi,Lecce,Serie A Enilive,2003-04-15,23,CB,69,184,78,Right,3,2,67,73,52,56,66,81,74,79,71,75
+822236,Dennis Tørset Johnsen,237502,Dennis Johnsen,Cremonese,Serie A Enilive,1998-02-17,28,ST,71,185,75,Right,3,4,92,92,85,73,70,77,73,78,48,69
+860975,Joseph Willock,237329,Joe Willock,Newcastle Utd,Premier League,1999-08-20,26,CM,76,186,71,Right,3,3,74,75,79,67,75,71,65,75,70,68
+1418816,Kaua,277929,Kauã Santos,Frankfurt,Bundesliga,2003-04-11,23,GK,71,196,84,Right,1,1,32,28,31,22,70,24,64,58,29,62
+317564,Kepa Arrizabalaga,206585,Kepa,Arsenal,Premier League,1994-10-03,31,GK,79,189,89,Right,4,1,38,42,45,38,77,35,55,60,20,77
+1662963,Marco de las Sias,74551,De las Sías,Rayo Vallecano,LALIGA EA SPORTS,2005-12-29,20,CB,59,180,74,Right,3,2,58,51,45,61,55,61,65,63,75,66
+1188625,Serdar Saatci,264066,Serdar Saatçı,Trabzonspor,Trendyol Süper Lig,2003-02-14,23,CB,70,190,90,Right,2,2,73,65,57,49,64,58,85,83,71,75
+693736,Unai Elgezabal,233588,Elgezabal,Levante UD,LALIGA EA SPORTS,1993-04-25,33,CB,74,185,74,Right,3,2,53,62,53,49,73,77,78,73,75,77
+75307,Daniel Parejo,189513,Parejo,Villarreal CF,LALIGA EA SPORTS,1989-04-16,37,CM,82,182,74,Right,4,3,40,38,58,74,75,68,67,61,65,67
+574624,Enrique Barja,225200,Kike Barja,CA Osasuna,LALIGA EA SPORTS,1997-04-01,29,RM,74,179,69,Right,3,3,76,72,70,62,70,59,60,71,47,58
+850962,Hákon Rafn Valdimarsson,264133,Hákon Valdimarsson,Brentford,Premier League,2001-10-13,24,GK,68,195,89,Right,2,1,20,20,32,44,65,35,50,46,26,68
+1131992,Jakub Kaluzinski,255776,Jakub Kałuziński,Antalyaspor,Trendyol Süper Lig,2002-10-31,23,CDM,68,184,74,Right,3,2,63,67,78,83,68,71,58,57,58,61
+1108328,Kazimcan Karatas,262607,Kazımcan Karataş,Galatasaray,Trendyol Süper Lig,2003-01-16,23,LB,66,182,74,Left,2,2,72,77,73,70,64,71,69,69,73,70
+1080917,Omar Traoré,257136,Omar Haktab Traoré,Heidenheim,Bundesliga,1998-02-04,28,RB,73,187,80,Right,3,3,86,83,69,74,65,85,65,75,73,72
+903995,Tarik Cetin,252799,Tarık Çetin,Fenerbahçe,Trendyol Süper Lig,1997-01-08,29,GK,67,193,86,Right,2,1,21,18,24,21,54,28,61,54,26,65
+636570,Álvaro Odriozola,234035,Odriozola,Real Sociedad,LALIGA EA SPORTS,1995-12-14,30,RB,74,176,66,Right,3,3,65,78,71,78,72,73,58,68,62,63
+73409,Ørjan Håskjold Nyland,185427,Ørjan Nyland,Sevilla FC,LALIGA EA SPORTS,1990-09-10,35,GK,76,192,90,Right,4,1,47,48,45,53,73,33,70,67,26,74
+997497,Ali Kol,258238,Ali Yavuz Kol,Kasımpaşa,Trendyol Süper Lig,2001-01-29,25,LW,62,175,70,Right,3,3,76,77,78,76,56,66,67,76,54,65
+1282765,Bertug Yildirim,267905,Bertuğ Yıldırım,Stade Rennais FC,Ligue 1 McDonald's,2002-07-12,23,ST,69,186,78,Right,2,3,60,70,62,56,63,67,76,76,68,72
+1300653,Demir Tiknaz,277871,Demir Ege Tıknaz,Beşiktaş,Trendyol Süper Lig,2004-08-17,21,CDM,72,193,76,Right,3,2,66,72,60,56,72,80,73,73,74,75
+848349,Firatcan Üzüm,251134,Fıratcan Üzüm,Gençlerbirliği,Trendyol Süper Lig,1999-06-04,27,RM,63,178,70,Right,3,2,69,68,66,74,62,50,56,56,30,49
+891651,Furkan Bayir,264000,Furkan Bayır,Göztepe,Trendyol Süper Lig,2000-02-09,26,CB,65,188,80,Right,2,2,60,62,61,52,70,70,70,69,75,71
+1356431,Hevertton Santos,276412,Hevertton,Gil Vicente,Liga Portugal,2001-02-01,25,RM,68,183,73,Right,2,3,79,79,70,62,63,73,71,73,70,71
+1130733,Mathias Fjørtoft Løvik,264294,Mathias Løvik,Parma,Serie A Enilive,2003-12-06,22,LB,65,183,78,Left,4,2,82,81,77,68,57,70,64,72,61,65
+1139499,Oskar Siira Sivertsen,254307,Oskar Sivertsen,Go Ahead Eagles,Eredivisie,2004-02-15,22,LM,63,177,72,Right,3,3,83,78,85,80,50,50,33,51,35,39
+965022,Sergio Bermejo,252864,Bermejo,Gil Vicente,Liga Portugal,1997-08-17,28,RM,68,170,63,Left,2,3,77,78,90,74,67,60,56,57,35,53
+1794261,Yassir Salah Rahmouni,79243,Yassir Rahmouni,Go Ahead Eagles,Eredivisie,2006-06-13,20,CM,57,186,71,Right,3,2,61,64,77,65,49,56,51,45,48,51
+815187,Yvan Neyou Noupa,237626,Yvan Neyou,Getafe CF,LALIGA EA SPORTS,1997-01-03,29,CM,75,180,63,Right,3,2,56,67,70,73,72,78,64,67,85,72
+213471,Aitor Fernández,193314,Aitor,CA Osasuna,LALIGA EA SPORTS,1991-05-03,35,GK,77,182,78,Right,2,1,58,53,55,48,76,39,52,65,15,76
+1425768,Antonio Espigares,270732,Espigares,Gil Vicente,Liga Portugal,2004-09-05,21,CB,66,180,80,Right,3,2,62,62,60,59,63,66,62,69,69,65
+982246,Daniel Neil,258483,Dan Neil,Sunderland,Premier League,2001-12-13,24,CDM,73,178,65,Right,4,2,74,72,76,73,69,91,70,74,78,77
+860920,Edward Nketiah,236988,Eddie Nketiah,Crystal Palace,Premier League,1999-05-30,27,ST,74,180,73,Right,3,3,83,79,79,75,74,66,63,79,58,64
+768331,Igor Julio,241585,Igor,West Ham,Premier League,1998-02-07,28,CB,76,185,84,Left,2,2,58,68,61,48,70,65,90,80,87,83
+1614872,Inigo Arguibide,71277,Arguibide,CA Osasuna,LALIGA EA SPORTS,2005-04-19,21,RM,59,178,75,Right,3,3,60,54,53,68,55,41,53,45,50,49
+1187478,José Salinas,258684,Salinas,RCD Espanyol,LALIGA EA SPORTS,2000-09-30,25,LB,72,179,69,Left,2,2,75,79,66,65,68,79,58,70,73,67
+1001348,Kartal Yilmaz,254296,Kartal Yılmaz,Beşiktaş,Trendyol Süper Lig,2000-11-04,25,CDM,70,178,70,Right,3,3,66,67,71,76,61,70,67,69,67,68
+865931,Max Kilman,245336,Maximilian Kilman,West Ham,Premier League,1997-05-23,29,CB,77,194,89,Left,4,2,53,65,50,34,78,72,85,75,73,79
+1393387,Muhammed Mehmet Damar,271246,Muhammed Damar,TSG Hoffenheim,Bundesliga,2004-04-09,22,CAM,71,185,73,Right,4,4,67,68,77,69,71,67,63,61,48,61
+614269,Samet Yalçin,72731,Samet Yalçın,Kocaelispor,Trendyol Süper Lig,1994-03-03,32,CM,57,180,78,Right,2,2,58,67,63,51,57,67,56,51,54,58
+1079233,Simão,252284,Simão Bertelli,AVS Futebol SAD,Liga Portugal,1993-07-02,32,GK,68,187,83,Right,2,1,29,25,32,31,58,17,62,56,21,68
+645142,Yasir Subasi,228918,Yasir Subaşı,Konyaspor,Trendyol Süper Lig,1996-01-01,30,LB,61,180,73,Left,2,2,69,70,74,66,58,67,65,61,56,64
+707777,Irfan Egribayat,234341,İrfan Can Eğribayat,Fenerbahçe,Trendyol Süper Lig,1998-06-30,28,GK,75,193,79,Right,2,1,47,48,48,27,69,21,59,62,18,73
+657217,Mads Valentin Pedersen,229640,Mads Pedersen,FC Augsburg,Bundesliga,1996-09-01,29,LB,72,174,72,Left,3,3,81,74,82,79,71,69,58,65,82,66
+653592,Matheus,230625,Matheus Reis,Sporting CP,Liga Portugal,1995-02-18,31,CB,77,184,80,Left,2,3,75,77,75,59,75,80,79,82,82,80
+68813,Przemyslaw Tyton,176094,Przemysław Tytoń,FC Twente,Eredivisie,1987-01-04,39,GK,66,195,88,Right,2,1,51,49,48,40,69,30,71,68,32,63
+1211447,Talha Sariarslan,274549,Talha Sarıarslan,Kayserispor,Trendyol Süper Lig,2004-01-18,22,ST,58,175,68,Right,2,2,52,43,52,71,56,59,48,54,40,49
+820085,Ali Yanar,277284,Ali Emre Yanar,Kasımpaşa,Trendyol Süper Lig,1998-05-15,28,GK,60,190,82,Right,3,1,27,20,27,23,51,21,59,51,25,59
+866967,Altay Bayindir,243647,Altay Bayındır,Man Utd,Premier League,1998-04-14,28,GK,75,198,88,Right,2,1,30,31,51,24,69,31,68,61,29,75
+1431121,Asier Osambela,71598,Osambela,CA Osasuna,LALIGA EA SPORTS,2004-10-30,21,CM,61,186,78,Right,3,2,64,63,51,57,60,60,69,67,62,65
+1041660,Eren Elmali,259754,Eren Elmalı,Galatasaray,Trendyol Süper Lig,2000-07-07,25,LB,75,183,76,Left,2,2,80,85,79,71,70,86,76,81,69,77
+958222,Giorgos Liavas,80593,Georgios Liavas,Rio Ave FC,Liga Portugal,2001-02-12,25,CDM,69,181,76,Right,2,2,59,65,53,70,62,78,70,66,70,72
+671529,Konstantinos Tsimikas,232223,Kostas Tsimikas,AS Roma,Serie A Enilive,1996-05-12,30,LB,77,179,77,Left,3,3,79,78,77,73,74,69,69,77,80,72
+156546,Kostas Lamprou,199568,Konstantinos Lamprou,NAC Breda,Eredivisie,1991-09-18,34,GK,66,178,84,Left,3,1,39,36,41,50,68,18,45,49,27,63
+1307639,Max Weiss,269096,Max Weiß,Burnley,Premier League,2004-06-15,22,GK,68,190,84,Right,2,1,35,34,33,40,67,28,62,58,18,61
+1184772,Ángel Fortuno,258948,Fortuño,RCD Espanyol,LALIGA EA SPORTS,2001-11-05,24,GK,65,183,77,Right,3,1,44,40,45,53,64,31,55,57,33,65
+1429871,Ali Dembélé,273936,Ali Bina Dembélé,Torino,Serie A Enilive,2004-01-05,22,RB,62,185,69,Right,3,2,66,67,66,63,57,54,62,62,61,60
+939593,Thorir Helgason,263657,Þórir Jóhann Helgason,Lecce,Serie A Enilive,2000-09-28,25,CM,69,187,66,Right,3,2,68,66,62,62,69,71,58,54,52,60
+1094045,Ben Alexander Voll,251433,Ben Voll,FC St. Pauli,Bundesliga,2000-12-09,25,GK,67,195,86,Right,3,1,24,25,27,24,60,22,67,56,21,66
+1316088,Benja Domínguez,269558,Benjamín Domínguez,Bologna,Serie A Enilive,2003-09-19,22,LM,73,172,68,Right,3,4,83,84,77,80,64,74,42,53,58,54
+568571,Joseph Gomez,225100,Joe Gomez,Liverpool,Premier League,1997-05-23,29,CB,79,188,77,Right,3,3,72,76,61,64,78,57,78,85,77,73
+678192,Jon Guridi,238126,Guridi,D. Alavés,LALIGA EA SPORTS,1995-02-28,31,CAM,74,179,70,Left,3,3,61,60,69,77,73,58,57,63,48,56
+1083562,Juan Cabal,251870,Juan David Cabal,Juventus,Serie A Enilive,2001-01-08,25,LB,74,186,80,Left,3,3,71,73,67,62,69,54,74,82,71,69
+935622,Marcus Holmgren Pedersen,243481,Marcus Pedersen,Torino,Serie A Enilive,2000-07-16,25,RB,72,184,76,Right,4,3,88,89,80,71,64,78,62,65,61,66
+1649316,Aaron Martin Luis,72561,Aarón Martín,CD Mirandés,LALIGA HYPERMOTION,2006-11-23,19,CM,67,175,76,Right,3,3,71,71,71,80,68,79,66,70,65,69
+324910,Abdul Rahman Baba,209620,Rahman Baba,PAOK FC,Hellas Liga,1994-07-02,31,LB,76,180,73,Left,4,3,74,80,72,72,74,81,77,84,77,78
+1089753,Adam Desbois,264511,Adam Murphy,Swindon Town,EFL League Two,2005-04-08,21,CM,60,178,73,Right,3,3,73,70,75,64,61,67,64,64,59,64
+500882,Adedeji Oshilaja,204458,Deji Oshilaja,Mansfield Town,EFL League One,1993-03-02,33,CB,66,181,75,Right,4,2,73,71,68,63,63,75,86,92,77,82
+1113675,Ademipo Odubeko,258515,Mipo Odubeko,Shelbourne,SSE Airtricity PD,2002-10-21,23,ST,61,187,72,Right,4,2,77,79,54,51,57,60,70,74,53,64
+1526776,Adriano,73050,Adriano Amorim,Raków,PKO BP Ekstraklasa,2002-02-15,24,CAM,65,175,69,Right,3,3,81,82,87,82,57,77,48,61,45,55
+566241,Ahmet Metin Arslan,231424,Ahmet Arslan,Rot-Weiss Essen,3. Liga,1994-03-30,32,CAM,68,180,77,Right,4,3,70,63,75,74,66,72,64,61,70,67
+563780,Aimen Laraba,257320,Aimen Moueffek,AS Saint-Étienne,Ligue 2 BKT,2001-04-09,25,CM,68,179,71,Right,3,3,68,62,79,66,69,68,66,69,70,67
+1575777,Aingeru Olabarrieta,279603,Olabarrieta,FC Andorra,LALIGA HYPERMOTION,2005-11-14,20,LM,64,181,70,Left,3,3,55,57,68,66,60,56,55,58,33,51
+1121005,Alejandro Meléndez,255572,Meléndez,Albacete BP,LALIGA HYPERMOTION,1999-05-13,27,CM,65,178,66,Right,3,2,65,58,71,73,62,57,51,49,59,54
+785855,Alejandro Pozo,235983,Álex Pozo,Jagiellonia,PKO BP Ekstraklasa,1999-02-22,27,RB,71,173,64,Right,3,3,76,71,84,83,67,75,42,61,50,53
+198499,Aleksandar Katai,189060,Aleksandar Dragović,FK Austria Wien,Ö. Bundesliga,1991-03-06,35,CB,74,186,84,Right,4,2,59,43,62,63,68,66,80,72,77,76
+1200629,Alessandro Pio Riccio,278014,Alessandro Riccio,Sampdoria,Serie BKT,2002-02-06,24,CB,66,187,78,Right,3,2,55,49,33,56,65,69,65,66,66,66
+873487,Alex Zalaya,255881,Álex Vázquez,Racing Club,Sudamericana,2002-03-09,24,CM,62,175,64,Left,2,3,63,56,58,66,57,64,58,55,41,56
+1247997,Alexander Mitchell,263686,Alex Mitchell,Plymouth Argyle,EFL League One,2001-10-07,24,CB,64,191,81,Right,3,2,51,51,34,52,58,69,83,75,75,78
+1503318,Alisson Santana,77883,Alisson,Shakhtar Donetsk,Ukrayina Liha,2005-09-21,20,RW,70,183,79,Left,2,3,79,84,70,71,58,67,58,69,55,60
+607331,Alistair Coote,226429,Ali Coote,Shelbourne,SSE Airtricity PD,1998-06-11,28,CAM,62,170,65,Right,4,3,70,73,80,79,51,63,34,39,41,43
+928440,Alistair McCann,243520,Ali McCann,Preston,EFL Championship,1999-12-04,26,CM,70,176,69,Right,4,2,63,67,76,78,71,86,64,65,84,74
+1435810,Ander Astralaga,277642,Astralaga,Granada CF,LALIGA HYPERMOTION,2004-03-03,22,GK,62,190,77,Right,3,1,22,27,37,29,58,17,64,53,20,64
+789558,Andrew Fisher,234260,Andy Fisher,Swansea City,EFL Championship,1998-02-12,28,GK,66,183,73,Right,3,1,36,31,41,43,64,35,42,45,25,65
+1253909,Andu Yobel Kelati,73149,Andu Kelati,Holstein Kiel,Bundesliga 2,2002-08-13,23,CAM,64,179,70,Right,3,3,73,53,72,62,48,43,49,49,38,45
+1055316,Anis Ben Slimane,255210,Anis Slimane,Norwich,EFL Championship,2001-03-16,25,CM,67,188,86,Right,4,3,66,65,68,67,66,73,81,71,62,75
+1010186,Antonio Casas,73408,Casas,Venezia,Serie BKT,2000-03-30,26,ST,71,183,80,Right,3,2,77,78,67,66,65,72,80,84,65,75
+1127223,Antonio Pacheco,269644,Pacheco,Albacete BP,LALIGA HYPERMOTION,2002-01-03,24,CM,64,184,72,Right,3,3,59,59,69,59,61,65,59,61,64,62
+434593,Antonio Puertas,213577,Puertas,Albacete BP,LALIGA HYPERMOTION,1992-02-21,34,LM,72,183,77,Right,3,3,70,70,72,71,66,61,67,73,65,65
+1093698,Aritz Aldasoro,262501,Aldasoro,R. Racing Club,LALIGA HYPERMOTION,1999-06-05,27,CDM,69,176,72,Right,2,2,69,67,78,75,67,80,63,58,69,68
+999989,Aritz Arambarri,254003,Arambarri,SD Eibar,LALIGA HYPERMOTION,1998-01-31,28,CB,68,186,76,Right,3,2,50,51,47,50,60,70,77,76,67,73
+1180735,Arjany Martha,264221,Ar'jany Martha,Rotherham Utd,EFL League One,2003-09-04,22,LB,64,180,67,Left,2,3,86,78,87,68,64,67,46,54,58,54
+650234,Arnor Sigurdsson,238196,Arnór Sigurðsson,Malmö FF,Allsvenskan,1999-05-15,27,LM,69,177,75,Right,3,3,76,75,80,74,64,69,60,60,48,60
+670031,Asier Villalibre,193794,Villalibre,R. Racing Club,LALIGA HYPERMOTION,1997-09-30,28,ST,72,184,87,Left,3,3,69,72,70,65,64,69,92,88,66,81
+1298713,Babajide Adeeko,263211,Baba Adeeko,Wigan Athletic,EFL League One,2003-04-03,23,CDM,63,175,70,Right,4,2,67,64,74,70,60,74,58,52,55,61
+629562,Baris Atik,233520,Barış Atik,1. FC Magdeburg,Bundesliga 2,1995-01-09,31,LW,72,169,73,Right,4,4,80,67,92,88,62,85,44,55,57,57
+450742,Bartlomiej Dragowski,215502,Bartłomiej Drągowski,Panathinaikos,Hellas Liga,1997-08-19,28,GK,76,191,74,Right,3,1,40,45,33,54,73,34,56,59,19,73
+1132121,Bartlomiej Wdowik,255760,Bartłomiej Wdowik,Jagiellonia,PKO BP Ekstraklasa,2000-09-25,25,LB,69,184,72,Left,2,2,77,62,64,69,66,75,62,69,58,65
+1081241,Benjamin Chrisene,256556,Ben Chrisene,Norwich,EFL Championship,2004-01-12,22,LB,66,183,80,Left,3,3,71,73,67,65,63,70,62,65,56,63
+1257745,Benjamin Old,262289,Ben Old,AS Saint-Étienne,Ligue 2 BKT,2002-08-13,23,LW,68,173,73,Left,2,3,83,82,86,85,64,75,65,64,75,69
+765715,Benjamin Woodburn,236248,Ben Woodburn,Salford City,EFL League Two,1999-10-15,26,CAM,63,174,72,Right,4,3,77,66,80,84,60,71,45,48,50,53
+1268012,Benony Andrésson,76016,Benoný Breki Andrésson,Stockport,EFL League One,2005-10-03,20,ST,61,180,72,Right,3,2,66,69,66,62,60,54,60,65,42,55
+759811,Bradley Collins,225543,Brad Collins,Burton Albion,EFL League One,1997-02-18,29,GK,66,184,69,Right,3,1,41,45,45,58,59,25,51,56,20,66
+956166,Brendan Sarpong-Wiredu,246723,Brendan Wiredu,Plymouth Argyle,EFL League One,1999-11-07,26,CB,65,191,86,Right,3,2,80,79,73,70,61,73,78,83,70,75
+1069934,Bryan Solhaug Fiabema,251884,Bryan Fiabema,Lech Poznań,PKO BP Ekstraklasa,2003-02-16,23,ST,62,182,82,Right,4,3,84,89,73,76,58,53,66,72,46,59
+1669636,Carlos Guirao,74545,Guirao,CD Leganés,LALIGA HYPERMOTION,2003-04-27,23,CM,63,175,68,Right,3,2,60,55,56,75,65,57,61,66,65,61
+674841,Cedric Gondo,230940,Cedric Diomandè Gondo,Reggiana,Serie BKT,1996-11-25,29,ST,68,187,75,Right,3,2,76,66,56,54,58,65,70,78,54,66
+1229058,Charlie Patino,260144,Patiño,RC Deportivo,LALIGA HYPERMOTION,2003-10-17,22,CM,66,182,71,Left,3,2,69,62,76,60,58,79,52,61,68,62
+352866,Cheyenne Dunkley,226102,Chey Dunkley,Chesterfield,EFL League Two,1992-02-13,34,CB,64,188,85,Right,3,2,50,48,49,49,62,67,86,67,66,76
+956937,Christian Sánchez,245601,Christian Joel Sánchez,R. Sporting,LALIGA HYPERMOTION,1999-07-09,26,GK,66,193,88,Left,3,1,42,36,45,34,64,27,73,66,26,64
+782361,Christopher Antwi-Adjej,239073,Christopher Antwi-Adjei,FC Schalke 04,Bundesliga 2,1994-02-07,32,LM,69,173,71,Right,3,3,87,76,89,90,69,66,53,58,35,53
+866723,Claudy M'Buyi,79428,Claudy Mbuyi,SK Rapid,Ö. Bundesliga,1999-06-03,27,ST,65,184,74,Right,2,3,84,83,74,65,56,57,62,77,58,61
+867841,Connor Lemonheigh-Evans,222714,Connor Evans,MK Dons,EFL League Two,1997-01-24,29,CM,62,179,73,Right,3,3,72,75,74,73,61,72,60,65,55,62
+1813628,Daniel Albuera,277684,Dani Requena,Córdoba CF,LALIGA HYPERMOTION,2004-04-12,22,CM,64,186,76,Right,3,3,68,68,62,59,60,59,65,67,60,63
+850006,Daniel Escriche,240922,Dani Escriche,Albacete BP,LALIGA HYPERMOTION,1998-03-24,28,ST,66,178,75,Right,3,3,73,68,73,71,64,67,68,76,62,67
+932181,Daniel Grant,243163,Danny Grant,Shamrock Rovers,SSE Airtricity PD,1999-12-23,26,LM,61,178,70,Right,2,3,76,77,75,69,57,67,47,55,45,52
+1447955,Daniel Gudjohnsen,275062,Daníel Guðjohnsen,Malmö FF,Allsvenskan,2006-03-01,20,ST,63,188,78,Right,3,2,65,72,71,52,57,66,72,73,50,66
+827248,Daniel Happe,238179,Dan Happe,Leyton Orient,EFL League One,1998-09-28,27,CB,65,195,85,Left,3,2,55,54,40,44,60,78,87,77,65,80
+1132342,Daniel Imray,73615,Danny Imray,Blackpool,EFL League One,2003-07-27,22,RB,63,178,66,Right,2,2,83,74,81,84,60,89,57,71,76,70
+820174,Daniel Mândroiu,240978,Danny Mândroiu,Shamrock Rovers,SSE Airtricity PD,1998-10-20,27,LW,63,180,73,Right,4,4,66,61,64,67,60,63,62,62,58,61
+1789403,Daniel Vost,241646,Daniel Butterworth,Swindon Town,EFL League Two,1999-09-14,26,CAM,61,183,77,Right,3,3,85,82,75,75,61,61,57,68,60,59
+1100273,Diego Collado,269637,Collado,Cultural Leonesa,LALIGA HYPERMOTION,2001-01-09,25,ST,65,183,71,Right,4,3,60,65,66,62,59,67,58,65,31,55
+1403389,Diego Hormigo,275622,Hormigo,Granada CF,LALIGA HYPERMOTION,2003-04-16,23,LB,64,182,75,Left,3,3,62,58,49,61,63,59,56,61,50,56
+829101,Edward McGinty,237927,Ed McGinty,Shamrock Rovers,SSE Airtricity PD,1999-08-05,26,GK,64,194,83,Left,2,1,55,55,44,52,60,39,58,61,24,62
+1344543,Efe Sarikaya,269187,Efe Sarıkaya,Grenoble Foot 38,Ligue 2 BKT,2005-11-30,20,CB,60,185,74,Left,2,2,65,78,53,55,53,74,77,73,64,73
+1088860,Eggert Aron Gudmundsson,70843,Eggert Aron Guðmundsson,SK Brann,Eliteserien,2004-02-08,22,CAM,63,175,73,Right,3,3,64,66,79,73,63,73,60,57,60,63
+841966,Elías Ólafsson,246704,Elías Rafn Ólafsson,FC Midtjylland,3F Superliga,2000-03-11,26,GK,70,201,85,Right,3,1,33,33,39,32,56,44,75,69,44,71
+526450,Emmanuel Quartsin Gyasi,220491,Emmanuel Gyasi,Palermo,Serie BKT,1994-01-11,32,RM,74,181,70,Right,3,3,81,78,75,73,76,84,65,71,57,68
+722830,Eneko Jauregi,242333,Jauregi,Málaga CF,LALIGA HYPERMOTION,1996-07-13,29,ST,68,184,81,Right,3,2,59,64,57,57,61,32,83,82,65,67
+1231073,Enol Rodriguez,73561,Guruzeta,SD Eibar,LALIGA HYPERMOTION,2000-04-03,26,RM,68,185,78,Right,3,3,73,71,59,66,65,65,65,64,32,58
+917294,Enric Franquesa,252146,Franquesa,CD Leganés,LALIGA HYPERMOTION,1997-02-26,29,LB,72,175,71,Left,2,2,78,72,75,78,68,80,60,68,62,66
+1616868,Enzo Tacafred,212735,Enzo Basilio,AS Nancy Lorraine,Ligue 2 BKT,1994-10-03,31,GK,71,187,75,Right,3,1,44,49,30,65,67,26,58,61,21,70
+1081707,Erencan Yardimci,252846,Erencan Yardımcı,Braunschweig,Bundesliga 2,2002-02-04,24,ST,68,188,78,Right,3,2,71,74,70,59,69,72,76,81,55,71
+1232793,Fernando Medrano,264347,Medrano,CD Mirandés,LALIGA HYPERMOTION,2000-03-26,26,LB,66,172,64,Left,2,2,81,83,72,84,58,79,45,64,50,55
+178538,Filip Djuricic,193881,Filip Đuričić,Panathinaikos,Hellas Liga,1992-01-30,34,CAM,75,181,74,Right,4,4,73,70,77,78,72,56,67,66,45,60
+287337,Filip Helander,75450,Filip Öhman,BK Häcken,Allsvenskan,2008-01-26,18,RB,60,173,70,Right,3,2,66,75,60,69,54,58,59,59,55,58
+502931,Filip Jagiello,220912,Filip Jagiełło,Lech Poznań,PKO BP Ekstraklasa,1997-08-08,28,CM,67,180,70,Right,2,3,71,71,73,68,62,72,61,69,55,63
+951738,Francisco Montero,244938,Montero,Málaga CF,LALIGA HYPERMOTION,1999-01-14,27,CB,70,185,80,Left,3,2,66,68,59,67,64,59,75,75,76,71
+630228,Fredrik André Bjørkan,233800,Fredrik Bjørkan,FK Bodø/Glimt,Eliteserien,1998-08-21,27,LB,74,180,73,Left,3,3,81,81,76,76,70,91,70,78,65,75
+601990,Fredrik Pallesen Knudsen,238263,Fredrik Knudsen,SK Brann,Eliteserien,1996-08-30,29,CB,70,190,83,Right,3,2,36,38,36,46,68,72,85,71,75,79
+1669642,Gady Beyuku,73767,Gady-Pierre Beyuku,Modena,Serie BKT,2005-11-23,20,RB,62,185,75,Right,3,2,75,75,78,64,51,64,63,74,67,65
+1613657,Georgios Katris,79804,Georgios Kyriopoulos,Panathinaikos,Hellas Liga,2004-08-24,21,RW,65,179,71,Left,2,3,73,73,70,70,62,65,57,55,39,55
+930627,Gerard Garner,258589,Ged Garner,Newport County,EFL League Two,1998-11-02,27,ST,60,183,73,Left,2,2,70,70,66,73,56,67,75,72,41,66
+832736,Gian-Luca Itter,237024,Luca Itter,Fürth,Bundesliga 2,1999-01-05,27,CB,69,183,74,Left,2,3,80,68,66,67,66,75,70,79,61,70
+617220,Gonzalo Melero,227508,Melero,CD Leganés,LALIGA HYPERMOTION,1994-01-02,32,CM,73,183,77,Right,3,3,50,51,59,63,71,69,81,78,68,75
+1026781,Gue-Sung Cho,247686,Cho Gue Sung,FC Midtjylland,3F Superliga,1998-01-25,28,ST,70,188,82,Right,5,3,73,77,76,56,70,76,80,82,68,77
+1383059,Gísli Thórdarson,76294,Gísli Þórðarson,Lech Poznań,PKO BP Ekstraklasa,2004-09-12,21,CDM,64,191,80,Right,3,2,70,71,64,44,62,67,58,54,71,63
+1220748,Haitam Abaida,260344,Haitam Abaida El Achhab,Málaga CF,LALIGA HYPERMOTION,2002-06-01,24,RM,63,172,70,Left,3,3,83,80,80,81,51,37,34,46,67,42
+1232253,Han-Beom Lee,261062,Lee Han Beom,FC Midtjylland,3F Superliga,2002-06-17,24,CB,69,190,84,Right,3,2,53,56,49,63,62,58,78,74,67,71
+1669415,Hodei Alutiz,73974,Hodei,CD Mirandés,LALIGA HYPERMOTION,2003-04-26,23,RB,56,178,68,Right,2,2,66,62,52,57,50,54,60,64,58,58
+1441822,Hodei Arrillaga,71912,Hodei,SD Eibar,LALIGA HYPERMOTION,2004-05-21,22,LB,67,175,65,Left,2,2,70,77,62,79,62,66,62,66,70,65
+1232560,Hyun-Jun Yang,260397,Yang Hyun Jun,Celtic,Scottish Prem,2002-05-25,24,RW,71,176,69,Right,4,4,80,83,87,79,73,77,63,73,74,69
+1111061,Imanol Garcia de Albeniz,263006,Imanol,FC Andorra,LALIGA HYPERMOTION,2000-06-08,26,LB,70,177,69,Left,2,2,66,67,68,78,63,71,41,56,64,54
+707124,Inigo Zubiri,276866,Iñigo Piña,SD Huesca,LALIGA HYPERMOTION,1994-10-30,31,CB,67,188,80,Right,4,2,57,67,37,61,62,62,66,68,67,65
+1067263,Irakli Azarovi,278075,Irakli Azarov,Shakhtar Donetsk,Ukrayina Liha,2002-02-21,24,LB,70,179,56,Left,2,3,79,77,76,69,66,71,52,64,48,57
+1646394,Jacob Borgnis,236650,Jacob Brown,Luton Town,EFL League One,1998-04-10,28,ST,69,184,72,Right,3,3,72,74,73,72,68,79,69,75,64,71
+1587610,Jacob Hodl,74115,Jacob Peter Hödl,SK Sturm Graz,Ö. Bundesliga,2007-01-31,19,CM,53,175,70,Left,3,2,58,62,57,75,53,53,47,39,50,49
+738046,Jacob Lungi Sørensen,233705,Jacob Sørensen,SK Brann,Eliteserien,1998-03-03,28,CDM,69,184,77,Right,4,2,61,65,73,66,65,75,71,72,61,70
+1089645,Jaden Philogene-Bidace,261336,Jaden Philogene,Ipswich,EFL Championship,2002-02-08,24,LM,75,179,67,Right,5,4,80,84,84,71,69,71,59,62,45,59
+573748,Jaime Mata,223578,Mata,UD Las Palmas,LALIGA HYPERMOTION,1988-10-24,37,ST,65,186,80,Right,3,3,49,40,54,34,70,51,72,69,74,67
+1660227,Jakub Zewlakow,74399,Jakub Żewłakow,Legia Warszawa,PKO BP Ekstraklasa,2006-12-02,19,LM,56,182,75,Right,3,3,64,66,62,62,43,47,44,38,41,44
+710328,Jannes-Kilian Horn,231874,Jannes Horn,SK Rapid,Ö. Bundesliga,1997-02-06,29,LB,69,186,79,Left,3,2,76,69,65,63,66,72,74,80,67,72
+287255,Jefte Betancor,206031,Jefté,Albacete BP,LALIGA HYPERMOTION,1993-07-06,32,ST,71,186,79,Right,3,3,69,72,71,69,67,72,74,80,68,73
+1088754,Jesus Owono,265405,Owono,FC Andorra,LALIGA HYPERMOTION,2001-03-01,25,GK,67,181,75,Right,3,1,24,33,37,48,62,22,50,47,21,63
+1341538,Ji-Soo Kim,267844,Kim Ji Soo,Kaiserslautern,Bundesliga 2,2004-12-24,21,CB,64,192,83,Right,4,2,43,58,38,41,60,55,79,69,62,69
+1107283,Ji-Sung Eom,260492,Eom Ji Sung,Swansea City,EFL Championship,2002-05-09,24,LM,71,178,70,Right,3,3,82,87,89,78,70,79,60,61,59,65
+922539,Jin-Woo Jeon,242004,Jeon Jin Woo,Jeonbuk Hyundai,K League 1,1999-09-09,26,RW,72,181,69,Right,4,3,87,90,87,75,72,65,65,67,39,60
+1662432,Jiri Panos,74627,Jiří Maxim Panoš,Viktoria Plzeň,Česká Liga,2007-11-15,18,CAM,63,178,71,Left,3,3,74,71,72,72,57,58,45,44,41,47
+1057432,Johan Gomez,263153,Johan Arath Gómez,Braunschweig,Bundesliga 2,2001-07-23,24,CAM,66,178,75,Right,4,3,84,75,81,78,65,85,66,76,47,67
+1400984,John McGovern,237926,John Mahon,Sligo Rovers,SSE Airtricity PD,1999-11-26,26,CB,58,186,84,Right,3,2,49,53,41,52,50,62,71,64,65,67
+1336887,John McKiernan,266709,JJ McKiernan,Burton Albion,EFL League One,2002-01-18,24,CAM,62,184,74,Right,2,3,73,77,77,72,58,68,63,67,59,64
+610519,Jokin Ezkieta,225395,Ezkieta,R. Racing Club,LALIGA HYPERMOTION,1996-08-17,29,GK,72,193,80,Right,3,1,41,49,42,41,72,38,66,64,25,69
+1299596,Jokin Gabilondo,265437,Gabilondo,Málaga CF,LALIGA HYPERMOTION,1999-04-09,27,RB,67,178,71,Right,3,2,77,79,80,69,58,71,58,69,67,64
+1287788,Jon Magunazelaia,264665,Magunazelaia,SD Eibar,LALIGA HYPERMOTION,2001-07-13,24,CAM,64,180,75,Right,3,3,75,73,70,81,55,58,54,65,60,57
+873236,Jon Thorsteinsson,241474,Jón Dagur Þorsteinsson,Hertha BSC,Bundesliga 2,1998-11-26,27,LM,69,177,66,Right,4,3,77,80,80,76,65,75,67,61,72,70
+1432344,Jonas Adjei Adjetey,276634,Jonas Adjetey,FC Basel 1893,Brack Super League,2003-12-13,22,CB,70,188,82,Right,4,2,72,69,69,69,70,74,73,78,59,71
+1174734,Jonas Thomas Kersken,257914,Jonas Kersken,Arminia Bielefeld,Bundesliga 2,2000-09-01,25,GK,67,190,88,Right,3,1,34,35,34,25,65,25,68,59,25,70
+1378854,Jonas Torrissen Therkelsen,271993,Jonas Therkelsen,Holstein Kiel,Bundesliga 2,2003-05-05,23,CAM,66,184,82,Right,3,4,81,81,81,72,62,68,63,71,59,64
+1171023,Jonathan Gomez,266118,Jonathan Germán Gómez,Albacete BP,LALIGA HYPERMOTION,2003-09-01,22,LB,64,178,71,Left,3,2,73,75,76,70,58,65,48,60,56,54
+791835,Jonathan Lunney,236379,JJ Lunney,Shelbourne,SSE Airtricity PD,1998-02-02,28,CM,60,175,70,Left,3,2,62,52,66,68,58,73,65,62,64,67
+1096390,Jonathan Russell,242436,Jon Russell,Barnsley,EFL League One,2000-10-09,25,CM,65,194,81,Right,3,2,48,51,34,42,65,71,82,72,69,76
+213482,Jorge Pulido,200519,Pulido,SD Huesca,LALIGA HYPERMOTION,1991-04-08,35,CB,72,186,72,Right,3,2,50,33,58,39,69,79,83,78,78,81
+500932,Joris Kayembe Ditu,222875,Joris Kayembe,KRC Genk,1A Pro League,1994-08-08,31,LB,74,180,73,Left,4,3,76,82,72,69,71,80,73,78,68,74
+1390045,Joseph Nduquidi,271014,Joseph N'Duquidi,Amiens SC,Ligue 2 BKT,2004-10-31,21,CDM,63,187,74,Right,3,2,64,68,67,60,59,63,64,67,64,64
+1477502,Josh Laqeretabua,72909,Josh Edwards,Charlton Ath,EFL Championship,2000-05-27,26,LB,65,176,68,Left,3,2,75,72,68,75,63,75,66,72,67,69
+969252,Joshua Griffiths,252773,Josh Griffiths,West Brom,EFL Championship,2001-09-05,24,GK,65,198,87,Right,3,1,26,35,37,49,61,21,63,55,20,63
+1068590,Joshua Honohan,252754,Josh Honohan,Shamrock Rovers,SSE Airtricity PD,2001-03-28,25,CB,63,178,68,Right,3,2,70,69,52,66,56,68,72,75,70,71
+783699,José Antonio Caro,234779,Caro,UD Las Palmas,LALIGA HYPERMOTION,1994-05-03,32,GK,70,184,83,Right,3,1,38,39,45,30,71,41,76,69,22,72
+659203,José Carlos Lazo,229631,Lazo,Albacete BP,LALIGA HYPERMOTION,1996-02-16,30,LM,68,180,69,Right,5,3,76,75,79,72,65,56,57,57,42,54
+1187691,Joël Monteiro,258924,Joël Almada Monteiro,BSC Young Boys,Brack Super League,1999-08-05,26,LM,73,191,81,Right,3,3,80,82,71,67,69,77,83,90,65,78
+1225417,Juan Carlos Arana,269639,Arana,R. Racing Club,LALIGA HYPERMOTION,2000-02-08,26,ST,70,182,73,Right,3,3,68,74,77,73,65,67,68,73,45,63
+1610383,Juan Guevara,74050,Juan José Guevara,SC Bastia,Ligue 2 BKT,2001-06-26,25,CB,63,180,72,Right,2,2,58,65,54,63,58,54,73,71,60,66
+1413145,Juan Sebastián,72556,Sebastián Kóša,Real Zaragoza,LALIGA HYPERMOTION,2003-09-13,22,CB,65,191,78,Right,3,2,64,67,59,72,54,71,77,88,47,70
+1526611,Juanma Herzog,278403,Herzog,UD Las Palmas,LALIGA HYPERMOTION,2004-05-13,22,CB,71,186,85,Right,3,2,70,72,64,47,69,65,79,86,72,74
+1098594,Julen Lobete,255398,Lobete,Málaga CF,LALIGA HYPERMOTION,2000-09-18,25,ST,67,180,72,Right,4,3,74,68,71,80,67,64,61,72,44,59
+571454,Julian Illanes Minucci,244576,Julián Illanes,Carrarese Calcio,Serie BKT,1997-03-10,29,CB,68,188,79,Right,3,2,65,65,64,57,65,68,65,71,64,66
+1386482,Jun-Ho Bae,266774,Bae Jun Ho,Stoke City,EFL Championship,2003-08-21,22,LM,71,178,70,Right,4,3,75,74,80,82,69,72,48,51,54,55
+1081240,Junior Quitirna,252970,Armando Quitirna,Wycombe,EFL League One,2000-04-25,26,RM,64,170,70,Left,4,4,71,73,90,90,61,65,38,47,48,47
+766160,Kady Malinowski,236420,Kady,Qarabağ FK,Liga Azerbaijan,1996-05-02,30,CAM,70,173,68,Left,2,3,73,74,72,76,69,63,71,73,60,67
+934960,Kasper Waarts Høgh,243203,Kasper Høgh,FK Bodø/Glimt,Eliteserien,2000-12-06,25,ST,69,186,77,Right,3,2,76,79,75,72,68,70,78,83,68,74
+1213117,Kevin Medina,264176,Kevin,Córdoba CF,LALIGA HYPERMOTION,2001-02-26,25,LW,68,173,69,Right,5,3,82,80,85,86,68,55,37,47,54,45
+1089762,Kgaogelo Chauke,260927,Kegs Chauke,Burton Albion,EFL League One,2003-01-08,23,CM,61,177,65,Right,3,3,74,69,73,75,61,69,59,63,62,62
+1559822,King Manu,278832,King Samuel Manu,Energie Cottbus,3. Liga,2003-11-23,22,CB,62,195,83,Right,2,2,57,66,53,45,54,67,82,76,61,74
+1106594,Kiril Fesyun,72917,Kiril Fesiun,Shakhtar Donetsk,Ukrayina Liha,2002-08-07,23,GK,69,191,80,Right,3,1,37,34,30,26,58,28,61,59,27,71
+1091973,Koba Koindredi,252025,Koba Leïn Koindredi,FC Basel 1893,Brack Super League,2001-10-27,24,CM,70,184,80,Left,3,3,66,65,75,73,61,65,79,74,50,69
+1587901,Kofi Amoako,279490,Kofi Jeremy Amoako,Dynamo Dresden,Bundesliga 2,2005-05-06,21,CDM,64,186,77,Right,3,2,71,71,74,55,62,60,64,69,62,63
+1333743,Kouadio Ange Ahoussou,266543,Ange Ahoussou,SK Rapid,Ö. Bundesliga,2003-12-22,22,CB,66,194,79,Left,3,2,60,62,56,54,59,66,77,76,63,71
+670029,Lander Olaetxea,229765,Olaetxea,SD Eibar,LALIGA HYPERMOTION,1993-04-12,33,CM,71,179,75,Right,3,2,71,64,70,67,71,80,76,75,66,75
+639140,Liberto,231125,Liberto Beltrán,SD Huesca,LALIGA HYPERMOTION,1996-12-26,29,LM,68,172,66,Left,3,3,88,86,76,72,58,71,46,60,37,51
+1398971,Luca Trslic,78523,Luka Trslic,FC Schweinfurt 05,3. Liga,2001-05-08,25,CB,61,190,80,Right,2,2,56,65,49,48,57,55,67,63,54,61
+75416,Lucas Akins,76261,Lucas Barnes,Harrogate Town,EFL League Two,2007-05-17,19,CM,50,180,75,Right,3,2,67,68,62,65,49,60,57,53,41,54
+1526773,Lucas Mincarelli Davin,278262,Lucas Mincarelli,Montpellier,Ligue 2 BKT,2004-01-05,22,LB,71,180,65,Left,3,2,73,68,76,70,69,66,48,61,69,57
+962113,Lukasz Poreba,246301,Łukasz Poręba,SV Elversberg,Bundesliga 2,2000-03-13,26,CM,68,179,76,Right,3,2,68,66,72,75,71,69,72,71,60,69
+659018,Mads Bech,234472,Mads Bech Sørensen,FC Midtjylland,3F Superliga,1999-01-07,27,CB,73,193,92,Left,3,2,42,63,47,35,73,73,85,75,72,79
+962022,Malachi Fagan-Walcott,70444,Malachi Jones,New York City FC,MLS,2003-09-23,22,LW,57,178,68,Left,3,2,76,77,71,70,41,39,51,52,32,44
+1602352,Malick Junior Yalcouyé,70841,Malick Yalcouyé,Swansea City,EFL Championship,2005-11-18,20,RM,71,169,69,Right,2,3,84,82,81,90,69,92,57,72,68,69
+1520220,Malte Wengerowski,79320,Malte Brüning,Rot-Weiss Essen,3. Liga,2004-03-18,22,GK,59,192,85,Right,2,1,23,30,25,28,57,27,67,54,18,59
+985327,Manuel Sanchez,254507,Manu Nieto,FC Andorra,LALIGA HYPERMOTION,1998-03-29,28,ST,65,182,72,Right,3,3,65,63,64,65,64,58,56,67,44,55
+268282,Manuel Trigueros,206545,Manu Trigueros,Granada CF,LALIGA HYPERMOTION,1991-10-17,34,CM,71,178,75,Right,4,3,44,43,65,67,68,62,56,58,60,58
+1323982,Marcos Cuenca,278530,Cuenca,Real Zaragoza,LALIGA HYPERMOTION,2002-11-07,23,LM,64,184,78,Right,3,3,76,70,69,62,50,68,66,78,41,62
+1395746,Marcos Luna,270415,Luna,UD Almería,LALIGA HYPERMOTION,2003-04-05,23,RB,70,180,80,Right,3,2,70,74,61,73,61,82,84,80,67,80
+110148,Marko Arnautovic,239708,Marko Raguž,FK Austria Wien,Ö. Bundesliga,1998-06-10,28,ST,64,192,80,Right,3,3,52,55,73,55,56,34,73,69,53,59
+275328,Martin Kobylanski,265425,Martin Moormann,Blau-Weiss Linz,Ö. Bundesliga,2001-04-30,25,CB,66,185,82,Left,3,2,61,69,51,60,64,70,78,76,69,74
+813711,Matias Antonini Lui,236889,Matias Antonini,Catanzaro,Serie BKT,1998-04-09,28,CB,65,191,80,Right,3,2,61,62,64,63,60,69,72,74,61,69
+1206281,Matthew Healy,273573,Matt Healy,Shamrock Rovers,SSE Airtricity PD,2002-04-12,24,CDM,62,186,76,Right,2,2,60,52,51,49,58,74,66,58,54,65
+173408,Matthew James,186139,Matty James,Wrexham,EFL Championship,1991-07-22,34,CDM,68,181,86,Right,3,3,52,49,56,59,66,63,72,68,68,69
+302785,Matthew Pearson,208014,Matty Pearson,Doncaster,EFL League One,1993-08-03,32,CB,66,190,78,Right,3,2,48,53,47,54,63,73,81,73,70,76
+127133,Matthew Phillips,188166,Matt Phillips,Oxford United,EFL Championship,1991-03-13,35,LM,67,183,75,Right,4,4,67,66,68,66,67,56,75,69,54,66
+968936,Matthew Pollock,246695,Mattie Pollock,Watford,EFL Championship,2001-09-28,24,CB,71,190,80,Right,2,2,53,50,45,42,65,70,85,80,69,78
+1577815,Matthew Young,279028,Matt Young,Salford City,EFL League Two,2006-11-24,19,GK,59,191,87,Right,2,1,36,41,39,28,54,20,59,54,20,58
+1070404,Maurits Kjærgaard,260876,Maurits Kjaergaard,RB Salzburg,Ö. Bundesliga,2003-06-26,23,CM,72,192,77,Left,3,4,71,78,73,62,73,77,79,77,73,77
+1874302,Maxime Bisleau,242391,Maxime Pattier,Grenoble Foot 38,Ligue 2 BKT,1996-02-12,30,GK,62,184,77,Right,2,1,34,28,36,54,49,24,48,46,23,62
+1140917,Maximilian Grosser,257779,Maximilian Großer,Arminia Bielefeld,Bundesliga 2,2001-07-23,24,CB,66,189,81,Right,3,2,57,62,61,63,64,71,80,74,71,76
+753799,Maximilian Krauss,244109,Maximilian Krauß,FC Hansa Rostock,3. Liga,1996-11-24,29,RM,67,170,70,Right,4,3,89,85,90,90,64,82,50,57,37,56
+1237634,Mehmet Aydin,261446,Mehmet Can Aydın,Braunschweig,Bundesliga 2,2002-02-09,24,RB,66,179,76,Right,3,3,79,68,79,78,65,72,62,68,78,68
+1006676,Memeh Caleb Okoli,261281,Caleb Okoli,Leicester City,EFL Championship,2001-07-13,24,CB,73,191,91,Right,2,2,56,59,54,58,69,66,88,79,69,78
+1523321,Merwan Ifnaou,72138,Merwan Ifnaoui,ESTAC Troyes,Ligue 2 BKT,1998-10-22,27,CAM,67,178,63,Left,3,3,77,66,76,75,63,83,41,49,49,54
+766622,Michael Johnston,238505,Mikey Johnston,West Brom,EFL Championship,1999-04-19,27,LM,72,178,66,Right,3,4,88,83,91,86,70,65,46,62,27,48
+1437855,Michal Gurgul,274830,Michał Gurgul,Lech Poznań,PKO BP Ekstraklasa,2006-01-30,20,LB,68,181,70,Left,3,2,70,74,67,66,62,81,64,68,60,68
+488960,Michal Helik,219293,Michał Helik,Oxford United,EFL Championship,1995-09-09,30,CB,70,191,80,Right,3,2,51,63,46,58,67,73,85,80,75,80
+1065940,Michal Karbownik,248149,Michał Karbownik,Hertha BSC,Bundesliga 2,2001-03-13,25,LB,70,175,64,Right,4,2,82,83,80,84,67,77,52,67,58,60
+1119683,Miguel Atienza,254786,Atienza,Burgos CF,LALIGA HYPERMOTION,1999-05-27,27,CDM,70,186,77,Right,3,3,53,56,59,50,70,70,76,58,64,71
+902901,Miguel de la Fuente,240589,Miguel,CD Leganés,LALIGA HYPERMOTION,1999-09-03,26,ST,69,181,86,Right,3,3,68,69,71,69,65,74,82,84,61,76
+1358582,Miguel Ángel Brau,72423,Brau,Coventry City,EFL Championship,2001-12-27,24,LB,68,183,76,Left,2,2,71,71,66,64,65,67,57,63,66,62
+1609329,Min-Hyeok Yang,71106,Yang Min Hyeok,Portsmouth,EFL Championship,2006-04-16,20,RM,70,171,61,Right,3,3,79,80,84,85,68,75,43,49,52,53
+425990,Mirko Ivanic,239410,Mirko Kos,FK Austria Wien,Ö. Bundesliga,1997-04-12,29,GK,65,183,80,Right,3,1,41,40,45,48,62,25,67,61,19,63
+867082,Mitchell Clark,240604,Mitch Clark,Port Vale,EFL League One,1999-03-13,27,RB,61,173,69,Right,2,2,71,73,78,81,59,60,59,63,68,61
+440531,Mitchell Pinnock,213969,Mitch Pinnock,Bromley FC,EFL League Two,1994-12-12,31,LM,65,185,76,Left,3,3,75,77,66,62,62,79,71,71,45,68
+1064272,Mohamed Diomande,255928,Mohammed Diomande,Rangers,Scottish Prem,2001-10-30,24,CDM,74,183,75,Left,5,3,79,74,79,81,75,72,70,77,73,71
+819696,Mohamed Mady Camara,237520,Mady Camara,PAOK FC,Hellas Liga,1997-02-28,29,CM,74,182,75,Right,3,4,72,76,73,72,65,81,82,92,85,83
+1288294,Monju Momuluh,272660,Thaddäus-Monju Momuluh,Arminia Bielefeld,Bundesliga 2,2002-02-18,24,RM,66,181,82,Right,3,3,83,86,80,65,55,47,55,60,35,49
+1229109,Monsef Bakrar,277303,Mounsef Bakrar,Dinamo Zagreb,Liga Hrvatska,2001-01-13,25,ST,63,183,79,Right,3,3,58,60,63,70,60,59,68,67,33,59
+1394109,Moussa Kounfolo Yeo,277119,Moussa Yeo,RB Salzburg,Ö. Bundesliga,2004-06-01,22,LW,68,174,55,Right,3,3,76,71,83,90,61,63,28,43,64,45
+939427,Mujaid Sadick,243530,Mujaid,KRC Genk,1A Pro League,2000-03-14,26,CB,74,183,88,Right,3,2,50,69,65,64,72,77,87,79,68,80
+656667,Mykola Matviyenko,229528,Mykola Matviienko,Shakhtar Donetsk,Ukrayina Liha,1996-05-02,30,CB,77,182,74,Left,3,2,76,78,71,69,75,76,76,87,75,76
+1280681,Mykola Mykhaylenko,74069,Mykola Mykhailenko,Dynamo Kyiv,Ukrayina Liha,2001-05-22,25,CM,68,181,66,Right,3,3,68,66,68,67,67,69,68,71,51,65
+1206282,Nicholas Tsaroulla,241039,Nick Tsaroulla,Notts County,EFL League Two,1999-03-29,27,LB,62,173,70,Left,3,3,83,81,85,85,58,79,47,54,59,58
+1563327,Nico Thoben,261180,Nico Maier,Blau-Weiss Linz,Ö. Bundesliga,2000-07-02,25,CAM,61,173,69,Left,3,3,68,68,73,72,52,53,43,39,45,46
+1437228,Nicolas Oliveira,274038,Nicolas-Bernd Oliveira,Jahn Regensburg,3. Liga,2004-02-06,22,LB,60,187,81,Right,3,2,68,79,56,63,58,62,67,60,51,62
+643659,Nikola Tzanev,230971,Nik Tzanev,Newport County,EFL League Two,1996-12-23,29,GK,60,195,90,Right,1,1,47,45,35,54,55,25,54,54,34,59
+629921,Nikolay Obolskiy,228397,Nikolay Obolskii,Córdoba CF,LALIGA HYPERMOTION,1997-01-14,29,ST,67,186,75,Left,3,2,68,65,60,60,65,66,71,76,50,66
+1186576,Noah Holm,258710,Noah Jean Holm,SK Brann,Eliteserien,2001-05-23,25,ST,67,186,87,Right,3,3,72,69,68,79,60,65,87,84,68,78
+1664686,Noah Pesch,264208,Noah Kruth,1. FC Magdeburg,Bundesliga 2,2003-06-24,23,GK,62,186,78,Right,2,1,25,30,21,32,40,26,43,40,21,63
+1596359,Noel Aseko-Nkili,279622,Noël Aséko,Hannover 96,Bundesliga 2,2005-11-22,20,CDM,61,178,73,Right,3,2,61,58,74,74,56,61,43,52,60,51
+917774,Odin Lurås Bjørtuft,242623,Odin Luraas Bjørtuft,FK Bodø/Glimt,Eliteserien,1998-12-19,27,CB,70,188,80,Right,3,2,66,59,58,61,79,76,77,77,64,74
+1086551,Ole Blomberg,258892,Ole Didrik Blomberg,FK Bodø/Glimt,Eliteserien,2000-06-12,26,RW,69,177,71,Right,3,3,77,75,74,73,67,79,65,70,67,69
+510843,Oleksandr Karavaev,237109,Oleksandr Karavaiev,Dynamo Kyiv,Ukrayina Liha,1992-06-02,34,RB,73,175,71,Right,4,3,76,76,75,72,72,77,59,69,61,64
+845695,Oleksii Kashchuk,277456,Oleksiy Kashchuk,Qarabağ FK,Liga Azerbaijan,2000-06-29,26,RW,67,180,67,Left,3,3,70,71,65,78,67,62,58,58,37,55
+1117751,Oliver Casey,247350,Olly Casey,Blackpool,EFL League One,2000-12-19,25,CB,67,188,80,Right,2,2,54,56,46,55,63,69,75,71,67,72
+291175,Oliver Norburn,206202,Ollie Norburn,Notts County,EFL League Two,1992-10-26,33,CM,65,185,82,Right,3,3,62,75,73,68,63,76,74,69,73,74
+1113786,Oliver O'Neill,270679,Ollie O'Neill,Leyton Orient,EFL League One,2003-01-08,23,LM,66,185,73,Right,3,3,81,79,81,72,61,73,53,62,63,60
+1089768,Oliver Wright,268839,Ollie Wright,Accrington,EFL League Two,2002-10-25,23,GK,56,187,77,Right,3,1,29,28,40,31,53,17,55,49,17,55
+1344572,Ollie Arblaster,271063,Oliver Arblaster,Sheffield Utd,EFL Championship,2004-01-08,22,CM,71,178,73,Right,4,2,67,64,72,73,70,76,69,68,69,71
+1273294,Oscar Fraulo,265518,Oscar Luigi Fraulo,M'gladbach,Bundesliga,2003-12-06,22,CM,69,180,77,Right,3,3,74,64,73,71,70,88,64,64,69,71
+293564,Patrick Barrett,205139,Paddy Barrett,Shelbourne,SSE Airtricity PD,1993-07-22,32,CB,63,182,92,Right,2,2,41,33,50,35,55,36,81,70,74,68
+206695,Pawel Wszolek,203568,Paweł Wszołek,Legia Warszawa,PKO BP Ekstraklasa,1992-04-30,34,RB,70,186,77,Right,2,3,78,78,76,72,65,82,61,74,63,67
+792071,Peru Nolaskoain,241489,Nolaskoain,SD Eibar,LALIGA HYPERMOTION,1998-10-25,27,CDM,72,186,81,Right,3,2,52,56,63,54,65,76,84,76,82,81
+1280257,Petter Nosakhare Dahl,277501,Petter Nosa Dahl,SK Rapid,Ö. Bundesliga,2003-10-22,22,LW,65,180,70,Right,4,4,88,86,82,85,58,53,53,67,53,54
+1220633,Prince Adu,74753,Prince Kwabena Adu,Viktoria Plzeň,Česká Liga,2003-09-03,22,ST,70,179,78,Right,2,3,70,76,61,63,71,60,73,76,54,66
+862717,Przemyslaw Placheta,239439,Przemysław Płacheta,Oxford United,EFL Championship,1998-03-23,28,RM,69,178,72,Left,3,3,89,93,90,85,62,76,48,56,46,55
+934862,Przemyslaw Wisniewski,243185,Przemysław Wiśniewski,Spezia,Serie BKT,1998-07-27,27,CB,71,195,88,Right,3,2,81,87,62,48,68,74,91,89,69,82
+1702428,Raees Bangura-Williams,76196,Ra'ees Bangura-Williams,Millwall,EFL Championship,2004-10-26,21,RM,63,180,67,Left,4,4,83,80,75,73,60,56,55,64,42,53
+1123324,Rafael Tresaco,250887,Rafa Tresaco,Cultural Leonesa,LALIGA HYPERMOTION,2000-08-24,25,LM,65,178,68,Right,3,3,75,71,71,70,63,67,56,67,66,61
+463923,Rafal Augustyniak,218985,Rafał Augustyniak,Legia Warszawa,PKO BP Ekstraklasa,1993-10-14,32,CB,67,185,82,Right,3,2,64,65,56,54,60,73,84,77,75,79
+1101043,Raphael Borges Rodrigues,253403,Raphael,Wigan Athletic,EFL League One,2003-09-11,22,LM,63,173,70,Right,3,3,82,85,77,81,58,63,70,70,58,66
+670395,Rico Preissinger,238636,Rico Preißinger,Preußen Münster,Bundesliga 2,1996-07-21,29,CDM,66,185,78,Left,3,2,66,48,65,63,64,90,74,73,75,78
+894804,Robert Atkinson,241824,Rob Atkinson,Bristol City,EFL Championship,1998-07-13,27,CB,71,193,85,Left,3,2,54,65,43,40,65,71,85,80,71,78
+865059,Robin Heusser,269604,Robin Heußer,Braunschweig,Bundesliga 2,1998-05-23,28,CM,68,170,73,Right,3,2,71,57,85,86,68,90,75,68,71,78
+1443858,Rodrigo Abajas,74591,Ro Abajas,SD Huesca,LALIGA HYPERMOTION,2003-05-12,23,LB,62,186,78,Left,2,3,77,75,46,54,53,53,62,61,60,59
+1396101,Saul del Cerro,271358,del Cerro,Burgos CF,LALIGA HYPERMOTION,2004-04-20,22,CM,63,185,75,Left,3,2,47,52,57,53,57,69,66,60,66,66
+1526558,Selvi Clua,278126,Selvi,UD Almería,LALIGA HYPERMOTION,2005-01-29,21,CDM,65,189,79,Left,3,2,54,59,62,50,63,63,66,63,60,64
+1072820,Serge Raux Yao,251167,Serge-Philippe Raux-Yao,SK Rapid,Ö. Bundesliga,1999-05-30,27,CB,73,197,86,Left,3,2,61,65,47,32,69,72,90,85,71,81
+745212,Sergi Maestre,201413,Maestre,Cultural Leonesa,LALIGA HYPERMOTION,1990-11-18,35,CDM,64,187,77,Left,3,2,43,44,30,32,58,62,74,60,70,70
+713924,Sergio Akieme,226103,Akieme,Stade de Reims,Ligue 2 BKT,1997-12-16,28,LB,73,175,74,Left,3,3,76,80,72,80,67,78,71,80,70,73
+303224,Sergio Postigo,214639,Postigo,CD Mirandés,LALIGA HYPERMOTION,1988-11-04,37,CB,66,185,78,Right,3,2,34,53,46,44,60,54,74,64,70,68
+848102,Seung-Ho Paik,237424,Paik Seung Ho,Birmingham City,EFL Championship,1997-03-17,29,CDM,72,180,78,Right,5,3,72,63,77,81,69,89,73,71,63,75
+488970,Sinan Bakis,230623,Sinan Bakış,Real Zaragoza,LALIGA HYPERMOTION,1994-04-22,32,ST,64,188,78,Right,3,2,37,35,39,56,50,51,78,68,49,65
+849404,Sivert Heggheim Mannsverk,263823,Sivert Mannsverk,Sparta Praha,Česká Liga,2002-05-08,24,CDM,68,185,77,Right,3,2,68,54,70,74,65,84,72,71,69,74
+1306211,Slawomir Abramowicz,267994,Sławomir Abramowicz,Jagiellonia,PKO BP Ekstraklasa,2004-06-09,22,GK,69,187,80,Left,2,1,35,37,39,35,60,16,45,49,16,69
+1123524,Solomon Brynn,242853,Sol Brynn,Middlesbrough,EFL Championship,2000-10-30,25,GK,66,184,80,Right,2,1,34,32,32,44,60,27,40,44,25,65
+540975,Sondre Brunstad Fet,225077,Sondre Fet,FK Bodø/Glimt,Eliteserien,1997-01-17,29,CM,70,177,74,Right,3,2,71,68,74,70,72,87,67,68,66,72
+1127585,Sondre Klingen Langås,277305,Sondre Langås,Derby County,EFL Championship,2001-02-02,25,CB,71,190,83,Right,3,2,87,86,72,63,68,80,87,91,83,85
+1249185,Soufian El-Faouzi,262936,Soufiane El-Faouzi,FC Schalke 04,Bundesliga 2,2002-07-13,23,CM,67,177,74,Right,4,3,63,66,82,72,62,87,59,52,49,64
+745912,Stefan Thordarson,262551,Stefán Teitur Þórðarson,Preston,EFL Championship,1998-10-16,27,CM,69,189,76,Right,4,2,63,55,56,61,69,76,68,67,70,70
+1135782,Taha Abdi Ali,260972,Taha Ali,Malmö FF,Allsvenskan,1998-07-01,28,LM,68,174,63,Right,2,5,92,81,94,87,56,76,34,49,57,50
+1668236,Teddy Averlant,79610,Teddy Andami Averlant,Amiens SC,Ligue 2 BKT,1999-10-02,26,RM,60,180,69,Right,3,3,70,66,71,68,41,55,58,50,33,52
+942893,Thelonius Bair,245563,Theo Bair,Lausanne-Sport,Brack Super League,1999-08-27,26,ST,71,191,96,Right,3,2,73,76,62,54,69,65,93,91,64,80
+1392303,Thiago Ojeda,270738,Thiago Ezequiel Ojeda,Cultural Leonesa,LALIGA HYPERMOTION,2003-01-12,23,CDM,64,187,72,Right,3,3,62,58,64,54,63,64,59,62,65,62
+1286791,Thomas Davies,278073,Tom Davies,Newport County,EFL League Two,2003-11-11,22,LB,57,180,70,Left,3,2,71,74,69,65,53,59,56,59,59,58
+877647,Thomas Hamer,243252,Tom Hamer,Lincoln City,EFL League One,1999-10-01,26,CB,65,188,80,Right,4,2,73,68,63,67,62,87,79,80,82,82
+331527,Thomas Meissner,209491,Thomas Meißner,FC Schweinfurt 05,3. Liga,1991-03-26,35,CB,64,191,82,Right,3,2,54,56,34,57,62,64,79,73,61,71
+662353,Tobias Mullarkey,229232,Toby Mullarkey,Fleetwood Town,EFL League Two,1996-11-04,29,CB,63,193,88,Right,3,2,62,73,51,48,58,84,77,74,60,75
+1089611,Tyreik Samuel Wright,260473,Tyreik Wright,Bradford City,EFL League One,2001-09-22,24,LB,62,179,72,Left,3,3,83,85,76,74,60,63,43,53,40,48
+867647,Victor Mollejo,245999,Mollejo,Burgos CF,LALIGA HYPERMOTION,2001-01-21,25,ST,70,177,63,Left,4,3,84,82,79,83,70,83,71,87,67,74
+1402324,Vivaldo Semedo,273918,Vivaldo,Watford,EFL Championship,2005-01-28,21,ST,63,192,85,Left,3,2,72,77,65,38,57,47,82,89,60,69
+465226,Vladyslav Kabayev,274724,Vladyslav Kabaev,Dynamo Kyiv,Ukrayina Liha,1995-09-01,30,LM,71,176,55,Right,3,3,79,78,69,81,70,66,41,48,50,49
+1098785,William Fish,256611,Will Fish,Cardiff City,EFL League One,2003-02-17,23,CB,70,185,73,Right,2,2,60,64,41,50,66,75,80,80,72,77
+724619,Xavier Decroix,225166,Xavier Lenogue,US Boulogne,Ligue 2 BKT,1996-12-27,29,GK,59,194,84,Right,2,1,46,45,38,36,60,39,72,63,13,55
+728941,Yegor Nazaryna,242021,Yehor Nazaryna,Shakhtar Donetsk,Ukrayina Liha,1997-07-10,28,CM,69,183,75,Right,3,3,67,70,73,66,69,69,65,67,55,64
+1324054,Yeray Cabanzon,273022,Yeray,R. Racing Club,LALIGA HYPERMOTION,2003-05-14,23,RM,63,170,66,Left,4,3,66,75,59,85,50,50,42,41,37,43
+1054026,Yukhym Konoplya,263804,Yukhym Konoplia,Shakhtar Donetsk,Ukrayina Liha,1999-08-26,26,RB,72,180,74,Right,2,2,80,81,77,67,66,73,62,74,67,66
+789639,Zachary Hemming,240597,Zach Hemming,Chesterfield,EFL League Two,2000-03-07,26,GK,64,188,70,Right,2,1,31,24,63,32,60,25,50,49,34,64
+1081050,Zachary Jeacock,250865,Zach Jeacock,Lincoln City,EFL League One,2001-05-08,25,GK,58,191,77,Right,3,1,32,24,29,34,53,26,48,44,18,57
+1108844,Álvaro Carrillo,278630,Carrillo,SD Huesca,LALIGA HYPERMOTION,2002-04-06,24,CB,67,182,72,Right,3,2,68,65,55,70,65,73,71,71,69,71
+1199649,Álvaro Mantilla,269197,Mantilla,R. Racing Club,LALIGA HYPERMOTION,2000-05-09,26,RB,66,184,71,Right,3,2,51,57,46,63,58,77,72,74,47,68

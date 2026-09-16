@@ -42,7 +42,9 @@ def sansacc(s):
 
 def cle(s):
     s = sansacc(s)
-    for c in "-.'’":
+    for c in "'’":
+        s = s.replace(c, "")
+    for c in "-.":
         s = s.replace(c, " ")
     return " ".join(p for p in s.split()
                     if p not in {"jr", "junior", "de", "da", "do", "dos", "del",
@@ -101,6 +103,11 @@ def main():
         for v in variantes(r["firstName"], r["lastName"], r["commonName"]):
             index[v].append(r)
 
+    def naissance_ea(r):
+        m = re.match(r"(\d{1,2})/(\d{1,2})/(\d{4})", r.get("birthdate", ""))
+        return (f"{m.group(3)}-{int(m.group(1)):02d}-{int(m.group(2)):02d}"
+                if m else "")
+
     def age_ea(r):
         m = re.match(r"(\d{1,2})/(\d{1,2})/(\d{4})", r.get("birthdate", ""))
         if not m:
@@ -123,6 +130,13 @@ def main():
             essais.append(f"{mots[0]} {mots[-1]}")
             essais.append(f"{mots[0][:3]} {mots[-1]}")
             essais.append(mots[-1])
+        # « Thuram-Ulien » : un patronyme compose cote jeu, simple chez EA
+        for m2 in mots:
+            for bout in re.split(r"[- ]", m2):
+                if len(bout) > 3 and bout not in essais:
+                    essais.append(bout)
+                    if len(mots) > 1:
+                        essais.append(f"{mots[0]} {bout}")
         uniq = []
         for v in essais:
             vus = set()
@@ -149,6 +163,25 @@ def main():
             if len(exacts) == 1:
                 uniq = exacts
         if len(uniq) > 1:
+            # Dernier filtre : la ligne du terrain. Un gardien ne peut pas
+            # etre apparie a un attaquant, meme homonyme et meme club.
+            def ligne_ea(r):
+                p = (r.get("position") or "").upper()
+                if p == "GK": return "G"
+                if p in ("CB", "LB", "RB", "LWB", "RWB"): return "D"
+                if p in ("CDM", "CM", "CAM", "LM", "RM"): return "M"
+                return "A"
+            def ligne_jeu(p):
+                p = (p or "").lower()
+                if "gardien" in p: return "G"
+                if "defenseur" in p or "lateral" in p: return "D"
+                if "milieu" in p: return "M"
+                return "A"
+            meme_ligne = [r for r in uniq
+                          if ligne_ea(r) == ligne_jeu(m.get("poste", ""))]
+            if len(meme_ligne) == 1:
+                uniq = meme_ligne
+        if len(uniq) > 1:
             restent.append(dict(m, _note="plusieurs candidats")); continue
         r = uniq[0]
         # garde-fou : un nom court ne suffit pas, il faut club ou age concordant
@@ -160,12 +193,16 @@ def main():
         if not (meme_club or (meme_age and nom_complet)):
             restent.append(dict(m, _note="nom seul, non confirme")); continue
         trouves.append({
+            "_motif": ("club" if meme_club else
+                       "age+nom" if (meme_age and nom_complet) else "?"),
             "fotmob_id": m.get("fotmob_id") or m.get("\ufefffotmob_id"),
             "nom_fotmob": nom, "ea_id": r["id"],
             "nom_ea": (r["commonName"] or f"{r['firstName']} {r['lastName']}").strip(),
-            "equipe_ea": r["team"], "age": age_ea(r),
+            "equipe_ea": r["team"], "championnat": r.get("leagueName", ""),
+            "naissance": naissance_ea(r), "age": age_ea(r),
+            "poste": r.get("position", ""), "note": r.get("overallRating", ""),
             "taille_cm": r["height"], "poids_kg": r["weight"],
-            "pied_fort": {"1": "Left", "2": "Right"}.get(r["preferredFoot"], ""),
+            "pied_fort": {"1": "Right", "2": "Left"}.get(r["preferredFoot"], ""),
             "mauvais_pied": r["weakFootAbility"], "gestes": r["skillMoves"],
             "acceleration": r["acceleration"], "vitesse_pointe": r["sprintSpeed"],
             "agilite": r["agility"], "equilibre": r["balance"], "reactions": r["reactions"],

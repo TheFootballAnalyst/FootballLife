@@ -611,9 +611,11 @@ La fiche est en deux passes qui se lisent à la suite,
 complément, apparié sur les noms d'usage, n'a ni date de naissance ni
 poste EA : ses joueurs n'ont donc ni côté ni date, Vinícius reste AG/AD
 tant qu'on ne lui met pas un poste). `moteur/physique_exclus.json`
-liste les identifiants à ignorer : un identifiant EA partagé entre deux
-joueurs (`donnees/physique/audit_suspects.csv`), tranché par le club et
-le poste. Un joueur sans fiche reçoit le **profil médian de son poste**,
+corrige les appariements par le nom : une ligne ignorée (un homonyme
+qui n'est pas le joueur), ou réattribuée au vrai joueur quand
+l'appariement avait gardé l'homonyme et laissé tomber le bon (la fiche
+« Idrissa Gueye, Everton » est celle de Gana Gueye, pas du buteur de
+Metz), le tout tranché par le club et le poste. Un joueur sans fiche reçoit le **profil médian de son poste**,
 calculé sur les vraies fiches de la base et signalé comme tel sur sa
 fiche : un ailier inconnu accélère comme un ailier, pas comme un 50
 partout. Et pour 583 joueurs, la fiche montre ce que FotMob a
@@ -628,10 +630,14 @@ La même fiche donne **le pied fort et la qualité du mauvais pied** (1 à
 base, pas au jour de l'import — et **le profil physique** :
 accélération, vitesse de pointe, agilité, équilibre, réactions,
 endurance, force, détente, agressivité, taille, poids, gestes
-techniques. La colonne « pied fort » de cette fiche est à l'envers de
-la réalité (Salah y est droitier, Mbappé gaucher) : l'import la lit à
-l'envers, et `importer.PIED_EA` est l'endroit où la remettre à
-l'endroit si la fiche est corrigée un jour.
+techniques. La fiche est une extraction du jeu de données EA FC 26
+**figée au 16 septembre 2026** : on ne ré-extrait pas en cours de
+saison, les notes EA bougent chaque semaine et la valeur des cartes
+bougerait sans raison de jeu. La colonne « pied fort » de la première
+passe est à l'envers de la réalité (Salah y est droitier, Mbappé
+gaucher) ; le complément, refait après coup, est à l'endroit. Chaque
+fiche porte son orientation dans `importer.FICHES_PHYSIQUE`, à
+remettre à `False` le jour où la première passe est ré-extraite.
 
 Les postes s'écrivent comme dans FIFA — GB, DC, DG, DD, MDC, MC, MOC,
 MG, MD, AG, AD, BU — partout : sur les cases, dans la ligne de chaque joueur du

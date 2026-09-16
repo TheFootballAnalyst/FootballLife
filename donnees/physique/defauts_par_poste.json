@@ -11,21 +11,21 @@
   "agressivite": 25,
   "taille_cm": 190,
   "poids_kg": 82,
-  "n": 559
+  "n": 562
  },
  "Milieu": {
   "acceleration": 67,
   "vitesse_pointe": 69,
   "agilite": 62,
   "equilibre": 62,
-  "reactions": 67,
+  "reactions": 66,
   "endurance": 71,
   "force": 75,
   "detente": 75,
   "agressivite": 70,
   "taille_cm": 185,
   "poids_kg": 78,
-  "n": 2017
+  "n": 2041
  },
  "Buteur": {
   "acceleration": 70,
@@ -39,7 +39,7 @@
   "agressivite": 65,
   "taille_cm": 182,
   "poids_kg": 75,
-  "n": 2302
+  "n": 2317
  },
  "Ailier": {
   "acceleration": 77,
@@ -47,13 +47,13 @@
   "agilite": 76,
   "equilibre": 74,
   "reactions": 66,
-  "endurance": 71,
+  "endurance": 70,
   "force": 61,
-  "detente": 67,
+  "detente": 66,
   "agressivite": 58,
   "taille_cm": 179,
   "poids_kg": 72,
-  "n": 1376
+  "n": 1396
  },
- "_note": "Valeurs medianes par poste, a donner aux joueurs sans profil EA. Calculees sur les 7072 profils apparies. Un lateral inconnu vaut mieux qu'un 50 partout."
+ "_note": "Medianes par poste, pour les joueurs sans profil EA. Un ailier inconnu vaut mieux qu'un 50 partout."
 }

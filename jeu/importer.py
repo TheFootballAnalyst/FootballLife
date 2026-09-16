@@ -521,14 +521,16 @@ def majorite_postes_et_clubs(jeu: sqlite3.Connection) -> None:
 # DROIT.  Un joueur dont le poste EA est axial garde ses couloirs sans
 # côté : on ne devine pas.
 COTE_EA = {"RB": "droit", "RM": "droit", "RW": "droit", "LB": "gauche", "LM": "gauche", "LW": "gauche"}
-# La colonne `pied_fort` de la fiche est INVERSÉE par rapport à la réalité
-# (et à EA) : elle dit « Right » pour Salah, Yamal, Nuno Mendes et
-# « Left » pour Mbappé, Hakimi, Rodri, Doku, Valverde — huit sur huit à
-# l'envers, 74 % de « Left » quand trois joueurs sur quatre sont
-# droitiers.  Le côté des postes (RB, LW…), lui, est juste.  On lit donc
-# la colonne à l'envers ; si la fiche est un jour corrigée, c'est ici
-# qu'on remet les deux valeurs à l'endroit.
-PIED_EA = {"Right": "gauche", "Left": "droit"}
+PIED_EA = {"Right": "droit", "Left": "gauche"}
+# La colonne `pied_fort` de la PREMIÈRE passe est à l'envers de la réalité
+# (elle dit « Right » pour Salah, Yamal, Dembélé et « Left » pour Mbappé,
+# Hakimi, Rodri : le code EA 1 = droitier y avait été lu comme gaucher).
+# Le complément, refait après coup, est à l'endroit (Vinícius « Right »,
+# Grimaldo « Left »).  Chaque fiche porte donc son orientation ; le jour
+# où la première passe est ré-extraite à l'endroit, son drapeau passe à
+# False.  Le côté des postes (RB, LW…) est juste dans les deux.
+FICHES_PHYSIQUE = ((MOTEUR / "physique_ea.csv", True), (MOTEUR / "physique_complement.csv", False))
+PHYSIQUE_EXCLUS = MOTEUR / "physique_exclus.json"
 POSTES_A_COTE = {"Lateral": "Lateral", "Milieu de couloir": "Milieu", "Ailier": "Ailier"}
 
 
@@ -574,20 +576,29 @@ def date_de_la_base(jeu: sqlite3.Connection) -> date:
     return date.today()
 
 
-FICHES_PHYSIQUE = (MOTEUR / "physique_ea.csv", MOTEUR / "physique_complement.csv")
-PHYSIQUE_EXCLUS = MOTEUR / "physique_exclus.json"
-
-
-def _exclus_physique(fichier: pathlib.Path | None = None) -> set[int]:
-    """The FotMob ids whose EA row is a known false match (a shared EA id
-    settled by hand in moteur/physique_exclus.json)."""
+def _exclus_physique(fichier: pathlib.Path | None = None) -> tuple[set[int], dict[int, int]]:
+    """(ids whose EA row is a known false match, {id: the id the row really
+    belongs to}) — moteur/physique_exclus.json, settled by hand: a name
+    match that kept the homonym and dropped the real player."""
     fichier = fichier or PHYSIQUE_EXCLUS
     if not fichier.exists():
-        return set()
+        return set(), {}
     try:
-        return {int(k) for k in json.loads(fichier.read_text(encoding="utf-8")) if not k.startswith("_")}
+        table = json.loads(fichier.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError, ValueError):
-        return set()
+        return set(), {}
+    exclus, vers = set(), {}
+    for k, v in table.items():
+        if k.startswith("_"):
+            continue
+        try:
+            if isinstance(v, dict) and v.get("vers"):
+                vers[int(k)] = int(v["vers"])
+            else:
+                exclus.add(int(k))
+        except (TypeError, ValueError):
+            continue
+    return exclus, vers
 
 
 def defauts_physique(jeu: sqlite3.Connection) -> int:
@@ -629,7 +640,7 @@ def defauts_physique(jeu: sqlite3.Connection) -> int:
 
 
 def importer_physique(jeu: sqlite3.Connection, fichier=None, quand: date | None = None,
-                      defauts: bool = True) -> int:
+                      defauts: bool = True, inverse: bool = True) -> int:
     """joueur.{pied, pied_faible, naissance, age, cote, physique} depuis la
     fiche EA (moteur/physique_ea.csv), jointe par fotmob_id.
 
@@ -641,33 +652,34 @@ def importer_physique(jeu: sqlite3.Connection, fichier=None, quand: date | None 
       - le profil physique (accélération, vitesse, agilité, équilibre,
         réactions, endurance, force, détente, agressivité, taille, poids,
         gestes techniques), pour la simulation.
-    Deux fiches se lisent à la suite (la première passe et le complément,
-    FICHES_PHYSIQUE ; le complément n'a ni date de naissance ni poste EA,
-    donc ni côté ni date pour ses joueurs) ; les identifiants de
-    moteur/physique_exclus.json sont ignorés.  Un joueur absent des fiches
+    Deux fiches se lisent à la suite (FICHES_PHYSIQUE, chacune avec
+    l'orientation de sa colonne `pied_fort`) ; moteur/physique_exclus.json
+    ignore les faux appariements et réattribue au vrai joueur les lignes
+    gardées sous l'identifiant d'un homonyme.  Un joueur absent des fiches
     garde ce qu'il avait, et reçoit avec `defauts` le profil médian de son
     poste (defauts_physique).  Retourne combien de joueurs ont une vraie
     fiche."""
-    fichiers = [fichier] if fichier else [f for f in FICHES_PHYSIQUE if f.exists()]
-    fichiers = [f for f in fichiers if f.exists()]
+    fichiers = [(fichier, inverse)] if fichier else list(FICHES_PHYSIQUE)
+    fichiers = [(f, inv) for f, inv in fichiers if f.exists()]
     if not fichiers:
         return 0
     quand = quand or date_de_la_base(jeu)
-    exclus = _exclus_physique()
+    exclus, vers = _exclus_physique()
     connus = {pid: (postes, poste) for pid, postes, poste in jeu.execute("SELECT player_id, postes, poste FROM joueur")}
     # a default written by an earlier pass must not survive a real row
     jeu.execute("UPDATE joueur SET physique=NULL WHERE physique LIKE '%\"defaut\": true%'")
     n = 0
     lignes = []
-    for chemin in fichiers:
+    for chemin, inv in fichiers:
         with chemin.open(encoding="utf-8-sig", newline="") as f:
-            lignes.extend(csv.DictReader(f))
+            lignes.extend((r, inv) for r in csv.DictReader(f))
     vus: set[int] = set()
-    for r in lignes:
+    for r, inv in lignes:
         try:
             pid = int(r["fotmob_id"])
         except (KeyError, ValueError):
             continue
+        pid = vers.get(pid, pid)                   # a row kept under the homonym's id
         if pid not in connus or pid in exclus or pid in vus:
             continue
         vus.add(pid)
@@ -677,6 +689,8 @@ def importer_physique(jeu: sqlite3.Connection, fichier=None, quand: date | None 
             except ValueError:
                 return None
         pied = PIED_EA.get((r.get("pied_fort") or "").strip())
+        if inv and pied:
+            pied = "droit" if pied == "gauche" else "gauche"
         faible = num("mauvais_pied")
         naissance = (r.get("naissance") or "").strip() or None
         age = _age_au(naissance, quand) if naissance else num("age")

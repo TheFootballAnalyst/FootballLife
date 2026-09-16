@@ -445,9 +445,11 @@ League (top speed, distance and sprints per 90): EA stamina correlates
 +0.81 with distance, top speed +0.78 with measured top speed, and ten
 EA points are worth 1.41 km/h — the conversion voie B will use (keepers
 excluded: they never sprint).
-One caveat: the sheet's preferred-foot column is mirrored (Salah reads
-right-footed, Mbappé left-footed); the importer reads it the other way
-round and says so (`importer.PIED_EA`).
+The extraction is frozen at 16 September 2026 (EA ratings move every
+week; a card's value must not). One caveat: the first sheet's
+preferred-foot column is mirrored (Salah reads right-footed, Mbappé
+left-footed) while the complement is the right way round; each sheet
+carries its orientation in `importer.FICHES_PHYSIQUE`.
 
 **Development: age bounds the season's move.** A card's OVR may move
 ±BORNE_OVR around its season start. That bound is now split by age
