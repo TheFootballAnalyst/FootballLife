@@ -436,8 +436,10 @@ where it will drive speed, duels and decisions. Feet are shown as two
 gauges on two foot icons, never as stars: the strong foot full, the
 weak foot at its EA quality, both full for an ambidextrous player.
 Two sheets are read in a row (the first pass and a complement matched
-on usage names, without birth date or EA position); shared EA ids
-settled by hand are excluded (`moteur/physique_exclus.json`); a player
+on usage names, without birth date or EA position); homonyms and shared EA ids are settled at the source by
+`donnees/physique/nettoie_complement.py` (club, position, then
+surname), with `moteur/physique_exclus.json` kept empty as a safety
+net; a player
 with no row gets the median profile of his position, computed on the
 base's real rows and flagged as such. `moteur/mesures_fotmob_ucl.json`
 holds what FotMob really measured for 583 players in the Champions
@@ -446,10 +448,9 @@ League (top speed, distance and sprints per 90): EA stamina correlates
 EA points are worth 1.41 km/h — the conversion voie B will use (keepers
 excluded: they never sprint).
 The extraction is frozen at 16 September 2026 (EA ratings move every
-week; a card's value must not). One caveat: the first sheet's
-preferred-foot column is mirrored (Salah reads right-footed, Mbappé
-left-footed) while the complement is the right way round; each sheet
-carries its orientation in `importer.FICHES_PHYSIQUE`.
+week; a card's value must not). Each sheet carries the orientation of its preferred-foot column in
+`importer.FICHES_PHYSIQUE` (a first extraction had it mirrored; the
+consolidated ones are the right way round, checked on ten players).
 
 **Development: age bounds the season's move.** A card's OVR may move
 ±BORNE_OVR around its season start. That bound is now split by age

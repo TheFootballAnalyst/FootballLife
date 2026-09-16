@@ -522,14 +522,12 @@ def majorite_postes_et_clubs(jeu: sqlite3.Connection) -> None:
 # côté : on ne devine pas.
 COTE_EA = {"RB": "droit", "RM": "droit", "RW": "droit", "LB": "gauche", "LM": "gauche", "LW": "gauche"}
 PIED_EA = {"Right": "droit", "Left": "gauche"}
-# La colonne `pied_fort` de la PREMIÈRE passe est à l'envers de la réalité
-# (elle dit « Right » pour Salah, Yamal, Dembélé et « Left » pour Mbappé,
-# Hakimi, Rodri : le code EA 1 = droitier y avait été lu comme gaucher).
-# Le complément, refait après coup, est à l'endroit (Vinícius « Right »,
-# Grimaldo « Left »).  Chaque fiche porte donc son orientation ; le jour
-# où la première passe est ré-extraite à l'endroit, son drapeau passe à
-# False.  Le côté des postes (RB, LW…) est juste dans les deux.
-FICHES_PHYSIQUE = ((MOTEUR / "physique_ea.csv", True), (MOTEUR / "physique_complement.csv", False))
+# Chaque fiche porte l'orientation de sa colonne `pied_fort` (True : elle
+# est à l'envers et se lit inversée).  Les deux passes de l'extraction du
+# 16 septembre 2026 sont à l'endroit (Salah « Left », Mbappé « Right »,
+# vérifié sur dix témoins) ; une première extraction lisait le code EA
+# 1 = droitier comme gaucher, d'où ce drapeau, à garder pour la prochaine.
+FICHES_PHYSIQUE = ((MOTEUR / "physique_ea.csv", False), (MOTEUR / "physique_complement.csv", False))
 PHYSIQUE_EXCLUS = MOTEUR / "physique_exclus.json"
 POSTES_A_COTE = {"Lateral": "Lateral", "Milieu de couloir": "Milieu", "Ailier": "Ailier"}
 
@@ -640,7 +638,7 @@ def defauts_physique(jeu: sqlite3.Connection) -> int:
 
 
 def importer_physique(jeu: sqlite3.Connection, fichier=None, quand: date | None = None,
-                      defauts: bool = True, inverse: bool = True) -> int:
+                      defauts: bool = True, inverse: bool = False) -> int:
     """joueur.{pied, pied_faible, naissance, age, cote, physique} depuis la
     fiche EA (moteur/physique_ea.csv), jointe par fotmob_id.
 

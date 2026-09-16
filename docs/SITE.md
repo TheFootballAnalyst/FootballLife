@@ -610,12 +610,7 @@ La fiche est en deux passes qui se lisent à la suite,
 `moteur/physique_ea.csv` puis `moteur/physique_complement.csv` (le
 complément, apparié sur les noms d'usage, n'a ni date de naissance ni
 poste EA : ses joueurs n'ont donc ni côté ni date, Vinícius reste AG/AD
-tant qu'on ne lui met pas un poste). `moteur/physique_exclus.json`
-corrige les appariements par le nom : une ligne ignorée (un homonyme
-qui n'est pas le joueur), ou réattribuée au vrai joueur quand
-l'appariement avait gardé l'homonyme et laissé tomber le bon (la fiche
-« Idrissa Gueye, Everton » est celle de Gana Gueye, pas du buteur de
-Metz), le tout tranché par le club et le poste. Un joueur sans fiche reçoit le **profil médian de son poste**,
+tant qu'on ne lui met pas un poste). Un joueur sans fiche reçoit le **profil médian de son poste**,
 calculé sur les vraies fiches de la base et signalé comme tel sur sa
 fiche : un ailier inconnu accélère comme un ailier, pas comme un 50
 partout. Et pour 583 joueurs, la fiche montre ce que FotMob a
@@ -633,11 +628,13 @@ endurance, force, détente, agressivité, taille, poids, gestes
 techniques. La fiche est une extraction du jeu de données EA FC 26
 **figée au 16 septembre 2026** : on ne ré-extrait pas en cours de
 saison, les notes EA bougent chaque semaine et la valeur des cartes
-bougerait sans raison de jeu. La colonne « pied fort » de la première
-passe est à l'envers de la réalité (Salah y est droitier, Mbappé
-gaucher) ; le complément, refait après coup, est à l'endroit. Chaque
-fiche porte son orientation dans `importer.FICHES_PHYSIQUE`, à
-remettre à `False` le jour où la première passe est ré-extraite.
+bougerait sans raison de jeu. Chaque fiche porte l'orientation de sa
+colonne « pied fort » dans `importer.FICHES_PHYSIQUE` (une première
+extraction l'avait à l'envers ; celles du 16 septembre sont à
+l'endroit, vérifié sur dix témoins). Les homonymes et les identifiants
+EA partagés sont réglés à la source par `nettoie_complement.py`
+(club, poste puis patronyme) ; `moteur/physique_exclus.json` reste
+comme filet, vide.
 
 Les postes s'écrivent comme dans FIFA — GB, DC, DG, DD, MDC, MC, MOC,
 MG, MD, AG, AD, BU — partout : sur les cases, dans la ligne de chaque joueur du

@@ -425,9 +425,9 @@ def test_the_side_of_a_flat_midfield_four_is_read_as_a_wide_midfielder():
 # The EA sheet: feet, birth dates, sides, physical profile
 # --------------------------------------------------------------------------
 FICHE_EA = """fotmob_id,nom_fotmob,ea_id,nom_ea,equipe_ea,championnat,naissance,age,poste,note,taille_cm,poids_kg,pied_fort,mauvais_pied,gestes,acceleration,vitesse_pointe,agilite,equilibre,reactions,endurance,force,detente,agressivite,note_physique
-4,J4,1004,J4,A,Ligue 1,1998-11-04,27,RB,83,181,73,Left,4,4,89,95,81,78,90,95,72,84,77,79
-9,J9,1009,J9,A,Ligue 1,2007-07-13,18,RW,89,180,72,Right,3,5,86,83,93,84,85,70,55,60,45,60
-10,J10,1010,J10,A,Ligue 1,1997-05-15,29,ST,90,178,67,Right,5,5,93,89,94,81,91,76,69,84,58,69
+4,J4,1004,J4,A,Ligue 1,1998-11-04,27,RB,83,181,73,Right,4,4,89,95,81,78,90,95,72,84,77,79
+9,J9,1009,J9,A,Ligue 1,2007-07-13,18,RW,89,180,72,Left,3,5,86,83,93,84,85,70,55,60,45,60
+10,J10,1010,J10,A,Ligue 1,1997-05-15,29,ST,90,178,67,Left,5,5,93,89,94,81,91,76,69,84,58,69
 99999,Inconnu,1,X,A,Ligue 1,2000-01-01,26,CB,60,180,80,Right,3,2,60,60,60,60,60,60,60,60,60,60
 """
 
@@ -443,8 +443,11 @@ def test_the_ea_sheet_gives_feet_birth_dates_sides_and_physique(tmp_path):
     j4 = jeu.execute("SELECT poste, postes, pied, pied_faible, naissance, age, cote, physique FROM joueur WHERE player_id=4").fetchone()
     assert j4[0] == "Lateral"                       # the base position stays for the barème
     assert json.loads(j4[1]) == ["Lateral droit", "Ailier droit"]   # every wide position takes the side
-    # the sheet's foot column is mirrored (Left for Hakimi): read the other way round
     assert (j4[2], j4[3]) == ("droit", 4)
+    # a sheet whose foot column is mirrored is read the other way round
+    jeu2 = base()
+    I.importer_physique(jeu2, fichier, quand=date(2026, 3, 12), inverse=True)
+    assert jeu2.execute("SELECT pied FROM joueur WHERE player_id=4").fetchone()[0] == "gauche"
     assert (j4[4], j4[5], j4[6]) == ("1998-11-04", 27, "droit")
     ph = json.loads(j4[7])
     assert ph["vitesse_pointe"] == 95 and ph["endurance"] == 95 and ph["taille"] == 181 and ph["poste_ea"] == "RB"
@@ -490,7 +493,7 @@ def test_two_sheets_exclusions_and_the_median_profile_of_the_position(tmp_path, 
     deux = tmp_path / "physique_complement.csv"; deux.write_text(COMPLEMENT_EA, encoding="utf-8")
     exclus = tmp_path / "physique_exclus.json"; exclus.write_text('{"_note": "x", "9": "homonyme"}', encoding="utf-8")
     exclus.write_text('{"_note": "x", "9": "homonyme", "4": {"vers": 5, "note": "la fiche est celle du 5"}}', encoding="utf-8")
-    monkeypatch.setattr(I, "FICHES_PHYSIQUE", ((un, True), (deux, False)))
+    monkeypatch.setattr(I, "FICHES_PHYSIQUE", ((un, False), (deux, False)))
     monkeypatch.setattr(I, "PHYSIQUE_EXCLUS", exclus)
     n = I.importer_physique(jeu, quand=date(2026, 3, 12))
     assert n == 3                                   # 4 (given to 5) and 10 from the first sheet, 11 from the complement; 9 excluded

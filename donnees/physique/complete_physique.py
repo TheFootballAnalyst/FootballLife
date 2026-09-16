@@ -58,6 +58,8 @@ VIDES_CLUB = {"fc", "cf", "ac", "as", "sc", "ss", "ssc", "afc", "bsc", "sv",
 
 def club_norm(s):
     c = " ".join(m for m in cle(s).split() if m not in VIDES_CLUB)
+    if not c:                       # « Athletic Club » : tous les mots sont creux
+        c = cle(s)
     return CLUBS.get(c, c)
 
 
@@ -77,9 +79,14 @@ def variantes(first, last, common):
     # « Vinícius José de Oliveira Júnior » -> « vinicius » et « oliveira »
     mots = cle(f"{first} {last}").split()
     if len(mots) > 1:
-        # « Dan Burn » doit rejoindre « Daniel Burn » : on ajoute une cle
-        # reduite au premier prenom tronque
         v.add(f"{mots[0][:3]} {mots[-1]}")
+        # double patronyme espagnol : « Jauregizar Alboniga », « Vivian Moreno »
+        # sont connus par le PREMIER nom de famille
+        ml = cle(last).split()
+        if len(ml) > 1:
+            v.add(f"{mots[0]} {ml[0]}")
+            v.add(ml[0])
+            v.add(f"{mots[0][:3]} {ml[0]}")
     if mots:
         v.add(mots[0])
         v.add(mots[-1])
@@ -131,12 +138,11 @@ def main():
             essais.append(f"{mots[0][:3]} {mots[-1]}")
             essais.append(mots[-1])
         # « Thuram-Ulien » : un patronyme compose cote jeu, simple chez EA
-        for m2 in mots:
+        for m2 in mots[1:]:                      # jamais le prenom seul
             for bout in re.split(r"[- ]", m2):
                 if len(bout) > 3 and bout not in essais:
                     essais.append(bout)
-                    if len(mots) > 1:
-                        essais.append(f"{mots[0]} {bout}")
+                    essais.append(f"{mots[0]} {bout}")
         uniq = []
         for v in essais:
             vus = set()
