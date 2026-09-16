@@ -19,7 +19,11 @@ async function clubs() {
 
 async function jouer() {
   const a = $("#club-a").value, b = $("#club-b").value;
-  const q = new URLSearchParams({a, b, formation: $("#formation").value, minutes: $("#minutes").value, graine: $("#graine").value});
+  const q = new URLSearchParams({a, b, formation: $("#formation").value, minutes: $("#minutes").value, graine: $("#graine").value,
+    bloc_a: $("#bloc-a").value, tempo_a: $("#tempo-a").value, risque_a: $("#risque-a").value,
+    bloc_b: $("#bloc-b").value, tempo_b: $("#tempo-b").value, risque_b: $("#risque-b").value});
+  if ($("#coll-a").value !== "") q.set("collectif_a", $("#coll-a").value);
+  if ($("#coll-b").value !== "") q.set("collectif_b", $("#coll-b").value);
   $("#jouer").disabled = true; $("#etat").textContent = "Le match se joue… (six secondes pour 90 minutes)";
   try {
     const r = await fetch("/api/bac/match?" + q); if (!r.ok) throw new Error(await r.text());
@@ -54,6 +58,7 @@ function charger(res) {
   // les stats
   const st = res.stats, S = $("#stats"); S.replaceChildren();
   const tuile = (l, v) => { const d = document.createElement("div"); d.className = "stat"; d.innerHTML = `<b>${v}</b><span>${l}</span>`; S.append(d); };
+  if (res.collectif) tuile("Collectif", `${Math.round(res.collectif[0] * 100)} – ${Math.round(res.collectif[1] * 100)} %`);
   tuile("Possession", `${Math.round(res.possession[0] * 100)} – ${Math.round(res.possession[1] * 100)} %`);
   tuile("Tirs (cadrés)", `${st.tirs[0]} (${st.cadres[0]}) – ${st.tirs[1]} (${st.cadres[1]})`);
   tuile("xG", `${st.xg[0]} – ${st.xg[1]}`);

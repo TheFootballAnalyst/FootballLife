@@ -696,6 +696,15 @@ def importer_physique(jeu: sqlite3.Connection, fichier=None, quand: date | None 
         physique = {k: num(k) for k in PHYSIQUE_EA}
         physique |= {"taille": num("taille_cm"), "poids": num("poids_kg"), "gestes": num("gestes"),
                      "note_physique": num("note_physique"), "note_ea": num("note"), "poste_ea": (r.get("poste") or "").strip()}
+        # le travail sans ballon (work rate EA) : Low / Medium / High, en
+        # deux colonnes ou en une seule « High/ Medium »
+        wr = (r.get("work_rate") or "").replace(" ", "")
+        wa, wd = (wr.split("/") + ["", ""])[:2] if "/" in wr else ("", "")
+        wa = r.get("work_rate_att") or r.get("attacking_work_rate") or r.get("travail_offensif") or wa
+        wd = r.get("work_rate_def") or r.get("defensive_work_rate") or r.get("travail_defensif") or wd
+        trav = {"low": "bas", "medium": "moyen", "high": "haut", "bas": "bas", "moyen": "moyen", "haut": "haut"}
+        physique["wr_att"] = trav.get((wa or "").strip().lower())
+        physique["wr_def"] = trav.get((wd or "").strip().lower())
         physique = {k: v for k, v in physique.items() if v is not None and v != ""}
         postes_j, poste_j = connus[pid]
         liste = json.loads(postes_j) if postes_j else [poste_j]

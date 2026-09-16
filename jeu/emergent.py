@@ -110,6 +110,9 @@ class Joueur:
     role: str = "forme"
     horloge_appel: float = 0.0
     dernier_contact: float = -10.0
+    travail_def: float = 0.5
+    travail_att: float = 0.5
+    appel_jusqua: float = -1.0                # une course lancée par la passe d'un coéquipier
     # stats
     distance: float = 0.0
     sprint: float = 0.0
@@ -183,6 +186,7 @@ def joueurs_de(sur: list[dict], camp: int, formation: str) -> list[Joueur]:
                     attributs=dict(j.get("attributs") or {}), physique=ph,
                     home=(px * LONG, py * LARG), vmax=vitesse_max(vit), amax=acceleration_max(acc),
                     endurance_ea=float(ph.get("end", ph.get("endurance", 70)) or 70))
+        jo.travail_def, jo.travail_att = travail_de(j, "def"), travail_de(j, "att")
         if jo.gk:
             jo.vmax = min(jo.vmax, 8.0)
         out.append(jo)
@@ -214,11 +218,94 @@ class Ballon:
 # --------------------------------------------------------------------------
 # Le match
 # --------------------------------------------------------------------------
+# Ce qu'un manager règle, lu par la forme et les rôles (les mêmes mots que
+# simulation.Tactique) :
+#   bloc     haut : la défense se tient six mètres derrière le ballon et
+#            on presse en un pour un dans le camp adverse ; bas : seize
+#            mètres derrière, jamais au-delà du milieu, on contient.
+#   tempo    possession : on garde le ballon et on passe court ; direct :
+#            on lâche vite et on joue long.
+#   risque   offensif : plus d'appels et de projection ; prudent : moins.
+TACTIQUE_DEFAUT = {"bloc": "median", "tempo": "equilibre", "risque": "equilibre",
+                   "lateraux": "couloir", "ailiers": "equilibre", "milieux": "equilibre", "attaquants": "equilibre"}
+# Le travail sans ballon (work rate) : "bas", "moyen", "haut".  Lu dans la
+# fiche EA quand elle l'a ; sinon deviné sur les attributs (un attaquant
+# qui défend bien revient, un latéral qui crée bien monte).
+TRAVAIL = {"bas": 0.0, "moyen": 0.5, "haut": 1.0}
+
+
+def travail_de(j: dict, sens: str) -> float:
+    ph = j.get("physique") or {}
+    v = ph.get("wr_def" if sens == "def" else "wr_att")
+    if v in TRAVAIL:
+        return TRAVAIL[v]
+    a = j.get("attributs") or {}
+    if sens == "def":
+        return max(0.0, min(1.0, (float(a.get("DEF", 55)) - 40.0) / 45.0))
+    return max(0.0, min(1.0, (float(a.get("CRE", 55)) * 0.5 + float(a.get("DRI", 55)) * 0.5 - 40.0) / 45.0))
+
+
+COLLECTIF_MANUEL = RACINE / "jeu" / "collectif_manuel.json"
+
+
+def cohesion(jeu, pids: list[int], team_id: int | None = None) -> float:
+    """Le collectif d'un onze, lu dans la saison : la part des matchs du
+    club que chaque paire a commencés ENSEMBLE, en moyenne sur les
+    cinquante-cinq paires, étirée pour que l'onze le plus stable des huit
+    championnats vaille 1 et un onze qui tourne à chaque match 0.  C'est
+    une mesure d'habitude, pas de style : un club qui rode le même onze
+    depuis août se connaît."""
+    if len(pids) < 2:
+        return 0.0
+    marks = ",".join("?" * len(pids))
+    par_match: dict[int, dict[int, float]] = {}
+    for mid, pid, minutes in jeu.execute(f"SELECT match_id, player_id, minutes FROM prestation WHERE player_id IN ({marks})", pids):
+        par_match.setdefault(mid, {})[pid] = float(minutes or 0)
+    if team_id is not None:
+        nm = jeu.execute("""SELECT COUNT(*) FROM prestation WHERE team_id=? AND entrant=0 AND minutes >= 60""",
+                         (team_id,)).fetchone()[0] / 11.0
+    else:
+        nm = float(len(par_match))
+    if nm < 3:
+        return 0.5
+    paires: dict[tuple[int, int], float] = {}
+    for jeu_m in par_match.values():
+        ps = sorted(jeu_m)
+        for i in range(len(ps)):
+            for k in range(i + 1, len(ps)):
+                paires[(ps[i], ps[k])] = paires.get((ps[i], ps[k]), 0.0) + min(jeu_m[ps[i]], jeu_m[ps[k]])
+    n = len(pids) * (len(pids) - 1) / 2
+    part = sum(paires.values()) / n / (nm * 90.0)
+    return round(max(0.0, min(1.0, (part - 0.25) / 0.35)), 3)
+
+
+def collectif_de(jeu, team_id: int, pids: list[int]) -> float:
+    """Le collectif d'un club : la valeur écrite à la main dans
+    jeu/collectif_manuel.json quand il y en a une (le manager du jeu sait
+    qu'un PSG combine et qu'un Real est une somme d'individualités, la
+    saison ne le dit pas toujours), sinon la mesure sur la saison."""
+    try:
+        table = json.loads(COLLECTIF_MANUEL.read_text(encoding="utf-8")) if COLLECTIF_MANUEL.exists() else {}
+    except (OSError, ValueError):
+        table = {}
+    nom = (jeu.execute("SELECT nom FROM club WHERE team_id=?", (team_id,)).fetchone() or [""])[0]
+    for cle in (str(team_id), nom):
+        v = table.get(cle)
+        if isinstance(v, (int, float)):
+            return max(0.0, min(1.0, float(v)))
+    return cohesion(jeu, pids, team_id)
+
+
 class Match:
     def __init__(self, sur_a: list[dict], sur_b: list[dict], formation_a: str = "4-3-3",
                  formation_b: str = "4-3-3", graine: int = 1, minutes: float = 90.0,
-                 noms: tuple[str, str] = ("A", "B"), trace: bool = True):
+                 noms: tuple[str, str] = ("A", "B"), trace: bool = True,
+                 tactiques: tuple[dict | None, dict | None] = (None, None),
+                 collectif: tuple[float, float] = (0.6, 0.6)):
         self.rs = random.Random(graine)
+        self.tac = [dict(TACTIQUE_DEFAUT) | (tactiques[0] or {}), dict(TACTIQUE_DEFAUT) | (tactiques[1] or {})]
+        self.collectif = list(collectif)
+        self.ligne_def = [FAMILLE_X["DEF"] * LONG, FAMILLE_X["DEF"] * LONG]   # la profondeur de chaque défense, dans son repère
         self.joueurs = joueurs_de(sur_a, 0, formation_a) + joueurs_de(sur_b, 1, formation_b)
         self.camp = [[j for j in self.joueurs if j.camp == 0], [j for j in self.joueurs if j.camp == 1]]
         self.noms = noms
@@ -473,12 +560,19 @@ class Match:
         # derrière quand elle attaque ; le milieu et l'attaque s'étagent
         # devant elle, en un bloc de trente mètres
         bxp0 = bx if camp == 0 else LONG - bx
+        tac = self.tac[camp]
+        bloc = tac["bloc"]
         if sien:
-            ligne_def = max(18.0, min(55.0, bxp0 - 15.0))
-            etage = {"DEF": ligne_def, "MID": ligne_def + 16.0, "FWD": ligne_def + 32.0}
+            recul = {"haut": 11.0, "median": 15.0, "bas": 19.0}[bloc]
+            ligne_def = max(18.0, min({"haut": 60.0, "median": 55.0, "bas": 45.0}[bloc], bxp0 - recul))
+            saut = 14.0 if tac["milieux"] == "projection" else 16.0
+            etage = {"DEF": ligne_def, "MID": ligne_def + saut, "FWD": ligne_def + 32.0}
         else:
-            ligne_def = max(8.0, min(45.0, bxp0 - 11.0))
+            recul = {"haut": 6.0, "median": 11.0, "bas": 16.0}[bloc]
+            plafond = {"haut": 52.0, "median": 45.0, "bas": 35.0}[bloc]
+            ligne_def = max(8.0, min(plafond, bxp0 - recul))
             etage = {"DEF": ligne_def, "MID": min(ligne_def + 11.0, bxp0 + 3.0), "FWD": min(ligne_def + 24.0, bxp0 + 8.0)}
+        self.ligne_def[camp] = ligne_def
         base = {"DEF": FAMILLE_X["DEF"] * LONG, "MID": FAMILLE_X["MID"] * LONG, "FWD": FAMILLE_X["FWD"] * LONG}
         for j in self.actifs(camp):
             if j.gk:
@@ -487,8 +581,39 @@ class Match:
             bxp, byp = j.propre(bx, by)
             # sa place dans sa ligne : l'écart qu'il a au repos avec la ligne de sa famille
             x = etage.get(j.fam, etage["MID"]) + (xp - base.get(j.fam, base["MID"])) * 0.6
-            # la largeur coulisse vers le ballon, plus quand on défend
+            lateral = j.fam == "DEF" and abs(yp - LARG / 2) > 15.0
+            if sien:
+                # le travail offensif : un latéral qui monte, un milieu qui se projette
+                if lateral and tac["lateraux"] != "bas":
+                    x += 6.0 + 10.0 * j.travail_att
+                elif lateral:
+                    x -= 2.0
+                if j.fam == "MID" and (tac["milieux"] == "projection" or j.travail_att > 0.7):
+                    x += 5.0
+            else:
+                # le travail défensif : un attaquant qui revient, un milieu qui se replie
+                if j.fam == "FWD":
+                    x = etage["FWD"] - 10.0 * j.travail_def
+                elif j.fam == "MID" and tac["milieux"] == "bas":
+                    x -= 3.0
+            # la largeur coulisse vers le ballon, plus quand on défend ; un
+            # ailier « intérieur » rentre, un ailier « ligne » tient la touche
             y = yp + (byp - LARG / 2) * (0.25 if sien else 0.45)
+            if sien and j.fam == "FWD" and abs(yp - LARG / 2) > 14.0:
+                if tac["ailiers"] == "interieur":
+                    y += (LARG / 2 - yp) * 0.4
+                elif tac["ailiers"] == "ligne":
+                    y = yp + (byp - LARG / 2) * 0.1
+            # le collectif : un latéral qui a dépassé son ailier, l'ailier prend sa place (permutation)
+            if sien and lateral and self.collectif[camp] > 0.6:
+                ailier = next((o for o in self.actifs(camp) if o.fam == "FWD" and abs(o.home[1] - yp) < 12.0 and abs(o.home[1] - LARG / 2) > 14.0), None)
+                if ailier is not None:
+                    lx = j.propre(j.x, j.y)[0]
+                    ax = ailier.propre(ailier.x, ailier.y)[0]
+                    if lx > ax + 3.0:
+                        ailier.cible = ailier.absolu(max(2.0, min(LONG - 2.0, x - 8.0)), max(2.0, min(LARG - 2.0, y)))
+                        ailier.role = "forme"
+                        ailier.appel_jusqua = -1.0
             nx, ny = j.absolu(max(2.0, min(LONG - 2.0, x)), max(2.0, min(LARG - 2.0, y)))
             # la forme se lit lissée : une cible qui saute à chaque tic fait des zigzags
             if j.role == "forme":
@@ -519,20 +644,27 @@ class Match:
             n = math.hypot(dx, dy) or 1.0
             ux, uy = dx / n, dy / n
             ca, sa = math.cos(ang), math.sin(ang)
-            s.cible = (max(2.0, min(LONG - 2.0, bx + 14.0 * (ux * ca - uy * sa))),
-                       max(2.0, min(LARG - 2.0, by + 14.0 * (ux * sa + uy * ca))))
+            ray = 14.0 - 3.0 * self.collectif[att]
+            s.cible = (max(2.0, min(LONG - 2.0, bx + ray * (ux * ca - uy * sa))),
+                       max(2.0, min(LARG - 2.0, by + ray * (ux * sa + uy * ca))))
             s.role = "soutien"
-        # les appels : attaquants et ailiers, dans le dos, en restant en jeu
+        # les appels : attaquants et ailiers, dans le dos, en restant en jeu ;
+        # plus souvent quand on prend des risques, et le troisième homme part
+        # sur la passe d'un coéquipier quand le collectif le permet
         sens = 1 if att == 0 else -1
         ligne = self.ligne_horsjeu(att)
         avance = (bx - LONG / 2) * sens
+        risque = {"offensif": 1.4, "equilibre": 1.0, "prudent": 0.7}[self.tac[att]["risque"]]
+        if self.tac[att]["attaquants"] == "profondeur":
+            risque *= 1.3
         for j in siens:
             if j.role != "forme" or j.fam not in ("FWD", "MID"):
                 continue
             if avance < -10:
                 continue
             fenetre = (self.t * 0.11 + j.idx * 0.37) % 1.0
-            if (fenetre < 0.22 and j.fam == "FWD") or (fenetre < 0.10 and j.fam == "MID"):
+            lance = j.appel_jusqua > self.t
+            if lance or (fenetre < 0.22 * risque and j.fam == "FWD") or (fenetre < 0.10 * risque and j.fam == "MID"):
                 x = j.cible[0] + 14.0 * sens
                 # en jeu : un pas derrière la ligne
                 x = min(x, ligne - 1.6) if sens == 1 else max(x, ligne + 1.6)
@@ -587,7 +719,14 @@ class Match:
         for camp in (0, 1):
             if b.passe_vers is not None and b.passe_vers.camp == camp:
                 continue                          # le receveur y va déjà
-            j, _ = self.plus_proche(camp, px, py, gk=False)
+            j, d = self.plus_proche(camp, px, py, gk=False)
+            if j is not None and j.fam == "DEF":
+                pxp = px if camp == 0 else LONG - px
+                if pxp - self.ligne_def[camp] > 22.0:
+                    autre, da = min(((o, math.hypot(o.x - px, o.y - py)) for o in self.actifs(camp) if o.fam not in ("DEF", "GK")),
+                                    key=lambda t: t[1], default=(None, 1e9))
+                    if autre is not None and da < d + 12.0:
+                        j = autre
             if j is not None:
                 j.cible = (px, py)
                 j.role = "chasse"
@@ -599,14 +738,24 @@ class Match:
         if not siens:
             return
         tri = sorted(siens, key=lambda j: math.hypot(j.x - bx, j.y - by))
-        # le presseur va au ballon (là où il sera dans un demi-seconde)
+        tac = self.tac[df]
+        bxp0 = bx if df == 0 else LONG - bx        # le ballon, vu de la défense
+        # un central ne part pas presser à trente mètres de sa ligne : le
+        # premier non-défenseur à moins de quinze mètres y va à sa place
         p = tri[0]
+        if p.fam == "DEF" and bxp0 - self.ligne_def[df] > 22.0:
+            autre = next((j for j in tri[1:] if j.fam != "DEF" and math.hypot(j.x - bx, j.y - by) < 18.0), None)
+            if autre is not None:
+                p = autre
         mx, my = self.but_de(df)                   # son propre but : il se met entre le ballon et lui
         dx, dy = mx - bx, my - by
         n = math.hypot(dx, dy) or 1.0
-        contient = 1.3 if b.porteur is not None else 0.0
+        # un bloc bas contient à trois mètres tant que le ballon est loin ;
+        # un bloc haut va au contact partout
+        contient = 0.0 if b.porteur is None else {"haut": 1.0, "median": 1.3, "bas": 3.0 if bxp0 > 45 else 1.5}[tac["bloc"]]
         p.cible = (bx + b.vx * 0.4 + dx / n * contient, by + b.vy * 0.4 + dy / n * contient)
         p.role = "presse"
+        tri = [p] + [j for j in tri if j is not p]
         # le second coupe la ligne vers le soutien le plus dangereux
         att = 1 - df
         gx, gy = self.but_de(att)
@@ -615,10 +764,23 @@ class Match:
             danger = min(cand, key=lambda j: math.hypot(j.x - gx, j.y - gy))
             tri[1].cible = ((bx + danger.x) / 2, (by + danger.y) / 2)
             tri[1].role = "coupe"
+        # le pressing en un pour un : bloc haut et ballon dans le camp
+        # adverse, les deux suivants prennent chacun un homme au contact
+        pris: set[int] = set()
+        if tac["bloc"] == "haut" and bxp0 > LONG / 2 - 5:
+            for j in tri[2:4]:
+                adv = min((o for o in self.actifs(att) if not o.gk and o is not b.porteur and o.pid not in pris),
+                          key=lambda o: math.hypot(o.x - j.x, o.y - j.y), default=None)
+                if adv is not None and math.hypot(adv.x - j.x, adv.y - j.y) < 20.0:
+                    pris.add(adv.pid)
+                    j.cible = (adv.x + (mx - adv.x) / (math.hypot(mx - adv.x, my - adv.y) or 1.0) * 1.5,
+                               adv.y + (my - adv.y) / (math.hypot(mx - adv.x, my - adv.y) or 1.0) * 1.5)
+                    j.role = "presse"
         # les autres : marquage de zone, UN défenseur par attaquant — chacun
         # glisse vers l'adversaire libre le plus proche de sa place
-        pris: set[int] = set()
         for j in tri[2:]:
+            if j.role == "presse":
+                continue
             adv, d = None, 1e9
             for o in self.actifs(att):
                 if o.gk or o is b.porteur or o.pid in pris:
@@ -634,7 +796,15 @@ class Match:
                 mx, my = self.but_de(df)
                 dm = math.hypot(mx - adv.x, my - adv.y) or 1.0
                 recul = 1.5 if dm < 22 else 4.0
-                j.cible = (adv.x + (mx - adv.x) / dm * recul, adv.y + (my - adv.y) / dm * recul)
+                cx, cy = adv.x + (mx - adv.x) / dm * recul, adv.y + (my - adv.y) / dm * recul
+                # un défenseur ne descend jamais sous sa ligne pour suivre un
+                # homme : il tient l'alignement (et le hors-jeu), sauf dans sa
+                # surface où il colle
+                if j.fam == "DEF" and dm > 22:
+                    cxp, cyp = j.propre(cx, cy)
+                    cxp = max(cxp, self.ligne_def[df] - 1.0)
+                    cx, cy = j.absolu(cxp, cyp)
+                j.cible = (cx, cy)
                 j.role = "marque"
 
     def _gardiens(self, att: int):
@@ -699,17 +869,27 @@ class Match:
         dbut = math.hypot(gx - j.x, gy - j.y)
         pression = self._pression(j)
         tenu = self.t - j.dernier_contact
-        # un temps de contrôle, plus court sous pression
-        if not force and tenu < (1.8 + 2.6 * (1 - pression)) * (1.0 - 0.3 * j.attr("CON") / 99):
+        tac = self.tac[camp]
+        coh = self.collectif[camp]
+        tempo = {"possession": 1.25, "equilibre": 1.0, "direct": 0.7}[tac["tempo"]]
+        # un temps de contrôle, plus court sous pression, plus court dans les
+        # trente derniers mètres, plus court quand on joue direct
+        garde = (1.8 + 2.6 * (1 - pression)) * (1.0 - 0.3 * j.attr("CON") / 99) * tempo
+        if dbut < 32:
+            garde *= 0.7
+        if not force and tenu < garde:
             if not (dbut < 24 and tenu > 0.3):        # dans la zone de frappe, on ne réfléchit pas trois secondes
                 return
         options: list[tuple[float, str, object]] = []
-        bruit = 0.25 * (1.0 - 0.5 * j.attr("CON") / 99)
-        # -- frapper
+        # le bruit de décision : moins avec le sang-froid, moins dans un
+        # collectif rodé (chacun sait ce que l'autre va faire)
+        bruit = 0.25 * (1.0 - 0.5 * j.attr("CON") / 99) * (1.25 - 0.5 * coh)
+        # -- frapper : une occasion se prend, surtout si rien ne bouche l'axe
         if dbut < 32 and not j.gk:
             ang = self._angle_but(j.x, j.y, camp)
             xg = self._xg(dbut, ang, pression)
-            val = 0.3 + 6.0 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (0.2 if dbut < 16 else 0.0) - 0.3 * pression
+            axe = self._axe_libre(j)
+            val = 0.3 + 6.0 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (0.2 if dbut < 16 else 0.0) - 0.3 * pression + 0.35 * axe * (1.0 if dbut < 22 else 0.2)
             options.append((val + self.rs.gauss(0, bruit), "tir", None))
         # -- passer
         for c in self.actifs(camp):
@@ -725,8 +905,10 @@ class Match:
             _, libre = self.plus_proche(1 - camp, c.x, c.y, gk=False)
             couloir = self._couloir_libre(j, c)
             hj = self.hors_jeu(c, b.x)
+            # l'homme libre près du but vaut de l'or ; le tempo direct aime les longues
             val = (0.25 + 1.4 * gain + 0.6 * danger + 0.1 * min(libre, 8.0) + 0.6 * couloir - 0.012 * d
-                   - 0.025 * max(0.0, d - 22.0) - (0.5 if libre < 3.0 else 0.0))
+                   - 0.025 * max(0.0, d - 22.0) * tempo - (0.5 if libre < 3.0 else 0.0)
+                   + 0.5 * danger * min(libre, 10.0) / 10.0 * (0.6 + 0.4 * coh))
             if hj:
                 val -= 3.0
             if c.gk:
@@ -741,7 +923,8 @@ class Match:
                 options.append((val + self.rs.gauss(0, bruit), "centre", None))
         # -- conduire
         _, dev = self._espace_devant(j)
-        val = 0.7 + 0.06 * min(dev, 12.0) + 0.3 * j.attr("DRI") / 99 - 0.9 * pression
+        # une somme d'individualités conduit plus qu'elle ne combine
+        val = 0.7 + 0.06 * min(dev, 12.0) + 0.3 * j.attr("DRI") / 99 - 0.9 * pression + 0.35 * (1.0 - coh)
         if dbut < 40:
             val += 0.25
         options.append((val + self.rs.gauss(0, bruit), "conduite", None))
@@ -760,6 +943,24 @@ class Match:
             self._centrer(j)
         else:
             self._conduire(j)
+
+    def _axe_libre(self, j: Joueur) -> float:
+        """1 si personne ne bouche l'axe de frappe (le cône vers le but,
+        gardien exclu), 0 si un défenseur est dedans."""
+        gx, gy = self.but_de(j.camp)
+        dx, dy = gx - j.x, gy - j.y
+        n = math.hypot(dx, dy) or 1.0
+        pire = 1.0
+        for o in self.actifs(1 - j.camp):
+            if o.gk:
+                continue
+            px, py = o.x - j.x, o.y - j.y
+            t = (px * dx + py * dy) / (n * n)
+            if t <= 0.0 or t >= 1.0:
+                continue
+            ecart = abs(px * dy - py * dx) / n
+            pire = min(pire, max(0.0, (ecart - 0.6) / 2.0))
+        return pire
 
     def _angle_but(self, x: float, y: float, camp: int) -> float:
         gx = LONG if camp == 0 else 0.0
@@ -842,6 +1043,14 @@ class Match:
         self.stats["passes"][j.camp] += 1
         self._lacher(j, v * math.cos(ang), v * math.sin(ang), vz)
         b.passe_vers = c
+        # le troisième homme : sur une passe vers l'avant, un coéquipier bien
+        # rodé part dans l'espace que la passe ouvre
+        if self.collectif[j.camp] > 0.45 and (c.x - j.x) * j.sens() > 4.0 and self.rs.random() < self.collectif[j.camp] * 0.7:
+            gx, gy = self.but_de(j.camp)
+            tiers = [o for o in self.actifs(j.camp) if o not in (j, c) and not o.gk and o.fam in ("FWD", "MID")
+                     and (o.x - c.x) * j.sens() > -8.0 and math.hypot(o.x - c.x, o.y - c.y) < 25.0]
+            if tiers:
+                min(tiers, key=lambda o: math.hypot(gx - o.x, gy - o.y)).appel_jusqua = self.t + 2.2
         b.hors_jeu_au_kick = {x.pid for x in self.actifs(j.camp) if x is not j and self.hors_jeu(x, b.x)}
         self.evt("passe", de=j.pid, a=c.pid, camp=j.camp, x=round(j.x, 1), y=round(j.y, 1), d=round(d, 1), haut=vz > 0, role=c.role)
 
@@ -1290,6 +1499,7 @@ class Match:
                             "interceptions": j.interceptions, "fautes": j.fautes, "arrets": j.arrets,
                             "fatigue": round(j.fatigue, 2), "exclu": j.pid in self.exclus})
         return {"score": list(self.score), "noms": list(self.noms), "minutes": round(self.duree / 60),
+                "collectif": list(self.collectif), "tactiques": [dict(t) for t in self.tac],
                 "possession": [round(self.possession[0] / tot, 3), round(self.possession[1] / tot, 3)],
                 "stats": {k: (v if not isinstance(v[0], float) else [round(v[0], 2), round(v[1], 2)]) for k, v in self.stats.items()},
                 "joueurs": joueurs, "evenements": self.evenements, "trace": self.trace,
@@ -1324,7 +1534,8 @@ def banc(jeu: sqlite3.Connection, saison: str, matchs: int, graine: int, minutes
             continue
         na = jeu.execute("SELECT nom FROM club WHERE team_id=?", (a,)).fetchone()[0]
         nb = jeu.execute("SELECT nom FROM club WHERE team_id=?", (b,)).fetchone()[0]
-        m = Match(sa, sb, formation, formation, graine=graine * 1000 + i, minutes=minutes, noms=(na, nb), trace=False)
+        m = Match(sa, sb, formation, formation, graine=graine * 1000 + i, minutes=minutes, noms=(na, nb), trace=False,
+                  collectif=(collectif_de(jeu, a, [j["pid"] for j in sa]), collectif_de(jeu, b, [j["pid"] for j in sb])))
         r = m.jouer()
         st = r["stats"]
         f = 90.0 / minutes
@@ -1381,8 +1592,9 @@ def main():
                                                  WHERE c.saison=? GROUP BY j.team_id HAVING COUNT(*) >= 14""", (a.saison,))]
             ta, tb = rs.sample(clubs, 2)
         noms = tuple(jeu.execute("SELECT nom FROM club WHERE team_id=?", (t,)).fetchone()[0] for t in (ta, tb))
-        m = Match(SO.onze_club(jeu, a.saison, ta, a.formation), SO.onze_club(jeu, a.saison, tb, a.formation),
-                  a.formation, a.formation, graine=a.graine, minutes=a.minutes, noms=noms)
+        sa, sb = SO.onze_club(jeu, a.saison, ta, a.formation), SO.onze_club(jeu, a.saison, tb, a.formation)
+        m = Match(sa, sb, a.formation, a.formation, graine=a.graine, minutes=a.minutes, noms=noms,
+                  collectif=(collectif_de(jeu, ta, [j["pid"] for j in sa]), collectif_de(jeu, tb, [j["pid"] for j in sb])))
         r = m.jouer()
         pathlib.Path(a.trace).write_text(json.dumps(r), encoding="utf-8")
         print(f"{noms[0]} {r['score'][0]} - {r['score'][1]} {noms[1]} · tirs {r['stats']['tirs']} · xG {r['stats']['xg']} "

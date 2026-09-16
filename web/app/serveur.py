@@ -1225,19 +1225,29 @@ def bac_clubs(jeu=Depends(bd)):
 
 
 @app.get("/api/bac/match")
-def bac_match(a: int, b: int, graine: int = 1, minutes: int = 90, formation: str = "4-3-3", jeu=Depends(bd)):
+def bac_match(a: int, b: int, graine: int = 1, minutes: int = 90, formation: str = "4-3-3",
+              bloc_a: str = "median", tempo_a: str = "equilibre", risque_a: str = "equilibre",
+              bloc_b: str = "median", tempo_b: str = "equilibre", risque_b: str = "equilibre",
+              collectif_a: float | None = None, collectif_b: float | None = None, jeu=Depends(bd)):
     from jeu import emergent as EM
     minutes = max(5, min(90, minutes))
     if formation not in S.FORMATIONS_RANGS:
         raise HTTPException(400, "Formation inconnue")
-    cle = f"{a}:{b}:{graine}:{minutes}:{formation}"
+    tacs = ({"bloc": bloc_a, "tempo": tempo_a, "risque": risque_a}, {"bloc": bloc_b, "tempo": tempo_b, "risque": risque_b})
+    for t in tacs:
+        if t["bloc"] not in SM.BLOC or t["tempo"] not in SM.TEMPO or t["risque"] not in SM.RISQUE:
+            raise HTTPException(400, "Tactique inconnue")
+    cle = f"{a}:{b}:{graine}:{minutes}:{formation}:{tacs}:{collectif_a}:{collectif_b}"
     if cle in _BAC:
         return _BAC[cle]
     sa, sb = SO.onze_club(jeu, SAISON, a, formation), SO.onze_club(jeu, SAISON, b, formation)
     if len(sa) < 11 or len(sb) < 11:
         raise HTTPException(400, "Un des deux clubs n'a pas onze cartes")
     noms = tuple((jeu.execute("SELECT nom FROM club WHERE team_id=?", (t,)).fetchone() or ["?"])[0] for t in (a, b))
-    res = EM.Match(sa, sb, formation, formation, graine=graine, minutes=minutes, noms=noms).jouer()
+    coll = (collectif_a if collectif_a is not None else EM.collectif_de(jeu, a, [j["pid"] for j in sa]),
+            collectif_b if collectif_b is not None else EM.collectif_de(jeu, b, [j["pid"] for j in sb]))
+    res = EM.Match(sa, sb, formation, formation, graine=graine, minutes=minutes, noms=noms,
+                   tactiques=tacs, collectif=(max(0.0, min(1.0, coll[0])), max(0.0, min(1.0, coll[1])))).jouer()
     if len(_BAC) >= 6:
         _BAC.pop(next(iter(_BAC)))
     _BAC[cle] = res

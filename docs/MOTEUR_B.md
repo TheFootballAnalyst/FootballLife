@@ -36,16 +36,16 @@ pointe médiane 31,8 km/h, 190 m de sprint, 9 sprints).
 
     py -m jeu.emergent --jeu jeu/demo.sqlite --matchs 8 --graine 11
 
-État après le premier retour à l'œil (8 matchs, graine 11) :
+État après le second retour à l'œil (8 matchs, graine 11) :
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 5,3 | 2,8 | trop : les occasions sont trop belles et trop cadrées |
-| tirs | 34 | 25 | trop, depuis que les passes arrivent |
-| tirs cadrés | 19 | 8,5 | trop précis |
-| passes | 1 323 | 900 | possessions encore trop courtes (65 min de jeu effectif, réel 57) |
+| buts | 3,5 | 2,8 | proche |
+| tirs | 31,5 | 25 | un peu trop : l'occasion se prend vite |
+| tirs cadrés | 15 | 8,5 | trop précis |
+| passes | 1 355 | 900 | possessions encore trop courtes (65 min de jeu effectif, réel 57) |
 | réussite des passes | 79 % | 83 % | proche, depuis que les ballons longs retombent sur le receveur |
-| corners | 1,6 | 10 | pas assez de déviations et de dégagements |
+| corners | 1,4 | 10 | pas assez de déviations et de dégagements |
 | fautes | 26 | 22 | proche |
 | hors-jeu | 0,8 | 3,5 | les appels restent trop sages |
 | distance par joueur | 13,0 km | 10,5 km | on court trop pour se replacer |
@@ -69,6 +69,51 @@ grandeur réels.
 Ce tableau est la feuille de route : chaque ligne hors cible a un réglage
 nommé dans `jeu/emergent.py`. On règle une ligne, on rejoue huit matchs,
 on regarde si les autres ont bougé.
+
+## La tactique, le collectif, le travail sans ballon
+
+**La tactique** d'un camp (les mêmes mots que le jeu : bloc haut/médian/bas,
+tempo possession/équilibre/direct, risque offensif/équilibre/prudent,
+et les consignes par ligne) se règle dans le bac, équipe par équipe, et
+se voit. Bloc haut : la défense se tient six mètres derrière le ballon,
+jusqu'au milieu adverse, et dans le camp adverse les deux joueurs qui
+suivent le presseur prennent chacun un homme au contact — le pressing
+en un pour un. Bloc bas : seize mètres derrière, jamais au-delà de sa
+propre moitié, on contient à trois mètres tant que le ballon est loin.
+Tempo possession : on garde le ballon plus longtemps et on passe court ;
+direct : on lâche vite et la longue coûte moins. Risque offensif : plus
+d'appels dans le dos. Latéraux « bas » : ils ne montent pas ; ailiers
+« intérieur » : ils rentrent ; milieux « projection » : la ligne monte.
+
+**Le collectif** (`jeu/collectif_manuel.json`, sinon mesuré) : de 0, une
+somme d'individualités, à 1, un onze qui combine les yeux fermés. Mesuré
+sur la saison, c'est la part des matchs du club que chaque paire a
+commencés ensemble (une habitude, pas un style : PSG tourne beaucoup et
+ressort à 0,26, Liverpool à 0,85) ; le fichier manuel tranche quand le
+manager sait mieux (PSG 0,95, Real 0,35 pour commencer). Ce qu'il
+change : le bruit des décisions (un collectif rodé sait ce que l'autre
+va faire), la distance des soutiens (plus près), le troisième homme qui
+part sur une passe vers l'avant, la permutation latéral-ailier quand le
+latéral a dépassé son ailier, et le goût de la conduite balle au pied
+(une somme d'individualités dribble plus qu'elle ne combine).
+
+**Le travail sans ballon** (le *work rate* d'EA) : lu dans la fiche
+physique quand elle a les colonnes `work_rate_att` et `work_rate_def`
+(Low / Medium / High, ou une seule colonne `work_rate` « High/ Medium »),
+sinon deviné sur les attributs (un attaquant qui défend bien revient, un
+latéral qui crée bien monte). Un attaquant à travail défensif haut
+redescend dix mètres de plus quand son camp n'a pas le ballon ; un
+latéral à travail offensif haut monte seize mètres de plus quand il l'a.
+
+**La ligne tient.** Un défenseur qui suit un homme ne descend jamais
+sous sa ligne (sauf dans sa surface) : le hors-jeu se joue en ligne, plus
+personne ne remet les attaquants en jeu depuis derrière. Un central ne
+part pas presser ou chasser un ballon à plus de vingt-deux mètres de sa
+ligne si un milieu peut y aller.
+
+**L'occasion se prend.** Dans les trente derniers mètres le porteur
+décide plus vite, et une frappe vaut plus quand rien ne bouche l'axe ;
+l'homme libre près du but vaut plus qu'un soutien couvert.
 
 ## Ce qu'il y a dedans
 

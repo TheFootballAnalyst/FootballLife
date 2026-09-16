@@ -1,0 +1,5 @@
+{
+  "_note": "Le collectif d'un club, de 0 (une somme d'individualites) a 1 (un onze qui combine les yeux fermes), par nom de club ou team_id. Sans ligne ici, le jeu mesure l'habitude sur la saison (jeu/emergent.py, cohesion). Ce que le collectif change dans le moteur B : le bruit des decisions, la distance des soutiens, le troisieme homme qui part sur une passe, les permutations lateral-ailier, et le gout de la conduite balle au pied.",
+  "Paris Saint-Germain": 0.95,
+  "Real Madrid": 0.35
+}

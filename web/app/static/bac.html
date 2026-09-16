@@ -44,6 +44,8 @@ tr.a td:first-child{color:#7cb3ff}tr.b td:first-child{color:#ff8f8f}
 .stat b{display:block;font-family:Anton,sans-serif;font-weight:400;font-size:18px}
 .stat span{font-family:"Barlow Condensed",sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--sourd)}
 .attente{color:var(--or)}
+.tactiques .lg{font-family:Anton,sans-serif;font-size:18px;padding:0 4px 4px}
+.tactiques .lg.a{color:#7cb3ff}.tactiques .lg.b{color:#ff8f8f}
 </style>
 </head>
 <body>
@@ -57,6 +59,18 @@ tr.a td:first-child{color:#7cb3ff}tr.b td:first-child{color:#ff8f8f}
   <label>Graine <input id="graine" type="number" value="1" min="1" style="width:80px"></label>
   <button class="primaire" id="jouer">Jouer le match</button>
   <span id="etat" class="attente"></span>
+</div>
+<div class="barre tactiques">
+  <span class="lg a">A</span>
+  <label>Bloc <select id="bloc-a"><option value="haut">haut</option><option value="median" selected>médian</option><option value="bas">bas</option></select></label>
+  <label>Tempo <select id="tempo-a"><option value="possession">possession</option><option value="equilibre" selected>équilibre</option><option value="direct">direct</option></select></label>
+  <label>Risque <select id="risque-a"><option value="offensif">offensif</option><option value="equilibre" selected>équilibre</option><option value="prudent">prudent</option></select></label>
+  <label>Collectif <input id="coll-a" type="number" min="0" max="1" step="0.05" placeholder="auto" style="width:70px"></label>
+  <span class="lg b">B</span>
+  <label>Bloc <select id="bloc-b"><option value="haut">haut</option><option value="median" selected>médian</option><option value="bas">bas</option></select></label>
+  <label>Tempo <select id="tempo-b"><option value="possession">possession</option><option value="equilibre" selected>équilibre</option><option value="direct">direct</option></select></label>
+  <label>Risque <select id="risque-b"><option value="offensif">offensif</option><option value="equilibre" selected>équilibre</option><option value="prudent">prudent</option></select></label>
+  <label>Collectif <input id="coll-b" type="number" min="0" max="1" step="0.05" placeholder="auto" style="width:70px"></label>
 </div>
 <div class="scene">
   <div>
