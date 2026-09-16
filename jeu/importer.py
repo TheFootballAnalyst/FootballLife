@@ -637,6 +637,97 @@ def defauts_physique(jeu: sqlite3.Connection) -> int:
     return n
 
 
+TRAVAIL_SANS_BALLON = MOTEUR / "travail_sans_ballon.csv"
+
+
+def importer_travail(jeu: sqlite3.Connection, fichier: pathlib.Path | None = None) -> int:
+    """Le travail sans ballon, en trois leviers (moteur/travail_sans_ballon.csv,
+    mesures FotMob de Ligue des champions, estimé EA ailleurs) :
+
+      volume    la course par 90 minutes         -> la baisse de régime
+      pressing  les sprints répétés vers le porteur -> qui va au contact, et quand
+      recup     les ballons gagnés                  -> le duel
+
+    Les scores de la fiche sont des rangs TOUS POSTES CONFONDUS : un
+    central y court peu et un milieu y récupère beaucoup, par construction.
+    Ce que le moteur veut, c'est le joueur comparé à SON poste — un buteur
+    qui récupère beaucoup pour un buteur, un central qui court beaucoup
+    pour un central (un latéral court bien plus).  On reclasse donc
+    chaque score en rang (0 à 1) parmi les joueurs du même poste de base,
+    et on garde le brut à côté.  Écrit dans joueur.physique : volume, pressing, recup,
+    travail_src ("mesure" ou "estime"), relentless, styles."""
+    fichier = fichier or TRAVAIL_SANS_BALLON
+    if not fichier.exists():
+        return 0
+    lignes = []
+    with fichier.open(encoding="utf-8-sig", newline="") as f:
+        for r in csv.DictReader(f):
+            try:
+                pid = int(r["fotmob_id"])
+            except (KeyError, ValueError):
+                continue
+            lignes.append((pid, r))
+    joueurs = {pid: (poste, physique) for pid, poste, physique in jeu.execute("SELECT player_id, poste, physique FROM joueur")}
+    def num(v):
+        try:
+            return float(v) if v not in (None, "") else None
+        except ValueError:
+            return None
+    # le rang dans la famille
+    par_fam: dict[str, dict[str, list[float]]] = {}
+    for pid, r in lignes:
+        if pid not in joueurs:
+            continue
+        fam = S.poste_base(joueurs[pid][0] or "Milieu relayeur")
+        for cle, col in (("volume", "score_volume"), ("pressing", "score_pressing"), ("recup", "score_recuperation")):
+            v = num(r.get(col))
+            if v is not None:
+                par_fam.setdefault(fam, {}).setdefault(cle, []).append(v)
+    for d in par_fam.values():
+        for cle in d:
+            d[cle].sort()
+    def rang(fam, cle, v):
+        vals = par_fam.get(fam, {}).get(cle) or []
+        if not vals or v is None:
+            return None
+        import bisect
+        return round(bisect.bisect_left(vals, v) / max(1, len(vals) - 1), 3) if len(vals) > 1 else 0.5
+    n = 0
+    for pid, r in lignes:
+        if pid not in joueurs:
+            continue
+        poste, brut = joueurs[pid]
+        fam = S.poste_base(poste or "Milieu relayeur")
+        try:
+            ph = json.loads(brut) if brut else {}
+        except (TypeError, ValueError):
+            ph = {}
+        maj = {}
+        for cle, col in (("volume", "score_volume"), ("pressing", "score_pressing"), ("recup", "score_recuperation")):
+            v = num(r.get(col))
+            rg = rang(fam, cle, v)
+            if rg is not None:
+                maj[cle] = rg
+                maj[cle + "_brut"] = v
+        if not maj:
+            continue
+        maj["travail_src"] = "mesure" if (r.get("source") or "").startswith("mesure") else "estime"
+        maj["relentless"] = (r.get("relentless") or "").strip().lower() == "oui"
+        styles = [x.strip() for x in (r.get("styles_ea") or "").split("|") if x.strip()]
+        if styles:
+            maj["styles"] = styles
+        d90, s90 = num(r.get("distance_90_reelle")), num(r.get("sprints_90_reels"))
+        if d90 is not None:
+            maj["dist90"] = round(d90)
+        if s90 is not None:
+            maj["sprints90"] = s90
+        ph.update(maj)
+        jeu.execute("UPDATE joueur SET physique=? WHERE player_id=?", (json.dumps(ph), pid))
+        n += 1
+    jeu.commit()
+    return n
+
+
 def importer_physique(jeu: sqlite3.Connection, fichier=None, quand: date | None = None,
                       defauts: bool = True, inverse: bool = False) -> int:
     """joueur.{pied, pied_faible, naissance, age, cote, physique} depuis la
@@ -717,6 +808,7 @@ def importer_physique(jeu: sqlite3.Connection, fichier=None, quand: date | None 
     jeu.commit()
     if defauts:
         defauts_physique(jeu)
+    importer_travail(jeu)
     return n
 
 

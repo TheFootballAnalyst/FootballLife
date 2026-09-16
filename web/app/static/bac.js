@@ -70,10 +70,10 @@ function charger(res) {
   // les joueurs
   const J = $("#joueurs"); J.replaceChildren();
   const t = document.createElement("table");
-  t.innerHTML = "<tr><th>Joueur</th><th>km</th><th>sprint</th><th>pointe</th><th>EA</th><th>touches</th><th>passes</th><th>tirs</th></tr>";
+  t.innerHTML = "<tr><th>Joueur</th><th>km</th><th>sprint</th><th>pointe</th><th>EA</th><th title='volume · pressing · récupération, rang dans son poste'>V·P·R</th><th>touches</th><th>passes</th><th>tirs</th></tr>";
   for (const j of res.joueurs) {
     const tr = document.createElement("tr"); tr.className = j.camp === 0 ? "a" : "b";
-    tr.innerHTML = `<td>${j.nom.split(" ").slice(-1)[0]} <small>${j.poste.split(" ")[0]}</small></td><td>${(j.distance / 1000).toFixed(1)}</td><td>${j.sprint}</td><td>${j.vmax_kmh}</td><td>${j.vmax_ea ?? "—"}</td><td>${j.touches}</td><td>${j.passes_ok}/${j.passes}</td><td>${j.buts ? j.buts + "⚽ " : ""}${j.cadres}/${j.tirs}</td>`;
+    tr.innerHTML = `<td>${j.nom.split(" ").slice(-1)[0]} <small>${j.poste.split(" ")[0]}</small></td><td>${(j.distance / 1000).toFixed(1)}</td><td>${j.sprint}</td><td>${j.vmax_kmh}</td><td>${j.vmax_ea ?? "—"}</td><td>${j.travail ? j.travail.map(v => Math.round(v * 9)).join("") : "—"}</td><td>${j.touches}</td><td>${j.passes_ok}/${j.passes}</td><td>${j.buts ? j.buts + "⚽ " : ""}${j.cadres}/${j.tirs}</td>`;
     t.append(tr);
   }
   J.append(t);

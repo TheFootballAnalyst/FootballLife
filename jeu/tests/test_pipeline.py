@@ -514,3 +514,29 @@ def test_two_sheets_exclusions_and_the_median_profile_of_the_position(tmp_path, 
     # a second pass replaces defaults, never a real row
     assert I.importer_physique(jeu, quand=date(2026, 3, 12)) == 3
     assert json.loads(jeu.execute("SELECT physique FROM joueur WHERE player_id=11").fetchone()[0])["acceleration"] == 95
+
+
+def test_the_off_ball_work_is_ranked_within_the_line(tmp_path):
+    jeu = base()
+    fichier = tmp_path / "travail.csv"
+    fichier.write_text(
+        "fotmob_id,nom_fotmob,volume_course,score_volume,pressing,score_pressing,recuperation,score_recuperation,distance_90_reelle,sprints_90_reels,source,relentless,styles_ea\n"
+        "2,J2,Bas,0.10,Bas,0.20,Bas,0.30,9000,6,mesure FotMob,,Aerial Fortress|Intercept\n"      # a centre-back
+        "3,J3,Bas,0.30,Bas,0.10,Moyen,0.50,9500,7,mesure FotMob,oui,\n"                        # the other one
+        "10,J10,Moyen,0.55,Haut,0.80,Bas,0.05,,,estime EA,,Rapid\n"                           # a striker
+        "15,J15,Bas,0.20,Haut,0.90,Bas,0.02,,,estime EA,,\n",                                  # the other striker
+        encoding="utf-8")
+    assert I.importer_travail(jeu, fichier) == 4
+    j2 = json.loads(jeu.execute("SELECT physique FROM joueur WHERE player_id=2").fetchone()[0])
+    j3 = json.loads(jeu.execute("SELECT physique FROM joueur WHERE player_id=3").fetchone()[0])
+    # the two centre-backs are ranked against each other, not against the strikers
+    assert j2["volume"] == 0.0 and j3["volume"] == 1.0
+    assert j2["pressing"] == 1.0 and j3["pressing"] == 0.0
+    assert j2["travail_src"] == "mesure" and j3["relentless"] is True and j2["styles"] == ["Aerial Fortress", "Intercept"]
+    assert j2["dist90"] == 9000 and j2["sprints90"] == 6
+    j10 = json.loads(jeu.execute("SELECT physique FROM joueur WHERE player_id=10").fetchone()[0])
+    assert j10["recup"] == 1.0 and j10["travail_src"] == "estime"        # the better recovering striker
+    # the engine reads them
+    from jeu import emergent as EM
+    jo = EM.joueurs_de([{"pid": 2, "nom": "J2", "poste": "Defenseur central", "fam": "DEF", "attributs": {}, "physique": j2}], 0, "4-3-3")[0]
+    assert (jo.volume, jo.pressing, jo.recup) == (0.0, 1.0, 0.0)

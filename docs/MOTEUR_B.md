@@ -105,6 +105,18 @@ latéral qui crée bien monte). Un attaquant à travail défensif haut
 redescend dix mètres de plus quand son camp n'a pas le ballon ; un
 latéral à travail offensif haut monte seize mètres de plus quand il l'a.
 
+**Le travail sans ballon en trois leviers** (`moteur/travail_sans_ballon.csv`,
+mesures FotMob de Ligue des champions pour 544 joueurs, estimé EA pour
+les autres — la colonne `source` le dit). Le volume de course pilote la
+baisse de régime, le pressing pilote qui va au contact et à quelle
+distance il contient, la récupération pilote le duel. La fiche donne des
+rangs tous postes confondus, ce qui fait de tout central un joueur qui
+court peu et de tout milieu un récupérateur ; l'import reclasse chaque
+score parmi les joueurs du même poste, de 0 à 1, et le moteur lit ce
+rang. Dembélé : volume moyen, pressing 0,9, récupération 0,03 — il court
+normalement, presse très fort, ne ramasse pas. Rodri est l'inverse.
+Dans le bac, la colonne V·P·R de chaque joueur les donne sur 9.
+
 **La ligne tient.** Un défenseur qui suit un homme ne descend jamais
 sous sa ligne (sauf dans sa surface) : le hors-jeu se joue en ligne, plus
 personne ne remet les attaquants en jeu depuis derrière. Un central ne

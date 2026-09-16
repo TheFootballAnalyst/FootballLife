@@ -112,6 +112,9 @@ class Joueur:
     dernier_contact: float = -10.0
     travail_def: float = 0.5
     travail_att: float = 0.5
+    volume: float = 0.5                       # la course par 90 (rang dans sa ligne)
+    pressing: float = 0.5                     # les sprints vers le porteur (rang dans sa ligne)
+    recup: float = 0.5                        # les ballons gagnés (rang dans sa ligne)
     appel_jusqua: float = -1.0                # une course lancée par la passe d'un coéquipier
     # stats
     distance: float = 0.0
@@ -187,6 +190,13 @@ def joueurs_de(sur: list[dict], camp: int, formation: str) -> list[Joueur]:
                     home=(px * LONG, py * LARG), vmax=vitesse_max(vit), amax=acceleration_max(acc),
                     endurance_ea=float(ph.get("end", ph.get("endurance", 70)) or 70))
         jo.travail_def, jo.travail_att = travail_de(j, "def"), travail_de(j, "att")
+        # les trois leviers du travail sans ballon, quand la fiche les a
+        jo.volume = float(ph.get("volume", 0.5) if ph.get("volume") is not None else 0.5)
+        jo.pressing = float(ph.get("pressing", 0.5) if ph.get("pressing") is not None else 0.5)
+        jo.recup = float(ph.get("recup", 0.5) if ph.get("recup") is not None else 0.5)
+        if ph.get("pressing") is not None and (j.get("physique") or {}).get("wr_def") not in TRAVAIL:
+            # revenir défendre, c'est presser et courir : la mesure remplace la devinette
+            jo.travail_def = 0.6 * jo.pressing + 0.4 * jo.volume
         if jo.gk:
             jo.vmax = min(jo.vmax, 8.0)
         out.append(jo)
@@ -737,7 +747,9 @@ class Match:
         siens = [j for j in self.actifs(df) if not j.gk]
         if not siens:
             return
-        tri = sorted(siens, key=lambda j: math.hypot(j.x - bx, j.y - by))
+        # le plus proche va au contact, mais un presseur né part de plus loin
+        # qu'un joueur qui n'aime pas ça : la distance se lit à travers l'envie
+        tri = sorted(siens, key=lambda j: math.hypot(j.x - bx, j.y - by) / (0.65 + 0.7 * j.pressing))
         tac = self.tac[df]
         bxp0 = bx if df == 0 else LONG - bx        # le ballon, vu de la défense
         # un central ne part pas presser à trente mètres de sa ligne : le
@@ -753,6 +765,7 @@ class Match:
         # un bloc bas contient à trois mètres tant que le ballon est loin ;
         # un bloc haut va au contact partout
         contient = 0.0 if b.porteur is None else {"haut": 1.0, "median": 1.3, "bas": 3.0 if bxp0 > 45 else 1.5}[tac["bloc"]]
+        contient *= 1.3 - 0.6 * p.pressing       # un presseur né colle, un autre contient
         p.cible = (bx + b.vx * 0.4 + dx / n * contient, by + b.vy * 0.4 + dy / n * contient)
         p.role = "presse"
         tri = [p] + [j for j in tri if j is not p]
@@ -1167,7 +1180,7 @@ class Match:
                 j.sprint += pas
             j.vmax_vue = max(j.vmax_vue, v)
             # l'usure : courir vite coûte, plus à qui a peu d'endurance
-            cout = (0.00006 + 0.0011 * (v / 9.0) ** 3) * (1.0 + (70.0 - j.endurance_ea) / 100.0)
+            cout = (0.00006 + 0.0011 * (v / 9.0) ** 3) * (1.0 + (70.0 - j.endurance_ea) / 100.0) * (1.25 - 0.5 * j.volume)
             j.fatigue = min(1.0, j.fatigue + cout * DT)
             # le porteur emmène le ballon
             if b.porteur is j:
@@ -1385,7 +1398,7 @@ class Match:
             # la chance de prendre le ballon : défense contre dribble, et la force
             force_o = (o.physique.get("for", 68) or 68) / 99
             force_p = (p.physique.get("for", 68) or 68) / 99
-            p_gagne = 0.30 + 0.35 * (o.attr("DEF") - p.attr("DRI")) / 99 + 0.15 * (force_o - force_p)
+            p_gagne = 0.30 + 0.35 * (o.attr("DEF") - p.attr("DRI")) / 99 + 0.15 * (force_o - force_p) + 0.16 * (o.recup - 0.5)
             p_gagne = max(0.08, min(0.75, p_gagne)) * DT * 1.4   # par pas de temps : un duel se joue sur quelques secondes
             r = self.rs.random()
             if r >= p_gagne and self.rs.random() < 0.012:
@@ -1497,7 +1510,8 @@ class Match:
                             "vmax_ea": j.physique.get("vit"), "touches": j.touches, "passes": j.passes, "passes_ok": j.passes_ok,
                             "tirs": j.tirs, "cadres": j.tirs_cadres, "buts": j.buts, "tacles": j.tacles,
                             "interceptions": j.interceptions, "fautes": j.fautes, "arrets": j.arrets,
-                            "fatigue": round(j.fatigue, 2), "exclu": j.pid in self.exclus})
+                            "fatigue": round(j.fatigue, 2), "exclu": j.pid in self.exclus,
+                            "travail": [round(j.volume, 2), round(j.pressing, 2), round(j.recup, 2)]})
         return {"score": list(self.score), "noms": list(self.noms), "minutes": round(self.duree / 60),
                 "collectif": list(self.collectif), "tactiques": [dict(t) for t in self.tac],
                 "possession": [round(self.possession[0] / tot, 3), round(self.possession[1] / tot, 3)],
