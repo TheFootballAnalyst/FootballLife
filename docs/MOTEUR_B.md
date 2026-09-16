@@ -36,24 +36,35 @@ pointe médiane 31,8 km/h, 190 m de sprint, 9 sprints).
 
     py -m jeu.emergent --jeu jeu/demo.sqlite --matchs 8 --graine 11
 
-État au premier jet (8 matchs, graine 11) :
+État après le premier retour à l'œil (8 matchs, graine 11) :
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 3,9 | 2,8 | un peu trop : les occasions sont trop belles |
-| tirs | 25,5 | 25 | juste |
-| tirs cadrés | 12,9 | 8,5 | trop précis de loin |
-| passes | 1 177 | 900 | trop de ballon en jeu, possessions trop courtes |
-| réussite des passes | 67 % | 83 % | trop d'interceptions et de ballons perdus en touche |
-| corners | 3,4 | 10 | pas assez de déviations et de dégagements |
-| fautes | 27 | 22 | proche |
-| hors-jeu | 1,6 | 3,5 | les appels restent trop sages |
-| distance par joueur | 12,6 km | 10,5 km | on court trop pour se replacer |
-| pointe médiane | 32,0 km/h | 31,8 km/h | juste (corrélation 0,99 avec la note EA) |
-| sprint par joueur | 223 m | 190 m | proche |
+| buts | 5,3 | 2,8 | trop : les occasions sont trop belles et trop cadrées |
+| tirs | 34 | 25 | trop, depuis que les passes arrivent |
+| tirs cadrés | 19 | 8,5 | trop précis |
+| passes | 1 323 | 900 | possessions encore trop courtes (65 min de jeu effectif, réel 57) |
+| réussite des passes | 79 % | 83 % | proche, depuis que les ballons longs retombent sur le receveur |
+| corners | 1,6 | 10 | pas assez de déviations et de dégagements |
+| fautes | 26 | 22 | proche |
+| hors-jeu | 0,8 | 3,5 | les appels restent trop sages |
+| distance par joueur | 13,0 km | 10,5 km | on court trop pour se replacer |
+| pointe médiane | 31,8 km/h | 31,8 km/h | juste (corrélation 0,97 avec la note EA) |
+| sprint par joueur | 178 m | 190 m | juste |
 | possession du dominant | 52 % | 58 % | les matchs sont trop équilibrés |
-| tacles | 49 | 32 | les duels se gagnent trop vite |
-| cartons jaunes | 6,8 | 4 | trop |
+| tacles | 39 | 32 | proche |
+| cartons jaunes | 5,4 | 4 | un peu trop |
+
+Ce que l'œil a corrigé avant les chiffres : les arrêts de jeu vivent (le
+tireur marche au ballon, les autres prennent la forme de la reprise au
+pas, plus personne n'est téléporté — sauf à la mi-temps) ; deux
+coéquipiers ne visent jamais le même mètre carré (`_espacer`, huit
+mètres) ; un défenseur par attaquant, à un mètre et demi dans sa surface
+et à quatre mètres ailleurs ; les soutiens à quatorze mètres ; les
+allures de replacement suivent la vitesse de chacun. Mesuré sur une
+trace (`scratchpad/diag.py`) : plus proche voisin médian 5,9 m contre
+4,8 avant, blocs de 34 m de long sur 40 m de large, dans les ordres de
+grandeur réels.
 
 Ce tableau est la feuille de route : chaque ligne hors cible a un réglage
 nommé dans `jeu/emergent.py`. On règle une ligne, on rejoue huit matchs,

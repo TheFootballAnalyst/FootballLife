@@ -107,7 +107,7 @@ function dessiner() {
   const t = f[0] / 10;
   // les joueurs
   for (let j = 0; j < 22; j++) {
-    const x = f[4 + j * 2] / 10, y = f[5 + j * 2] / 10;
+    const x = f[5 + j * 2] / 10, y = f[6 + j * 2] / 10;
     const jo = BAC.res.joueurs[j];
     ctx.beginPath(); ctx.arc(sx(x), sy(y), 9, 0, Math.PI * 2);
     ctx.fillStyle = jo.camp === 0 ? "#1F6FD1" : "#C62E2E"; ctx.fill();
@@ -131,6 +131,15 @@ function boucle(now) {
   if (BAC.res && BAC.joue) {
     const dt = (now - BAC.derniere) / 1000;
     BAC.i += dt * BAC.vitesse / BAC.res.trace_pas;
+    // les temps morts (touche, coup franc, célébration) se sautent : on
+    // avance jusqu'aux deux dernières secondes de l'arrêt
+    if ($("#sauter").checked) {
+      const tr = BAC.res.trace; let k = Math.floor(BAC.i);
+      if (tr[k] && tr[k][4] === 1) {
+        let fin = k; while (fin < tr.length - 1 && tr[fin][4] === 1) fin++;
+        if (fin - k > 5) BAC.i = fin - 5;
+      }
+    }
     if (BAC.i >= BAC.res.trace.length - 1) { BAC.i = BAC.res.trace.length - 1; BAC.joue = false; $("#lecture").textContent = "▶"; }
     dessiner();
   }

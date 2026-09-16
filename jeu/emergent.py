@@ -314,8 +314,9 @@ class Match:
             j.x, j.y = j.absolu(xp, yp)
             j.vx = j.vy = 0.0
 
-    def _engagement(self, camp: int):
-        self._replacer(engagement=True)
+    def _engagement(self, camp: int, immediat: bool = False):
+        if immediat or self.t == 0.0:
+            self._replacer(engagement=True)
         b = self.ballon
         b.x, b.y, b.z = LONG / 2, LARG / 2, 0.0
         b.vx = b.vy = b.vz = 0.0
@@ -323,20 +324,34 @@ class Match:
         b.passe_vers = None
         tireur = min((j for j in self.actifs(camp) if j.fam in ("FWD", "MID")),
                      key=lambda j: math.hypot(j.x - b.x, j.y - b.y), default=None)
-        if tireur:
+        if tireur and (immediat or self.t == 0.0):
             tireur.x, tireur.y = LONG / 2 - 0.6 * tireur.sens(), LARG / 2
-        self.arret = {"k": "engagement", "t": self.t, "camp": camp, "x": b.x, "y": b.y,
-                      "delai": 45.0 if self.evenements and self.evenements[-1]["k"] == "but" else 3.0}
+        self.arret = {"k": "engagement", "t": self.t, "camp": camp, "x": b.x, "y": b.y, "tireur": tireur,
+                      "delai": 40.0 if self.evenements and self.evenements[-1]["k"] == "but" else 3.0}
 
     def _arret(self, k: str, camp: int, x: float, y: float, delai: float):
-        """Un arrêt de jeu : le ballon est posé, le camp reprend après `delai`."""
+        """Un arrêt de jeu : le ballon est posé, le camp reprend après `delai`.
+        Le tireur est choisi tout de suite et MARCHE au ballon ; personne
+        n'est téléporté."""
         b = self.ballon
         b.x, b.y, b.z = x, y, 0.0
         b.vx = b.vy = b.vz = 0.0
         b.porteur = None
         b.passe_vers = None
         b.t_kick = self.t
-        self.arret = {"k": k, "t": self.t, "camp": camp, "x": x, "y": y, "delai": delai}
+        self.dernier_tir = None
+        tireur = None
+        if k == "penalty":
+            tireur = max((j for j in self.actifs(camp) if not j.gk), key=lambda j: j.attr("FIN"), default=None)
+        elif k == "corner":
+            tireur = max((j for j in self.actifs(camp) if not j.gk), key=lambda j: j.attr("CRE"), default=None)
+        elif k == "sortie_but":
+            tireur = next((j for j in self.actifs(camp) if j.gk), None)
+        elif k == "relance":
+            tireur = next((j for j in self.actifs(camp) if j.gk), None)
+        if tireur is None:
+            tireur, _ = self.plus_proche(camp, x, y, gk=(k == "sortie_but"))
+        self.arret = {"k": k, "t": self.t, "camp": camp, "x": x, "y": y, "delai": delai, "tireur": tireur}
 
     def _reprise(self):
         """Le coup de pied de reprise : qui tire, et quoi."""
@@ -354,32 +369,27 @@ class Match:
                 if cible:
                     self._passer(j, cible, courte=True)
             return
+        tireur = a.get("tireur")
+        if tireur is not None and tireur.pid in self.exclus:
+            tireur = None
         if k == "penalty":
-            tireur = max((x for x in self.actifs(camp) if not x.gk), key=lambda x: x.attr("FIN"))
-            tireur.x, tireur.y = b.x - 1.0 * tireur.sens(), b.y
+            tireur = tireur or max((x for x in self.actifs(camp) if not x.gk), key=lambda x: x.attr("FIN"))
             self._frapper(tireur, penalty=True)
             return
         if k == "corner":
-            tireur = max((x for x in self.actifs(camp) if not x.gk), key=lambda x: x.attr("CRE"))
-            tireur.x, tireur.y = b.x, b.y
+            tireur = tireur or max((x for x in self.actifs(camp) if not x.gk), key=lambda x: x.attr("CRE"))
             self._centrer(tireur)
             return
-        # coup franc, sortie de but, touche : le plus proche joue court, ou long si pressé
-        j, _ = self.plus_proche(camp, b.x, b.y)
-        if k == "sortie_but":
-            j = next((x for x in self.actifs(camp) if x.gk), j)
+        # coup franc, sortie de but, touche : le tireur joue court, ou long si pressé
+        j = tireur or self.plus_proche(camp, b.x, b.y)[0]
         if j is None:
             return
-        j.x, j.y = b.x - 0.8 * j.sens(), b.y
         b.porteur = j
         j.dernier_contact = self.t
         # dans les 30 m : on peut frapper
         bx, by = self.but_de(camp)
         if k == "coup_franc" and math.hypot(bx - b.x, by - b.y) < 26 and self.rs.random() < 0.35:
-            tireur = max((x for x in self.actifs(camp) if not x.gk), key=lambda x: x.attr("FIN"))
-            tireur.x, tireur.y = j.x, j.y
-            b.porteur = tireur
-            self._frapper(tireur, coup_franc=True)
+            self._frapper(j, coup_franc=True)
             return
         self._decider_porteur(j, force=True)
 
@@ -397,13 +407,31 @@ class Match:
         if self.periode == 1 and self.t >= self.mi_temps:
             self.periode = 2
             self.evt("mi_temps", score=list(self.score))
-            self._engagement(1 - self.camp_engagement)
+            self._engagement(1 - self.camp_engagement, immediat=True)
         decision = self.pas % DECISION == 0
         if decision:
             self._distances()
         b = self.ballon
         if self.arret:
-            if self.t - self.arret["t"] >= self.arret["delai"]:
+            a = self.arret
+            tireur = a.get("tireur")
+            if decision:
+                # tout le monde prend la forme de la reprise, au pas ; le tireur va au ballon
+                if a["k"] == "engagement":
+                    for j in self.joueurs:
+                        xp, yp = j.home
+                        j.cible = j.absolu(min(xp, LONG / 2 - 1.0), yp)
+                        j.role = "forme"
+                else:
+                    for camp in (0, 1):
+                        self._forme(camp, a["camp"])
+                    self._gardiens(a["camp"])
+                    self._espacer()
+                if tireur is not None and tireur.pid not in self.exclus:
+                    tireur.cible = (b.x - 0.7 * tireur.sens(), b.y)
+                    tireur.role = "porteur"
+            pret = tireur is None or math.hypot(tireur.x - b.x, tireur.y - b.y) < 1.6
+            if self.t - a["t"] >= a["delai"] and pret:
                 self._reprise()
             self._bouger_joueurs(decision, gel=True)
         else:
@@ -416,7 +444,7 @@ class Match:
         if b.porteur is not None:
             self.possession[b.porteur.camp] += DT
         if self.trace is not None and self.pas % TRACE_PAS == 0:
-            self.trace.append([int(round(self.t * 10)), int(round(b.x * 10)), int(round(b.y * 10)), int(round(b.z * 10))]
+            self.trace.append([int(round(self.t * 10)), int(round(b.x * 10)), int(round(b.y * 10)), int(round(b.z * 10)), 1 if self.arret else 0]
                               + [v for j in self.joueurs for v in (int(round(j.x * 10)), int(round(j.y * 10)))])
 
     # -- les décisions -------------------------------------------------------------
@@ -433,6 +461,7 @@ class Match:
         self._roles_defense(1 - att)
         self._ballon_libre()
         self._gardiens(att)
+        self._espacer()
 
     def _forme(self, camp: int, att: int):
         b = self.ballon
@@ -490,8 +519,8 @@ class Match:
             n = math.hypot(dx, dy) or 1.0
             ux, uy = dx / n, dy / n
             ca, sa = math.cos(ang), math.sin(ang)
-            s.cible = (max(2.0, min(LONG - 2.0, bx + 11.0 * (ux * ca - uy * sa))),
-                       max(2.0, min(LARG - 2.0, by + 11.0 * (ux * sa + uy * ca))))
+            s.cible = (max(2.0, min(LONG - 2.0, bx + 14.0 * (ux * ca - uy * sa))),
+                       max(2.0, min(LARG - 2.0, by + 14.0 * (ux * sa + uy * ca))))
             s.role = "soutien"
         # les appels : attaquants et ailiers, dans le dos, en restant en jeu
         sens = 1 if att == 0 else -1
@@ -510,6 +539,37 @@ class Match:
                 y = j.cible[1] + (gy - j.cible[1]) * 0.35
                 j.cible = (max(2.0, min(LONG - 2.0, x)), y)
                 j.role = "appel"
+
+    ESPACE = 8.0                                 # deux coéquipiers ne visent jamais le même mètre carré
+
+    def _espacer(self):
+        """Deux coéquipiers dont les cibles sont à moins de ESPACE mètres
+        s'écartent l'un de l'autre : un onze occupe le terrain, il ne
+        s'entasse pas autour du ballon.  Ceux qui vont au ballon (porteur,
+        receveur, presseur, chasseur) gardent leur cible."""
+        fixes = {"porteur", "receveur", "presse", "chasse", "gardien"}
+        for camp in (0, 1):
+            js = [j for j in self.actifs(camp) if not j.gk]
+            for _ in range(2):
+                for a in range(len(js)):
+                    ja = js[a]
+                    for c in range(a + 1, len(js)):
+                        jb = js[c]
+                        dx, dy = jb.cible[0] - ja.cible[0], jb.cible[1] - ja.cible[1]
+                        d = math.hypot(dx, dy)
+                        if d >= self.ESPACE:
+                            continue
+                        if d < 0.1:
+                            dx, dy, d = 1.0, 0.0, 1.0
+                        pousse = (self.ESPACE - d) / 2
+                        ux, uy = dx / d, dy / d
+                        fa, fb = ja.role not in fixes, jb.role not in fixes
+                        if not fa and not fb:
+                            continue
+                        ka = pousse * (2.0 if not fb else 1.0) if fa else 0.0
+                        kb = pousse * (2.0 if not fa else 1.0) if fb else 0.0
+                        ja.cible = (max(1.0, min(LONG - 1.0, ja.cible[0] - ux * ka)), max(1.0, min(LARG - 1.0, ja.cible[1] - uy * ka)))
+                        jb.cible = (max(1.0, min(LONG - 1.0, jb.cible[0] + ux * kb)), max(1.0, min(LARG - 1.0, jb.cible[1] + uy * kb)))
 
     def _ballon_libre(self):
         """Un ballon que personne ne tient : le plus proche de chaque camp
@@ -555,16 +615,26 @@ class Match:
             danger = min(cand, key=lambda j: math.hypot(j.x - gx, j.y - gy))
             tri[1].cible = ((bx + danger.x) / 2, (by + danger.y) / 2)
             tri[1].role = "coupe"
-        # les autres : marquage de zone — chacun glisse vers l'adversaire le
-        # plus proche de sa place s'il est à moins de douze mètres
+        # les autres : marquage de zone, UN défenseur par attaquant — chacun
+        # glisse vers l'adversaire libre le plus proche de sa place
+        pris: set[int] = set()
         for j in tri[2:]:
-            adv, d = self.plus_proche(att, j.cible[0], j.cible[1], gk=False)
-            if adv is not None and d < 15.0 and adv is not b.porteur:
-                # entre l'adversaire et son but, plus près de lui dans la surface
+            adv, d = None, 1e9
+            for o in self.actifs(att):
+                if o.gk or o is b.porteur or o.pid in pris:
+                    continue
+                dd = math.hypot(o.x - j.cible[0], o.y - j.cible[1])
+                if dd < d:
+                    adv, d = o, dd
+            if adv is not None and d < 15.0:
+                pris.add(adv.pid)
+                # entre l'adversaire et son but : à un mètre et demi dans sa
+                # surface, à quatre mètres au milieu du terrain (une zone, pas
+                # un marquage individuel)
                 mx, my = self.but_de(df)
-                dm = math.hypot(mx - adv.x, my - adv.y)
-                part = 0.25 if dm > 25 else 0.1
-                j.cible = (adv.x + (mx - adv.x) * part / max(1.0, dm / 10.0), adv.y + (my - adv.y) * part / max(1.0, dm / 10.0))
+                dm = math.hypot(mx - adv.x, my - adv.y) or 1.0
+                recul = 1.5 if dm < 22 else 4.0
+                j.cible = (adv.x + (mx - adv.x) / dm * recul, adv.y + (my - adv.y) / dm * recul)
                 j.role = "marque"
 
     def _gardiens(self, att: int):
@@ -630,7 +700,7 @@ class Match:
         pression = self._pression(j)
         tenu = self.t - j.dernier_contact
         # un temps de contrôle, plus court sous pression
-        if not force and tenu < (1.2 + 2.0 * (1 - pression)) * (1.0 - 0.3 * j.attr("CON") / 99):
+        if not force and tenu < (1.8 + 2.6 * (1 - pression)) * (1.0 - 0.3 * j.attr("CON") / 99):
             if not (dbut < 24 and tenu > 0.3):        # dans la zone de frappe, on ne réfléchit pas trois secondes
                 return
         options: list[tuple[float, str, object]] = []
@@ -655,7 +725,8 @@ class Match:
             _, libre = self.plus_proche(1 - camp, c.x, c.y, gk=False)
             couloir = self._couloir_libre(j, c)
             hj = self.hors_jeu(c, b.x)
-            val = 0.25 + 1.4 * gain + 0.6 * danger + 0.08 * min(libre, 8.0) + 0.4 * couloir - 0.012 * d - (0.35 if libre < 3.0 else 0.0)
+            val = (0.25 + 1.4 * gain + 0.6 * danger + 0.1 * min(libre, 8.0) + 0.6 * couloir - 0.012 * d
+                   - 0.025 * max(0.0, d - 22.0) - (0.5 if libre < 3.0 else 0.0))
             if hj:
                 val -= 3.0
             if c.gk:
@@ -759,18 +830,20 @@ class Match:
         # la précision : l'erreur d'angle dépend de CRE/PRO, de la pression et de la distance
         pression = self._pression(j)
         precision = (j.attr("PRO") * 0.6 + j.attr("CRE") * 0.4) / 99
-        sigma = math.radians(1.5 + 5.0 * (1 - precision) + 4.0 * pression + 0.05 * d)
+        sigma = math.radians(1.0 + 4.0 * (1 - precision) + 3.0 * pression + 0.04 * d)
         ang = math.atan2(dy, dx) + self.rs.gauss(0, sigma)
         vz = 0.0
-        if d > 25 or (self._couloir_libre(j, c) < 0.3 and d > 12):
-            vz = 5.0 + d * 0.12                     # par-dessus
-            v = min(VITESSE_PASSE[1] + 4.0, v * 1.15)
+        haut = d > 30 or (self._couloir_libre(j, c) < 0.2 and d > 15)
+        if haut:
+            # par-dessus : la portée en l'air vaut la distance (v = d·g / 2vz)
+            vz = 6.0 + d * 0.1
+            v = max(10.0, min(28.0, d * GRAVITE / (2 * vz)))
         j.passes += 1
         self.stats["passes"][j.camp] += 1
         self._lacher(j, v * math.cos(ang), v * math.sin(ang), vz)
         b.passe_vers = c
         b.hors_jeu_au_kick = {x.pid for x in self.actifs(j.camp) if x is not j and self.hors_jeu(x, b.x)}
-        self.evt("passe", de=j.pid, a=c.pid, camp=j.camp, x=round(j.x, 1), y=round(j.y, 1))
+        self.evt("passe", de=j.pid, a=c.pid, camp=j.camp, x=round(j.x, 1), y=round(j.y, 1), d=round(d, 1), haut=vz > 0, role=c.role)
 
     def _centrer(self, j: Joueur):
         gx, gy = self.but_de(j.camp)
@@ -820,7 +893,7 @@ class Match:
         # où il vise : un poteau, avec une erreur qui dépend de la finition et de la pression
         cote = self.rs.choice([-1, 1])
         vise_y = gy + cote * (BUT_LARG / 2 - 0.5) * self.rs.uniform(0.3, 1.0)
-        sigma = math.radians(11.0 + 9.0 * (1 - fin) + 6.0 * pression + 0.25 * d)
+        sigma = math.radians(13.0 + 9.0 * (1 - fin) + 6.0 * pression + 0.3 * d)
         theta = math.atan2(vise_y - j.y, gx - j.x) + self.rs.gauss(0, sigma)
         v = VITESSE_TIR[0] + (VITESSE_TIR[1] - VITESSE_TIR[0]) * (0.4 + 0.6 * fin) * (1.0 - 0.3 * pression)
         # la hauteur : un tir tendu, parfois enlevé
@@ -840,9 +913,9 @@ class Match:
             if j.pid in self.exclus:
                 continue
             if gel:
-                # à l'arrêt, chacun revient vers sa forme, sans courir
-                tx, ty = j.cible if self.arret and self.arret["k"] != "engagement" else j.absolu(*j.home)
-                v_lim = 3.0
+                # à l'arrêt, chacun rejoint sa place au pas
+                tx, ty = j.cible
+                v_lim = 3.2 if j.role != "porteur" else 4.0
             else:
                 tx, ty = j.cible
                 v_lim = j.vmax * (1.0 - 0.12 * j.fatigue)
@@ -850,6 +923,8 @@ class Match:
                 plafond = {"forme": 3.4, "marque": 4.2, "gardien": 6.0, "coupe": 5.5, "soutien": 5.5, "receveur": 7.5}.get(j.role)
                 if j.role in ("presse", "chasse") and self.d_ballon(j) > 7.0:
                     plafond = 6.8                # on ne sprinte que pour les derniers mètres
+                if plafond is not None:
+                    plafond *= j.vmax / 8.83     # un rapide trotte plus vite aussi
                 if j.role == "porteur":
                     plafond = j.vmax * 0.88      # balle au pied, on va moins vite
                 if plafond is not None:
@@ -901,8 +976,8 @@ class Match:
             if b.z <= 0.0:
                 b.z = 0.0
                 b.vz = -b.vz * 0.35 if b.vz < -2.0 else 0.0
-                b.vx *= 0.8
-                b.vy *= 0.8
+                b.vx *= 0.45                     # l'herbe mange l'élan d'un ballon qui retombe
+                b.vy *= 0.45
         else:
             v = b.vitesse()
             if v > 0:
@@ -1102,7 +1177,7 @@ class Match:
             force_o = (o.physique.get("for", 68) or 68) / 99
             force_p = (p.physique.get("for", 68) or 68) / 99
             p_gagne = 0.30 + 0.35 * (o.attr("DEF") - p.attr("DRI")) / 99 + 0.15 * (force_o - force_p)
-            p_gagne = max(0.08, min(0.75, p_gagne)) * DT * 2.2   # par pas de temps : un duel se joue sur quelques secondes
+            p_gagne = max(0.08, min(0.75, p_gagne)) * DT * 1.4   # par pas de temps : un duel se joue sur quelques secondes
             r = self.rs.random()
             if r >= p_gagne and self.rs.random() < 0.012:
                 self._faute(o, p)
@@ -1213,7 +1288,7 @@ class Match:
                             "vmax_ea": j.physique.get("vit"), "touches": j.touches, "passes": j.passes, "passes_ok": j.passes_ok,
                             "tirs": j.tirs, "cadres": j.tirs_cadres, "buts": j.buts, "tacles": j.tacles,
                             "interceptions": j.interceptions, "fautes": j.fautes, "arrets": j.arrets,
-                            "fatigue": round(j.fatigue, 2)})
+                            "fatigue": round(j.fatigue, 2), "exclu": j.pid in self.exclus})
         return {"score": list(self.score), "noms": list(self.noms), "minutes": round(self.duree / 60),
                 "possession": [round(self.possession[0] / tot, 3), round(self.possession[1] / tot, 3)],
                 "stats": {k: (v if not isinstance(v[0], float) else [round(v[0], 2), round(v[1], 2)]) for k, v in self.stats.items()},
