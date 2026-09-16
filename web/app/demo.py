@@ -82,6 +82,11 @@ def main():
         n = I.importer_valeurs(jeu, mids)
         if n == 0:
             print("Aucune valeur trouvée : le dossier moteur/cache/matches est-il rempli ? Les prix seront estimés d'après l'OVR.")
+    # a game base written before the EA sheet existed: feet, birth dates, sides, physique
+    if jeu.execute("SELECT COUNT(*) FROM joueur WHERE physique IS NOT NULL").fetchone()[0] == 0:
+        n = I.importer_physique(jeu)
+        if n:
+            print(f"Fiche physique EA lue pour {n} joueurs (pieds, naissances, côtés, physique).")
     # the season barème windows (the cards' OVR and attributes): computed from the FotMob base if missing
     if jeu.execute("SELECT COUNT(*) FROM bareme_journee").fetchone()[0] == 0:
         fot = pathlib.Path(a.fotmob)

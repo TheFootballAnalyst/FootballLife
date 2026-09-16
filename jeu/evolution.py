@@ -64,6 +64,36 @@ BORNE_OVR = 10               # displayed OVR stays within +-10 of the season sta
 # thins (jeu.bareme.borne): a pépite can be found THIS season, which is
 # the whole point of the game, instead of being frozen until the next seed.
 BORNE_NOUVEAU = 25
+# Development.  The bound above is symmetric; a career is not.  A
+# twenty-year-old who plays a full season climbs, and a bad month costs
+# him little — a thirty-four-year-old who slips does not come back.  The
+# margin a card may CLIMB and the margin it may FALL are therefore
+# scaled by age: (up to this age inclusive, factor on the climb, factor
+# on the fall).  Neutral between 25 and 29; unknown age is neutral too.
+DEVELOPPEMENT = [(21, 1.4, 0.7), (24, 1.2, 0.85), (29, 1.0, 1.0), (32, 0.85, 1.15), (199, 0.7, 1.35)]
+
+
+def facteurs_age(age: int | None) -> tuple[float, float]:
+    """(factor on the climb, factor on the fall) for that age."""
+    if age is None:
+        return 1.0, 1.0
+    for jusqua, haut, bas in DEVELOPPEMENT:
+        if age <= jusqua:
+            return haut, bas
+    return DEVELOPPEMENT[-1][1], DEVELOPPEMENT[-1][2]
+
+
+def marges_age(marge: float, age: int | None) -> tuple[float, float]:
+    """(how far the OVR may fall, how far it may climb) from a symmetric
+    margin and an age."""
+    haut, bas = facteurs_age(age)
+    return marge * bas, marge * haut
+
+
+def potentiel(ovr_base: int, marge: float, age: int | None) -> int:
+    """The OVR a card can reach this season: its start plus what its age
+    lets it climb."""
+    return int(round(max(OVR_MIN, min(OVR_MAX, ovr_base + marges_age(marge, age)[1]))))
 
 # The barème OVR (jeu/bareme.py): a card's Ballon d'or total is placed on
 # 40-99 by its rank among the season's regulars, on a bell centred on

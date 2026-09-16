@@ -33,7 +33,11 @@ CREATE TABLE IF NOT EXISTS joueur (
     age              INTEGER,                       -- from the latest match sheet
     numero           TEXT,                          -- shirt number
     pays             TEXT,                          -- ISO-3 country code
-    pied             TEXT                           -- 'gauche' | 'droit' | 'deux'; NULL = inconnu (donnees/pieds.py)
+    pied             TEXT,                          -- 'gauche' | 'droit' | 'deux'; NULL = inconnu (donnees/pieds.py, moteur/physique_ea.csv)
+    pied_faible      INTEGER,                       -- 1-5, the weak foot (5 = ambidextrous); NULL = unknown
+    naissance        TEXT,                          -- ISO birth date (moteur/physique_ea.csv)
+    cote             TEXT,                          -- 'gauche' | 'droit' for a wide player (EA position); NULL = unknown
+    physique         TEXT                           -- JSON, the EA physical profile (importer.importer_physique)
 );
 CREATE INDEX IF NOT EXISTS ix_joueur_nom ON joueur(nom_normalise);
 

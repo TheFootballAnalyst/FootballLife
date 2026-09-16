@@ -448,3 +448,16 @@ def test_a_challenge_runs_at_the_pace_its_manager_chose():
     jeu.execute("DELETE FROM rencontre"); jeu.commit()
     rid = LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True, banc=BANC, duree=999)
     assert LB.duree_de(jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (rid,)).fetchone()) == LB.DUREE_REELLE
+
+
+def test_stamina_burns_slower_for_a_player_with_more_of_it():
+    tac = SM.Tactique()
+    frais = {"fam": "MID", "physique": {"end": 95}}
+    faible = {"fam": "MID", "physique": {"end": 50}}
+    neutre = {"fam": "MID"}
+    assert SM.usure(frais, tac) < SM.usure(neutre, tac) < SM.usure(faible, tac)
+    assert SM.usure({"fam": "MID", "physique": {"end": 70}}, tac) == SM.usure(neutre, tac)
+    assert SM.facteur_endurance({"physique": {"end": 0}}) == SM.USURE_PHYSIQUE[1]
+    assert SM.physique_match(json.dumps({"acceleration": 90, "vitesse_pointe": 96, "endurance": 80, "force": 70})) == \
+        {"vit": 93, "end": 80, "for": 70}
+    assert SM.physique_match(None) is None

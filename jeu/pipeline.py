@@ -229,6 +229,7 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=LIGUES, numero_eta
         hist.setdefault(pid, []).append(minutes)
     joueurs = {pid: (poste, tid) for pid, poste, tid in jeu.execute("SELECT player_id, poste, team_id FROM joueur")
                if tid in clubs and poste in S.FAMILLE_POSTE}
+    ages = dict(jeu.execute("SELECT player_id, age FROM joueur"))
     limite = None
     if journees_source:
         row = jeu.execute("SELECT au FROM journee WHERE saison=? AND numero=?", (source, journees_source[1])).fetchone()
@@ -279,7 +280,7 @@ def amorcer(jeu, saison, source, journees_source=None, ligues=LIGUES, numero_eta
         ovr = ci["ovr"]
         base = valeurs.get(pid) or E.valeur_estimee(ovr, ajust)
         px = E.prix_carte(base, ovr, ovr)
-        s0, ovr0, attrs, w = B.etat_courant(ci, vide, poste, params)
+        s0, ovr0, attrs, w = B.etat_courant(ci, vide, poste, params, ages.get(pid))
         h = hist.get(pid, [])
         jeu.execute("""INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, valeur_base, ovr_base, poids,
                                          sommes, min90, attributs, bareme, arrivee, matchs, minutes, maj)
@@ -367,12 +368,13 @@ def integrer_nouveaux(jeu, saison, numero, params, ligues=LIGUES):
     vide = B.fenetre_vide()
     now = maintenant()
     n = 0
+    ages = dict(jeu.execute("SELECT player_id, age FROM joueur"))
     for pid, poste in candidats.items():
         ci = B.carte_initiale(poste, fenetres.get(pid, vide), 0.0, params)
         ovr = ci["ovr"]
         base = valeurs.get(pid) or E.valeur_estimee(ovr, ajust)
         px = E.prix_carte(base, ovr, ovr)
-        s0, _o, attrs, w = B.etat_courant(ci, vide, poste, params)
+        s0, _o, attrs, w = B.etat_courant(ci, vide, poste, params, ages.get(pid))
         jeu.execute("""INSERT INTO carte(player_id, saison, note_ovr, ovr, prix, valeur_base, ovr_base, poids,
                                          sommes, min90, attributs, bareme, arrivee, matchs, minutes, maj)
                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
@@ -452,6 +454,7 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
     jeu.commit()
     avant = etat_cartes(jeu, saison, numero - 1)
     postes = dict(jeu.execute("SELECT player_id, poste FROM joueur"))
+    ages = dict(jeu.execute("SELECT player_id, age FROM joueur"))
     graines = {pid: json.loads(b) for pid, b in jeu.execute("SELECT player_id, bareme FROM carte WHERE saison=?", (saison,)) if b}
     attrs_avant = etat_attributs(jeu, saison, numero - 1)
     apres, attrs_apres = {}, {}
@@ -461,7 +464,7 @@ def calculer(jeu, fot, saison, numero, dry_run=False, importer=True):
             continue
         saison_f = B.ajouter(attrs_avant.get(pid, B.fenetre_vide()), fenetres.get(pid, B.fenetre_vide()))
         poste = postes.get(pid, "Milieu relayeur")
-        s_, ovr_, attrs_, w_ = B.etat_courant(ci, saison_f, poste, params)
+        s_, ovr_, attrs_, w_ = B.etat_courant(ci, saison_f, poste, params, ages.get(pid))
         apres[pid] = (s_, w_, ovr_, attrs_)
         attrs_apres[pid] = saison_f
 

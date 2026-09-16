@@ -199,12 +199,12 @@ def clubs_competition(jeu, saison: str, cle: str) -> list[dict]:
 
 def _cartes_club(jeu, saison: str, team_id: int) -> list[dict]:
     out = []
-    for r in jeu.execute("""SELECT c.player_id, j.nom, j.poste, c.ovr, c.attributs, j.postes FROM carte c
+    for r in jeu.execute("""SELECT c.player_id, j.nom, j.poste, c.ovr, c.attributs, j.postes, j.physique FROM carte c
                             JOIN joueur j ON j.player_id=c.player_id
                             WHERE c.saison=? AND j.team_id=? ORDER BY c.ovr DESC""", (saison, team_id)):
         tenus = json.loads(r[5]) if r[5] else [r[2]]
         out.append({"pid": r[0], "nom": r[1], "poste": r[2], "ovr": r[3],
-                    "attributs": json.loads(r[4] or "{}"), "tenus": tenus,
+                    "attributs": json.loads(r[4] or "{}"), "tenus": tenus, "physique": SM.physique_match(r[6]),
                     "familles": S.familles_eligibles(tenus) or [S.FAMILLE_POSTE.get(r[2], "MID")]})
     return out
 

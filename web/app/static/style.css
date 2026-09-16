@@ -405,6 +405,24 @@ dialog::backdrop{background:rgba(3,5,12,.72);backdrop-filter:blur(4px)}
 .attr .jauge i{display:block;height:100%;background:linear-gradient(90deg,var(--sourd2),var(--sourd))}
 .attr .jauge i.haut{background:linear-gradient(90deg,var(--or3),var(--or2))}
 .attr b{font-family:Anton,sans-serif;font-weight:400;font-size:17px;text-align:right;color:var(--encre)}
+/* Les deux pieds : deux icônes, une jauge dans chacune (le pied fort est
+   plein, le mauvais pied se remplit selon sa qualité). */
+.pieds{display:inline-flex;align-items:center;gap:3px;vertical-align:middle}
+.pieds .pied{display:inline-block;width:13px;height:21px;line-height:0}
+.pieds .pied svg{width:100%;height:100%;display:block;overflow:visible}
+.pieds .pied .fond path{fill:rgba(255,255,255,.14);stroke:rgba(255,255,255,.35);stroke-width:.8}
+.pieds .pied .jauge path{fill:var(--or2)}
+.pieds .pied.plein .jauge path{fill:var(--or2)}
+.pieds.inconnu .pied .fond path{stroke-dasharray:2 1.5}
+.pieds .pieds-txt{font-family:"Barlow Condensed",sans-serif;font-size:13px;color:var(--sourd);margin-left:3px}
+.pieds.compact .pied{width:10px;height:16px}
+.cj-pieds{position:absolute;left:12px;top:98px;z-index:2;filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
+.potentiel{display:flex;flex-direction:column;align-items:center;line-height:1}
+.potentiel .etiq{margin:0;font-size:10px}
+.potentiel b{font-family:Anton,sans-serif;font-weight:400;font-size:22px;color:#7ce2ad}
+.physique-bloc{margin-top:10px}
+.attrs.physique{grid-template-columns:1fr 1fr 1fr;gap:6px 18px}
+@media (max-width:640px){.attrs.physique{grid-template-columns:1fr 1fr}}
 .spark{width:100%;height:64px;display:block}
 .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;align-items:center}
 

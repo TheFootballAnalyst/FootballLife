@@ -254,3 +254,31 @@ def test_the_wide_midfielder_is_a_midfielder_one_step_from_the_wing():
     # the flat fours are MG · … · MD, the 4-3-3s keep their wingers
     assert S.postes_formation("4-4-2")[5] == "Milieu gauche" and S.postes_formation("4-4-2")[8] == "Milieu droit"
     assert "Ailier gauche" in S.postes_formation("4-3-3") and "Milieu gauche" not in S.postes_formation("4-3-3")
+
+
+# --------------------------------------------------------------------------
+# Development: the margin depends on age
+# --------------------------------------------------------------------------
+def test_the_young_climb_farther_and_the_old_fall_farther():
+    from jeu import evolution as E
+    assert E.facteurs_age(None) == (1.0, 1.0)
+    assert E.facteurs_age(27) == (1.0, 1.0)
+    haut_j, bas_j = E.facteurs_age(19)
+    haut_v, bas_v = E.facteurs_age(34)
+    assert haut_j > 1.0 > bas_j and haut_v < 1.0 < bas_v
+    assert E.marges_age(10, 19) == (10 * bas_j, 10 * haut_j)
+    assert E.potentiel(83, 10, 27) == 93
+    assert E.potentiel(83, 10, 19) == 97
+    assert E.potentiel(95, 10, 19) == 99
+
+
+def test_the_in_season_ovr_is_bounded_by_age():
+    from jeu import bareme as B
+    params = {"echelles": {"S": [float(i) for i in range(0, 200, 2)]}}
+    # a huge move on the bell: only the bound decides
+    haut = B.ovr_courant(80, 10.0, 190.0, params, 10, age=27)
+    assert haut == 90
+    assert B.ovr_courant(80, 10.0, 190.0, params, 10, age=19) == 94
+    assert B.ovr_courant(80, 10.0, 190.0, params, 10, age=34) == 87
+    assert B.ovr_courant(80, 190.0, 10.0, params, 10, age=19) == 73
+    assert B.ovr_courant(80, 190.0, 10.0, params, (4, 6)) == 76        # an explicit (fall, climb) pair

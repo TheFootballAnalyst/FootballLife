@@ -12,6 +12,67 @@ const posteBase = p => (p === "Milieu gauche" || p === "Milieu droit") ? "Milieu
 const ATTR_NOMS = {FIN:"Finition",CRE:"Création",PRO:"Progression",DEF:"Défense",DRI:"Dribble",CON:"Conservation",ARR:"Arrêts",EVI:"Buts évités",SOR:"Sorties",REL:"Jeu long",BUT:"Imbattabilité"};
 const ATTR_NOMS_GARDIEN = {PRO:"Jeu court"};   // a keeper's PRO axis is his short passing (jeu/bareme.py)
 const PIEDS = {gauche: "gaucher", droit: "droitier", deux: "ambidextre"};
+// Les deux pieds, en jauges sur deux icônes de pied : le pied fort est
+// plein, le mauvais pied se remplit selon sa qualité (1 à 5, d'après la
+// fiche EA).  Un droitier dont le mauvais pied est à 5 est simplement
+// ambidextre : deux pieds pleins.  Pas d'étoiles.
+const PIED_TRACE = "M10 2.2c-3.1 0-5.6 3.4-5.6 8.6 0 3.2 1.2 5.6 1.2 9.2 0 3.6-2 5.4-2 7.8 0 2.4 2 3.6 4.2 3.6 2.1 0 3.6-1.2 4.6-3.2 1-2 1.2-4.4 1.2-7.4 0-3.2 2-5.8 2-9.8 0-5.4-2.5-8.8-5.6-8.8z";
+const PIED_ORTEILS = "M5.2 3.3a2.2 2.2 0 1 0 0.1 0zM9 1.4a1.5 1.5 0 1 0 0.1 0zM12.2 1.6a1.3 1.3 0 1 0 0.1 0zM14.8 2.6a1.15 1.15 0 1 0 0.1 0zM16.9 4.2a1 1 0 1 0 0.1 0z";
+function niveauxPieds(c) {
+  if (!c || !c.pied) return null;
+  const faible = c.pied === "deux" ? 5 : Math.max(0, Math.min(5, +c.pied_faible || 0));
+  const g = c.pied === "gauche" || c.pied === "deux" ? 1 : faible / 5;
+  const d = c.pied === "droit" || c.pied === "deux" ? 1 : faible / 5;
+  return {gauche: g, droit: d, faible, connu: c.pied === "deux" || !!c.pied_faible};
+}
+function iconePied(cote, niveau, id) {
+  const H = 32, y = H - H * niveau;
+  const miroir = cote === "gauche" ? ' transform="scale(-1,1) translate(-20,0)"' : "";
+  const w = el("span", {class: "pied " + cote + (niveau >= 0.99 ? " plein" : niveau <= 0 ? " vide" : "")});
+  w.innerHTML = `<svg viewBox="0 0 20 32" aria-hidden="true"><defs><clipPath id="${id}"><rect x="0" y="${y.toFixed(1)}" width="20" height="${(H - y).toFixed(1)}"/></clipPath></defs>`
+    + `<g class="fond"${miroir}><path d="${PIED_TRACE}"/><path d="${PIED_ORTEILS}"/></g>`
+    + `<g class="jauge" clip-path="url(#${id})"${miroir}><path d="${PIED_TRACE}"/><path d="${PIED_ORTEILS}"/></g></svg>`;
+  return w;
+}
+let _piedId = 0;
+function piedsDe(c, compact = false) {
+  const n = niveauxPieds(c);
+  const w = el("span", {class: "pieds" + (compact ? " compact" : "") + (n ? "" : " inconnu")});
+  if (!n) {
+    w.title = "Pied fort inconnu : la fiche EA (moteur/physique_ea.csv) ne le couvre pas";
+    w.append(iconePied("gauche", 0, "pg" + (++_piedId)), iconePied("droit", 0, "pd" + (++_piedId)));
+    return w;
+  }
+  const txt = n.gauche >= 1 && n.droit >= 1 ? "Ambidextre : les deux pieds pleins"
+    : `Pied ${c.pied} fort · ${c.pied === "droit" ? "gauche" : "droit"} à ${n.faible}/5` + (n.connu ? "" : " (qualité inconnue)");
+  w.title = txt;
+  w.append(iconePied("gauche", n.gauche, "pg" + (++_piedId)), iconePied("droit", n.droit, "pd" + (++_piedId)));
+  if (!compact) w.append(el("span", {class: "pieds-txt"}, n.gauche >= 1 && n.droit >= 1 ? "ambidextre" : `${PIEDS[c.pied]} · ${n.faible ? n.faible + "/5" : "?"}`));
+  return w;
+}
+// La fiche physique (EA) : les neuf jauges et les mesures.
+const PHYSIQUE_NOMS = {acceleration: "Accélération", vitesse_pointe: "Vitesse", agilite: "Agilité", equilibre: "Équilibre",
+  reactions: "Réactions", endurance: "Endurance", force: "Force", detente: "Détente", agressivite: "Agressivité"};
+function blocPhysique(d) {
+  const ph = d.physique;
+  const b = el("div", {class: "physique-bloc"});
+  b.append(el("div", {class: "etiq"}, "Physique"));
+  if (!ph) { b.append(el("p", {class: "compteur"}, "Pas de fiche physique pour ce joueur (moteur/physique_ea.csv).")); return b; }
+  const A = el("div", {class: "attrs physique"});
+  for (const [k, nom] of Object.entries(PHYSIQUE_NOMS)) {
+    const v = ph[k]; if (v === undefined || v === null) continue;
+    A.append(el("div", {class: "attr"}, el("span", {}, nom), el("div", {class: "jauge"}, el("i", {class: v >= 80 ? "haut" : "", style: `width:${Math.max(0, Math.min(100, v))}%`})), el("b", {class: "num"}, String(v))));
+  }
+  b.append(A);
+  const mesures = [];
+  if (ph.taille) mesures.push(`${Math.floor(ph.taille / 100)} m ${String(ph.taille % 100).padStart(2, "0")}`);
+  if (ph.poids) mesures.push(`${ph.poids} kg`);
+  if (ph.gestes) mesures.push(`gestes techniques ${ph.gestes}/5`);
+  if (ph.note_physique) mesures.push(`physique ${ph.note_physique}`);
+  if (mesures.length) b.append(el("div", {class: "compteur"}, mesures.join(" · ") + " · d'après la fiche EA Sports, qui colle à la réalité"));
+  return b;
+}
+const dateFr = iso => { if (!iso) return ""; const [a, m, j] = iso.split("-"); return `${+j} ${["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."][+m - 1] || ""} ${a}`; };
 const AXES = {champ:["FIN","CRE","PRO","DEF","DRI","CON"], gardien:["ARR","EVI","SOR","REL","BUT","PRO"]};
 const f1 = x => (Math.round((+x || 0) * 10) / 10).toFixed(1);
 // money: every amount is in M€ (0.1 = 100 k€)
@@ -286,6 +347,7 @@ function carteMarche(c, opts = {}) {
     el("div", {class: "cj-ovr anton" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr)),
     el("div", {class: "cj-pos"}, el("span", {class: "fam " + c.fam}, POSTE_ABBR[c.poste] || FAM_COURT[c.fam])),
     c.age ? el("div", {class: "cj-age"}, ageTxt(c)) : null,
+    c.pied ? el("div", {class: "cj-pieds"}, piedsDe(c, true)) : null,
     el("img", {class: "cj-logo", src: `/images/logos/${c.team_id}.png`, alt: "", loading: "lazy", onerror: e => e.target.remove()}),
     c.pays ? el("div", {class: "cj-drapeau", title: c.pays}, drapeau(c.pays)) : null,
     c.numero ? el("div", {class: "cj-num"}, "#" + c.numero) : null,
@@ -1728,6 +1790,7 @@ function peuplerTerrain(t, m, moi) {
       p._base = places[i] || [0.4, 0.5];
       p._poste = poste;
       p._gk = gk;
+      p._phys = j.physique || null;
       jeu.append(p);
       T2D.pions[cote + ":" + j.pid] = p;
     });
@@ -2923,11 +2986,11 @@ async function ouvrirFiche(id) {
   img.addEventListener("error", () => img.remove());
   const cote = el("div", {class: "fiche-cote"});
   cote.append(el("div", {class: "etiq"}, `${d.club} · ${d.ligue}`), el("h3", {class: "anton"}, d.nom),
-    el("div", {class: "fiche-ligne"}, el("span", {class: "fam " + d.fam}, POSTE_ABBR[d.poste] || FAM_COURT[d.fam]), el("span", {}, `${POSTE_COURT[d.poste] || d.poste} · a tenu ${codesDe(d)}`), d.age ? el("span", {}, `· ${d.age} ans`) : null, d.pays ? el("span", {title: d.pays}, `· ${drapeau(d.pays)} ${d.pays}`) : null, d.numero ? el("span", {}, `· n° ${d.numero}`) : null,
-      el("span", {title: d.pied ? "Pied fort, d'après FotMob" : "Pied fort inconnu : la donnée n'a pas été récupérée (donnees/pieds.py)"},
-        "· " + (PIEDS[d.pied] || "pied inconnu"))),
+    el("div", {class: "fiche-ligne"}, el("span", {class: "fam " + d.fam}, POSTE_ABBR[d.poste] || FAM_COURT[d.fam]), el("span", {}, `${POSTE_COURT[d.poste] || d.poste} · a tenu ${codesDe(d)}`), d.age ? el("span", {title: d.naissance ? "Né le " + dateFr(d.naissance) : ""}, `· ${d.age} ans${d.naissance ? " (" + dateFr(d.naissance) + ")" : ""}`) : null, d.pays ? el("span", {title: d.pays}, `· ${drapeau(d.pays)} ${d.pays}`) : null, d.numero ? el("span", {}, `· n° ${d.numero}`) : null,
+      el("span", {}, "·"), piedsDe(d)),
     el("div", {class: "compteur"}, `${d.matchs} matchs, ${d.minutes} min cette saison · ${Math.round(d.part * 100)} % des équipes`),
-    el("div", {style: "display:flex;gap:14px;align-items:baseline;margin-top:6px"}, el("div", {class: "ovr num" + (d.ovr >= 80 ? " haut" : ""), style: "font-size:40px"}, String(d.ovr), tendance(d)), el("div", {class: "prix num", style: "font-size:22px"}, fM(d.prix))));
+    el("div", {style: "display:flex;gap:14px;align-items:baseline;margin-top:6px"}, el("div", {class: "ovr num" + (d.ovr >= 80 ? " haut" : ""), style: "font-size:40px"}, String(d.ovr), tendance(d)), el("div", {class: "prix num", style: "font-size:22px"}, fM(d.prix)),
+      d.potentiel ? el("div", {class: "potentiel", title: "Ce que la carte peut atteindre cette saison : son départ plus ce que son âge lui laisse gagner (les jeunes montent plus haut, les anciens descendent plus bas)"}, el("span", {class: "etiq"}, "Potentiel"), el("b", {class: "num"}, String(d.potentiel))) : null));
   const dep = d.valeur_base != null ? `${fM(d.valeur_base)} à OVR ${d.ovr_base}` : "—";
   cote.append(el("div", {class: "compteur", style: "margin-top:6px"}, `Départ de saison : ${dep}`),
     el("div", {class: "compteur"}, d.valeur_marche != null ? `Valeur marchande réelle (FotMob) : ${fM(d.valeur_marche)}` : "Valeur marchande réelle inconnue : prix estimé d'après l'OVR"),
@@ -2936,6 +2999,7 @@ async function ouvrirFiche(id) {
   const axes = d.fam === "GK" ? AXES.gardien : AXES.champ; const A = el("div", {class: "attrs"});
   for (const ax of axes) { const val = d.attributs[ax] ?? 40; A.append(el("div", {class: "attr"}, el("span", {}, (d.poste === "Gardien" && ATTR_NOMS_GARDIEN[ax]) || ATTR_NOMS[ax]), el("div", {class: "jauge"}, el("i", {class: val >= 80 ? "haut" : "", style: `width:${(val - 40) / 59 * 100}%`})), el("b", {class: "num"}, String(val)))); }
   box.append(el("div", {class: "etiq"}, "Attributs de la saison"), A);
+  box.append(blocPhysique(d));
   box.append(blocProfil(d));
   box.append(el("div", {class: "etiq"}, "Dernières prestations"), el("div", {class: "notes"}, ...(d.prestations.length ? d.prestations.slice(0, 8).map(p => el("span", {class: "note " + (p.note >= 7 ? "b" : p.note < 5 ? "m" : ""), title: `J${p.numero} · ${p.competition}`}, `${f1(p.note)} · ${Math.round(p.minutes)}'${faits(p)}`)) : [el("span", {class: "compteur"}, "aucun match noté cette saison")])));
   if (d.historique.length > 1) box.append(el("div", {class: "etiq", style: "margin-top:10px"}, "Prix par journée"), sparkline(d.historique.map(h => h.prix), fM));

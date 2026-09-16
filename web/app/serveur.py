@@ -331,13 +331,16 @@ def cartes_toutes(jeu):
     for r in jeu.execute("""
             SELECT c.player_id, c.ovr, c.prix, c.part, c.note_ovr, c.matchs, c.minutes,
                    c.valeur_base, c.ovr_base, c.arrivee, c.attributs, j.age, j.numero, j.pays, j.pied,
+                   j.pied_faible, j.naissance,
                    j.nom, j.poste, j.postes, j.team_id, cl.nom AS club, cl.couleur
             FROM carte c JOIN joueur j ON j.player_id = c.player_id
             LEFT JOIN club cl ON cl.team_id = j.team_id WHERE c.saison = ?""", (SAISON,)):
         postes = json.loads(r["postes"]) if r["postes"] else [r["poste"]]
         fam = (S.familles_eligibles(postes) or [S.FAMILLE_POSTE.get(r["poste"], "MID")])[0]
         out.append({
-            "id": r["player_id"], "nom": r["nom"], "poste": r["poste"],
+            # the position shown carries the side when it is known (« Latéral
+            # droit »); the barème's base position stays in joueur.poste
+            "id": r["player_id"], "nom": r["nom"], "poste": postes[0] if S.poste_base(postes[0]) == S.poste_base(r["poste"]) else r["poste"],
             "fam": S.FAMILLE_POSTE.get(r["poste"], "MID"),
             "postes": json.loads(r["postes"]) if r["postes"] else [r["poste"]],
             "familles": (S.familles_eligibles(json.loads(r["postes"])) if r["postes"] else [])
@@ -348,6 +351,7 @@ def cartes_toutes(jeu):
             "attributs": json.loads(r["attributs"] or "{}"),
             "valeur_base": r["valeur_base"], "ovr_base": r["ovr_base"], "valeur_marche": valeurs.get(r["player_id"]),
             "age": r["age"], "numero": r["numero"], "pays": r["pays"], "pied": r["pied"],
+            "pied_faible": r["pied_faible"], "naissance": r["naissance"],
             "matchs": r["matchs"], "minutes": int(r["minutes"] or 0), "arrivee": r["arrivee"],
             "notes": notes.get(r["player_id"], [])[-6:],
             # La FORME du joueur sur les six axes, lue contre sa ligne :
@@ -391,8 +395,15 @@ def carte(pid: int, jeu=Depends(bd)):
         SELECT j.numero, ch.ovr, ch.prix, ch.part FROM carte_historique ch
         JOIN journee j ON j.journee_id = ch.journee_id WHERE ch.player_id=? AND j.saison=? ORDER BY j.numero""",
         (pid, SAISON))]
-    row = jeu.execute("SELECT attributs FROM carte WHERE player_id=? AND saison=?", (pid, SAISON)).fetchone()
+    row = jeu.execute("""SELECT c.attributs, c.bareme, c.ovr_base, j.physique, j.age FROM carte c
+                         JOIN joueur j ON j.player_id = c.player_id
+                         WHERE c.player_id=? AND c.saison=?""", (pid, SAISON)).fetchone()
     attributs = json.loads(row["attributs"]) if row and row["attributs"] else {}
+    physique = json.loads(row["physique"]) if row and row["physique"] else None
+    # the development: how far the card can climb this season, given its
+    # age — read on the season bound, the one the fiche explains (a thin
+    # seed widens the real bound, but that is the seed's doing, not age)
+    potentiel = E.potentiel(row["ovr_base"], E.BORNE_OVR, row["age"]) if row else None
     prestas = []
     for r in jeu.execute("""
             SELECT j.numero, p.note, p.minutes, p.stats, cp.nom AS competition, m.date_utc
@@ -402,7 +413,8 @@ def carte(pid: int, jeu=Depends(bd)):
         st = json.loads(r["stats"] or "{}")
         prestas.append({k: r[k] for k in ("numero", "note", "minutes", "competition", "date_utc")}
                        | {"faits": {k: st[k] for k in ("buts", "pd", "tirs", "arrets", "enc") if st.get(k)}})
-    return c | {"historique": hist, "attributs": attributs, "prestations": prestas}
+    return c | {"historique": hist, "attributs": attributs, "prestations": prestas,
+                "physique": physique, "potentiel": potentiel}
 
 
 @app.get("/api/cartes/{pid}/detail")
@@ -413,7 +425,7 @@ def carte_detail(pid: int, jeu=Depends(bd)):
     The numbers are not recomputed for the occasion — bareme.detail walks
     the very functions the card was built with and keeps what they throw
     away, so the OVR it reports is the OVR on the card."""
-    row = jeu.execute("""SELECT c.bareme, c.ovr, c.attributs, c.minutes, c.matchs, c.sommes, j.poste, j.nom
+    row = jeu.execute("""SELECT c.bareme, c.ovr, c.attributs, c.minutes, c.matchs, c.sommes, j.poste, j.nom, j.age
                          FROM carte c JOIN joueur j ON j.player_id = c.player_id
                          WHERE c.player_id=? AND c.saison=?""", (pid, SAISON)).fetchone()
     if not row:
@@ -432,7 +444,7 @@ def carte_detail(pid: int, jeu=Depends(bd)):
                     SELECT j.numero, b.minutes, b.points FROM bareme_journee b
                     JOIN journee j ON j.journee_id = b.journee_id
                     WHERE j.saison=? AND b.player_id=? AND j.calculee=1 ORDER BY j.numero""", (SAISON, pid))]
-    d = B.detail(json.loads(row["bareme"]), f, row["poste"], params)
+    d = B.detail(json.loads(row["bareme"]), f, row["poste"], params, row["age"])
     d |= {"pid": pid, "nom": row["nom"], "journees": journees,
           "source": (params.get("source") or {}).get("saison")}
     # the acts themselves, summed over the season's rated matches
@@ -1120,14 +1132,19 @@ def carte_dessinee(jeu, pid: int, largeur: int = 420) -> pathlib.Path | None:
     if CARTES is None:
         return None
     row = jeu.execute("""SELECT c.ovr, c.prix, j.nom, j.poste, j.team_id, COALESCE(cl.couleur, '#14161E'),
-                                c.attributs, j.pied
+                                c.attributs, j.pied, j.pied_faible, j.postes
                          FROM carte c JOIN joueur j ON j.player_id = c.player_id
                          LEFT JOIN club cl ON cl.team_id = j.team_id WHERE c.player_id=? AND c.saison=?""",
                       (pid, SAISON)).fetchone()
     if not row:
         return None
-    ovr, prix, nom, poste, tid, couleur, attrs, pied = row
+    ovr, prix, nom, poste, tid, couleur, attrs, pied, pied_faible, postes = row
     attributs = json.loads(attrs) if attrs else {}
+    postes = json.loads(postes) if postes else [poste]
+    if postes and S.poste_base(postes[0]) == S.poste_base(poste):
+        poste = postes[0]                     # « Latéral droit », not « Latéral »
+    if pied_faible == 5:
+        pied = "deux"                         # a full weak foot is two strong feet
     comps = {}
     for (comp,) in jeu.execute("""SELECT cp.nom FROM prestation p JOIN match m ON m.match_id = p.match_id
                                   JOIN journee j ON j.journee_id = m.journee_id JOIN competition cp ON cp.competition_id = m.competition_id
@@ -1135,11 +1152,11 @@ def carte_dessinee(jeu, pid: int, largeur: int = 420) -> pathlib.Path | None:
         comps[comp] = comps.get(comp, 0) + 1
     competition = max(comps, key=comps.get) if comps else "Ligue 1"
     largeur = largeur if largeur in LARGEURS_CARTE else 420
-    cle = f"{pid}_{ovr}_{sum(attributs.values())}_{pied or 'x'}_s3_{largeur}"   # s3: barème attributes, escutcheon, pied
+    cle = f"{pid}_{ovr}_{sum(attributs.values())}_{pied or 'x'}_{S.CODE_POSTE.get(poste, 'x').replace('/', '')}_s4_{largeur}"   # s4: side on the position
     CACHE_CARTES.mkdir(parents=True, exist_ok=True)
     f = CACHE_CARTES / f"{cle}.png"
     if not f.exists():
-        etat = f"{ovr}_{sum(attributs.values())}_{pied or 'x'}_s3"
+        etat = f"{ovr}_{sum(attributs.values())}_{pied or 'x'}_{S.CODE_POSTE.get(poste, 'x').replace('/', '')}_s4"
         for vieux in CACHE_CARTES.glob(f"{pid}_*.png"):       # the card changed: every width is stale
             if not vieux.name.startswith(f"{pid}_{etat}_"):
                 vieux.unlink()

@@ -76,9 +76,13 @@ SIM.init = function (t, moi) {
     const cote = cle.slice(0, 1), pid = +p.dataset.pid;
     const [bx, by] = SIM.versEcran(cote, p._base[0], p._base[1]);
     const vieux = anciens[cle];
+    // la fiche physique (EA) : un joueur à 95 de vitesse court un quart
+    // plus vite qu'un joueur à 65 ; sans fiche, la vitesse moyenne
+    const vit = p._phys && p._phys.vit;
+    const allure = vit === undefined || vit === null ? 1 : clamp(1 + (vit - 65) / 120, 0.78, 1.28);
     const j = {cle, cote, pid, p, gk: p._gk, poste: posteBase(p._poste), sens: SIM.sensDe(cote),
                x: vieux ? vieux.x : bx, y: vieux ? vieux.y : by, vx: 0, vy: 0, cx: bx, cy: by,
-               vmax: 1, grain: grain(pid), dec: SIM.hache(pid), role: "forme"};
+               vmax: 1, allure, grain: grain(pid), dec: SIM.hache(pid), role: "forme"};
     SIM.joueurs.push(j); SIM.parCle[cle] = j;
   }
   SIM.phase = null; SIM.suivant = null; SIM.camp = null; SIM.porteur = null; SIM.receveur = null;
@@ -301,7 +305,7 @@ SIM.avancer = function (dt) {
   for (const j of SIM.joueurs) {
     const dx = j.cx - j.x, dy = j.cy - j.y;
     const d = Math.hypot(dx, dy / SIM.ASPECT);
-    const vmax = j.vmax * SIM.tempo * frein;
+    const vmax = j.vmax * j.allure * SIM.tempo * frein;
     // vitesse voulue : proportionnelle à la distance, bornée
     const v = Math.min(vmax, d / 0.35);
     const ux = d > 1e-6 ? dx / d : 0, uy = d > 1e-6 ? dy / d : 0;

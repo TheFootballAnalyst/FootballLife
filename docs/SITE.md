@@ -408,6 +408,19 @@ une bonne lecture en avantage collectif — la lecture se paie en choix,
 jamais en niveau offert. Une tactique qui dessert son équipe, elle,
 garde son coût entier : bien lire rapporte peu, mal lire coûte cher.
 
+**Les pieds se lisent en jauges, pas en étoiles.** Sur la fiche et sur
+chaque carte, deux icônes de pied : le pied fort est plein, le mauvais
+pied se remplit selon sa qualité (4/5 : presque plein). Un droitier
+dont le mauvais pied est à 5 est simplement ambidextre : deux pieds
+pleins. Sans fiche, deux pieds vides en pointillé. La fiche montre
+aussi le **physique** (les neuf jauges EA, la taille, le poids) et le
+**potentiel** : ce que la carte peut atteindre cette saison, son OVR
+de départ plus ce que son âge lui laisse gagner — à 19 ans la marge de
+montée vaut 1,4 fois celle d'un joueur de 27 ans, et la marge de
+descente 0,7 fois ; à 34 ans c'est l'inverse (jeu/evolution.py,
+`DEVELOPPEMENT`). L'âge borne donc l'OVR en saison : les jeunes qui
+jouent montent plus haut, les anciens qui glissent descendent plus bas.
+
 Tu lis tout ça sur **la fiche d'un joueur** — où il est chez lui, où il
 l'est moins, et ce que ta propre tactique lui fait — et sur l'écran
 Équipe, qui te dit ce que ton réglage fait à ton onze : *« +3,6 % en
@@ -580,6 +593,28 @@ depuis les cases FotMob ; 1246 prestations et 168 joueurs y passent en
 2025/26 (Pépé, Giuliano Simeone, Baena…). Le fichier versionné
 `jeu/postes_manuel.json` complète celui du moteur et impose, lui,
 Valverde en MC — sa carte est MC, jouable MD et DD.
+
+**Le côté d'un joueur de couloir vient de la fiche EA.** Le moteur lit
+« latéral » ou « ailier » sans côté, si bien qu'Hakimi pouvait se
+retrouver DG et Yamal AG. `moteur/physique_ea.csv` (la fiche EA Sports,
+jointe par identifiant FotMob) dit RB, LB, RW, LW, RM, LM : la carte
+devient DD, DG, AD, AG, MD ou MG, et le malus de côté (2 points) joue
+quand tu l'alignes du mauvais côté. Un joueur dont le poste EA est
+axial garde ses couloirs sans côté — on ne devine pas. Le poste
+principal du barème ne change pas ; seule la liste des postes tenus
+porte le côté. Sur une base déjà construite : `py -m jeu.importer
+--physique-seulement --jeu jeu/demo.sqlite` (et `demo.py` le fait tout
+seul quand la base ne l'a pas encore).
+
+La même fiche donne **le pied fort et la qualité du mauvais pied** (1 à
+5), **la date de naissance** — l'âge est calculé à la date où en est la
+base, pas au jour de l'import — et **le profil physique** :
+accélération, vitesse de pointe, agilité, équilibre, réactions,
+endurance, force, détente, agressivité, taille, poids, gestes
+techniques. La colonne « pied fort » de cette fiche est à l'envers de
+la réalité (Salah y est droitier, Mbappé gaucher) : l'import la lit à
+l'envers, et `importer.PIED_EA` est l'endroit où la remettre à
+l'endroit si la fiche est corrigée un jour.
 
 Les postes s'écrivent comme dans FIFA — GB, DC, DG, DD, MDC, MC, MOC,
 MG, MD, AG, AD, BU — partout : sur les cases, dans la ligne de chaque joueur du

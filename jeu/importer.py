@@ -16,6 +16,7 @@ Idempotent: every row is INSERT OR REPLACE on its natural key.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import pathlib
 import sqlite3
@@ -90,7 +91,8 @@ MIGRATIONS = {                       # columns added after the first bases were 
     "equipe": [("elo_classe", "REAL NOT NULL DEFAULT 1000"), ("classees", "INTEGER NOT NULL DEFAULT 0"),
                ("packs_offerts", "TEXT"), ("tactique", "TEXT")],
     "joueur": [("valeur_marche", "REAL"), ("age", "INTEGER"), ("numero", "TEXT"), ("pays", "TEXT"),
-               ("postes", "TEXT"), ("pied", "TEXT")],
+               ("postes", "TEXT"), ("pied", "TEXT"), ("pied_faible", "INTEGER"), ("naissance", "TEXT"),
+               ("cote", "TEXT"), ("physique", "TEXT")],
     "carte": [("part", "REAL NOT NULL DEFAULT 0"), ("valeur_base", "REAL NOT NULL DEFAULT 1"),
               ("ovr_base", "INTEGER NOT NULL DEFAULT 60"), ("poids", "REAL NOT NULL DEFAULT 0"),
               ("sommes", "TEXT"), ("min90", "REAL NOT NULL DEFAULT 0"), ("bareme", "TEXT"),
@@ -499,15 +501,131 @@ def majorite_postes_et_clubs(jeu: sqlite3.Connection) -> None:
             best[pid] = (m, poste, tid)
     eligibles = postes_joues(jeu)
     forces = postes_manuels(jeu)
+    cotes = dict(jeu.execute("SELECT player_id, cote FROM joueur WHERE cote IS NOT NULL"))
     for pid, (_, poste, tid) in best.items():
         liste = eligibles.get(pid) or [poste]
         # the displayed position is the first of the list — the best position
         # of the family he spent most minutes in — so it never contradicts it
         if pid in forces:
             liste = [forces[pid]] + [q for q in liste if q != forces[pid]]
+        # `poste` stays what the sheets say (the barème's shrink and the
+        # profile read it); `postes` carries the EA side when it is known
         jeu.execute("UPDATE joueur SET poste=?, team_id=?, postes=? WHERE player_id=?",
-                    (liste[0], tid, json.dumps(liste), pid))
+                    (liste[0], tid, json.dumps(lateraliser(liste, cotes.get(pid))), pid))
     jeu.commit()
+
+
+# Le côté d'un joueur de couloir.  Le moteur lit « Latéral » ou « Ailier »
+# sans côté ; c'est la fiche EA (moteur/physique_ea.csv, poste RB/LB,
+# RW/LW, RM/LM) qui dit si Hakimi est un arrière DROIT et Yamal un ailier
+# DROIT.  Un joueur dont le poste EA est axial garde ses couloirs sans
+# côté : on ne devine pas.
+COTE_EA = {"RB": "droit", "RM": "droit", "RW": "droit", "LB": "gauche", "LM": "gauche", "LW": "gauche"}
+# La colonne `pied_fort` de la fiche est INVERSÉE par rapport à la réalité
+# (et à EA) : elle dit « Right » pour Salah, Yamal, Nuno Mendes et
+# « Left » pour Mbappé, Hakimi, Rodri, Doku, Valverde — huit sur huit à
+# l'envers, 74 % de « Left » quand trois joueurs sur quatre sont
+# droitiers.  Le côté des postes (RB, LW…), lui, est juste.  On lit donc
+# la colonne à l'envers ; si la fiche est un jour corrigée, c'est ici
+# qu'on remet les deux valeurs à l'endroit.
+PIED_EA = {"Right": "gauche", "Left": "droit"}
+POSTES_A_COTE = {"Lateral": "Lateral", "Milieu de couloir": "Milieu", "Ailier": "Ailier"}
+
+
+def lateraliser(postes: list[str], cote: str | None) -> list[str]:
+    """The same list of positions with the side put on every wide one:
+    ["Lateral", "Ailier"] with "droit" gives ["Lateral droit", "Ailier droit"].
+    Without a side the list is returned as it is."""
+    if cote not in ("gauche", "droit"):
+        return list(postes)
+    out = []
+    for p in postes:
+        base = S.poste_base(p)
+        racine = POSTES_A_COTE.get(base)
+        q = f"{racine} {cote}" if racine else p
+        if q not in out:
+            out.append(q)
+    return out
+
+
+def _age_au(naissance: str, quand: date) -> int | None:
+    try:
+        n = date.fromisoformat(naissance)
+    except (TypeError, ValueError):
+        return None
+    return quand.year - n.year - ((quand.month, quand.day) < (n.month, n.day))
+
+
+PHYSIQUE_EA = ("acceleration", "vitesse_pointe", "agilite", "equilibre", "reactions", "endurance",
+               "force", "detente", "agressivite")
+
+
+def date_de_la_base(jeu: sqlite3.Connection) -> date:
+    """Where the base stands in the season: the last calculated match, or
+    today when nothing is calculated yet (a replay must not age its
+    players by the real calendar)."""
+    row = jeu.execute("""SELECT MAX(m.date_utc) FROM match m JOIN journee j ON j.journee_id = m.journee_id
+                         WHERE j.calculee = 1""").fetchone()
+    if row and row[0]:
+        try:
+            return date.fromisoformat(row[0][:10])
+        except ValueError:
+            pass
+    return date.today()
+
+
+def importer_physique(jeu: sqlite3.Connection, fichier: pathlib.Path = MOTEUR / "physique_ea.csv",
+                      quand: date | None = None) -> int:
+    """joueur.{pied, pied_faible, naissance, age, cote, physique} depuis la
+    fiche EA (moteur/physique_ea.csv), jointe par fotmob_id.
+
+    Ce que la fiche apporte, et que ni le moteur ni FotMob ne donnent :
+      - le pied fort et la qualité du mauvais pied (1-5 ; 5 = ambidextre) ;
+      - la date de naissance, d'où l'âge à la date où en est la base ;
+      - le côté d'un joueur de couloir (RB/LB, RW/LW, RM/LM), reporté sur
+        `postes` (« Lateral droit ») — le poste principal reste sans côté ;
+      - le profil physique (accélération, vitesse, agilité, équilibre,
+        réactions, endurance, force, détente, agressivité, taille, poids,
+        gestes techniques), pour la simulation.
+    Un joueur absent du fichier garde ce qu'il avait.  Retourne combien de
+    joueurs ont été renseignés."""
+    if not fichier.exists():
+        return 0
+    quand = quand or date_de_la_base(jeu)
+    connus = {pid: (postes, poste) for pid, postes, poste in jeu.execute("SELECT player_id, postes, poste FROM joueur")}
+    n = 0
+    with fichier.open(encoding="utf-8-sig", newline="") as f:
+        for r in csv.DictReader(f):
+            try:
+                pid = int(r["fotmob_id"])
+            except (KeyError, ValueError):
+                continue
+            if pid not in connus:
+                continue
+            def num(cle):
+                try:
+                    return int(float(r.get(cle) or ""))
+                except ValueError:
+                    return None
+            pied = PIED_EA.get((r.get("pied_fort") or "").strip())
+            faible = num("mauvais_pied")
+            naissance = (r.get("naissance") or "").strip() or None
+            age = _age_au(naissance, quand) if naissance else num("age")
+            cote = COTE_EA.get((r.get("poste") or "").strip().upper())
+            physique = {k: num(k) for k in PHYSIQUE_EA}
+            physique |= {"taille": num("taille_cm"), "poids": num("poids_kg"), "gestes": num("gestes"),
+                         "note_physique": num("note_physique"), "note_ea": num("note"), "poste_ea": (r.get("poste") or "").strip()}
+            physique = {k: v for k, v in physique.items() if v is not None and v != ""}
+            postes_j, poste_j = connus[pid]
+            liste = json.loads(postes_j) if postes_j else [poste_j]
+            jeu.execute("""UPDATE joueur SET pied=COALESCE(?, pied), pied_faible=COALESCE(?, pied_faible),
+                           naissance=COALESCE(?, naissance), age=COALESCE(?, age), cote=COALESCE(?, cote),
+                           physique=?, postes=? WHERE player_id=?""",
+                        (pied, faible, naissance, age, cote, json.dumps(physique),
+                         json.dumps(lateraliser(liste, cote)), pid))
+            n += 1
+    jeu.commit()
+    return n
 
 
 def importer_pieds(jeu: sqlite3.Connection, fichier: pathlib.Path = MOTEUR / "pieds.json") -> int:
@@ -578,6 +696,7 @@ def main_import(fotmob: pathlib.Path, jeu_path: pathlib.Path, saison="2025/26", 
     majorite_postes_et_clubs(jeu)
     importer_couleurs(jeu)
     importer_pieds(jeu)
+    importer_physique(jeu)
     print(f"barème de saison : {importer_bareme(fot, jeu, saison)} fenêtres joueur x journée")
     return total
 
@@ -601,7 +720,13 @@ def main():
     ap.add_argument("--postes-seulement", action="store_true",
                     help="only recompute the players' positions: MG/MD from the FotMob slots when --fotmob "
                          "exists, majority, eligible ones, moteur/postes_manuel.json and jeu/postes_manuel.json")
+    ap.add_argument("--physique-seulement", action="store_true",
+                    help="only (re)read moteur/physique_ea.csv: feet, birth dates, sides, physical profile")
     a = ap.parse_args()
+    if a.physique_seulement:
+        jeu = ouvrir_jeu(pathlib.Path(a.jeu))
+        print(f"{importer_physique(jeu)} joueurs renseignés (pieds, naissances, côtés, physique) -> {a.jeu}")
+        return
     if a.postes_seulement:
         jeu = ouvrir_jeu(pathlib.Path(a.jeu))
         if pathlib.Path(a.fotmob).exists():
@@ -642,9 +767,10 @@ def main():
     majorite_postes_et_clubs(jeu)
     nc = importer_couleurs(jeu)
     npd = importer_pieds(jeu)
+    nph = importer_physique(jeu)
     nb = importer_bareme(fot, jeu, a.saison)
     print(f"{total} prestations, {len(js)} journees, {nc} couleurs de club, {npd} pieds forts, "
-          f"{nb} fenêtres de barème -> {a.jeu}")
+          f"{nph} fiches physiques, {nb} fenêtres de barème -> {a.jeu}")
 
 
 if __name__ == "__main__":

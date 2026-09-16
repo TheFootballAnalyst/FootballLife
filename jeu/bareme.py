@@ -375,13 +375,18 @@ def borne(carte_bareme: dict, params: dict) -> float:
     return E.BORNE_OVR * w + E.BORNE_NOUVEAU * (1 - w)
 
 
-def ovr_courant(ovr_base_: int, s0: float, s: float, params: dict, marge: float | None = None) -> int:
+def ovr_courant(ovr_base_: int, s0: float, s: float, params: dict, marge=None,
+                age: int | None = None) -> int:
     """The card's OVR in season: the seed OVR plus the move of the terrain
-    reading on the bell, bounded to +-`marge` (BORNE_OVR by default)."""
+    reading on the bell, bounded to +-`marge` (BORNE_OVR by default).
+    `marge` may be a (fall, climb) pair; with an `age`, a single margin is
+    split by evolution.marges_age — the young climb farther, the old
+    fall farther."""
     ech = params["echelles"]["S"]
     marge = E.BORNE_OVR if marge is None else marge
+    bas, haut = marge if isinstance(marge, (tuple, list)) else E.marges_age(marge, age)
     o = ovr_base_ + cloche(s, ech) - cloche(s0, ech)
-    o = max(ovr_base_ - marge, min(ovr_base_ + marge, o))
+    o = max(ovr_base_ - bas, min(ovr_base_ + haut, o))
     return int(round(max(E.OVR_MIN, min(E.OVR_MAX, o))))
 
 
@@ -534,13 +539,14 @@ def carte_initiale(poste: str, base: dict, pal: float, params: dict) -> dict:
     return ci
 
 
-def etat_courant(carte_bareme: dict, saison: dict, poste: str, params: dict) -> tuple[float, int, dict[str, int], float]:
-    """(S, OVR, attributs, poids) of a card given its seed record and its
-    season-to-date window."""
+def etat_courant(carte_bareme: dict, saison: dict, poste: str, params: dict,
+                 age: int | None = None) -> tuple[float, int, dict[str, int], float]:
+    """(S, OVR, attributs, poids) of a card given its seed record, its
+    season-to-date window and the player's age (the development margin)."""
     f = ajouter(saison, carte_bareme["base"], params["poids_passe"])
     s = terrain(f, poste, params)
     ovr = ovr_courant(carte_bareme["ovr"], carte_bareme["s0"], s, params,
-                      carte_bareme.get("borne", borne(carte_bareme, params)))
+                      carte_bareme.get("borne", borne(carte_bareme, params)), age)
     w = f["min"] / (f["min"] + params["k_retrecissement"]) if f["min"] > 0 else 0.0
     return s, ovr, attributs(f, poste, params), w
 
@@ -595,7 +601,7 @@ def chaine_axes(f: dict, poste: str, params: dict) -> list[dict]:
     return out
 
 
-def detail(carte_bareme: dict, saison: dict, poste: str, params: dict) -> dict:
+def detail(carte_bareme: dict, saison: dict, poste: str, params: dict, age: int | None = None) -> dict:
     """Where a card's OVR and its six attributes come from, step by step.
 
     Nothing here is a second opinion: it walks the very functions the card
@@ -615,6 +621,7 @@ def detail(carte_bareme: dict, saison: dict, poste: str, params: dict) -> dict:
     lecture = cloche(ch_cour["s"], ech_s)
     lecture0 = cloche(carte_bareme["s0"], ech_s)
     marge = carte_bareme.get("borne", borne(carte_bareme, params))
+    bas, haut = E.marges_age(marge, age)
     ovr_b = carte_bareme["ovr"]
     return {
         "poste": poste,
@@ -635,9 +642,10 @@ def detail(carte_bareme: dict, saison: dict, poste: str, params: dict) -> dict:
             "terrain": ch_cour,
             "lecture": round(lecture, 2), "lecture_depart": round(lecture0, 2),
             "mouvement_brut": round(lecture - lecture0, 2),
-            "borne": round(marge, 1),
-            "mouvement": round(max(-marge, min(marge, lecture - lecture0)), 2),
-            "ovr": ovr_courant(ovr_b, carte_bareme["s0"], ch_cour["s"], params, marge),
+            "borne": round(marge, 1), "age": age,
+            "borne_bas": round(bas, 1), "borne_haut": round(haut, 1),
+            "mouvement": round(max(-bas, min(haut, lecture - lecture0)), 2),
+            "ovr": ovr_courant(ovr_b, carte_bareme["s0"], ch_cour["s"], params, (bas, haut)),
         },
         "axes": chaine_axes(courant, poste, params),
     }

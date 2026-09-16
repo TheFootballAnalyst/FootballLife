@@ -419,3 +419,60 @@ def test_the_side_of_a_flat_midfield_four_is_read_as_a_wide_midfielder():
     assert jeu.execute("SELECT poste FROM joueur WHERE player_id=9").fetchone()[0] == "Milieu droit"
     # running it twice changes nothing more
     assert I.raffiner_postes(fot, jeu) == 0
+
+
+# --------------------------------------------------------------------------
+# The EA sheet: feet, birth dates, sides, physical profile
+# --------------------------------------------------------------------------
+FICHE_EA = """fotmob_id,nom_fotmob,ea_id,nom_ea,equipe_ea,championnat,naissance,age,poste,note,taille_cm,poids_kg,pied_fort,mauvais_pied,gestes,acceleration,vitesse_pointe,agilite,equilibre,reactions,endurance,force,detente,agressivite,note_physique
+4,J4,1004,J4,A,Ligue 1,1998-11-04,27,RB,83,181,73,Left,4,4,89,95,81,78,90,95,72,84,77,79
+9,J9,1009,J9,A,Ligue 1,2007-07-13,18,RW,89,180,72,Right,3,5,86,83,93,84,85,70,55,60,45,60
+10,J10,1010,J10,A,Ligue 1,1997-05-15,29,ST,90,178,67,Right,5,5,93,89,94,81,91,76,69,84,58,69
+99999,Inconnu,1,X,A,Ligue 1,2000-01-01,26,CB,60,180,80,Right,3,2,60,60,60,60,60,60,60,60,60,60
+"""
+
+
+def test_the_ea_sheet_gives_feet_birth_dates_sides_and_physique(tmp_path):
+    jeu = base()
+    jeu.execute("UPDATE joueur SET postes=? WHERE player_id=4", (json.dumps(["Lateral", "Ailier"]),))
+    fichier = tmp_path / "physique_ea.csv"
+    fichier.write_text(FICHE_EA, encoding="utf-8")
+    from datetime import date
+    n = I.importer_physique(jeu, fichier, quand=date(2026, 3, 12))
+    assert n == 3                                   # the unknown fotmob_id is skipped
+    j4 = jeu.execute("SELECT poste, postes, pied, pied_faible, naissance, age, cote, physique FROM joueur WHERE player_id=4").fetchone()
+    assert j4[0] == "Lateral"                       # the base position stays for the barème
+    assert json.loads(j4[1]) == ["Lateral droit", "Ailier droit"]   # every wide position takes the side
+    # the sheet's foot column is mirrored (Left for Hakimi): read the other way round
+    assert (j4[2], j4[3]) == ("droit", 4)
+    assert (j4[4], j4[5], j4[6]) == ("1998-11-04", 27, "droit")
+    ph = json.loads(j4[7])
+    assert ph["vitesse_pointe"] == 95 and ph["endurance"] == 95 and ph["taille"] == 181 and ph["poste_ea"] == "RB"
+    # a full weak foot is read as ambidextrous by the screen, kept as 5 here
+    assert jeu.execute("SELECT pied, pied_faible FROM joueur WHERE player_id=10").fetchone() == ("gauche", 5)
+    # the age is the age at the date the base stands at, not the sheet's
+    assert jeu.execute("SELECT age FROM joueur WHERE player_id=9").fetchone()[0] == 18
+    # a central player keeps its sideless list
+    assert json.loads(jeu.execute("SELECT postes FROM joueur WHERE player_id=10").fetchone()[0] or "[]") in ([], ["Buteur"])
+    # the majority pass rebuilds `postes` and keeps the side
+    I.majorite_postes_et_clubs(jeu)
+    assert json.loads(jeu.execute("SELECT postes FROM joueur WHERE player_id=4").fetchone()[0]) == ["Lateral droit"]
+    assert jeu.execute("SELECT poste FROM joueur WHERE player_id=4").fetchone()[0] == "Lateral"
+
+
+def test_lateraliser_puts_the_side_on_every_wide_position_only():
+    assert I.lateraliser(["Lateral", "Milieu de couloir", "Ailier", "Buteur"], "gauche") == \
+        ["Lateral gauche", "Milieu gauche", "Ailier gauche", "Buteur"]
+    assert I.lateraliser(["Lateral droit", "Lateral"], "gauche") == ["Lateral gauche"]
+    assert I.lateraliser(["Lateral", "Ailier"], None) == ["Lateral", "Ailier"]
+    assert I._age_au("2007-07-13", __import__("datetime").date(2026, 7, 12)) == 18
+    assert I._age_au("2007-07-13", __import__("datetime").date(2026, 7, 13)) == 19
+    assert I._age_au("n'importe quoi", __import__("datetime").date(2026, 7, 13)) is None
+
+
+def test_the_base_stands_at_its_last_calculated_match():
+    from datetime import date
+    jeu = base()
+    assert I.date_de_la_base(jeu) == date(2025, 1, 1)          # the one calculated match
+    jeu.execute("UPDATE journee SET calculee=0")
+    assert I.date_de_la_base(jeu) == date.today()

@@ -35,8 +35,10 @@ SORTIE = RACINE / "out" / "cartes"
 POSTE_COURT = {
     "Gardien": "Gardien", "Defenseur central": "Défenseur", "Lateral": "Latéral",
     "Milieu defensif": "Milieu défensif", "Milieu relayeur": "Milieu",
-    "Milieu offensif": "Meneur", "Ailier": "Ailier", "Ailier droit": "Ailier",
-    "Ailier gauche": "Ailier", "Buteur": "Buteur",
+    "Milieu offensif": "Meneur", "Ailier": "Ailier", "Ailier droit": "Ailier droit",
+    "Ailier gauche": "Ailier gauche", "Buteur": "Buteur",
+    "Lateral droit": "Latéral droit", "Lateral gauche": "Latéral gauche",
+    "Milieu de couloir": "Milieu", "Milieu droit": "Milieu droit", "Milieu gauche": "Milieu gauche",
 }
 
 

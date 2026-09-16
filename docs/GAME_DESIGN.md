@@ -233,6 +233,15 @@ shows what a card is worth where it stands (OVR less malus) and the
 average of the eleven at its posts. Wide slots carry their side (left
 back, right winger); the 4-3-3 midfield is a pivot behind two eights.
 
+**The side of a wide player comes from the EA sheet.** The engine reads
+"lateral" and "winger" without a side, so Hakimi could be fielded at
+left back for free. `moteur/physique_ea.csv` (the EA Sports sheet,
+joined on the FotMob id) says RB/LB, RW/LW, RM/LM: the card's held
+positions carry the side (`importer.lateraliser`), the main position
+stays the sheets' for the barème, and the flank malus applies when the
+manager plays him on the other side. A player whose EA position is
+central keeps sideless flanks — nothing is guessed.
+
 Filling a shape — the club elevens, a formation changed at half-time —
 is a real assignment (Hungarian, `scoring.repartir`): the eleven worth
 the most at its posts, value less malus. Slot by slot, scarcest first,
@@ -410,6 +419,35 @@ animated humanoids (rigged models with run/kick/tackle clips, weeks
 plus an artist, heavy on phones). Portraits stay out of 3D as they stay
 off the server. Recommendation: get the 2D movement right first; the
 3D view inherits it for free.
+
+**The physical profile comes from the EA sheet, and the match reads
+it.** `moteur/physique_ea.csv` gives, for 5 374 of the 8 530 players,
+acceleration, top speed, agility, balance, reactions, stamina,
+strength, jumping, aggression, height, weight, skill moves, preferred
+foot and weak foot, and the birth date. The game stores it on the
+player (`joueur.physique`, `pied`, `pied_faible`, `naissance`, `cote`)
+and uses it where it is honest to: stamina burns slower for a player
+with more of it (`simulation.facteur_endurance`, neutral at 70, bounded
+to a quarter either way), the 2D simulation runs a 95-pace player a
+quarter faster than a 65 one, and the age is computed at the date the
+base stands at. The rest — six card attributes, OVR — still comes from
+the season barème; the physical profile is the raw material of voie B,
+where it will drive speed, duels and decisions. Feet are shown as two
+gauges on two foot icons, never as stars: the strong foot full, the
+weak foot at its EA quality, both full for an ambidextrous player.
+One caveat: the sheet's preferred-foot column is mirrored (Salah reads
+right-footed, Mbappé left-footed); the importer reads it the other way
+round and says so (`importer.PIED_EA`).
+
+**Development: age bounds the season's move.** A card's OVR may move
+±BORNE_OVR around its season start. That bound is now split by age
+(`evolution.DEVELOPPEMENT`): up to 21 the climb margin is 1.4× and the
+fall margin 0.7×, 22–24 1.2×/0.85×, 25–29 neutral, 30–32 0.85×/1.15×,
+33 and over 0.7×/1.35×. A nineteen-year-old who plays a full season can
+climb fourteen points where a thirty-four-year-old climbs seven and can
+fall thirteen. The card shows a **potential**: the season start plus the
+climb margin of its age. Unknown age is neutral, so nothing changes for
+the 812 cards the sheet does not cover.
 
 **Legs are part of the decision.** Everyone on the pitch burns stamina
 minute after minute, at the cost of the line he plays in and of the way

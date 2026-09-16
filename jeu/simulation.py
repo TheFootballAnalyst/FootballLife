@@ -344,10 +344,48 @@ def _forme(j: dict) -> float:
     return 1.0 - COUT_FATIGUE * (1.0 - max(0.0, min(1.0, e / ENDURANCE_MAX)))
 
 
+# La fiche physique (moteur/physique_ea.csv) : un joueur à 90 d'endurance
+# s'use moins vite qu'un joueur à 55.  Neutre à ENDURANCE_NEUTRE, borné
+# pour qu'aucune fiche ne fasse plus qu'un quart d'écart ; sans fiche,
+# rien ne change.
+ENDURANCE_NEUTRE = 70
+USURE_PHYSIQUE = (0.75, 1.25)
+
+
+def facteur_endurance(j: dict) -> float:
+    e = (j.get("physique") or {}).get("end")
+    if e is None:
+        return 1.0
+    return max(USURE_PHYSIQUE[0], min(USURE_PHYSIQUE[1], 1.0 + (ENDURANCE_NEUTRE - e) / 100.0))
+
+
 def usure(j: dict, tac: "Tactique") -> float:
-    """Stamina a player burns in one minute, given how his side plays."""
+    """Stamina a player burns in one minute, given how his side plays and
+    how much stamina he has to begin with."""
     return (USURE_BASE * USURE_FAM.get(j.get("fam"), 1.0) * USURE_TEMPO.get(tac.tempo, 1.0)
-            * USURE_BLOC.get(tac.bloc, 1.0) * USURE_RISQUE.get(tac.risque, 1.0))
+            * USURE_BLOC.get(tac.bloc, 1.0) * USURE_RISQUE.get(tac.risque, 1.0) * facteur_endurance(j))
+
+
+def physique_match(brut: str | dict | None) -> dict | None:
+    """What the match keeps of the EA physical profile: pace (the mean of
+    acceleration and top speed), stamina, strength — small enough to ride
+    on every sheet."""
+    import json as _json
+    if not brut:
+        return None
+    try:
+        p = _json.loads(brut) if isinstance(brut, str) else dict(brut)
+    except (TypeError, ValueError):
+        return None
+    acc, vit = p.get("acceleration"), p.get("vitesse_pointe")
+    out = {}
+    if acc is not None and vit is not None:
+        out["vit"] = round((acc + vit) / 2)
+    if p.get("endurance") is not None:
+        out["end"] = p["endurance"]
+    if p.get("force") is not None:
+        out["for"] = p["force"]
+    return out or None
 
 
 def _z(attr: int) -> float:
@@ -1781,12 +1819,12 @@ def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
     from jeu import scoring as S
     joueurs = []
     for i, pid in enumerate(pids):
-        row = jeu.execute("""SELECT j.nom, j.poste, c.ovr, c.attributs, j.postes FROM carte c
+        row = jeu.execute("""SELECT j.nom, j.poste, c.ovr, c.attributs, j.postes, j.physique FROM carte c
                              JOIN joueur j ON j.player_id = c.player_id
                              WHERE c.player_id = ? AND c.saison = ?""", (pid, saison)).fetchone()
         if not row:
             continue
-        nom_j, poste, ovr, attrs, postes = row
+        nom_j, poste, ovr, attrs, postes, physique_j = row
         tenus = json.loads(postes) if postes else [poste]
         attributs = json.loads(attrs or "{}")
         slot = postes_slots[i] if postes_slots and i < len(postes_slots) else None
@@ -1800,6 +1838,7 @@ def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
                         "attributs": _penalise(attributs, malus),
                         "slot": slot, "hors_poste": malus > 0, "malus": malus,
                         "profil": profil(attributs, fam),
+                        "physique": physique_match(physique_j),
                         "endurance": ENDURANCE_MAX})
     return Equipe(nom, joueurs)
 
