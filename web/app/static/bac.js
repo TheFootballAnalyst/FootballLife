@@ -112,7 +112,7 @@ function dessiner() {
   const t = f[0] / 10;
   // les joueurs
   for (let j = 0; j < 22; j++) {
-    const x = f[5 + j * 2] / 10, y = f[6 + j * 2] / 10;
+    const x = f[7 + j * 2] / 10, y = f[8 + j * 2] / 10;
     const jo = BAC.res.joueurs[j];
     ctx.beginPath(); ctx.arc(sx(x), sy(y), 9, 0, Math.PI * 2);
     ctx.fillStyle = jo.camp === 0 ? "#1F6FD1" : "#C62E2E"; ctx.fill();
@@ -124,6 +124,16 @@ function dessiner() {
   const bx = f[1] / 10, by = f[2] / 10, bz = f[3] / 10;
   ctx.beginPath(); ctx.ellipse(sx(bx), sy(by), 5 + bz, 2.5 + bz * 0.5, 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fill();
   ctx.beginPath(); ctx.arc(sx(bx), sy(by) - bz * 6, 5 + bz * 0.8, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = "#222"; ctx.lineWidth = 1; ctx.stroke();
+  // la phase de chaque camp, en haut du terrain
+  if (BAC.res.phases) {
+    const LIBP = {construction: "construction", progression: "progression", finition: "finition", contre: "contre-attaque",
+      pressing: "pressing", bloc_median: "bloc médian", bloc_bas: "bloc bas", contre_pressing: "contre-pressing"};
+    const f0 = BAC.res.trace[Math.floor(BAC.i)];
+    ctx.font = "bold 15px Barlow Condensed, sans-serif"; ctx.textAlign = "left"; ctx.fillStyle = "#7cb3ff";
+    ctx.fillText(LIBP[BAC.res.phases[f0[5]]] || "", 12, 22);
+    ctx.textAlign = "right"; ctx.fillStyle = "#ff8f8f";
+    ctx.fillText(LIBP[BAC.res.phases[f0[6]]] || "", c.width - 12, 22);
+  }
   // l'horloge et le score à cet instant
   const m = Math.floor(t / 60);
   $("#min").textContent = `${m}'`;

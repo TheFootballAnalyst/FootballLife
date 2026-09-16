@@ -48,7 +48,7 @@ def test_a_full_match_stays_on_the_pitch_and_looks_like_football():
     assert len(r["trace"]) == 90 * 60 / 0.4
     for f in r["trace"][::25]:
         for k in range(22):
-            x, y = f[5 + k * 2] / 10, f[6 + k * 2] / 10
+            x, y = f[7 + k * 2] / 10, f[8 + k * 2] / 10
             assert -2.5 <= x <= EM.LONG + 2.5 and -2.5 <= y <= EM.LARG + 2.5
         assert -3 <= f[1] / 10 <= EM.LONG + 3 and -3 <= f[2] / 10 <= EM.LARG + 3
     st = r["stats"]

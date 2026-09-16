@@ -36,23 +36,23 @@ pointe médiane 31,8 km/h, 190 m de sprint, 9 sprints).
 
     py -m jeu.emergent --jeu jeu/demo.sqlite --matchs 8 --graine 11
 
-État après le second retour à l'œil (8 matchs, graine 11) :
+État après le passage aux phases d'équipe (6 matchs, graine 11) :
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 3,5 | 2,8 | proche |
-| tirs | 31,5 | 25 | un peu trop : l'occasion se prend vite |
-| tirs cadrés | 15 | 8,5 | trop précis |
-| passes | 1 355 | 900 | possessions encore trop courtes (65 min de jeu effectif, réel 57) |
-| réussite des passes | 79 % | 83 % | proche, depuis que les ballons longs retombent sur le receveur |
-| corners | 1,4 | 10 | pas assez de déviations et de dégagements |
-| fautes | 26 | 22 | proche |
-| hors-jeu | 0,8 | 3,5 | les appels restent trop sages |
-| distance par joueur | 13,0 km | 10,5 km | on court trop pour se replacer |
-| pointe médiane | 31,8 km/h | 31,8 km/h | juste (corrélation 0,97 avec la note EA) |
-| sprint par joueur | 178 m | 190 m | juste |
-| possession du dominant | 52 % | 58 % | les matchs sont trop équilibrés |
-| tacles | 39 | 32 | proche |
+| buts | 1,5 | 2,8 | trop peu : les blocs tiennent mieux que l'attaque ne les perce |
+| tirs | 15 | 25 | trop peu, même cause |
+| tirs cadrés | 7 | 8,5 | proche |
+| passes | 1 407 | 900 | possessions trop courtes (65 min de jeu effectif, réel 57) |
+| réussite des passes | 87 % | 83 % | un peu trop sûre |
+| corners | 1,3 | 10 | pas assez de déviations et de dégagements |
+| fautes | 23 | 22 | juste |
+| hors-jeu | 0,3 | 3,5 | les appels restent en jeu d'un mètre et demi, trop sages |
+| distance par joueur | 11,8 km | 10,5 km | proche |
+| pointe médiane | 31,7 km/h | 31,8 km/h | juste (corrélation 0,98 avec la note EA) |
+| sprint par joueur | 220 m | 190 m | proche |
+| possession du dominant | 53 % | 58 % | les matchs sont trop équilibrés |
+| tacles | 35 | 32 | proche |
 | cartons jaunes | 5,4 | 4 | un peu trop |
 
 Ce que l'œil a corrigé avant les chiffres : les arrêts de jeu vivent (le
@@ -144,22 +144,45 @@ Une frappe part entre 20 et 31 m/s selon la finition, vers un poteau,
 avec une erreur d'angle et de hauteur qui dépend de la finition, de la
 pression et de la distance.
 
-**La forme.** Trois lignes qui se tiennent par rapport au ballon : la
-défense onze mètres derrière quand elle défend (jamais plus bas que sa
-surface, jamais plus haut que le milieu), quinze mètres derrière quand
-elle attaque ; le milieu et l'attaque s'étagent devant elle. Chacun
-garde dans sa ligne l'écart qu'il a au repos (le pivot derrière, le
-meneur devant), et la largeur coulisse vers le ballon.
+**L'équipe décide, chacun exécute.** À chaque tic, chaque camp lit
+d'abord sa PHASE, puis la forme de la phase donne à chaque rôle tactique
+(centraux, latéraux, pivot, relayeurs, meneur, ailiers, buteur — lus sur
+la case de chacun dans la formation) une place qui dépend du ballon, et
+les rôles individuels se posent par-dessus. Avec le ballon :
+*construction* dans son tiers (centraux écartés, pivot qui descend,
+latéraux hauts et larges, ailiers larges, buteur qui fixe les centraux),
+*progression* au milieu (le bloc monte avec le ballon, latéraux et
+relayeurs se projettent selon les consignes et leur travail offensif),
+*finition* dans les trente derniers mètres (surcharge côté ballon par
+l'ailier et le latéral, ailier opposé au second poteau, buteur entre les
+centraux, meneur à l'entrée de la surface, et une défense de repli :
+deux centraux à cinquante mètres, le pivot devant), *contre* six
+secondes après une récupération basse (ailiers et buteur partent devant,
+relayeurs en soutien de course). Sans le ballon : *pressing* (bloc haut,
+ou bloc médian sur une relance adverse quand les attaquants aiment ça :
+le plus envieux arrive sur le porteur en coupant la ligne vers son option
+la plus proche — Dembélé presse le gardien dans l'ombre du central — et
+trois autres prennent chacun un homme au contact côté but), *bloc
+médian* (la ligne à onze mètres du ballon, tout le monde derrière le
+ballon), *bloc bas* (tassé sur vingt-cinq mètres, la ligne jamais au-delà
+de vingt-huit mètres, le côté opposé rentré jusqu'à l'axe, on contient à
+trois mètres et on ne sort pas chercher le ballon au-delà de sa moitié),
+*contre-pressing* cinq secondes après une perte, pour un bloc haut ou un
+collectif rodé. Un attaquant à gros travail défensif revient dans le
+bloc ; personne ne se place hors jeu.
 
-**Les rôles.** Sans ballon, deux soutiens à onze mètres du porteur, à
-angle ; des appels dans le dos par fenêtres (un attaquant un cinquième
-du temps), qui s'arrêtent un mètre et demi avant la ligne de hors-jeu ;
-le plus proche presse et contient à un mètre et demi, le second coupe
-la ligne vers le soutien le plus dangereux, les autres marquent en zone
-en se mettant entre l'adversaire et leur but ; le plus proche de chaque
-camp chasse un ballon libre là où il va s'arrêter ; le gardien ferme
-l'angle, sort sur un ballon libre dans sa surface, et sur une frappe va
-au point où elle croise sa ligne.
+**Les rôles individuels.** Le receveur d'une passe en cours va au point
+de chute ; un seul soutien (le relayeur ou le pivot le plus proche, à
+dix mètres en retrait côté ballon) ; l'appel se fait dans LA BRÈCHE — le
+plus grand trou entre deux défenseurs de la dernière ligne, juste devant
+le hors-jeu — par un attaquant à la fois, deux au plus, et la passe vers
+un coureur dans la surface est celle qui vaut le plus ; en finition on
+ne rend pas le ballon à un central libre trente mètres derrière ; le
+plus proche de chaque camp chasse un ballon libre ; dans le dernier
+tiers, un défenseur par attaquant, sans jamais descendre sous la ligne ;
+le gardien ferme l'angle, sort sur un ballon libre dans sa surface, et
+sur une frappe va au point où elle croise sa ligne. Dans le bac, la phase
+de chaque camp s'affiche en haut du terrain.
 
 **Le porteur.** Il garde le ballon de une à trois secondes selon la
 pression (moins avec un bon sang-froid), puis compare des options avec
