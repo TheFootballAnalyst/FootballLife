@@ -112,3 +112,27 @@ def test_the_bench_reports_every_target(tmp_path):
     r = EM.banc(jeu, "2025/26", 2, 1, minutes=5)
     assert r["matchs"] == 0                     # no club with fourteen cards: nothing played, nothing broken
     assert set(r["cibles"]) == set(EM.CIBLES)
+
+
+def test_the_attack_has_patterns_runs_through_balls_and_carries():
+    r = EM.Match(onze(0), onze(1), graine=5, minutes=45, trace=False).jouer()
+    ks = [e["k"] for e in r["evenements"]]
+    assert ks.count("appel") >= 20                  # des appels en profondeur, lancés derrière la ligne
+    assert any(e["k"] == "passe" and e.get("prof") for e in r["evenements"])   # et des passes dans leur course
+    assert ks.count("percee") >= 3                  # et des joueurs qui partent balle au pied
+    assert "relance" in r["phases"]
+
+
+def test_the_build_up_instruction_changes_what_the_keeper_does():
+    def relances(tac):
+        r = EM.Match(onze(0), onze(1), graine=4, minutes=45, trace=False, tactiques=(tac, tac)).jouer()
+        gks = {j["pid"] for j in r["joueurs"] if j["poste"].startswith("Gardien")}
+        ps = [e for e in r["evenements"] if e["k"] == "passe" and e["de"] in gks]
+        return sum(1 for e in ps if e["d"] < 30) / max(1, len(ps)), r["tactiques"][0]["relance"]
+    courte, tc = relances({"relance": "courte"})
+    longue, tl = relances({"relance": "longue"})
+    assert tc == "courte" and tl == "longue"
+    assert courte > longue + 0.3                    # au sol dans les pieds d'un central contre en cloche sur l'attaquant
+    # la relance mixte suit le tempo : possession joue court, direct joue long
+    m = EM.Match(onze(0), onze(1), graine=1, minutes=5, trace=False, tactiques=({"tempo": "possession"}, {"tempo": "direct"}))
+    assert m.tac[0]["relance"] == "courte" and m.tac[1]["relance"] == "longue"

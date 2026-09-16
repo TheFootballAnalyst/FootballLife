@@ -1226,16 +1226,17 @@ def bac_clubs(jeu=Depends(bd)):
 
 @app.get("/api/bac/match")
 def bac_match(a: int, b: int, graine: int = 1, minutes: int = 90, formation: str = "4-3-3",
-              bloc_a: str = "median", tempo_a: str = "equilibre", risque_a: str = "equilibre",
-              bloc_b: str = "median", tempo_b: str = "equilibre", risque_b: str = "equilibre",
+              bloc_a: str = "median", tempo_a: str = "equilibre", risque_a: str = "equilibre", relance_a: str = "mixte",
+              bloc_b: str = "median", tempo_b: str = "equilibre", risque_b: str = "equilibre", relance_b: str = "mixte",
               collectif_a: float | None = None, collectif_b: float | None = None, jeu=Depends(bd)):
     from jeu import emergent as EM
     minutes = max(5, min(90, minutes))
     if formation not in S.FORMATIONS_RANGS:
         raise HTTPException(400, "Formation inconnue")
-    tacs = ({"bloc": bloc_a, "tempo": tempo_a, "risque": risque_a}, {"bloc": bloc_b, "tempo": tempo_b, "risque": risque_b})
+    tacs = ({"bloc": bloc_a, "tempo": tempo_a, "risque": risque_a, "relance": relance_a},
+            {"bloc": bloc_b, "tempo": tempo_b, "risque": risque_b, "relance": relance_b})
     for t in tacs:
-        if t["bloc"] not in SM.BLOC or t["tempo"] not in SM.TEMPO or t["risque"] not in SM.RISQUE:
+        if t["bloc"] not in SM.BLOC or t["tempo"] not in SM.TEMPO or t["risque"] not in SM.RISQUE or t["relance"] not in ("mixte", "courte", "longue"):
             raise HTTPException(400, "Tactique inconnue")
     cle = f"{a}:{b}:{graine}:{minutes}:{formation}:{tacs}:{collectif_a}:{collectif_b}"
     if cle in _BAC:

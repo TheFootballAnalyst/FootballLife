@@ -20,8 +20,8 @@ async function clubs() {
 async function jouer() {
   const a = $("#club-a").value, b = $("#club-b").value;
   const q = new URLSearchParams({a, b, formation: $("#formation").value, minutes: $("#minutes").value, graine: $("#graine").value,
-    bloc_a: $("#bloc-a").value, tempo_a: $("#tempo-a").value, risque_a: $("#risque-a").value,
-    bloc_b: $("#bloc-b").value, tempo_b: $("#tempo-b").value, risque_b: $("#risque-b").value});
+    bloc_a: $("#bloc-a").value, tempo_a: $("#tempo-a").value, risque_a: $("#risque-a").value, relance_a: $("#relance-a").value,
+    bloc_b: $("#bloc-b").value, tempo_b: $("#tempo-b").value, risque_b: $("#risque-b").value, relance_b: $("#relance-b").value});
   if ($("#coll-a").value !== "") q.set("collectif_a", $("#coll-a").value);
   if ($("#coll-b").value !== "") q.set("collectif_b", $("#coll-b").value);
   $("#jouer").disabled = true; $("#etat").textContent = "Le match se joue… (six secondes pour 90 minutes)";
@@ -42,16 +42,19 @@ function charger(res) {
   // le fil
   const fil = $("#fil"); fil.replaceChildren();
   const LIB = {but: "BUT", tir: "Frappe", arret: "Arrêt", rate: "À côté", contre: "Contré", faute: "Faute", corner: "Corner",
-    penalty: "Penalty", horsjeu: "Hors-jeu", mi_temps: "Mi-temps", fin: "Fin du match", carton: "Carton"};
+    penalty: "Penalty", horsjeu: "Hors-jeu", mi_temps: "Mi-temps", fin: "Fin du match", carton: "Carton",
+    percee: "Percée balle au pied", passe: "Passe en profondeur"};
   for (const e of res.evenements) {
     if (!LIB[e.k]) continue;
     if (e.k === "faute" && !e.carton) continue;
+    if (e.k === "passe" && !e.prof) continue;
     const d = document.createElement("div"); d.className = e.k;
     const qui = e.de != null ? BAC.noms[e.camp + ":" + e.de] || "" : "";
     let txt = LIB[e.k] + (qui ? " · " + qui : "");
     if (e.k === "but") txt += ` (${e.score[0]}–${e.score[1]})` + (e.xg != null ? ` · xG ${e.xg}` : "");
     if (e.k === "tir") txt += ` · ${e.d} m · xG ${e.xg}` + (e.tete ? " · de la tête" : "") + (e.penalty ? " · penalty" : "");
     if (e.k === "faute" && e.carton) txt += " · carton " + e.carton;
+    if (e.k === "passe") txt += " → " + (BAC.noms[e.camp + ":" + e.a] || "") + ` · ${e.d} m`;
     d.innerHTML = `<small>${e.minute}'</small>` + txt;
     fil.append(d);
   }
@@ -127,7 +130,7 @@ function dessiner() {
   // la phase de chaque camp, en haut du terrain
   if (BAC.res.phases) {
     const LIBP = {construction: "construction", progression: "progression", finition: "finition", contre: "contre-attaque",
-      pressing: "pressing", bloc_median: "bloc médian", bloc_bas: "bloc bas", contre_pressing: "contre-pressing"};
+      pressing: "pressing", bloc_median: "bloc médian", bloc_bas: "bloc bas", contre_pressing: "contre-pressing", relance: "relance"};
     const f0 = BAC.res.trace[Math.floor(BAC.i)];
     ctx.font = "bold 15px Barlow Condensed, sans-serif"; ctx.textAlign = "left"; ctx.fillStyle = "#7cb3ff";
     ctx.fillText(LIBP[BAC.res.phases[f0[5]]] || "", 12, 22);

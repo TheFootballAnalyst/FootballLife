@@ -80,6 +80,7 @@ VITESSE_CONTROLE = 14.0                      # au-delà, il faut un contrôle (e
 VITESSE_PASSE = (9.0, 22.0)                  # une passe courte, une longue
 VITESSE_TIR = (20.0, 31.0)
 SPRINT = 7.0                                 # m/s, au-delà c'est un sprint (les mesures FotMob)
+SOUFFLE = 2.6                                # s : un sprint est une bouffée, pas une allure ; il se recharge au trot
 
 FAMILLE_X = {"GK": 0.05, "DEF": 0.20, "MID": 0.40, "FWD": 0.62}
 
@@ -117,6 +118,10 @@ class Joueur:
     pressing: float = 0.5                     # les sprints vers le porteur (rang dans sa ligne)
     recup: float = 0.5                        # les ballons gagnés (rang dans sa ligne)
     appel_jusqua: float = -1.0                # une course lancée par la passe d'un coéquipier
+    appel_vers: tuple[float, float] | None = None   # où va cet appel : derrière la ligne, dans la brèche
+    appel_marge: float = 1.0                  # à combien de la ligne il attend la passe (négatif : un pas trop tôt)
+    perce_jusqua: float = -1.0                # une percée balle au pied : il ne relâche pas avant
+    souffle: float = 2.6                      # les secondes de sprint qu'il a dans les jambes (une bouffée)
     # stats
     distance: float = 0.0
     sprint: float = 0.0
@@ -237,8 +242,12 @@ class Ballon:
 #   tempo    possession : on garde le ballon et on passe court ; direct :
 #            on lâche vite et on joue long.
 #   risque   offensif : plus d'appels et de projection ; prudent : moins.
-PHASES = ["construction", "progression", "finition", "contre", "pressing", "bloc_median", "bloc_bas", "contre_pressing"]
-TACTIQUE_DEFAUT = {"bloc": "median", "tempo": "equilibre", "risque": "equilibre",
+#   relance  courte : le gardien joue ses six mètres au sol, le bloc se
+#            resserre autour de lui pour offrir des lignes courtes ; longue :
+#            il dégage sur l'attaquant et le bloc monte à la retombée du
+#            ballon ; mixte : courte, longue si l'adversaire vient presser.
+PHASES = ["construction", "progression", "finition", "contre", "pressing", "bloc_median", "bloc_bas", "contre_pressing", "relance"]
+TACTIQUE_DEFAUT = {"bloc": "median", "tempo": "equilibre", "risque": "equilibre", "relance": "mixte",
                    "lateraux": "couloir", "ailiers": "equilibre", "milieux": "equilibre", "attaquants": "equilibre"}
 # Le travail sans ballon (work rate) : "bas", "moyen", "haut".  Lu dans la
 # fiche EA quand elle l'a ; sinon deviné sur les attributs (un attaquant
@@ -319,6 +328,10 @@ class Match:
         self.collectif = list(collectif)
         self.ligne_def = [FAMILLE_X["DEF"] * LONG, FAMILLE_X["DEF"] * LONG]   # la profondeur de chaque défense, dans son repère
         self.phase = ["construction", "bloc_median"]
+        for t in self.tac:
+            if t.get("relance", "mixte") == "mixte" and t["tempo"] in ("possession", "direct"):
+                t["relance"] = "courte" if t["tempo"] == "possession" else "longue"
+        self.relance_choix = ["courte", "courte"]    # ce que chaque camp fait de SA relance en cours
         self.t_bascule = 0.0
         self.x_bascule = 50.0
         self.joueurs = joueurs_de(sur_a, 0, formation_a) + joueurs_de(sur_b, 1, formation_b)
@@ -497,6 +510,8 @@ class Match:
             self._frapper(j, coup_franc=True)
             return
         self._decider_porteur(j, force=True)
+        if k == "sortie_but":
+            b.hors_jeu_au_kick = set()               # pas de hors-jeu sur une sortie de but
 
     # -- le pas de temps -----------------------------------------------------------
     def jouer(self) -> dict:
@@ -528,6 +543,7 @@ class Match:
                         j.cible = j.absolu(min(xp, LONG / 2 - 1.0), yp)
                         j.role = "forme"
                 else:
+                    self._phases(a["camp"])
                     for camp in (0, 1):
                         self._forme(camp, a["camp"])
                     self._gardiens(a["camp"])
@@ -599,8 +615,15 @@ class Match:
         depuis = self.t - getattr(self, "t_bascule", -99.0)
         bxp = b.x if att == 0 else LONG - b.x             # le ballon, vu de l'attaque
         tac_a, tac_d = self.tac[att], self.tac[df]
-        # --- l'attaque
-        if depuis < 6.0 and getattr(self, "x_bascule", 60.0) < 45.0 and tac_a["tempo"] != "possession":
+        # --- l'attaque : d'abord la relance du gardien, qui a sa forme à elle
+        en_relance = ((b.porteur is not None and b.porteur.gk and b.porteur.camp == att)
+                      or (self.arret is not None and self.arret["k"] in ("sortie_but", "relance") and self.arret["camp"] == att))
+        if en_relance:
+            if self.phase[att] != "relance":
+                self.relance_choix[att] = self._choix_relance(att)
+            self.phase[att] = "relance"
+        elif (depuis < 6.0 and getattr(self, "x_bascule", 60.0) < 45.0 and tac_a["tempo"] != "possession"
+              and (depuis < 2.5 or bxp - self.x_bascule > 8.0 + 4.0 * (depuis - 2.5))):
             self.phase[att] = "contre"
         elif bxp < 35.0:
             self.phase[att] = "construction"
@@ -623,6 +646,17 @@ class Match:
             self.phase[df] = "bloc_bas"
         else:
             self.phase[df] = "bloc_median"
+
+    def _choix_relance(self, att: int) -> str:
+        """Courte ou longue, au départ de la relance : la consigne, et pour
+        une consigne mixte, la présence adverse — on ne joue pas court dans
+        les pieds d'un pressing."""
+        consigne = self.tac[att].get("relance", "mixte")
+        if consigne in ("courte", "longue"):
+            return consigne
+        # mixte : au sol, sauf face à un bloc haut qui vient chercher la relance
+        # (et au moment de jouer, sans ligne courte, le gardien allonge de lui-même)
+        return "longue" if self.tac[1 - att]["bloc"] == "haut" else "courte"
 
     def _role_tac(self, j: Joueur) -> str:
         base = S.poste_base(j.poste)
@@ -685,6 +719,19 @@ class Match:
                     "ailier": L + 24.0, "buteur": L + 30.0}
             larg = {"central": 9.0, "lateral": 22.0, "pivot": 0.0, "relayeur": 12.0, "meneur": 5.0, "ailier": 22.0, "buteur": 0.0}
             glisse = 0.3
+        elif phase == "relance" and self.relance_choix[camp] == "courte":
+            # les six mètres au sol : les centraux ouverts au bord de la
+            # surface, le pivot devant le gardien, tout le bloc sur quarante
+            # mètres pour que chaque porteur ait deux lignes courtes
+            prof = {"central": 9.0, "lateral": 24.0, "pivot": 18.0, "relayeur": 32.0, "meneur": 40.0, "ailier": 46.0, "buteur": 52.0}
+            larg = {"central": 16.0, "lateral": 29.0, "pivot": 0.0, "relayeur": 10.0, "meneur": 0.0, "ailier": 24.0, "buteur": 0.0}
+            glisse = 0.0
+        elif phase == "relance":
+            # le long ballon : tout le bloc monte à la retombée (soixante
+            # mètres), serré autour de l'attaquant pour le second ballon
+            prof = {"central": 30.0, "lateral": 38.0, "pivot": 42.0, "relayeur": 50.0, "meneur": 56.0, "ailier": 58.0, "buteur": 62.0}
+            larg = {"central": 9.0, "lateral": 24.0, "pivot": 0.0, "relayeur": 10.0, "meneur": 4.0, "ailier": 16.0, "buteur": 0.0}
+            glisse = 0.0
         elif phase == "construction":
             prof = {"central": 14.0, "lateral": 32.0, "pivot": 24.0, "relayeur": 40.0, "meneur": 52.0, "ailier": 60.0, "buteur": 68.0}
             larg = {"central": 11.0, "lateral": 28.0, "pivot": 0.0, "relayeur": 12.0, "meneur": 3.0, "ailier": 26.0, "buteur": 0.0}
@@ -742,7 +789,7 @@ class Match:
                     if r == "relayeur" and (tac["milieux"] == "projection" or j.travail_att > 0.75):
                         x += 6.0
                 # personne ne se met hors jeu en se plaçant
-                if ligne_hj is not None and r in ("ailier", "buteur", "meneur"):
+                if ligne_hj is not None:
                     x = min(x, ligne_hj - 1.5)
                 # la largeur coulisse un peu vers le ballon
                 y += (by - LARG / 2) * glisse
@@ -814,27 +861,49 @@ class Match:
             risque = {"offensif": 1.4, "equilibre": 1.0, "prudent": 0.7}[self.tac[att]["risque"]]
             if self.tac[att]["attaquants"] == "profondeur":
                 risque *= 1.3
+            lh = self.ligne_horsjeu(att)
+            sens = 1 if att == 0 else -1
+            derriere = (gx - lh) * sens                 # les mètres entre la ligne adverse et le but
+            temps = self._pression(porteur) < 0.55      # le porteur a le temps de voir la course
             breche = self._breche(att)
-            coureurs = [j for j in siens if j.role == "forme" and j.role_tac in ("ailier", "buteur", "meneur")]
+            coureurs = sorted([j for j in siens if j.role == "forme" and j.role_tac in ("ailier", "buteur", "meneur")],
+                              key=lambda j: -j.travail_att)
             lances = 0
             for j in coureurs:
-                fenetre = (self.t * 0.11 + j.idx * 0.37) % 1.0
                 lance = j.appel_jusqua > self.t
-                if not (lance or fenetre < 0.14 * risque or (phase == "contre" and fenetre < 0.5)):
-                    continue
+                if not lance:
+                    # une course se lance quand le porteur a le temps, quand il y a
+                    # de la profondeur à attaquer, et quand on est en jeu
+                    if lances >= 2 or not temps or derriere < 14.0 or self.hors_jeu(j, bx):
+                        continue
+                    if math.hypot(j.x - bx, j.y - by) > 42.0 or (j.x - bx) * sens < -6.0:
+                        continue
+                    chance = 0.05 * risque * (0.7 + 0.6 * j.travail_att) * (1.8 if phase == "contre" else 1.0)
+                    if self.rs.random() >= chance:
+                        continue
+                    j.appel_jusqua = self.t + 2.8
+                    # la destination : DERRIÈRE la ligne, dans la brèche si elle
+                    # est à portée, sinon droit devant en glissant vers l'axe
+                    fond = min(14.0, max(6.0, derriere - 7.0))
+                    if breche is not None and math.hypot(breche[0] - j.x, breche[1] - j.y) < 30.0:
+                        cx, cy = breche[0] + fond * sens, breche[1]
+                        breche = None                   # un seul dans la brèche
+                    else:
+                        cx, cy = lh + fond * sens, j.y + (gy - j.y) * 0.35
+                    j.appel_vers = (max(3.0, min(LONG - 3.0, cx)), max(3.0, min(LARG - 3.0, cy)))
+                    # le timing : un bon lecteur attend sur la ligne, un autre part un pas trop tôt
+                    j.appel_marge = 1.5 + self.rs.gauss(0.0, 1.0) * (1.2 - 0.6 * j.attr("CON") / 99)
+                    self.evt("appel", de=j.pid, camp=att)
+                lances += 1
+                if j.appel_vers is None:
+                    j.appel_vers = (max(3.0, min(LONG - 3.0, lh + 8.0 * sens)), j.y)
+                # tant que la passe n'est pas partie, il court à la ligne sans la franchir
+                cx, cy = j.appel_vers
+                x = min(cx, lh - j.appel_marge) if att == 0 else max(cx, lh + j.appel_marge)
+                j.cible = (x, cy)
+                j.role = "appel"
                 if lances >= 2:
                     break                               # deux appels à la fois, pas une ruée
-                lances += 1
-                if breche is not None and math.hypot(breche[0] - j.x, breche[1] - j.y) < 30.0:
-                    j.cible = breche
-                else:
-                    lh = self.ligne_horsjeu(att)
-                    x = j.x + 12.0 * j.sens()
-                    x = min(x, lh - 1.5) if att == 0 else max(x, lh + 1.5)
-                    j.cible = (max(2.0, min(LONG - 2.0, x)), j.y + (gy - j.y) * 0.3)
-                j.role = "appel"
-                if breche is not None:
-                    breche = None                       # un seul dans la brèche, les autres attaquent ailleurs
 
     ESPACE = 8.0                                 # deux coéquipiers ne visent jamais le même mètre carré
 
@@ -843,7 +912,7 @@ class Match:
         s'écartent l'un de l'autre : un onze occupe le terrain, il ne
         s'entasse pas autour du ballon.  Ceux qui vont au ballon (porteur,
         receveur, presseur, chasseur) gardent leur cible."""
-        fixes = {"porteur", "receveur", "presse", "chasse", "gardien"}
+        fixes = {"porteur", "receveur", "presse", "chasse", "gardien", "appel"}
         for camp in (0, 1):
             js = [j for j in self.actifs(camp) if not j.gk]
             for _ in range(2):
@@ -1051,12 +1120,21 @@ class Match:
     def _decider_porteur(self, j: Joueur, force: bool = False):
         b = self.ballon
         camp = j.camp
+        if j.gk:
+            self._relancer(j, force)
+            return
         gx, gy = self.but_de(camp)
         dbut = math.hypot(gx - j.x, gy - j.y)
         pression = self._pression(j)
         tenu = self.t - j.dernier_contact
         tac = self.tac[camp]
         coh = self.collectif[camp]
+        phase = self.phase[camp]
+        # une percée en cours se tient : on ne lâche pas le ballon au premier
+        # tic, sauf quand un adversaire arrive ou quand la frappe est là
+        if self.t < j.perce_jusqua and not force and pression < 0.7 and dbut > 22:
+            self._conduire(j, percee=True)
+            return
         tempo = {"possession": 1.25, "equilibre": 1.0, "direct": 0.7}[tac["tempo"]]
         # un temps de contrôle, plus court sous pression, plus court dans les
         # trente derniers mètres, plus court quand on joue direct
@@ -1091,6 +1169,8 @@ class Match:
             _, libre = self.plus_proche(1 - camp, c.x, c.y, gk=False)
             couloir = self._couloir_libre(j, c)
             hj = self.hors_jeu(c, b.x)
+            if hj and self.rs.random() < 0.01:
+                hj = False                              # il n'a pas vu la ligne : le drapeau se lèvera
             # l'homme libre près du but vaut de l'or ; le tempo direct aime les longues
             val = (0.25 + 1.4 * gain + 0.6 * danger + 0.1 * min(libre, 8.0) + 0.6 * couloir - 0.012 * d
                    - 0.025 * max(0.0, d - 22.0) * tempo - (0.5 if libre < 3.0 else 0.0)
@@ -1099,6 +1179,10 @@ class Match:
             # central libre à trente mètres derrière — sauf sous pression
             if dbut < 35 and gain < -0.25 and pression < 0.6:
                 val -= 0.7
+            # la balle qui navigue sur la ligne : une latérale vers un homme
+            # tenu, dans le camp adverse, n'apporte rien
+            if phase in ("progression", "finition") and abs(gain) < 0.1 and libre < 5.0:
+                val -= 0.35
             # une passe dans la surface pour un coureur : la passe qui tue
             if c.role == "appel" and math.hypot(gx - c.x, gy - c.y) < 25:
                 val += 0.6
@@ -1108,6 +1192,31 @@ class Match:
                 val -= 0.6
             val += self.rs.gauss(0, bruit)
             options.append((val, "passe", c))
+            # -- la passe en profondeur : dans l'espace derrière la ligne, pour
+            # un coéquipier lancé qui y arrive avant le défenseur
+            # (un coureur parti un pas trop tôt : le passeur l'a vu partir en jeu, il joue quand même)
+            hj_course = hj and not (c.appel_marge < 0.6 and self.rs.random() < 0.5)
+            if c.role == "appel" and c.appel_vers is not None and not hj_course and not c.gk:
+                px, py = c.appel_vers
+                dp = math.hypot(px - j.x, py - j.y)
+                if 8.0 < dp < 52.0 and (px - j.x) * j.sens() > 4.0 and math.hypot(px - c.x, py - c.y) > 4.0:
+                    _, libre_p = self.plus_proche(1 - camp, px, py, gk=False)
+                    d_c = math.hypot(px - c.x, py - c.y)
+                    gk_adv = next((o for o in self.actifs(1 - camp) if o.gk), None)
+                    d_gk = math.hypot(gk_adv.x - px, gk_adv.y - py) if gk_adv else 99.0
+                    couloir_p = self._couloir_vers(j, px, py)
+                    vc = math.hypot(c.vx, c.vy)
+                    avantage = max(-1.0, min(1.0, (libre_p - d_c * 0.75) / 10.0))   # lancé, il a un temps d'avance
+                    danger_p = 1.0 - math.hypot(gx - px, gy - py) / 105.0
+                    val = (0.3 + 1.5 * danger_p + 0.8 * couloir_p + 0.55 * avantage + 0.3 * min(vc, 8.0) / 8.0
+                           - 0.02 * max(0.0, dp - 32.0) + 0.25 * (j.attr("CRE") / 99) - 0.2 * pression)
+                    if tac["risque"] == "offensif" or tac["tempo"] == "direct":
+                        val += 0.2
+                    if d_gk < 11.0:
+                        val -= 0.8                      # le gardien sort dessus
+                    if libre_p < 2.5:
+                        val -= 0.6
+                    options.append((val + self.rs.gauss(0, bruit), "profondeur", (c, px, py)))
         # -- centrer, depuis le couloir dans les trente derniers mètres
         if abs(j.y - LARG / 2) > 18.0 and (gx - j.x) * j.sens() < 32 and not j.gk:
             dans = [c for c in self.actifs(camp) if c is not j and math.hypot(gx - c.x, gy - c.y) < 22]
@@ -1121,6 +1230,13 @@ class Match:
         if dbut < 40:
             val += 0.25
         options.append((val + self.rs.gauss(0, bruit), "conduite", None))
+        # -- percer : un boulevard devant, un dribbleur qui le prend à pleine vitesse
+        # (un central qui a vingt mètres devant lui en construction ne perce pas : il relance)
+        if (dev > 14.0 and dbut > 18 and phase in ("progression", "finition", "contre")
+                and (j.fam != "DEF" or j.attr("DRI") > 72)):
+            val = (0.15 + 0.05 * min(dev, 24.0) + 0.7 * j.attr("DRI") / 99 - 0.9 * pression + 0.3 * (1.0 - coh)
+                   + (0.4 if phase == "contre" else 0.0) + 0.15 * j.travail_att)
+            options.append((val + self.rs.gauss(0, bruit), "percee", None))
         # -- dégager sous pression dans son camp
         if pression > 0.5 and (j.x - LONG / 2) * j.sens() < -20:
             options.append((0.9 + self.rs.gauss(0, bruit), "degagement", None))
@@ -1130,12 +1246,61 @@ class Match:
             self._frapper(j)
         elif quoi == "passe":
             self._passer(j, cible)
+        elif quoi == "profondeur":
+            c, px, py = cible
+            self._passer(j, c, point=(px, py))
+        elif quoi == "percee":
+            if self.t > j.perce_jusqua + 1.0:
+                self.evt("percee", de=j.pid, camp=camp, x=round(j.x, 1), y=round(j.y, 1))
+            j.perce_jusqua = self.t + 1.8
+            self._conduire(j, percee=True)
         elif quoi == "degagement":
             self._degager(j)
         elif quoi == "centre":
             self._centrer(j)
         else:
             self._conduire(j)
+
+    def _relancer(self, gk: Joueur, force: bool = False):
+        """La relance du gardien : courte, dans les pieds d'un homme libre
+        avec une ligne ; longue, en cloche sur l'attaquant, le bloc monte
+        à la retombée.  Sous pression sans ligne courte, on joue long."""
+        b = self.ballon
+        camp = gk.camp
+        pression = self._pression(gk)
+        tenu = self.t - gk.dernier_contact
+        if not force and tenu < 1.2 - 0.8 * pression:
+            return                                    # il regarde avant de jouer
+        choix = self.relance_choix[camp] if self.phase[camp] == "relance" else self._choix_relance(camp)
+        siens = [c for c in self.actifs(camp) if c is not gk]
+        if not siens:
+            return
+        if choix == "courte":
+            best, bv = None, -9.0
+            for c in siens:
+                d = math.hypot(c.x - gk.x, c.y - gk.y)
+                if d < 3.0 or d > 38.0:
+                    continue
+                _, libre = self.plus_proche(1 - camp, c.x, c.y, gk=False)
+                couloir = self._couloir_libre(gk, c)
+                val = (0.1 * min(libre, 10.0) + 0.8 * couloir - 0.015 * d + (0.3 if c.fam == "DEF" else 0.0)
+                       + 0.2 * (c.x - gk.x) * gk.sens() / 35.0 + self.rs.gauss(0, 0.1))
+                if libre < 4.0 or couloir < 0.3:
+                    val -= 1.0                        # pas dans les pieds d'un homme tenu
+                if val > bv:
+                    best, bv = c, val
+            if best is not None and (bv > 0.2 or pression < 0.25):
+                self._passer(gk, best, courte=True)
+                return
+            # aucune ligne courte : on n'insiste pas, on joue long
+        # long : sur l'attaquant le moins couvert, en cloche, loin dans le camp adverse
+        cand = [c for c in siens if c.role_tac in ("buteur", "ailier", "meneur")] or [c for c in siens if c.fam != "DEF"] or siens
+        def valeur(c):
+            _, libre = self.plus_proche(1 - camp, c.x, c.y, gk=False)
+            return (c.x - gk.x) * gk.sens() / 60.0 + 0.05 * min(libre, 10.0) + (0.3 if c.role_tac == "buteur" else 0.0) \
+                - (0.6 if self.hors_jeu(c, b.x) else 0.0)
+        c = max(cand, key=valeur)
+        self._passer(gk, c, longue=True)
 
     def _axe_libre(self, j: Joueur) -> float:
         """1 si personne ne bouche l'axe de frappe (le cône vers le but,
@@ -1170,7 +1335,10 @@ class Match:
     def _couloir_libre(self, de: Joueur, a: Joueur) -> float:
         """1 si personne n'est sur la ligne de passe, 0 si un adversaire
         est dedans."""
-        dx, dy = a.x - de.x, a.y - de.y
+        return self._couloir_vers(de, a.x, a.y)
+
+    def _couloir_vers(self, de: Joueur, ax: float, ay: float) -> float:
+        dx, dy = ax - de.x, ay - de.y
         n = math.hypot(dx, dy) or 1.0
         pire = 1.0
         for o in self.actifs(1 - de.camp):
@@ -1210,12 +1378,17 @@ class Match:
         b.z = max(b.z, 0.0)
         j.touches += 1
 
-    def _passer(self, j: Joueur, c: Joueur, courte: bool = False):
+    def _passer(self, j: Joueur, c: Joueur, courte: bool = False, point: tuple[float, float] | None = None,
+                longue: bool = False):
         b = self.ballon
         dx, dy = c.x - j.x, c.y - j.y
         d = math.hypot(dx, dy) or 1.0
-        # on vise un peu devant un receveur qui court
-        vise_x, vise_y = c.x + c.vx * min(1.2, d / 15.0), c.y + c.vy * min(1.2, d / 15.0)
+        if point is not None:
+            # dans l'espace : le ballon va où le coureur va, pas où il est
+            vise_x, vise_y = point
+        else:
+            # on vise un peu devant un receveur qui court
+            vise_x, vise_y = c.x + c.vx * min(1.2, d / 15.0), c.y + c.vy * min(1.2, d / 15.0)
         dx, dy = vise_x - j.x, vise_y - j.y
         d = math.hypot(dx, dy) or 1.0
         # la vitesse : assez pour arriver, pas plus
@@ -1227,7 +1400,10 @@ class Match:
         sigma = math.radians(1.0 + 4.0 * (1 - precision) + 3.0 * pression + 0.04 * d)
         ang = math.atan2(dy, dx) + self.rs.gauss(0, sigma)
         vz = 0.0
-        haut = d > 30 or (self._couloir_libre(j, c) < 0.2 and d > 15)
+        haut = longue or d > 30 or (self._couloir_vers(j, vise_x, vise_y) < 0.2 and d > 15)
+        if point is not None and d < 30 and not longue:
+            v += 1.5                                  # une passe en profondeur file, elle n'attend pas
+            v = min(VITESSE_PASSE[1], v)
         if haut:
             # par-dessus : la portée en l'air vaut la distance (v = d·g / 2vz)
             vz = 6.0 + d * 0.1
@@ -1245,7 +1421,8 @@ class Match:
             if tiers:
                 min(tiers, key=lambda o: math.hypot(gx - o.x, gy - o.y)).appel_jusqua = self.t + 2.2
         b.hors_jeu_au_kick = {x.pid for x in self.actifs(j.camp) if x is not j and self.hors_jeu(x, b.x)}
-        self.evt("passe", de=j.pid, a=c.pid, camp=j.camp, x=round(j.x, 1), y=round(j.y, 1), d=round(d, 1), haut=vz > 0, role=c.role)
+        self.evt("passe", de=j.pid, a=c.pid, camp=j.camp, x=round(j.x, 1), y=round(j.y, 1), d=round(d, 1), haut=vz > 0, role=c.role,
+                 prof=point is not None, longue=longue)
 
     def _centrer(self, j: Joueur):
         gx, gy = self.but_de(j.camp)
@@ -1269,7 +1446,7 @@ class Match:
         self.ballon.passe_vers = None
         self.evt("degagement", de=j.pid, camp=j.camp)
 
-    def _conduire(self, j: Joueur):
+    def _conduire(self, j: Joueur, percee: bool = False):
         (ux, uy), dev = self._espace_devant(j)
         # on s'écarte du défenseur le plus proche
         o, d = self.plus_proche(1 - j.camp, j.x, j.y, gk=False)
@@ -1279,7 +1456,10 @@ class Match:
             ux, uy = ux * 0.6 + ox / n * 0.4, uy * 0.6 + oy / n * 0.4
             n = math.hypot(ux, uy) or 1.0
             ux, uy = ux / n, uy / n
-        portee = 8.0 + 8.0 * (1 - j.attr("DRI") / 99) if dev > 6 else 3.0
+        if percee:
+            portee = 20.0                               # le boulevard se prend en sprintant
+        else:
+            portee = 8.0 + 8.0 * (1 - j.attr("DRI") / 99) if dev > 6 else 3.0
         j.cible = (max(1.0, min(LONG - 1.0, j.x + ux * portee)), max(1.0, min(LARG - 1.0, j.y + uy * portee)))
         j.role = "porteur"
 
@@ -1322,15 +1502,28 @@ class Match:
                 tx, ty = j.cible
                 v_lim = j.vmax * (1.0 - 0.12 * j.fatigue)
                 # on ne sprinte que quand ça compte : au ballon, sur un appel, pour recevoir
-                plafond = {"forme": 3.4, "marque": 4.2, "gardien": 6.0, "coupe": 5.5, "soutien": 5.5, "receveur": 7.5}.get(j.role)
-                if j.role in ("presse", "chasse") and self.d_ballon(j) > 7.0:
-                    plafond = 6.8                # on ne sprinte que pour les derniers mètres
+                plafond = {"forme": 3.4, "marque": 4.2, "gardien": 6.0, "coupe": 5.5, "soutien": 5.5, "receveur": 7.5,
+                           "chasse": 6.6}.get(j.role)
+                if j.role == "presse" and self.d_ballon(j) > 7.0:
+                    plafond = 6.6                # on ne sprinte que pour les derniers mètres
                 if plafond is not None:
                     plafond *= j.vmax / 8.83     # un rapide trotte plus vite aussi
                 if j.role == "porteur":
-                    plafond = j.vmax * 0.88      # balle au pied, on va moins vite
+                    plafond = j.vmax * (0.95 if self.t < j.perce_jusqua else 0.88)   # balle au pied, on va moins vite
+                elif j.role == "forme":
+                    ph = self.phase[j.camp]
+                    devant = (j.x - b.x) * j.sens() > 3.0
+                    if ph == "contre" and j.role_tac in ("ailier", "buteur") and devant:
+                        plafond = 7.3 * j.vmax / 8.83        # la transition offensive : les attaquants partent
+                    elif ph == "contre" and j.role_tac in ("meneur", "relayeur"):
+                        plafond = 5.5 * j.vmax / 8.83
+                    elif ph in ("bloc_bas", "bloc_median", "contre_pressing") and j.fam != "DEF" and (j.x - b.x) * j.sens() > 10.0:
+                        plafond = 5.2 * j.vmax / 8.83        # le repli : on rentre derrière le ballon en courant
                 if plafond is not None:
                     v_lim = min(v_lim, plafond)
+                # à bout de souffle, on ne sprinte plus : on court
+                if j.souffle <= 0.0:
+                    v_lim = min(v_lim, SPRINT - 0.6)
             dx, dy = tx - j.x, ty - j.y
             d = math.hypot(dx, dy)
             # une zone morte : personne ne fait deux pas pour un mètre
@@ -1358,6 +1551,9 @@ class Match:
             j.distance += pas
             if v > SPRINT:
                 j.sprint += pas
+                j.souffle = max(0.0, j.souffle - DT)
+            elif v < 4.5:
+                j.souffle = min(SOUFFLE, j.souffle + DT * 0.12)
             j.vmax_vue = max(j.vmax_vue, v)
             # l'usure : courir vite coûte, plus à qui a peu d'endurance
             cout = (0.00006 + 0.0011 * (v / 9.0) ** 3) * (1.0 + (70.0 - j.endurance_ea) / 100.0) * (1.25 - 0.5 * j.volume)
@@ -1432,7 +1628,7 @@ class Match:
                 tir = self._tir_en_cours()
                 if tir:
                     d = self.d_ballon(j)
-                    p = (1.08 - 0.008 * max(0.0, v - 18.0) - 0.08 * d) * (0.72 + 0.28 * j.attr("ARR") / 99)
+                    p = (0.96 - 0.012 * max(0.0, v - 18.0) - 0.10 * d) * (0.72 + 0.28 * j.attr("ARR") / 99)
                     if self.rs.random() > max(0.15, min(0.95, p)):
                         j.dernier_contact = self.t
                         b.dernier = j
@@ -1518,6 +1714,10 @@ class Match:
             self.evt("contre", de=j.pid, camp=j.camp, tireur=tir["de"].pid)
         v = b.vitesse() * 0.45
         ang = math.atan2(b.vy, b.vx) + self.rs.gauss(0, 0.9)
+        if tir and self.rs.random() < 0.45:
+            # dévié : le ballon file derrière le défenseur, vers la ligne de fond
+            v = b.vitesse() * 0.7
+            ang = math.atan2(b.vy, b.vx) + self.rs.choice([-1, 1]) * self.rs.uniform(0.5, 1.1)
         b.vx, b.vy = v * math.cos(ang), v * math.sin(ang)
         b.vz = abs(self.rs.gauss(2.0, 2.0))
         b.dernier = j

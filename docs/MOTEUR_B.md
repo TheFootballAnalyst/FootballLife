@@ -36,24 +36,25 @@ pointe médiane 31,8 km/h, 190 m de sprint, 9 sprints).
 
     py -m jeu.emergent --jeu jeu/demo.sqlite --matchs 8 --graine 11
 
-État après le passage aux phases d'équipe (6 matchs, graine 11) :
+État après les patterns (relance, appels et passes en profondeur,
+percées ; 6 matchs, graine 11) :
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 1,5 | 2,8 | trop peu : les blocs tiennent mieux que l'attaque ne les perce |
-| tirs | 15 | 25 | trop peu, même cause |
-| tirs cadrés | 7 | 8,5 | proche |
-| passes | 1 407 | 900 | possessions trop courtes (65 min de jeu effectif, réel 57) |
-| réussite des passes | 87 % | 83 % | un peu trop sûre |
-| corners | 1,3 | 10 | pas assez de déviations et de dégagements |
-| fautes | 23 | 22 | juste |
-| hors-jeu | 0,3 | 3,5 | les appels restent en jeu d'un mètre et demi, trop sages |
-| distance par joueur | 11,8 km | 10,5 km | proche |
-| pointe médiane | 31,7 km/h | 31,8 km/h | juste (corrélation 0,98 avec la note EA) |
-| sprint par joueur | 220 m | 190 m | proche |
-| possession du dominant | 53 % | 58 % | les matchs sont trop équilibrés |
-| tacles | 35 | 32 | proche |
-| cartons jaunes | 5,4 | 4 | un peu trop |
+| buts | 2,7 | 2,8 | juste (le gardien ne sort plus tout : 0,96 de base au lieu de 1,08) |
+| tirs | 15 | 25 | trop peu : l'attaque arrive dans la surface mais frappe peu |
+| tirs cadrés | 8,2 | 8,5 | juste |
+| passes | 1 268 | 900 | possessions trop courtes (65 min de jeu effectif, réel 57) |
+| réussite des passes | 80 % | 83 % | proche (les passes en profondeur se perdent plus) |
+| corners | 1,8 | 10 | pas assez de déviations et de dégagements |
+| fautes | 22 | 22 | juste |
+| hors-jeu | 4,0 | 3,5 | juste : un coureur parti un pas trop tôt, un passeur qui n'a pas vu la ligne |
+| distance par joueur | 12,5 km | 10,5 km | trop : le bloc médian suit trop le ballon (2,4 m/s de moyenne dans la forme) |
+| pointe médiane | 31,5 km/h | 31,8 km/h | juste (corrélation 0,93 avec la note EA) |
+| sprint par joueur | 280 m | 190 m | un peu trop : les transitions offensives et les appels |
+| possession du dominant | 56 % | 58 % | proche |
+| tacles | 36 | 32 | proche |
+| cartons jaunes | 4,5 | 4 | proche |
 
 Ce que l'œil a corrigé avant les chiffres : les arrêts de jeu vivent (le
 tireur marche au ballon, les autres prennent la forme de la reprise au
@@ -74,7 +75,7 @@ on regarde si les autres ont bougé.
 
 **La tactique** d'un camp (les mêmes mots que le jeu : bloc haut/médian/bas,
 tempo possession/équilibre/direct, risque offensif/équilibre/prudent,
-et les consignes par ligne) se règle dans le bac, équipe par équipe, et
+relance courte/longue/mixte, et les consignes par ligne) se règle dans le bac, équipe par équipe, et
 se voit. Bloc haut : la défense se tient six mètres derrière le ballon,
 jusqu'au milieu adverse, et dans le camp adverse les deux joueurs qui
 suivent le presseur prennent chacun un homme au contact — le pressing
@@ -84,6 +85,48 @@ Tempo possession : on garde le ballon plus longtemps et on passe court ;
 direct : on lâche vite et la longue coûte moins. Risque offensif : plus
 d'appels dans le dos. Latéraux « bas » : ils ne montent pas ; ailiers
 « intérieur » : ils rentrent ; milieux « projection » : la ligne monte.
+
+**Les patterns.** Ce que l'œil attendait et ne voyait pas : la balle
+qui navigue sur la ligne offensive, aucun appel dans le dos, aucune
+passe dans la course, personne qui part balle au pied. Quatre briques :
+
+- *La relance* (consigne `relance` courte/longue/mixte ; mixte suit le
+  tempo, possession joue court et direct joue long, et face à un bloc
+  haut on allonge). Le gardien décide lui-même (`_relancer`) : courte,
+  il cherche l'homme libre avec une ligne de passe à moins de
+  trente-huit mètres, jamais dans les pieds d'un homme tenu ; sans
+  ligne courte, il allonge. La phase `relance` a sa forme : courte, les
+  centraux ouverts au bord de la surface, le pivot devant le gardien,
+  les latéraux à la touche, tout le bloc sur quarante mètres pour que
+  chaque porteur ait deux lignes courtes ; longue, tout le bloc monte
+  à la retombée (soixante mètres), serré autour de l'attaquant pour le
+  second ballon. Pas de hors-jeu sur une sortie de but.
+- *L'appel en profondeur* : quand le porteur a le temps (pression
+  faible) et qu'il reste quatorze mètres derrière la ligne adverse, un
+  attaquant (les gros travailleurs offensifs d'abord, deux au plus)
+  part DERRIÈRE la ligne, dans la brèche si elle est à portée, sinon
+  droit devant en glissant vers l'axe. Tant que la passe n'est pas
+  partie il court à la ligne sans la franchir — à sa marge à lui : un
+  bon lecteur attend, un autre part un pas trop tôt et se fait prendre.
+  C'est un sprint (pas de plafond d'allure sur ce rôle).
+- *La passe en profondeur* : le porteur voit le coureur, et vise
+  l'ESPACE où il va (`_passer(point=…)`), pas l'homme ; la passe vaut
+  d'autant plus que le point d'arrivée est près du but, que la ligne
+  est ouverte, que le coureur y arrive avant le défenseur et qu'il est
+  déjà lancé ; elle vaut moins si le gardien peut sortir dessus. Dans
+  le fil du bac elle s'appelle « passe en profondeur ».
+- *La percée* : un boulevard de quatorze mètres devant un dribbleur,
+  et il part balle au pied à 95 % de sa pointe, sans relâcher pendant
+  presque deux secondes (sauf un adversaire qui arrive ou une frappe
+  qui se présente). Un central en construction ne perce pas, il relance.
+
+Et les allures : la transition offensive se court (les attaquants devant
+le ballon sprintent sur un contre), le repli aussi (un milieu ou un
+attaquant à dix mètres devant le ballon rentre en courant), mais un
+sprint est une bouffée (`SOUFFLE`, 2,6 s) qui se recharge au trot, pas
+une allure ; un contre qui n'avance plus au bout de deux secondes et
+demie n'est plus un contre. Une latérale vers un homme tenu, dans le
+camp adverse, vaut moins qu'avant : la balle navigue moins.
 
 **Le collectif** (`jeu/collectif_manuel.json`, sinon mesuré) : de 0, une
 somme d'individualités, à 1, un onze qui combine les yeux fermés. Mesuré
