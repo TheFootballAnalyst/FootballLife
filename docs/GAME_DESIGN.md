@@ -401,6 +401,10 @@ is a different engine, not an extension of this one. What it needs:
 6. *Determinism and replay.* Fixed time step, seeded noise, the trace
    stored: a replayed match must be the same match, as it is today.
 
+A first B exists: `jeu/emergent.py`, its bench and its viewer at `/bac`
+(docs/MOTEUR_B.md), with the physical layer, the decision layer, the
+rules and the trace — and a calibration table that says how far it is.
+
 The sane path is a **hybrid**: keep the statistical engine authoritative
 for outcomes (what voie A does), grow B underneath as the *positional
 layer* that enacts the die's outcome physically, and flip to

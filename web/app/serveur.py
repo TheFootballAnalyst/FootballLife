@@ -1204,6 +1204,46 @@ def logo(tid: int):
     return FileResponse(f, headers={"Cache-Control": "public, max-age=604800"})
 
 
+# ---------------------------------------------------------------------------
+# Le bac à sable du moteur B (jeu/emergent.py) : un match joué sur un
+# terrain, à regarder et à mesurer.  Rien ici ne touche au jeu.
+# ---------------------------------------------------------------------------
+_BAC: dict[str, dict] = {}
+
+
+@app.get("/bac")
+def bac_page():
+    return FileResponse(STATIQUE / "bac.html")
+
+
+@app.get("/api/bac/clubs")
+def bac_clubs(jeu=Depends(bd)):
+    rows = jeu.execute("""SELECT cl.team_id, cl.nom, ROUND(AVG(c.ovr)) AS ovr FROM club cl
+                          JOIN joueur j ON j.team_id = cl.team_id JOIN carte c ON c.player_id = j.player_id
+                          WHERE c.saison=? GROUP BY cl.team_id HAVING COUNT(*) >= 14 ORDER BY ovr DESC, cl.nom""", (SAISON,))
+    return {"clubs": [{"team_id": r["team_id"], "nom": r["nom"], "ovr": int(r["ovr"])} for r in rows]}
+
+
+@app.get("/api/bac/match")
+def bac_match(a: int, b: int, graine: int = 1, minutes: int = 90, formation: str = "4-3-3", jeu=Depends(bd)):
+    from jeu import emergent as EM
+    minutes = max(5, min(90, minutes))
+    if formation not in S.FORMATIONS_RANGS:
+        raise HTTPException(400, "Formation inconnue")
+    cle = f"{a}:{b}:{graine}:{minutes}:{formation}"
+    if cle in _BAC:
+        return _BAC[cle]
+    sa, sb = SO.onze_club(jeu, SAISON, a, formation), SO.onze_club(jeu, SAISON, b, formation)
+    if len(sa) < 11 or len(sb) < 11:
+        raise HTTPException(400, "Un des deux clubs n'a pas onze cartes")
+    noms = tuple((jeu.execute("SELECT nom FROM club WHERE team_id=?", (t,)).fetchone() or ["?"])[0] for t in (a, b))
+    res = EM.Match(sa, sb, formation, formation, graine=graine, minutes=minutes, noms=noms).jouer()
+    if len(_BAC) >= 6:
+        _BAC.pop(next(iter(_BAC)))
+    _BAC[cle] = res
+    return res
+
+
 @app.get("/")
 def accueil():
     return FileResponse(STATIQUE / "index.html")

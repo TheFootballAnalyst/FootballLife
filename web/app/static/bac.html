@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FootballLife — bac à sable du moteur B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--fond:#0d1117;--surface:#151b26;--ligne:#26304a;--encre:#e9ecf4;--sourd:#9aa3b8;--or:#d8b45a;--a:#1F6FD1;--b:#C62E2E;--vert:#2f8f5b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--encre);font:14px/1.4 system-ui,sans-serif;padding:14px 18px}
+h1{font-family:Anton,sans-serif;font-weight:400;font-size:26px;margin:0 0 4px;letter-spacing:.02em}
+h1 span{color:var(--or)}
+.sous{color:var(--sourd);margin:0 0 12px;max-width:900px}
+.barre{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:12px}
+label{display:flex;flex-direction:column;gap:3px;font-family:"Barlow Condensed",sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--sourd)}
+select,input,button{font:inherit;color:inherit;background:var(--surface);border:1px solid var(--ligne);border-radius:8px;padding:6px 10px}
+button{cursor:pointer}
+button.primaire{background:var(--or);color:#1a1405;font-weight:700;border-color:var(--or)}
+button:disabled{opacity:.5;cursor:default}
+.scene{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
+@media (max-width:900px){.scene{grid-template-columns:1fr}}
+.terrain{position:relative;width:100%;aspect-ratio:105/68;background:#1f7a3a;border-radius:10px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+canvas{display:block;width:100%;height:100%}
+.tete{display:flex;align-items:center;gap:14px;margin:8px 0;font-family:"Barlow Condensed",sans-serif}
+.tete .score{font-family:Anton,sans-serif;font-size:28px}
+.tete .a{color:#7cb3ff}.tete .b{color:#ff8f8f}
+.tete .min{font-size:20px;color:var(--or);min-width:52px}
+.commandes{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.commandes input[type=range]{flex:1;min-width:160px;padding:0}
+.panneau{background:var(--surface);border:1px solid var(--ligne);border-radius:10px;padding:10px 12px;max-height:70vh;overflow:auto}
+.panneau h3{font-family:"Barlow Condensed",sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--sourd);margin:0 0 6px}
+.fil div{padding:3px 0;border-bottom:1px solid var(--ligne);font-size:13px}
+.fil .but{color:#7ce2ad;font-weight:700}.fil .tir{color:var(--or)}.fil .faute{color:#ff8f8f}
+.fil small{color:var(--sourd);margin-right:6px}
+table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:8px}
+th,td{padding:3px 5px;text-align:right;border-bottom:1px solid var(--ligne)}
+th{font-family:"Barlow Condensed",sans-serif;font-weight:600;color:var(--sourd);text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+td:first-child,th:first-child{text-align:left}
+tr.a td:first-child{color:#7cb3ff}tr.b td:first-child{color:#ff8f8f}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin-top:8px}
+.stat{background:var(--fond);border:1px solid var(--ligne);border-radius:8px;padding:6px 8px}
+.stat b{display:block;font-family:Anton,sans-serif;font-weight:400;font-size:18px}
+.stat span{font-family:"Barlow Condensed",sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--sourd)}
+.attente{color:var(--or)}
+</style>
+</head>
+<body>
+<h1>Bac à sable <span>moteur B</span></h1>
+<p class="sous">Ici, rien n'est tiré d'avance : vingt-deux joueurs décident et courent, le ballon a sa physique, un but est un ballon qui franchit la ligne. Ce bac ne touche à aucun résultat du jeu ; il sert à regarder, à mesurer et à calibrer (docs/MOTEUR_B.md).</p>
+<div class="barre">
+  <label>Club A <select id="club-a"></select></label>
+  <label>Club B <select id="club-b"></select></label>
+  <label>Formation <select id="formation"><option>4-3-3</option><option>4-4-2</option><option>4-2-3-1</option><option>3-5-2</option><option>3-4-3</option><option>4-5-1</option></select></label>
+  <label>Durée <select id="minutes"><option value="15">15 min</option><option value="45">45 min</option><option value="90" selected>90 min</option></select></label>
+  <label>Graine <input id="graine" type="number" value="1" min="1" style="width:80px"></label>
+  <button class="primaire" id="jouer">Jouer le match</button>
+  <span id="etat" class="attente"></span>
+</div>
+<div class="scene">
+  <div>
+    <div class="terrain"><canvas id="c" width="1050" height="680"></canvas></div>
+    <div class="tete"><span class="min" id="min">0'</span><span class="score"><span class="a" id="nom-a">A</span> <span id="score">0 – 0</span> <span class="b" id="nom-b">B</span></span></div>
+    <div class="commandes">
+      <button id="lecture">▶</button>
+      <select id="vitesse"><option value="1">×1</option><option value="2">×2</option><option value="4" selected>×4</option><option value="8">×8</option><option value="16">×16</option></select>
+      <input id="curseur" type="range" min="0" max="0" value="0">
+    </div>
+    <div class="stats" id="stats"></div>
+  </div>
+  <div class="panneau">
+    <h3>Le fil</h3>
+    <div class="fil" id="fil"></div>
+    <h3 style="margin-top:12px">Les joueurs</h3>
+    <div id="joueurs"></div>
+  </div>
+</div>
+<script src="/static/bac.js"></script>
+</body>
+</html>

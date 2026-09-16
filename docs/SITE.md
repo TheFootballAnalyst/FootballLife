@@ -369,6 +369,13 @@ pour transformer une bonne carte en mauvaise. Les barres se lisent sous
 chaque joueur sur le terrain, et dans le panneau des changements, les
 plus fatigués en tête.
 
+**Le bac à sable du moteur B** (`/bac`) est une autre page : deux clubs
+et une graine, le match se joue sur un vrai terrain (jeu/emergent.py :
+vingt-deux joueurs qui décident, un ballon qui a sa physique, un but qui
+est un ballon qui franchit la ligne) et se rejoue image par image avec
+le fil, les statistiques et la course de chacun. Il ne touche à rien
+dans le jeu ; il sert à regarder et à calibrer (docs/MOTEUR_B.md).
+
 ## Diriger le match
 
 **Six minutes réelles pour les quatre-vingt-dix.** Un match à un seul
