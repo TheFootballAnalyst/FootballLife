@@ -66,19 +66,19 @@ sur dix et dégage en catastrophe dans sa surface.
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 2,5 | 2,8 | proche (deux graines : 2,5 et 2,5) |
-| tirs | 20 | 25 | un peu peu |
-| tirs cadrés | 6,5 | 8,5 | un peu peu |
-| passes | 1 030 | 900 | un peu trop : le porteur garde 2,6 s en médiane, réel 3 à 4 |
-| réussite des passes | 80 % | 83 % | proche |
+| buts | 3,3 | 2,8 | un peu trop (deux graines : 3,2 et 3,5) |
+| tirs | 27 | 25 | proche |
+| tirs cadrés | 9 | 8,5 | juste |
+| passes | 900 | 900 | juste, depuis qu'un côté bouché se quitte |
+| réussite des passes | 76 % | 83 % | un peu bas : les transversales se perdent |
 | corners | 6 | 10 | mieux : les centres se disputent de la tête, le gardien repousse, le défenseur dégage en première intention |
-| fautes | 19 | 22 | proche (la faute de pressing en fait l'essentiel) |
+| fautes | 22 | 22 | juste (la faute de pressing en fait l'essentiel) |
 | hors-jeu | 1,4 | 3,5 | un peu peu : le passeur voit la ligne avec quatre dixièmes de retard, la ligne ne piège pas encore |
-| distance par joueur | 11,1 km | 10,5 km | proche |
+| distance par joueur | 12,5 km | 10,5 km | un peu trop |
 | pointe médiane | 31,6 km/h | 31,8 km/h | juste (corrélation 0,94 avec la note EA) |
-| sprint par joueur | 370 m | 190 m | trop : appels, chasses, pressing sur un porteur qui s'échappe |
+| sprint par joueur | 450 m | 190 m | trop : appels, chasses, pressing sur un porteur qui s'échappe |
 | possession du dominant | 56 % | 58 % | proche |
-| tacles | 21 | 32 | un peu peu : le porteur ne rentre plus dans le défenseur, le duel se cherche |
+| tacles | 29 | 32 | proche : le porteur ne rentre plus dans le défenseur, le duel se cherche |
 | cartons jaunes | 3,7 | 4 | juste |
 
 Le banc sur six matchs bouge d'une graine à l'autre (les buts de 1,8 à
@@ -274,6 +274,17 @@ contestée sort une fois sur deux derrière, le gardien repousse une
 frappe forte une fois sur quatre, et un défenseur qui prend un ballon
 adverse dans sa surface avec un attaquant dans le dos dégage en
 première intention. Voilà les corners.
+
+**Un côté bouché se quitte.** Le moteur compte les passes d'affilée sur
+un même côté (`cote_suite`) ; après deux en construction (trois dans le
+dernier tiers) sans progresser, insister sur ce côté coûte, repasser par
+l'axe rapporte, et la transversale vers l'autre côté rapporte sans payer
+la pénalité de longueur si la ligne est ouverte. Mesuré sur un match :
+les enchaînements de quatre passes et plus sur un côté passent de 56 à
+34, les transversales de 17 à 57, les retours par l'axe de 66 à 87.
+**On ne s'entasse pas** : l'ailier ne vient pas doubler là où il y a
+déjà deux des nôtres, le gardien ne va pas au ballon pendant un arrêt de
+jeu et c'est lui qui joue un coup franc dans sa surface.
 
 **Le piège.** Quand le ballon repart en arrière, la ligne remonte d'un
 coup (quatre mètres, à 6,5 m/s) au lieu de remonter à 2,5 m/s ; le

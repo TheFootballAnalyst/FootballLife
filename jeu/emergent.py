@@ -349,6 +349,7 @@ class Match:
             if t.get("relance", "mixte") == "mixte" and t["tempo"] in ("possession", "direct"):
                 t["relance"] = "courte" if t["tempo"] == "possession" else "longue"
         self.relance_choix = ["courte", "courte"]    # ce que chaque camp fait de SA relance en cours
+        self.cote_suite = [0, 0]                     # les passes d'affilée sur un même côté : un côté bouché se quitte
         self.t_bascule = 0.0
         self.x_bascule = 50.0
         self.joueurs = joueurs_de(sur_a, 0, formation_a) + joueurs_de(sur_b, 1, formation_b)
@@ -512,6 +513,10 @@ class Match:
             tireur = next((j for j in self.actifs(camp) if j.gk), None)
         elif k == "relance":
             tireur = next((j for j in self.actifs(camp) if j.gk), None)
+        elif k == "coup_franc":
+            mx, my = self.but_de(1 - camp)
+            if abs(x - mx) < SURFACE_X + 4.0 and abs(y - my) < SURFACE_Y:
+                tireur = next((j for j in self.actifs(camp) if j.gk), None)   # dans sa surface : le gardien joue
         if tireur is None:
             tireur, _ = self.plus_proche(camp, x, y, gk=(k == "sortie_but"))
         self.arret = {"k": k, "t": self.t, "camp": camp, "x": x, "y": y, "delai": delai, "tireur": tireur}
@@ -1306,6 +1311,8 @@ class Match:
             lat = next((x for x in siens if x.role_tac == "lateral" and (x.home[1] < LARG / 2) == gauche), None)
             if lat is not None and math.hypot(lat.x - o.x, lat.y - o.y) < 3.0 and o is not b.porteur:
                 continue
+            if sum(1 for x in siens if x is not j and math.hypot(x.x - o.x, x.y - o.y) < 5.0) >= 2:
+                continue                                # déjà deux des nôtres dessus : on ne s'entasse pas
             dm = math.hypot(mx - o.x, my - o.y) or 1.0
             j.cible = (o.x + (mx - o.x) / dm * 2.5, o.y + (my - o.y) / dm * 2.5)
             j.role = "double"
@@ -1324,7 +1331,7 @@ class Match:
             x = mx + dx / d * sortie
             y = my + dy / d * sortie * 0.6
             # il sort sur un ballon libre dans sa surface si personne n'est plus près
-            libre = b.porteur is None and b.vitesse() < 8
+            libre = b.porteur is None and b.vitesse() < 8 and self.arret is None
             dans = abs(b.x - mx) < SURFACE_X and abs(b.y - my) < SURFACE_Y
             if libre and dans:
                 _, dd = self.plus_proche(1 - camp, b.x, b.y, gk=False)
@@ -1470,6 +1477,19 @@ class Match:
             # le une-deux : on ne remet pas au passeur pour rien — sauf dans sa course
             if c.pid == j.recu_de and self.t - j.t_recu < 2.5 and gain < 0.15:
                 val -= 0.6
+            # un côté bouché se quitte : après deux passes sur le même côté sans
+            # progresser, on n'insiste pas — on repasse par l'axe, ou on renverse
+            zj, zc = self._zone(j.y), self._zone(c.y)
+            n_cote = self.cote_suite[camp]
+            seuil_cote = 2 if phase in ("construction", "progression", "relance") else 3
+            if zj != "A" and n_cote >= seuil_cote:
+                k_cote = 1.0 if phase in ("construction", "progression", "relance") else 0.7
+                if zc == zj and gain < 0.25:
+                    val -= 0.3 * k_cote * min(n_cote - 1, 4)
+                elif zc == "A":
+                    val += (0.2 + 0.1 * min(n_cote, 4)) * k_cote
+                elif couloir > 0.5:
+                    val += (0.35 + 0.1 * min(n_cote, 4)) * k_cote + 0.025 * max(0.0, d - 22.0) * tempo   # la transversale
             # une passe dans la surface pour un coureur : la passe qui tue
             if c.role == "appel" and math.hypot(gx - c.x, gy - c.y) < 25:
                 val += 0.6
@@ -1699,9 +1719,15 @@ class Match:
         b.z = max(b.z, 0.0)
         j.touches += 1
 
+    @staticmethod
+    def _zone(y: float) -> str:
+        return "G" if y < LARG / 2 - 10.0 else ("D" if y > LARG / 2 + 10.0 else "A")
+
     def _passer(self, j: Joueur, c: Joueur, courte: bool = False, point: tuple[float, float] | None = None,
                 longue: bool = False):
         b = self.ballon
+        zj, zc = self._zone(j.y), self._zone(c.y)
+        self.cote_suite[j.camp] = self.cote_suite[j.camp] + 1 if (zj != "A" and zc == zj) else 0
         dx, dy = c.x - j.x, c.y - j.y
         d = math.hypot(dx, dy) or 1.0
         if point is not None:
@@ -1718,7 +1744,7 @@ class Match:
         # la précision : l'erreur d'angle dépend de CRE/PRO, de la pression et de la distance
         pression = self._pression(j)
         precision = (j.attr("PRO") * 0.6 + j.attr("CRE") * 0.4) / 99
-        sigma = math.radians(1.0 + 4.0 * (1 - precision) + 3.0 * pression + 0.04 * d)
+        sigma = math.radians(1.0 + 4.0 * (1 - precision) + 3.0 * pression + 0.03 * d)
         ang = math.atan2(dy, dx) + self.rs.gauss(0, sigma)
         vz = 0.0
         haut = longue or d > 30 or (self._couloir_vers(j, vise_x, vise_y) < 0.2 and d > 15)
