@@ -858,7 +858,10 @@ class Match:
             ref = getattr(self, "bloc_ref", {}).get(camp)
             if ref is None or self.t - ref[2] > 3.0:
                 ref = (bx, by, self.t)
-            bx = max(bx, ref[0] - 1.4) if bx < ref[0] else min(bx, ref[0] + 0.5)
+            if vers_nous < -3.0:
+                bx = min(bx + 4.0, ref[0] + 1.3)          # le ballon repart en arrière : la ligne remonte d'un coup (le piège)
+            else:
+                bx = max(bx, ref[0] - 1.4) if bx < ref[0] else min(bx, ref[0] + 0.5)
             by = ref[1] + max(-1.0, min(1.0, by - ref[1]))
             if not hasattr(self, "bloc_ref"):
                 self.bloc_ref = {}
@@ -1878,9 +1881,11 @@ class Match:
                 plafond = {"forme": 3.3, "marque": 4.8, "gardien": 6.0, "coupe": 5.5, "soutien": 5.5, "receveur": 7.5,
                            "chasse": 6.6, "double": 6.2}.get(j.role)
                 if j.role in ("receveur", "chasse") and self.d_ballon(j) > 8.0:
-                    plafond = 8.4                    # loin du ballon, on y va à fond : c'est là que la pointe se voit
-                if j.role == "presse" and self.d_ballon(j) > 7.0:
-                    plafond = 6.6                # on ne sprinte que pour les derniers mètres
+                    plafond = 7.8                    # loin du ballon, on y va à fond : c'est là que la pointe se voit
+                if j.role == "presse":
+                    fuit = (b.porteur is not None and math.hypot(b.porteur.vx, b.porteur.vy) > 4.5) or (b.porteur is None and b.vitesse() > 6.0)
+                    if not fuit:
+                        plafond = 6.6            # on arrive vite ; on ne sprinte que sur un porteur qui s'échappe
                 if plafond is not None:
                     plafond *= j.vmax / 8.83     # un rapide trotte plus vite aussi
                 if j.role == "porteur":
