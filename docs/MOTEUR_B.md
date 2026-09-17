@@ -66,20 +66,23 @@ sur dix et dégage en catastrophe dans sa surface.
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 2,3 | 2,8 | proche |
-| tirs | 17,5 | 25 | un peu peu depuis que le porteur ralentit devant l'obstacle |
-| tirs cadrés | 6,3 | 8,5 | proche |
-| passes | 1 135 | 900 | un peu trop : le porteur garde 2,3 s en médiane, réel 3 à 4 |
-| réussite des passes | 82 % | 83 % | juste |
-| corners | 2,0 | 10 | pas assez : les têtes défensives et les contres sortent peu derrière |
-| fautes | 21 | 22 | juste (la faute de pressing en fait l'essentiel) |
+| buts | 2,2 | 2,8 | proche (deux graines : 2,3 et 2,2) |
+| tirs | 23 | 25 | proche |
+| tirs cadrés | 7,3 | 8,5 | proche |
+| passes | 1 080 | 900 | un peu trop : le porteur garde 2,3 s en médiane, réel 3 à 4 |
+| réussite des passes | 80 % | 83 % | proche |
+| corners | 6 | 10 | mieux : les centres se disputent de la tête, le gardien repousse, le défenseur dégage en première intention |
+| fautes | 19 | 22 | proche (la faute de pressing en fait l'essentiel) |
 | hors-jeu | 0,8 | 3,5 | trop peu |
-| distance par joueur | 11,7 km | 10,5 km | proche |
-| pointe médiane | 31,4 km/h | 31,8 km/h | juste |
-| sprint par joueur | 324 m | 190 m | trop : pressing et transitions |
-| possession du dominant | 54 % | 58 % | proche |
-| tacles | 31,5 | 32 | juste : le porteur ne rentre plus dans le défenseur, le duel se cherche |
-| cartons jaunes | 4,3 | 4 | juste |
+| distance par joueur | 12,0 km | 10,5 km | un peu trop |
+| pointe médiane | 31,6 km/h | 31,8 km/h | juste (corrélation 0,94 avec la note EA) |
+| sprint par joueur | 430 m | 190 m | trop : receveurs et chasseurs vont à fond |
+| possession du dominant | 56 % | 58 % | proche |
+| tacles | 26 | 32 | proche : le porteur ne rentre plus dans le défenseur, le duel se cherche |
+| cartons jaunes | 3,7 | 4 | juste |
+
+Le banc sur six matchs bouge d'une graine à l'autre (les buts de 1,8 à
+3,3) : pour trancher un réglage, on joue deux graines.
 
 Les outils de mesure de cette recalibration sont dans le scratchpad de
 la session et se réécrivent en dix lignes : `espace.py` (le porteur
@@ -262,6 +265,15 @@ rentrant dans le bloc. C'est ce qui a ramené les tacles de 160 à 32.
 du porteur le bouscule une fois sur vingt, c'est l'essentiel des fautes
 d'un match. **Le marqueur accompagne** : il se place côté but de son
 homme et un peu devant sa course, il ne le suit pas.
+
+**Les centres se disputent.** Un centre vise le coéquipier le mieux
+placé dans la surface (le plus libre, le plus près du but), un peu
+devant lui, et arrive à hauteur de tête : c'est là que ça se dispute, à
+un mètre quarante (on saute, on se penche). Une tête défensive
+contestée sort une fois sur deux derrière, le gardien repousse une
+frappe forte une fois sur quatre, et un défenseur qui prend un ballon
+adverse dans sa surface avec un attaquant dans le dos dégage en
+première intention. Voilà les corners.
 
 **Le porteur ne reste pas planté** : sans espace devant et sans homme
 dans les pieds, il dérive au pas vers le côté le plus ouvert pendant

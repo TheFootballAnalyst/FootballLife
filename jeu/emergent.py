@@ -1432,7 +1432,7 @@ class Match:
             _, libre = self.plus_proche(1 - camp, c.x, c.y, gk=False)
             couloir = self._couloir_libre(j, c)
             hj = self.hors_jeu(c, b.x)
-            if hj and self.rs.random() < 0.03:
+            if hj and self.rs.random() < 0.06:
                 hj = False                              # il n'a pas vu la ligne : le drapeau se lèvera
             # l'homme libre près du but vaut de l'or ; le tempo direct aime les longues
             val = (0.25 + 1.4 * gain + 0.6 * danger + 0.1 * min(libre, 8.0) + 1.0 * couloir - 0.012 * d
@@ -1475,9 +1475,9 @@ class Match:
                     d_gk = math.hypot(gk_adv.x - px, gk_adv.y - py) if gk_adv else 99.0
                     couloir_p = self._couloir_vers(j, px, py)
                     vc = math.hypot(c.vx, c.vy)
-                    avantage = max(-1.0, min(1.0, (libre_p - d_c * 0.75) / 10.0))   # lancé, il a un temps d'avance
+                    avantage = max(-1.0, min(1.0, (libre_p - d_c * 0.6) / 8.0))     # lancé, il a un temps d'avance
                     danger_p = 1.0 - math.hypot(gx - px, gy - py) / 105.0
-                    val = (0.0 + 1.2 * danger_p + 0.8 * couloir_p + 0.7 * avantage + 0.3 * min(vc, 8.0) / 8.0
+                    val = (0.35 + 1.2 * danger_p + 0.8 * couloir_p + 0.7 * avantage + 0.3 * min(vc, 8.0) / 8.0
                            - 0.02 * max(0.0, dp - 32.0) + 0.35 * (j.attr("CRE") / 99) - 0.2 * pression)
                     if avantage < 0.0:
                         val -= 0.8                      # le défenseur y sera avant : ce n'est pas une passe
@@ -1728,17 +1728,30 @@ class Match:
                  prof=point is not None, longue=longue)
 
     def _centrer(self, j: Joueur):
+        """Un centre : vers le coéquipier le mieux placé dans la surface (le
+        plus libre, le plus près du but), un peu devant lui, et en l'air à
+        hauteur de tête quand il arrive — c'est là que ça se dispute."""
         gx, gy = self.but_de(j.camp)
-        cx = gx - 9.0 * j.sens()
-        cy = gy + self.rs.uniform(-6.0, 6.0)
+        dans = [c for c in self.actifs(j.camp) if c is not j and not c.gk
+                and abs(c.x - gx) < 18.0 and abs(c.y - gy) < 18.0]
+        if dans:
+            def valeur(c):
+                _, libre = self.plus_proche(1 - j.camp, c.x, c.y, gk=False)
+                return min(libre, 6.0) - 0.08 * math.hypot(gx - c.x, gy - c.y)
+            c = max(dans, key=valeur)
+            cx, cy = c.x + c.vx * 0.5 + self.rs.gauss(0, 1.5), c.y + c.vy * 0.5 + self.rs.gauss(0, 1.5)
+        else:
+            cx, cy = gx - 9.0 * j.sens(), gy + self.rs.uniform(-6.0, 6.0)
         dx, dy = cx - j.x, cy - j.y
         d = math.hypot(dx, dy) or 1.0
         sigma = math.radians(4.0 + 8.0 * (1 - j.attr("CRE") / 99))
         ang = math.atan2(dy, dx) + self.rs.gauss(0, sigma)
-        v = min(24.0, math.sqrt(2 * BALLON_FROTTEMENT * d) + 6.0)
+        v = max(12.0, min(22.0, 10.0 + 0.4 * d))
+        T = d / v
+        vz = (1.7 + 0.5 * GRAVITE * T * T) / T          # à hauteur de tête à l'arrivée
         j.passes += 1
         self.stats["passes"][j.camp] += 1
-        self._lacher(j, v * math.cos(ang), v * math.sin(ang), 6.5)
+        self._lacher(j, v * math.cos(ang), v * math.sin(ang), vz)
         self.ballon.passe_vers = None
         self.evt("centre", de=j.pid, camp=j.camp)
 
@@ -1849,6 +1862,8 @@ class Match:
                 # on ne sprinte que quand ça compte : au ballon, sur un appel, pour recevoir
                 plafond = {"forme": 3.3, "marque": 4.8, "gardien": 6.0, "coupe": 5.5, "soutien": 5.5, "receveur": 7.5,
                            "chasse": 6.6, "double": 6.2}.get(j.role)
+                if j.role in ("receveur", "chasse") and self.d_ballon(j) > 8.0:
+                    plafond = 8.4                    # loin du ballon, on y va à fond : c'est là que la pointe se voit
                 if j.role == "presse" and self.d_ballon(j) > 7.0:
                     plafond = 6.6                # on ne sprinte que pour les derniers mètres
                 if plafond is not None:
@@ -1970,6 +1985,8 @@ class Match:
                 # un ballon qui file se prend moins facilement qu'un ballon qui roule ;
                 # celui à qui la passe est adressée sait où la prendre
                 portee = RAYON_CONTROLE if v_b < 8.0 else (0.5 if j is not b.passe_vers else 1.5)
+                if b.z > 1.0:
+                    portee = 1.4                      # en l'air, on saute dessus : la tête se dispute
                 if j.gk:
                     portee = RAYON_CONTROLE + ((1.3 + 1.2 * j.attr("ARR") / 99) if tir else 0.6)
                 if b.dernier is not None and j.camp != b.dernier.camp and self.t - b.t_kick < 0.35 and not tir:
@@ -2050,6 +2067,12 @@ class Match:
         j.role = "porteur"
         j.cible = (j.x, j.y)
         if not j.gk:
+            mx, my = self.but_de(1 - j.camp)
+            _, gene = self.plus_proche(1 - j.camp, j.x, j.y, gk=False)
+            if (j.fam == "DEF" and math.hypot(j.x - mx, j.y - my) < 22.0 and prec is not None and prec.camp != j.camp
+                    and gene < 4.0):
+                self._degager(j)                    # dans sa surface, un attaquant dans le dos : première intention
+                return
             _, dev = self._espace_devant(j)
             if dev > 7.0:
                 self._conduire(j)                   # l'espace devant se prend dès le contrôle
@@ -2076,7 +2099,7 @@ class Match:
         _, gene = self.plus_proche(1 - j.camp, j.x, j.y, gk=False)
         if j.fam == "DEF" and math.hypot(j.x - mx, j.y - my) < 20.0 and self.rs.random() < (0.5 if gene < 2.5 else 0.3):
             # une tête en catastrophe, un attaquant dans le dos : vers la touche, en arrière — d'où les corners
-            ang = math.atan2(1.0 if j.y >= my else -1.0, -0.7 * (1 if j.camp == 0 else -1)) + self.rs.gauss(0, 0.3)
+            ang = math.atan2(1.0 if j.y >= my else -1.0, -1.1 * (1 if j.camp == 0 else -1)) + self.rs.gauss(0, 0.3)
         v = 9.0 + 7.0 * j.attr("DEF") / 99
         self.evt("tete", de=j.pid, camp=j.camp)
         self._lacher(j, v * math.cos(ang), v * math.sin(ang), 3.0)
@@ -2119,7 +2142,7 @@ class Match:
             self.evt("arret", de=gk.pid, camp=gk.camp, tireur=tir["de"].pid)
         # une frappe forte est repoussée plutôt que captée : le ballon repart
         # devant, ou vers la ligne de fond
-        if tir and self.rs.random() < 0.15 + 0.5 * max(0.0, (b.vitesse() - 20.0) / 12.0):
+        if tir and self.rs.random() < 0.25 + 0.5 * max(0.0, (b.vitesse() - 20.0) / 12.0):
             mx, my = self.but_de(1 - gk.camp)
             sens = 1 if gk.camp == 0 else -1
             cote = 1 if b.y >= my else -1
