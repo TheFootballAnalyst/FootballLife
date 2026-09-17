@@ -36,44 +36,50 @@ pointe médiane 31,8 km/h, 190 m de sprint, 9 sprints).
 
     py -m jeu.emergent --jeu jeu/demo.sqlite --matchs 8 --graine 11
 
-**État : recalibration en cours.** Jusqu'ici la forme d'équipe
-réécrivait la cible du porteur à chaque tic : il marchait vers sa place
-au lieu de conduire, et toute la défense avait été réglée contre un
-porteur immobile. Le porteur conduit maintenant vraiment (avec dix
-mètres devant lui, il court 70 % du temps, immobile 6 %), et la défense
-doit être réglée contre un ballon qui avance. Ce qui est déjà en place :
-le bloc anticipe un ballon qui vient (une seconde d'avance), recule vite
-et remonte lentement (7 et 2,5 m/s), les milieux restent six mètres
-derrière le ballon, les défenseurs reculent en courant, le marquage
-dans les vingt-cinq mètres se prend d'avance et l'attribution est
-stable (chacun garde son homme), un porteur lancé sur un défenseur
-côté but ne le contourne pas sans duel, le duel se tranche en un jet
-(un porteur à l'arrêt se fait piquer le ballon, pas tacler), le tacleur
-ressort avec le ballon six fois sur dix et dégage sous pression dans sa
-surface. Ce qui manque : l'attaque entre encore dans la surface trois
-fois trop souvent (160 entrées par match, réel 50 à 60), surtout sur
-des passes vers un attaquant marqué à quatre mètres au lieu d'un et
-demi ; le marqueur reste à six mètres de son homme en médiane
-(`scratchpad/marque.py`), c'est la prochaine ligne à régler.
+**État : le bloc est devant le ballon.** Deux bugs de fond sont
+sortis de cette passe. Le premier : la forme d'équipe réécrivait la
+cible du porteur à chaque tic, il marchait vers sa place au lieu de
+conduire (avec dix mètres devant lui, il était immobile ou au pas 43 %
+du temps ; maintenant il court 68 %). Le second, plus grave : toute la
+défense en bloc calculait « son propre but » avec `but_de(df)`, qui
+donne le but qu'on ATTAQUE — le presseur contenait derrière le porteur,
+le marqueur se plaçait devant son homme, le repli forcé comptait les
+attaquants près du mauvais but. Corrigé, le bloc est enfin entre le
+ballon et le but : quand le porteur entre dans les 35 mètres il a 6,6
+adversaires devant lui (réel 5 à 7, avant 2,9), l'attaque entre dans la
+surface une cinquantaine de fois (réel 50 à 60, avant 160), et le
+marqueur est à 1,6 m de son homme au contact.
+
+Ce qui tient le bloc : il anticipe un ballon qui vient (une seconde
+d'avance), recule vite et remonte lentement (7 et 2,5 m/s), sa place ne
+fuit jamais plus vite qu'un homme ne court, les milieux restent six
+mètres derrière le ballon, on contient à deux mètres et demi (on ferme,
+on ne saute pas dans les pieds), le marquage dans les vingt-cinq mètres
+se prend d'avance et l'attribution est stable (chacun garde son homme,
+le porteur compris), un porteur lancé sur un défenseur côté but ne le
+contourne pas sans duel, le duel se tranche en un jet et pas plus d'un
+toutes les cinq secondes sur un porteur, un porteur à l'arrêt se fait
+piquer le ballon s'il traîne, le tacleur ressort avec le ballon six fois
+sur dix et dégage en catastrophe dans sa surface.
 
 6 matchs, graine 11 :
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 9,0 | 2,8 | beaucoup trop : voir ci-dessus |
-| tirs | 62 | 25 | beaucoup trop, même cause |
-| tirs cadrés | 30 | 8,5 | idem |
-| passes | 1 086 | 900 | un peu trop |
-| réussite des passes | 82 % | 83 % | juste |
-| corners | 4,8 | 10 | pas assez de déviations |
-| fautes | 26 | 22 | proche |
-| hors-jeu | 0,8 | 3,5 | trop peu : les passes en profondeur sont devenues rares |
-| distance par joueur | 13,8 km | 10,5 km | trop : les replacements se courent |
-| pointe médiane | 31,4 km/h | 31,8 km/h | juste (corrélation 0,92 avec la note EA) |
-| sprint par joueur | 363 m | 190 m | trop |
-| possession du dominant | 51 % | 58 % | les matchs sont trop équilibrés |
-| tacles | 182 | 32 | beaucoup trop : un duel tous les deux mètres et demi de conduite |
-| cartons jaunes | 7 | 4 | trop |
+| buts | 2,2 | 2,8 | proche |
+| tirs | 22,5 | 25 | proche |
+| tirs cadrés | 6,8 | 8,5 | proche |
+| passes | 1 097 | 900 | un peu trop : le porteur garde 2,3 s en médiane, réel 3 à 4 |
+| réussite des passes | 79 % | 83 % | proche |
+| corners | 2,2 | 10 | pas assez de déviations et de dégagements qui sortent |
+| fautes | 21 | 22 | juste |
+| hors-jeu | 0,5 | 3,5 | trop peu : les coureurs attendent trop sagement sur la ligne |
+| distance par joueur | 13,3 km | 10,5 km | trop : les replacements se courent |
+| pointe médiane | 31,2 km/h | 31,8 km/h | juste |
+| sprint par joueur | 351 m | 190 m | trop : pressing et transitions |
+| possession du dominant | 53 % | 58 % | les matchs sont trop équilibrés |
+| tacles | 171 | 32 | beaucoup trop : chaque ballon piqué compte, à séparer des vrais tacles |
+| cartons jaunes | 3,7 | 4 | juste |
 
 Les outils de mesure de cette recalibration sont dans le scratchpad de
 la session et se réécrivent en dix lignes : `espace.py` (le porteur
