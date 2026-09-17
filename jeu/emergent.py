@@ -432,18 +432,33 @@ class Match:
                 best, bd = j, d
         return best, bd
 
-    def ligne_horsjeu(self, camp_att: int) -> float:
+    def ligne_horsjeu(self, camp_att: int, retard: bool = False) -> float:
         """La ligne de hors-jeu que le camp attaquant affronte : l'avant-
-        dernier défenseur (en x absolu)."""
+        dernier défenseur (en x absolu).  Avec `retard`, la ligne telle
+        que le passeur l'a vue quatre dixièmes plus tôt : c'est de là que
+        viennent les vrais hors-jeu, d'un coureur parti sur la ligne d'il y
+        a un instant."""
         xs = sorted((j.x for j in self.actifs(1 - camp_att)), reverse=(camp_att == 0))
         if len(xs) < 2:
             return LONG if camp_att == 0 else 0.0
         ligne = xs[1]
         # jamais dans son propre camp
-        return max(ligne, LONG / 2) if camp_att == 0 else min(ligne, LONG / 2)
+        ligne = max(ligne, LONG / 2) if camp_att == 0 else min(ligne, LONG / 2)
+        hist = getattr(self, "_lignes", None)
+        if hist is None:
+            hist = self._lignes = {0: [], 1: []}
+        h = hist[camp_att]
+        if not h or h[-1][0] < self.t:
+            h.append((self.t, ligne))
+            if len(h) > 8:
+                del h[0]
+        if retard:
+            vue = next((l for t, l in h if t >= self.t - 0.45), ligne)
+            return vue
+        return ligne
 
-    def hors_jeu(self, j: Joueur, xb: float) -> bool:
-        ligne = self.ligne_horsjeu(j.camp)
+    def hors_jeu(self, j: Joueur, xb: float, retard: bool = False) -> bool:
+        ligne = self.ligne_horsjeu(j.camp, retard)
         if j.camp == 0:
             return j.x > ligne and j.x > xb and j.x > LONG / 2
         return j.x < ligne and j.x < xb and j.x < LONG / 2
@@ -1383,7 +1398,7 @@ class Match:
         tempo = {"possession": 1.25, "equilibre": 1.0, "direct": 0.7}[tac["tempo"]]
         # un temps de contrôle, plus court sous pression, plus court dans les
         # trente derniers mètres, plus court quand on joue direct
-        garde = (3.0 + 3.0 * (1 - pression)) * (1.0 - 0.3 * j.attr("CON") / 99) * tempo
+        garde = (3.6 + 3.0 * (1 - pression)) * (1.0 - 0.3 * j.attr("CON") / 99) * tempo
         if dbut < 32:
             garde *= 0.7
         if pression > 0.6:
@@ -1408,7 +1423,7 @@ class Match:
             ang = self._angle_but(j.x, j.y, camp)
             xg = self._xg(dbut, ang, pression)
             axe = self._axe_libre(j)
-            val = 0.55 + 7.0 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (0.2 if dbut < 16 else 0.0) - 0.15 * pression + 0.35 * axe * (1.0 if dbut < 22 else 0.2)
+            val = 0.65 + 7.0 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (0.2 if dbut < 16 else 0.0) - 0.15 * pression + 0.35 * axe * (1.0 if dbut < 22 else 0.2)
             if ang < 0.25 and dbut > 9:
                 val -= 0.6                                # un angle fermé : on cherche mieux
             if xg < 0.04 and not seul:
@@ -1431,9 +1446,9 @@ class Match:
             danger = 1.0 - math.hypot(gx - c.x, gy - c.y) / 105.0            # proche du but adverse
             _, libre = self.plus_proche(1 - camp, c.x, c.y, gk=False)
             couloir = self._couloir_libre(j, c)
-            hj = self.hors_jeu(c, b.x)
-            if hj and self.rs.random() < 0.06:
-                hj = False                              # il n'a pas vu la ligne : le drapeau se lèvera
+            hj = self.hors_jeu(c, b.x, retard=True)      # la ligne telle qu'il l'a vue, pas telle qu'elle est
+            if hj and self.rs.random() < 0.03:
+                hj = False                              # il n'a pas vu la ligne du tout : le drapeau se lèvera
             # l'homme libre près du but vaut de l'or ; le tempo direct aime les longues
             val = (0.25 + 1.4 * gain + 0.6 * danger + 0.1 * min(libre, 8.0) + 1.0 * couloir - 0.012 * d
                    - 0.025 * max(0.0, d - 22.0) * tempo - (1.0 if libre < 3.0 else 0.0)
@@ -1937,7 +1952,7 @@ class Match:
                 j.sprint += pas
                 j.souffle = max(0.0, j.souffle - DT)
             elif v < 4.5:
-                j.souffle = min(SOUFFLE, j.souffle + DT * 0.12)
+                j.souffle = min(SOUFFLE, j.souffle + DT * 0.08)
             j.vmax_vue = max(j.vmax_vue, v)
             # l'usure : courir vite coûte, plus à qui a peu d'endurance
             cout = (0.00006 + 0.0011 * (v / 9.0) ** 3) * (1.0 + (70.0 - j.endurance_ea) / 100.0) * (1.25 - 0.5 * j.volume)

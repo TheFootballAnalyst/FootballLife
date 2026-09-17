@@ -69,11 +69,11 @@ sur dix et dégage en catastrophe dans sa surface.
 | buts | 2,2 | 2,8 | proche (deux graines : 2,3 et 2,2) |
 | tirs | 23 | 25 | proche |
 | tirs cadrés | 7,3 | 8,5 | proche |
-| passes | 1 080 | 900 | un peu trop : le porteur garde 2,3 s en médiane, réel 3 à 4 |
+| passes | 1 030 | 900 | un peu trop : le porteur garde 2,6 s en médiane, réel 3 à 4 |
 | réussite des passes | 80 % | 83 % | proche |
-| corners | 6 | 10 | mieux : les centres se disputent de la tête, le gardien repousse, le défenseur dégage en première intention |
+| corners | 5 | 10 | mieux : les centres se disputent de la tête, le gardien repousse, le défenseur dégage en première intention |
 | fautes | 19 | 22 | proche (la faute de pressing en fait l'essentiel) |
-| hors-jeu | 0,8 | 3,5 | trop peu |
+| hors-jeu | 1,4 | 3,5 | un peu peu : le passeur voit la ligne avec quatre dixièmes de retard, la ligne ne piège pas encore |
 | distance par joueur | 12,0 km | 10,5 km | un peu trop |
 | pointe médiane | 31,6 km/h | 31,8 km/h | juste (corrélation 0,94 avec la note EA) |
 | sprint par joueur | 430 m | 190 m | trop : receveurs et chasseurs vont à fond |
@@ -274,6 +274,12 @@ contestée sort une fois sur deux derrière, le gardien repousse une
 frappe forte une fois sur quatre, et un défenseur qui prend un ballon
 adverse dans sa surface avec un attaquant dans le dos dégage en
 première intention. Voilà les corners.
+
+**Le passeur voit la ligne en retard.** Il juge le hors-jeu d'un coureur
+sur la ligne telle qu'elle était quatre dixièmes plus tôt
+(`ligne_horsjeu(retard=True)`) : un coureur parti un pas trop tôt sur une
+ligne qui vient de bouger se fait prendre, comme en vrai. Le drapeau se
+lève sur la vraie ligne, à l'instant de la passe.
 
 **Le porteur ne reste pas planté** : sans espace devant et sans homme
 dans les pieds, il dérive au pas vers le côté le plus ouvert pendant
