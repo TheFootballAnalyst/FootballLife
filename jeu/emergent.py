@@ -131,6 +131,7 @@ class Joueur:
     provoque_jusqua: float = -1.0             # il provoque son vis-à-vis balle au pied
     battu_jusqua: float = -1.0                # il vient de se faire passer : un temps pour se retourner
     dernier_duel: float = -10.0               # le dernier duel subi balle au pied
+    dernier_choc: float = -10.0               # la dernière arrivée lancée sur un porteur (la faute de pressing)
     capitaine: bool = False
     # stats
     distance: float = 0.0
@@ -968,8 +969,8 @@ class Match:
                 if not sien:
                     dx, dy = nx - j.cible[0], ny - j.cible[1]
                     dd = math.hypot(dx, dy)
-                    if dd > 0.9:
-                        nx, ny = j.cible[0] + dx / dd * 0.9, j.cible[1] + dy / dd * 0.9
+                    if dd > 0.7:
+                        nx, ny = j.cible[0] + dx / dd * 0.7, j.cible[1] + dy / dd * 0.7
             j.cible = (nx, ny)
             j.role = "forme"
 
@@ -1053,7 +1054,7 @@ class Match:
                         cx, cy = lh + fond * sens, j.y + (gy - j.y) * 0.35
                     j.appel_vers = (max(3.0, min(LONG - 3.0, cx)), max(3.0, min(LARG - 3.0, cy)))
                     # le timing : un bon lecteur attend sur la ligne, un autre part un pas trop tôt
-                    j.appel_marge = 1.5 + self.rs.gauss(0.0, 1.0) * (1.2 - 0.6 * j.attr("CON") / 99)
+                    j.appel_marge = 1.0 + self.rs.gauss(0.0, 1.4) * (1.2 - 0.6 * j.attr("CON") / 99)
                     self.evt("appel", de=j.pid, camp=att)
                 lances += 1
                 if j.appel_vers is None:
@@ -1237,7 +1238,9 @@ class Match:
                     continue
                 dm = math.hypot(mx - adv.x, my - adv.y) or 1.0
                 recul = 1.5 if dm < 22 else 4.0
-                cx, cy = adv.x + (mx - adv.x) / dm * recul, adv.y + (my - adv.y) / dm * recul
+                # côté but de son homme, et un peu devant sa course : on ne suit pas, on accompagne
+                ax, ay = adv.x + adv.vx * 0.4, adv.y + adv.vy * 0.4
+                cx, cy = ax + (mx - ax) / dm * recul, ay + (my - ay) / dm * recul
                 if j.fam == "DEF" and dm > 22:
                     cxp, cyp = j.propre(cx, cy)
                     cxp = max(cxp, self.ligne_def[df] - 1.0)
@@ -1410,7 +1413,7 @@ class Match:
                 val -= 0.6                                # un angle fermé : on cherche mieux
             if xg < 0.04 and not seul:
                 val -= 0.4                                # une frappe pour rien : on cherche mieux
-            if 20 < dbut < 36 and self.phase[1 - camp] == "bloc_bas" and axe > 0.6 and pression < 0.4 and abs(j.y - gy) < 14:
+            if 20 < dbut < 36 and self.phase[1 - camp] == "bloc_bas" and axe > 0.6 and pression < 0.5 and abs(j.y - gy) < 14:
                 val += 0.45 + 0.5 * j.attr("FIN") / 99    # le bloc est bas et l'axe s'ouvre : la frappe de loin
             if seul and dbut < 20:
                 val += 1.5                                # le duel avec le gardien se finit
@@ -1743,9 +1746,9 @@ class Match:
         gx, gy = self.but_de(j.camp)
         ang = math.atan2(gy - j.y + self.rs.uniform(-20, 20), gx - j.x) + self.rs.gauss(0, 0.15)
         mx, my = self.but_de(1 - j.camp)
-        if math.hypot(j.x - mx, j.y - my) < 20.0 and self._pression(j) > 0.5 and self.rs.random() < 0.3:
+        if math.hypot(j.x - mx, j.y - my) < 20.0 and self._pression(j) > 0.5 and self.rs.random() < 0.45:
             # en catastrophe, dans sa surface : n'importe où, souvent en corner
-            ang = math.atan2(1.0 if j.y >= my else -1.0, -0.3 * j.sens()) + self.rs.gauss(0, 0.35)
+            ang = math.atan2(1.0 if j.y >= my else -1.0, -0.6 * j.sens()) + self.rs.gauss(0, 0.35)
         self._lacher(j, 24.0 * math.cos(ang), 24.0 * math.sin(ang), 8.0)
         self.ballon.passe_vers = None
         self.evt("degagement", de=j.pid, camp=j.camp)
@@ -1817,7 +1820,7 @@ class Match:
         # où il vise : un poteau, avec une erreur qui dépend de la finition et de la pression
         cote = self.rs.choice([-1, 1])
         vise_y = gy + cote * (BUT_LARG / 2 - 0.5) * self.rs.uniform(0.3, 1.0)
-        sigma = math.radians((16.0 + 10.0 * (1 - fin) + 7.0 * pression + 0.35 * d) * (1.0 + malus))
+        sigma = math.radians((14.0 + 10.0 * (1 - fin) + 7.0 * pression + 0.35 * d) * (1.0 + malus))
         theta = math.atan2(vise_y - j.y, gx - j.x) + self.rs.gauss(0, sigma)
         v = VITESSE_TIR[0] + (VITESSE_TIR[1] - VITESSE_TIR[0]) * (0.4 + 0.6 * fin) * (1.0 - 0.3 * pression) * (1.0 - 0.25 * malus)
         # la hauteur : un tir tendu, parfois enlevé
@@ -1844,7 +1847,7 @@ class Match:
                 tx, ty = j.cible
                 v_lim = j.vmax * (1.0 - 0.12 * j.fatigue)
                 # on ne sprinte que quand ça compte : au ballon, sur un appel, pour recevoir
-                plafond = {"forme": 3.6, "marque": 4.8, "gardien": 6.0, "coupe": 5.5, "soutien": 5.5, "receveur": 7.5,
+                plafond = {"forme": 3.3, "marque": 4.8, "gardien": 6.0, "coupe": 5.5, "soutien": 5.5, "receveur": 7.5,
                            "chasse": 6.6, "double": 6.2}.get(j.role)
                 if j.role == "presse" and self.d_ballon(j) > 7.0:
                     plafond = 6.6                # on ne sprinte que pour les derniers mètres
@@ -1856,6 +1859,12 @@ class Match:
                     plafond = j.vmax * (0.85 if self.t < j.perce_jusqua else 0.58)
                     if self.t < j.provoque_jusqua:
                         plafond = j.vmax * 0.72      # on provoque à demi-vitesse, le crochet fait le reste
+                    elif self.t >= j.perce_jusqua:
+                        # un défenseur à trois mètres et demi devant : on ne rentre pas dedans,
+                        # on ralentit, on protège, on donne — le duel, c'est quand on le cherche
+                        _, dev = self._espace_devant(j)
+                        if dev < 3.5:
+                            plafond = 2.5
                 if self.t < j.battu_jusqua:
                     plafond = 2.0                    # passé : le temps de se retourner
                 elif j.role == "forme":
@@ -1867,7 +1876,7 @@ class Match:
                         plafond = 5.5 * j.vmax / 8.83
                     elif ph in ("bloc_bas", "bloc_median", "contre_pressing") and j.fam != "DEF" and (j.x - b.x) * j.sens() > 14.0:
                         plafond = 5.0 * j.vmax / 8.83        # le repli : on rentre derrière le ballon en courant
-                if j.role in ("forme", "marque", "coupe") and math.hypot(tx - j.x, ty - j.y) > 8.0:
+                if j.role in ("forme", "marque", "coupe") and math.hypot(tx - j.x, ty - j.y) > 10.0:
                     # loin de sa place, on y court ; un bloc sans ballon qui doit se replacer court vite
                     plafond = max(plafond or 0.0, (5.2 if self.phase[j.camp] in ("bloc_bas", "bloc_median") else 4.8) * j.vmax / 8.83)
                 if j.role == "marque" and j.homme >= 0:
@@ -2064,10 +2073,12 @@ class Match:
             self.evt("tir", de=j.pid, camp=j.camp, xg=round(self.dernier_tir["xg"], 3), d=round(dbut, 1), tete=True)
             return
         ang = math.atan2(j.y - my, j.x - mx) + self.rs.gauss(0, 0.9 if j.fam == "DEF" else 1.2)
-        if j.fam == "DEF" and math.hypot(j.x - mx, j.y - my) < 20.0 and self.rs.random() < 0.3:
-            # une tête en catastrophe : vers la touche, un peu en arrière — d'où les corners
-            ang = math.atan2(1.0 if j.y >= my else -1.0, -0.35 * (1 if j.camp == 0 else -1)) + self.rs.gauss(0, 0.3)
+        _, gene = self.plus_proche(1 - j.camp, j.x, j.y, gk=False)
+        if j.fam == "DEF" and math.hypot(j.x - mx, j.y - my) < 20.0 and self.rs.random() < (0.5 if gene < 2.5 else 0.3):
+            # une tête en catastrophe, un attaquant dans le dos : vers la touche, en arrière — d'où les corners
+            ang = math.atan2(1.0 if j.y >= my else -1.0, -0.7 * (1 if j.camp == 0 else -1)) + self.rs.gauss(0, 0.3)
         v = 9.0 + 7.0 * j.attr("DEF") / 99
+        self.evt("tete", de=j.pid, camp=j.camp)
         self._lacher(j, v * math.cos(ang), v * math.sin(ang), 3.0)
         b.passe_vers = None
         self.dernier_tir = None
@@ -2085,7 +2096,7 @@ class Match:
             self.evt("contre", de=j.pid, camp=j.camp, tireur=tir["de"].pid)
         v = b.vitesse() * 0.45
         ang = math.atan2(b.vy, b.vx) + self.rs.gauss(0, 0.9)
-        if tir and self.rs.random() < 0.45:
+        if tir and self.rs.random() < 0.65:
             # dévié : le ballon file derrière le défenseur, vers la ligne de fond
             v = b.vitesse() * 0.7
             ang = math.atan2(b.vy, b.vx) + self.rs.choice([-1, 1]) * self.rs.uniform(0.5, 1.1)
@@ -2142,6 +2153,13 @@ class Match:
                 continue
             d = math.hypot(o.x - p.x, o.y - p.y)
             v_p = math.hypot(p.vx, p.vy)
+            # la faute de pressing : un défenseur qui arrive lancé dans les pieds du
+            # porteur le bouscule parfois — la plupart des fautes d'un match
+            if d < 1.4 and math.hypot(o.vx, o.vy) > 4.0 and self.t - o.dernier_choc > 2.0:
+                o.dernier_choc = self.t
+                if self.rs.random() < 0.04 + 0.03 * (1.0 - o.recup):
+                    self._faute(o, p)
+                    return
             gx, gy = self.but_de(p.camp)
             cote_but = (o.x - p.x) * (gx - p.x) + (o.y - p.y) * (gy - p.y) > 0.0
             portee = 1.1 if v_p < 3.0 else (2.2 if cote_but else 1.6)

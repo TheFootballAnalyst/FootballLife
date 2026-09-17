@@ -67,19 +67,19 @@ sur dix et dégage en catastrophe dans sa surface.
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
 | buts | 2,3 | 2,8 | proche |
-| tirs | 28 | 25 | proche (les frappes de loin face au bloc bas) |
-| tirs cadrés | 5,8 | 8,5 | un peu peu |
-| passes | 1 123 | 900 | un peu trop : le porteur garde 2,3 s en médiane, réel 3 à 4 |
-| réussite des passes | 79 % | 83 % | proche |
-| corners | 2,7 | 10 | pas assez de déviations et de dégagements qui sortent |
-| fautes | 25 | 22 | proche |
-| hors-jeu | 0,8 | 3,5 | trop peu : les coureurs attendent trop sagement sur la ligne |
-| distance par joueur | 14,3 km | 10,5 km | trop : les replacements se courent |
-| pointe médiane | 31,1 km/h | 31,8 km/h | juste |
-| sprint par joueur | 412 m | 190 m | trop : pressing et transitions |
-| possession du dominant | 51 % | 58 % | les matchs sont trop équilibrés |
-| tacles | 160 | 32 | beaucoup trop : chaque ballon piqué compte, à séparer des vrais tacles |
-| cartons jaunes | 6,2 | 4 | un peu trop |
+| tirs | 17,5 | 25 | un peu peu depuis que le porteur ralentit devant l'obstacle |
+| tirs cadrés | 6,3 | 8,5 | proche |
+| passes | 1 135 | 900 | un peu trop : le porteur garde 2,3 s en médiane, réel 3 à 4 |
+| réussite des passes | 82 % | 83 % | juste |
+| corners | 2,0 | 10 | pas assez : les têtes défensives et les contres sortent peu derrière |
+| fautes | 21 | 22 | juste (la faute de pressing en fait l'essentiel) |
+| hors-jeu | 0,8 | 3,5 | trop peu |
+| distance par joueur | 11,7 km | 10,5 km | proche |
+| pointe médiane | 31,4 km/h | 31,8 km/h | juste |
+| sprint par joueur | 324 m | 190 m | trop : pressing et transitions |
+| possession du dominant | 54 % | 58 % | proche |
+| tacles | 31,5 | 32 | juste : le porteur ne rentre plus dans le défenseur, le duel se cherche |
+| cartons jaunes | 4,3 | 4 | juste |
 
 Les outils de mesure de cette recalibration sont dans le scratchpad de
 la session et se réécrivent en dix lignes : `espace.py` (le porteur
@@ -253,6 +253,15 @@ sinon centre. Penalty : le tireur au point, tout le monde au bord de la
 surface en alternance, prêt à bondir sur un ballon repoussé. Le
 capitaine (celui de la compo, sinon le joueur de champ le mieux noté)
 porte un brassard dans le bac.
+
+**Le porteur ralentit devant l'obstacle** : un défenseur à trois mètres
+et demi devant lui, et il passe à 2,5 m/s, protège, donne — le duel se
+cherche (percée, provocation, seul au but), il ne se subit pas en
+rentrant dans le bloc. C'est ce qui a ramené les tacles de 160 à 32.
+**La faute de pressing** : un défenseur qui arrive lancé dans les pieds
+du porteur le bouscule une fois sur vingt, c'est l'essentiel des fautes
+d'un match. **Le marqueur accompagne** : il se place côté but de son
+homme et un peu devant sa course, il ne le suit pas.
 
 **Le porteur ne reste pas planté** : sans espace devant et sans homme
 dans les pieds, il dérive au pas vers le côté le plus ouvert pendant
