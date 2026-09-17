@@ -36,6 +36,22 @@ async function jouer() {
 function charger(res) {
   BAC.res = res; BAC.i = 0; BAC.horloge = 0; BAC.joue = true; BAC.derniere = performance.now();
   BAC.noms = {}; for (const j of res.joueurs) BAC.noms[j.camp + ":" + j.pid] = j.nom.split(" ").slice(-1)[0];
+  // les gestes : pour chaque frappe, tête, arrêt et but, de quoi les dessiner
+  BAC.idx = {}; res.joueurs.forEach((j, i) => BAC.idx[j.camp + ":" + j.pid] = i);
+  BAC.gestes = [];
+  const pas = res.trace_pas;
+  for (const e of res.evenements) {
+    if (!["tir", "arret", "but"].includes(e.k)) continue;
+    const k = Math.max(0, Math.min(res.trace.length - 2, Math.round(e.t / pas) - 1));   // l'image k est à (k+1)·pas
+    const g = {k: e.k, t: e.t, camp: e.camp, tete: !!e.tete, pied: e.pied || "", j: BAC.idx[e.camp + ":" + e.de]};
+    if (e.k === "tir" || e.k === "arret") {
+      const f0 = res.trace[k], f1 = res.trace[Math.min(res.trace.length - 1, k + (e.k === "tir" ? 1 : 0))];
+      const fb = e.k === "tir" ? f1 : res.trace[Math.max(0, k - 1)];
+      const jx = f0[7 + g.j * 2] / 10, jy = f0[8 + g.j * 2] / 10;
+      g.dir = Math.atan2(fb[2] / 10 - jy, fb[1] / 10 - jx);
+    }
+    BAC.gestes.push(g);
+  }
   $("#nom-a").textContent = res.noms[0]; $("#nom-b").textContent = res.noms[1];
   $("#curseur").max = res.trace.length - 1; $("#curseur").value = 0;
   $("#lecture").textContent = "⏸";
@@ -43,7 +59,8 @@ function charger(res) {
   const fil = $("#fil"); fil.replaceChildren();
   const LIB = {but: "BUT", tir: "Frappe", arret: "Arrêt", rate: "À côté", contre: "Contré", faute: "Faute", corner: "Corner",
     penalty: "Penalty", horsjeu: "Hors-jeu", mi_temps: "Mi-temps", fin: "Fin du match", carton: "Carton",
-    percee: "Percée balle au pied", passe: "Passe en profondeur"};
+    percee: "Percée balle au pied", passe: "Passe en profondeur", provoque: "Provoque son vis-à-vis", crochet: "Crochet",
+    seul: "Seul face au gardien"};
   for (const e of res.evenements) {
     if (!LIB[e.k]) continue;
     if (e.k === "faute" && !e.carton) continue;
@@ -52,7 +69,8 @@ function charger(res) {
     const qui = e.de != null ? BAC.noms[e.camp + ":" + e.de] || "" : "";
     let txt = LIB[e.k] + (qui ? " · " + qui : "");
     if (e.k === "but") txt += ` (${e.score[0]}–${e.score[1]})` + (e.xg != null ? ` · xG ${e.xg}` : "");
-    if (e.k === "tir") txt += ` · ${e.d} m · xG ${e.xg}` + (e.tete ? " · de la tête" : "") + (e.penalty ? " · penalty" : "");
+    if (e.k === "tir") txt += ` · ${e.d} m · xG ${e.xg}` + (e.tete ? " · de la tête" : e.pied ? ` · pied ${e.pied === "G" ? "gauche" : "droit"}` : "") + (e.penalty ? " · penalty" : "");
+    if (e.k === "provoque") txt += e.rentre ? " · rentre sur son bon pied" : " · déborde";
     if (e.k === "faute" && e.carton) txt += " · carton " + e.carton;
     if (e.k === "passe") txt += " → " + (BAC.noms[e.camp + ":" + e.a] || "") + ` · ${e.d} m`;
     d.innerHTML = `<small>${e.minute}'</small>` + txt;
@@ -85,22 +103,23 @@ function charger(res) {
 
 // -- le dessin --------------------------------------------------------------
 const c = $("#c"), ctx = c.getContext("2d");
-const sx = x => x / LONG * c.width, sy = y => y / LARG * c.height;
+const MARGE = 14;                                    // les cages se dessinent dans la marge
+const sx = x => MARGE + x / LONG * (c.width - 2 * MARGE), sy = y => MARGE * 0.4 + y / LARG * (c.height - MARGE * 0.8);
 function fond() {
   ctx.fillStyle = "#1f7a3a"; ctx.fillRect(0, 0, c.width, c.height);
   ctx.fillStyle = "rgba(255,255,255,.04)";
-  for (let i = 0; i < 10; i += 2) ctx.fillRect(sx(i * 10.5), 0, sx(10.5), c.height);
+  for (let i = 0; i < 10; i += 2) ctx.fillRect(sx(i * 10.5), 0, sx(10.5) - sx(0), c.height);
   ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 2;
-  ctx.strokeRect(sx(0.5), sy(0.5), sx(104), sy(67));
+  ctx.strokeRect(sx(0.5), sy(0.5), sx(104.5) - sx(0.5), sy(67.5) - sy(0.5));
   ctx.beginPath(); ctx.moveTo(sx(52.5), sy(0.5)); ctx.lineTo(sx(52.5), sy(67.5)); ctx.stroke();
-  ctx.beginPath(); ctx.arc(sx(52.5), sy(34), sx(9.15), 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(sx(52.5), sy(34), sx(9.15) - sx(0), 0, Math.PI * 2); ctx.stroke();
   for (const [x0, dir] of [[0.5, 1], [104.5, -1]]) {
-    ctx.strokeRect(Math.min(sx(x0), sx(x0 + dir * 16.5)), sy(34 - 20.16), sx(16.5), sy(40.32));
-    ctx.strokeRect(Math.min(sx(x0), sx(x0 + dir * 5.5)), sy(34 - 9.16), sx(5.5), sy(18.32));
+    ctx.strokeRect(Math.min(sx(x0), sx(x0 + dir * 16.5)), sy(34 - 20.16), sx(16.5) - sx(0), sy(40.32) - sy(0));
+    ctx.strokeRect(Math.min(sx(x0), sx(x0 + dir * 5.5)), sy(34 - 9.16), sx(5.5) - sx(0), sy(18.32) - sy(0));
     ctx.beginPath(); ctx.arc(sx(x0 + dir * 11), sy(34), 3, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill();
     // la cage
     ctx.fillStyle = "rgba(255,255,255,.35)";
-    ctx.fillRect(dir > 0 ? sx(0.5) - 8 : sx(104.5), sy(34 - 3.66), 8, sy(7.32));
+    ctx.fillRect(dir > 0 ? sx(0.5) - 10 : sx(104.5), sy(34 - 3.66), 10, sy(7.32) - sy(0));
   }
 }
 function image(k) {
@@ -113,10 +132,14 @@ function dessiner() {
   if (!BAC.res) return;
   const f = image(BAC.i);
   const t = f[0] / 10;
+  // les gestes en cours à cet instant (frappe, tête, détente, filets)
+  const gestes = (BAC.gestes || []).filter(g => t >= g.t - 0.45 && t <= g.t + (g.k === "but" ? 1.4 : 0.55));
+  const enGeste = {}; for (const g of gestes) if (g.k !== "but") enGeste[g.j] = g;
   // les joueurs
   for (let j = 0; j < 22; j++) {
     const x = f[7 + j * 2] / 10, y = f[8 + j * 2] / 10;
     const jo = BAC.res.joueurs[j];
+    if (enGeste[j]) { geste(enGeste[j], x, y, t, jo); continue; }
     ctx.beginPath(); ctx.arc(sx(x), sy(y), 9, 0, Math.PI * 2);
     ctx.fillStyle = jo.camp === 0 ? "#1F6FD1" : "#C62E2E"; ctx.fill();
     ctx.lineWidth = 2; ctx.strokeStyle = jo.poste.startsWith("Gardien") ? "#ffd86b" : "rgba(255,255,255,.9)"; ctx.stroke();
@@ -127,11 +150,13 @@ function dessiner() {
   const bx = f[1] / 10, by = f[2] / 10, bz = f[3] / 10;
   ctx.beginPath(); ctx.ellipse(sx(bx), sy(by), 5 + bz, 2.5 + bz * 0.5, 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fill();
   ctx.beginPath(); ctx.arc(sx(bx), sy(by) - bz * 6, 5 + bz * 0.8, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = "#222"; ctx.lineWidth = 1; ctx.stroke();
+  // les filets qui tremblent
+  for (const g of gestes) if (g.k === "but") filets(g, t);
   // la phase de chaque camp, en haut du terrain
   if (BAC.res.phases) {
     const LIBP = {construction: "construction", progression: "progression", finition: "finition", contre: "contre-attaque",
       pressing: "pressing", bloc_median: "bloc médian", bloc_bas: "bloc bas", contre_pressing: "contre-pressing", relance: "relance"};
-    const f0 = BAC.res.trace[Math.floor(BAC.i)];
+    const f0 = BAC.res.trace[Math.max(0, Math.min(BAC.res.trace.length - 1, Math.floor(BAC.i)))];
     ctx.font = "bold 15px Barlow Condensed, sans-serif"; ctx.textAlign = "left"; ctx.fillStyle = "#7cb3ff";
     ctx.fillText(LIBP[BAC.res.phases[f0[5]]] || "", 12, 22);
     ctx.textAlign = "right"; ctx.fillStyle = "#ff8f8f";
@@ -144,6 +169,65 @@ function dessiner() {
   for (const e of BAC.res.evenements) if (e.k === "but" && e.t <= t) s = e.score;
   $("#score").textContent = `${s[0]} – ${s[1]}`;
   $("#curseur").value = Math.floor(BAC.i);
+}
+// -- les gestes : l'élan d'une frappe, la tête, la détente du gardien, les filets
+function jeton(x, y, jo, r = 9) {
+  ctx.beginPath(); ctx.arc(sx(x), sy(y), r, 0, Math.PI * 2);
+  ctx.fillStyle = jo.camp === 0 ? "#1F6FD1" : "#C62E2E"; ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = jo.poste.startsWith("Gardien") ? "#ffd86b" : "rgba(255,255,255,.9)"; ctx.stroke();
+}
+function geste(g, x, y, t, jo) {
+  const u = Math.max(0, Math.min(1, (t - (g.t - 0.45)) / 1.0));
+  if (g.k === "tir" && g.tete) {
+    // la tête : le jeton s'élève sur sa détente, son ombre reste au sol
+    const h = Math.sin(Math.PI * u) * 14;
+    ctx.beginPath(); ctx.ellipse(sx(x), sy(y) + 4, 9, 4, 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fill();
+    jeton(x, y, jo); ctx.save(); ctx.translate(0, -h); jeton(x, y, jo, 9 + h * 0.15); ctx.restore();
+    ctx.fillStyle = "#fff"; ctx.font = "11px Barlow Condensed, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(BAC.noms[jo.camp + ":" + jo.pid] || "", sx(x), sy(y) + 22);
+    return;
+  }
+  if (g.k === "tir") {
+    // l'élan : la jambe part en arrière puis fouette vers le ballon ; le pied dit droit ou gauche
+    jeton(x, y, jo);
+    const balancier = u < 0.45 ? -1.3 * (u / 0.45) : -1.3 + 2.0 * ((u - 0.45) / 0.55);
+    const cote = g.pied === "G" ? 1 : -1;                 // le pied gauche part de l'autre côté du jeton
+    const a = g.dir + balancier * cote;
+    const px = sx(x) + Math.cos(a) * 15, py = sy(y) + Math.sin(a) * 15;
+    ctx.beginPath(); ctx.moveTo(sx(x) + Math.cos(g.dir + Math.PI / 2 * cote) * 4, sy(y) + Math.sin(g.dir + Math.PI / 2 * cote) * 4); ctx.lineTo(px, py);
+    ctx.lineWidth = 4; ctx.strokeStyle = "#fff"; ctx.lineCap = "round"; ctx.stroke();
+    ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fillStyle = "#ffd86b"; ctx.fill();
+    ctx.fillStyle = "#1a1405"; ctx.font = "bold 8px Barlow Condensed, sans-serif"; ctx.textAlign = "center"; ctx.fillText(g.pied, px, py + 3);
+    ctx.fillStyle = "#fff"; ctx.font = "11px Barlow Condensed, sans-serif"; ctx.fillText(BAC.noms[jo.camp + ":" + jo.pid] || "", sx(x), sy(y) + 22);
+    return;
+  }
+  if (g.k === "arret") {
+    // la détente : le gardien s'allonge vers le ballon
+    const s = Math.sin(Math.PI * Math.min(1, u * 1.2));
+    ctx.save(); ctx.translate(sx(x), sy(y)); ctx.rotate(g.dir);
+    ctx.beginPath(); ctx.ellipse(s * 12, 0, 9 + s * 15, 9 - s * 4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = jo.camp === 0 ? "#1F6FD1" : "#C62E2E"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "#ffd86b"; ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = "#fff"; ctx.font = "11px Barlow Condensed, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(BAC.noms[jo.camp + ":" + jo.pid] || "", sx(x), sy(y) + 22);
+    return;
+  }
+  jeton(x, y, jo);
+}
+function filets(g, t) {
+  // le camp qui marque pousse le filet d'en face ; il tremble et s'apaise
+  const u = (t - g.t) / 1.4, amp = Math.exp(-3 * u) * 5 * Math.sin(40 * (t - g.t));
+  const droite = g.camp === 0;
+  const x0 = droite ? sx(104.5) : sx(0.5) - 10, y0 = sy(34 - 3.66), h = sy(7.32) - sy(0), w = 10;
+  ctx.strokeStyle = "rgba(255,255,255,.8)"; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = y0 + h * i / 4;
+    ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + w + (droite ? amp : -amp), y + amp * 0.3); ctx.stroke();
+  }
+  for (let i = 1; i <= 2; i++) {
+    const x = x0 + w * i / 2;
+    ctx.beginPath(); ctx.moveTo(x + (droite ? amp : -amp) * i / 2, y0); ctx.lineTo(x + (droite ? amp : -amp) * i / 2, y0 + h); ctx.stroke();
+  }
 }
 function boucle(now) {
   if (BAC.res && BAC.joue) {

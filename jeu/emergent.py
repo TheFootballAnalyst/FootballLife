@@ -122,6 +122,14 @@ class Joueur:
     appel_marge: float = 1.0                  # à combien de la ligne il attend la passe (négatif : un pas trop tôt)
     perce_jusqua: float = -1.0                # une percée balle au pied : il ne relâche pas avant
     souffle: float = 2.6                      # les secondes de sprint qu'il a dans les jambes (une bouffée)
+    pied: str = "droit"
+    pied_faible: int = 3                      # 1..5, 5 = ambidextre
+    recu_de: int = -1                         # de qui il vient de recevoir (le une-deux)
+    t_recu: float = -10.0
+    homme: int = -1                           # l'homme qu'il marque, et depuis quand (le marquage colle)
+    t_homme: float = -10.0
+    provoque_jusqua: float = -1.0             # il provoque son vis-à-vis balle au pied
+    battu_jusqua: float = -1.0                # il vient de se faire passer : un temps pour se retourner
     # stats
     distance: float = 0.0
     sprint: float = 0.0
@@ -196,6 +204,11 @@ def joueurs_de(sur: list[dict], camp: int, formation: str) -> list[Joueur]:
                     home=(px * LONG, py * LARG), vmax=vitesse_max(vit), amax=acceleration_max(acc),
                     endurance_ea=float(ph.get("end", ph.get("endurance", 70)) or 70))
         jo.travail_def, jo.travail_att = travail_de(j, "def"), travail_de(j, "att")
+        jo.pied = "gauche" if str(j.get("pied") or "").lower().startswith("g") else "droit"
+        try:
+            jo.pied_faible = max(1, min(5, int(j.get("pied_faible") or 3)))
+        except (TypeError, ValueError):
+            jo.pied_faible = 3
         # les trois leviers du travail sans ballon, quand la fiche les a
         jo.volume = float(ph.get("volume", 0.5) if ph.get("volume") is not None else 0.5)
         jo.pressing = float(ph.get("pressing", 0.5) if ph.get("pressing") is not None else 0.5)
@@ -436,16 +449,21 @@ class Match:
         if immediat or self.t == 0.0:
             self._replacer(engagement=True)
         b = self.ballon
-        b.x, b.y, b.z = LONG / 2, LARG / 2, 0.0
+        apres_but = bool(self.evenements) and self.evenements[-1]["k"] == "but" and not immediat and self.t > 0.0
+        if apres_but:
+            b.x, b.y = max(-1.5, min(LONG + 1.5, b.x)), max(0.0, min(LARG, b.y))   # il reste au fond des filets
+        else:
+            b.x, b.y = LONG / 2, LARG / 2
+        b.z = 0.0
         b.vx = b.vy = b.vz = 0.0
         b.porteur = None
         b.passe_vers = None
         tireur = min((j for j in self.actifs(camp) if j.fam in ("FWD", "MID")),
-                     key=lambda j: math.hypot(j.x - b.x, j.y - b.y), default=None)
+                     key=lambda j: math.hypot(j.x - LONG / 2, j.y - LARG / 2), default=None)
         if tireur and (immediat or self.t == 0.0):
             tireur.x, tireur.y = LONG / 2 - 0.6 * tireur.sens(), LARG / 2
-        self.arret = {"k": "engagement", "t": self.t, "camp": camp, "x": b.x, "y": b.y, "tireur": tireur,
-                      "delai": 40.0 if self.evenements and self.evenements[-1]["k"] == "but" else 3.0}
+        self.arret = {"k": "engagement", "t": self.t, "camp": camp, "x": LONG / 2, "y": LARG / 2, "tireur": tireur,
+                      "delai": 40.0 if apres_but else 3.0, "au_centre": self.t + 4.0 if apres_but else self.t}
 
     def _arret(self, k: str, camp: int, x: float, y: float, delai: float):
         """Un arrêt de jeu : le ballon est posé, le camp reprend après `delai`.
@@ -548,8 +566,10 @@ class Match:
                         self._forme(camp, a["camp"])
                     self._gardiens(a["camp"])
                     self._espacer()
+                if a["k"] == "engagement" and self.t >= a.get("au_centre", 0.0) and (b.x, b.y) != (a["x"], a["y"]):
+                    b.x, b.y, b.z = a["x"], a["y"], 0.0              # l'arbitre ramène le ballon au centre
                 if tireur is not None and tireur.pid not in self.exclus:
-                    tireur.cible = (b.x - 0.7 * tireur.sens(), b.y)
+                    tireur.cible = (a["x"] - 0.7 * tireur.sens(), a["y"])
                     tireur.role = "porteur"
             pret = tireur is None or math.hypot(tireur.x - b.x, tireur.y - b.y) < 1.6
             if self.t - a["t"] >= a["delai"] and pret:
@@ -642,10 +662,23 @@ class Match:
             self.phase[df] = "pressing"
         elif tac_d["bloc"] == "median" and bxd > 68.0 and envie > 0.55:
             self.phase[df] = "pressing"                  # on va chercher une relance, si les attaquants aiment ça
-        elif tac_d["bloc"] == "bas" or bxd < 32.0:
+        elif tac_d["bloc"] == "bas" or bxd < 32.0 or self._doit_reculer(df, bxd):
             self.phase[df] = "bloc_bas"
         else:
             self.phase[df] = "bloc_median"
+
+    def _doit_reculer(self, df: int, bxd: float) -> bool:
+        """Même une équipe haute dans ses principes recule quand il le faut :
+        sur un contre adverse dans sa moitié, ou quand il y a autant
+        d'attaquants que de défenseurs à moins de trente-cinq mètres de son
+        but."""
+        att = 1 - df
+        if self.phase[att] == "contre" and bxd < 62.0:
+            return True
+        mx, my = self.but_de(df)
+        n_att = sum(1 for o in self.actifs(att) if not o.gk and math.hypot(o.x - mx, o.y - my) < 35.0)
+        n_def = sum(1 for j in self.actifs(df) if not j.gk and math.hypot(j.x - mx, j.y - my) < 35.0)
+        return bxd < 55.0 and n_att >= 2 and n_att + 1 >= n_def
 
     def _choix_relance(self, att: int) -> str:
         """Courte ou longue, au départ de la relance : la consigne, et pour
@@ -999,11 +1032,11 @@ class Match:
                     presseur.cible = (bx + b.vx * 0.4, by + b.vy * 0.4)
                 presseur.role = "presse"
                 devant = [j for j in devant if j is not presseur]
-            # puis chacun un homme, au contact côté but
+            # puis chacun un homme, au contact côté but — et on le garde :
+            # un marquage qui change d'homme à chaque tic, c'est le fouillis
             for j in devant[:n_press - 1]:
-                adv = min((o for o in adverses if o is not porteur and o.pid not in pris),
-                          key=lambda o: math.hypot(o.x - j.x, o.y - j.y), default=None)
-                if adv is None or math.hypot(adv.x - j.x, adv.y - j.y) > 25.0:
+                adv = self._son_homme(j, [o for o in adverses if o is not porteur and o.pid not in pris], 25.0)
+                if adv is None:
                     continue
                 pris.add(adv.pid)
                 dm = math.hypot(mx - adv.x, my - adv.y) or 1.0
@@ -1042,14 +1075,8 @@ class Match:
         if bxd < 40.0:
             pris: set[int] = set()
             for j in [x for x in tri if x.role == "forme" and x.fam in ("DEF", "MID")]:
-                adv, d = None, 1e9
-                for o in adverses:
-                    if o is porteur or o.pid in pris:
-                        continue
-                    dd = math.hypot(o.x - j.cible[0], o.y - j.cible[1])
-                    if dd < d:
-                        adv, d = o, dd
-                if adv is None or d > 14.0:
+                adv = self._son_homme(j, [o for o in adverses if o is not porteur and o.pid not in pris], 14.0, depuis=j.cible)
+                if adv is None:
                     continue
                 pris.add(adv.pid)
                 dm = math.hypot(mx - adv.x, my - adv.y) or 1.0
@@ -1061,6 +1088,50 @@ class Match:
                     cx, cy = j.absolu(cxp, cyp)
                 j.cible = (cx, cy)
                 j.role = "marque"
+        self._doubler(df, siens, adverses)
+
+    def _son_homme(self, j: Joueur, cand: list[Joueur], portee: float, depuis: tuple[float, float] | None = None):
+        """L'homme que j marque : celui qu'il tenait déjà s'il est encore à
+        portée (six secondes de fidélité), sinon le plus proche."""
+        ox, oy = depuis or (j.x, j.y)
+        if j.homme >= 0 and self.t - j.t_homme < 6.0:
+            o = next((o for o in cand if o.pid == j.homme), None)
+            if o is not None and math.hypot(o.x - ox, o.y - oy) <= portee + 4.0:
+                return o
+        adv = min(cand, key=lambda o: math.hypot(o.x - ox, o.y - oy), default=None)
+        if adv is None or math.hypot(adv.x - ox, adv.y - oy) > portee:
+            return None
+        if adv.pid != j.homme:
+            j.homme, j.t_homme = adv.pid, self.t
+        return adv
+
+    def _doubler(self, df: int, siens: list[Joueur], adverses: list[Joueur]):
+        """Le repli des ailiers (et des attaquants qui travaillent) : côté
+        ballon, l'ailier revient doubler son latéral sur l'ailier adverse
+        qui attaque le couloir.  Le work rate décide qui le fait."""
+        b = self.ballon
+        mx, my = self.but_de(df)
+        for j in siens:
+            if j.role != "forme" or j.role_tac not in ("ailier", "buteur"):
+                continue
+            seuil = 0.45 if j.role_tac == "ailier" else 0.75
+            if j.travail_def < seuil:
+                continue
+            gauche = j.home[1] < LARG / 2
+            # l'adversaire qui attaque son couloir : un latéral ou un ailier de ce côté, près du ballon
+            cand = [o for o in adverses if o.role_tac in ("lateral", "ailier")
+                    and (o.propre(o.x, o.y)[1] >= LARG / 2) == gauche      # son côté à lui, vu de l'autre camp
+                    and math.hypot(o.x - b.x, o.y - b.y) < 22.0 and math.hypot(o.x - j.x, o.y - j.y) < 32.0]
+            if not cand:
+                continue
+            o = min(cand, key=lambda o: math.hypot(o.x - mx, o.y - my))
+            # notre latéral de ce côté : on double s'il est seul, entre l'adversaire et lui
+            lat = next((x for x in siens if x.role_tac == "lateral" and (x.home[1] < LARG / 2) == gauche), None)
+            if lat is not None and math.hypot(lat.x - o.x, lat.y - o.y) < 3.0 and o is not b.porteur:
+                continue
+            dm = math.hypot(mx - o.x, my - o.y) or 1.0
+            j.cible = (o.x + (mx - o.x) / dm * 2.5, o.y + (my - o.y) / dm * 2.5)
+            j.role = "double"
 
     def _gardiens(self, att: int):
         b = self.ballon
@@ -1130,9 +1201,24 @@ class Match:
         tac = self.tac[camp]
         coh = self.collectif[camp]
         phase = self.phase[camp]
+        gk_adv = next((o for o in self.actifs(1 - camp) if o.gk), None)
+        d_gk = math.hypot(gk_adv.x - j.x, gk_adv.y - j.y) if gk_adv else 99.0
+        # seul au but : personne dans le couloir entre lui et le but (à part le gardien)
+        seul = dbut < 40 and abs(j.y - LARG / 2) < 16.0 and not j.gk and self._seul_au_but(j, dbut)
+        if seul and dbut > 17 and d_gk > 9.0 and not force:
+            # il file au but : il ira au duel avec le gardien, pas de latérale
+            if self.t > j.perce_jusqua + 1.0:
+                self.evt("seul", de=j.pid, camp=camp, x=round(j.x, 1), y=round(j.y, 1), d=round(dbut, 1), gk=round(d_gk, 1))
+            j.perce_jusqua = self.t + 0.6
+            self._conduire(j, percee=True, au_but=True)
+            return
+        # une provocation en cours se tient une seconde
+        if self.t < j.provoque_jusqua and not force and dbut > 12:
+            self._conduire(j, provoque=True)
+            return
         # une percée en cours se tient : on ne lâche pas le ballon au premier
         # tic, sauf quand un adversaire arrive ou quand la frappe est là
-        if self.t < j.perce_jusqua and not force and pression < 0.7 and dbut > 22:
+        if self.t < j.perce_jusqua and not force and pression < 0.7 and dbut > 22 and not seul:
             self._conduire(j, percee=True)
             return
         tempo = {"possession": 1.25, "equilibre": 1.0, "direct": 0.7}[tac["tempo"]]
@@ -1154,6 +1240,8 @@ class Match:
             xg = self._xg(dbut, ang, pression)
             axe = self._axe_libre(j)
             val = 0.3 + 6.0 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (0.2 if dbut < 16 else 0.0) - 0.3 * pression + 0.35 * axe * (1.0 if dbut < 22 else 0.2)
+            if seul and dbut < 20:
+                val += 1.5                                # le duel avec le gardien se finit
             options.append((val + self.rs.gauss(0, bruit), "tir", None))
         # -- passer
         for c in self.actifs(camp):
@@ -1183,6 +1271,12 @@ class Match:
             # tenu, dans le camp adverse, n'apporte rien
             if phase in ("progression", "finition") and abs(gain) < 0.1 and libre < 5.0:
                 val -= 0.35
+            # seul au but, on ne donne qu'à un coéquipier mieux placé et aussi seul
+            if seul and not (libre > 6.0 and math.hypot(gx - c.x, gy - c.y) < dbut - 3.0):
+                val -= 1.2
+            # le une-deux : on ne remet pas au passeur pour rien — sauf dans sa course
+            if c.pid == j.recu_de and self.t - j.t_recu < 2.5 and gain < 0.15:
+                val -= 0.6
             # une passe dans la surface pour un coureur : la passe qui tue
             if c.role == "appel" and math.hypot(gx - c.x, gy - c.y) < 25:
                 val += 0.6
@@ -1230,6 +1324,12 @@ class Match:
         if dbut < 40:
             val += 0.25
         options.append((val + self.rs.gauss(0, bruit), "conduite", None))
+        # -- provoquer : l'ailier face à son vis-à-vis dans le dernier tiers,
+        # rentre sur son bon pied (ailier inversé) ou déborde
+        _, d_vis = self.plus_proche(1 - camp, j.x, j.y, gk=False)
+        if j.role_tac == "ailier" and dbut < 42 and abs(j.y - LARG / 2) > 11.0 and 2.0 < d_vis < 9.0 and not seul:
+            val = 1.45 + 0.9 * j.attr("DRI") / 99 + (0.3 if self._rentre(j) else 0.0) - 0.5 * pression + 0.15 * (1.0 - coh)
+            options.append((val + self.rs.gauss(0, bruit), "provoque", None))
         # -- percer : un boulevard devant, un dribbleur qui le prend à pleine vitesse
         # (un central qui a vingt mètres devant lui en construction ne perce pas : il relance)
         if (dev > 14.0 and dbut > 18 and phase in ("progression", "finition", "contre")
@@ -1254,12 +1354,38 @@ class Match:
                 self.evt("percee", de=j.pid, camp=camp, x=round(j.x, 1), y=round(j.y, 1))
             j.perce_jusqua = self.t + 1.8
             self._conduire(j, percee=True)
+        elif quoi == "provoque":
+            if self.t > j.provoque_jusqua + 1.5:
+                self.evt("provoque", de=j.pid, camp=camp, rentre=self._rentre(j))
+            j.provoque_jusqua = self.t + 1.2
+            self._conduire(j, provoque=True)
         elif quoi == "degagement":
             self._degager(j)
         elif quoi == "centre":
             self._centrer(j)
         else:
             self._conduire(j)
+
+    def _seul_au_but(self, j: Joueur, dbut: float) -> bool:
+        gx, gy = self.but_de(j.camp)
+        ux, uy = (gx - j.x) / (dbut or 1.0), (gy - j.y) / (dbut or 1.0)
+        for o in self.actifs(1 - j.camp):
+            if o.gk:
+                continue
+            px, py = o.x - j.x, o.y - j.y
+            if math.hypot(px, py) < 6.0:
+                return False                          # dans son dos, il peut le rattraper
+            t = px * ux + py * uy                      # sa position le long de la course
+            if -4.0 < t < dbut and abs(px * uy - py * ux) < 12.0:
+                return False                          # dans le couloir : il peut revenir
+        return True
+
+    def _rentre(self, j: Joueur) -> bool:
+        """Un ailier rentre sur son bon pied quand il est inversé (droitier à
+        gauche, gaucher à droite) ; un ambidextre rentre aussi."""
+        yp = j.propre(j.x, j.y)[1]
+        a_gauche = yp < LARG / 2
+        return j.pied_faible >= 5 or (a_gauche and j.pied == "droit") or (not a_gauche and j.pied == "gauche")
 
     def _relancer(self, gk: Joueur, force: bool = False):
         """La relance du gardien : courte, dans les pieds d'un homme libre
@@ -1446,8 +1572,26 @@ class Match:
         self.ballon.passe_vers = None
         self.evt("degagement", de=j.pid, camp=j.camp)
 
-    def _conduire(self, j: Joueur, percee: bool = False):
+    def _conduire(self, j: Joueur, percee: bool = False, au_but: bool = False, provoque: bool = False):
         (ux, uy), dev = self._espace_devant(j)
+        gx, gy = self.but_de(j.camp)
+        if au_but:
+            # droit au but, pas vers l'espace : il va au duel
+            n = math.hypot(gx - j.x, gy - j.y) or 1.0
+            ux, uy = (gx - j.x) / n, (gy - j.y) / n
+            j.cible = (max(1.0, min(LONG - 1.0, j.x + ux * 12.0)), max(1.0, min(LARG - 1.0, j.y + uy * 12.0)))
+            j.role = "porteur"
+            return
+        if provoque:
+            # rentrer sur le bon pied : vers l'axe en diagonale ; sinon déborder le long de la ligne
+            if self._rentre(j):
+                tx, ty = gx - 10.0 * j.sens(), gy
+            else:
+                tx, ty = gx - 3.0 * j.sens(), j.y + (4.0 if j.y > LARG / 2 else -4.0)
+            n = math.hypot(tx - j.x, ty - j.y) or 1.0
+            j.cible = (max(1.0, min(LONG - 1.0, j.x + (tx - j.x) / n * 9.0)), max(1.0, min(LARG - 1.0, j.y + (ty - j.y) / n * 9.0)))
+            j.role = "porteur"
+            return
         # on s'écarte du défenseur le plus proche
         o, d = self.plus_proche(1 - j.camp, j.x, j.y, gk=False)
         if o is not None and d < 6.0:
@@ -1472,12 +1616,18 @@ class Match:
         ang = self._angle_but(j.x, j.y, camp)
         xg = 0.76 if penalty else self._xg(d, ang, pression)
         fin = j.attr("FIN") / 99
+        # de quel pied : le ballon à sa gauche se frappe du droit, à sa droite
+        # du gauche, dans l'axe du bon pied ; le mauvais pied coûte
+        yp = j.propre(j.x, j.y)[1]
+        pied = ("droit" if yp < LARG / 2 - 3.0 else "gauche" if yp > LARG / 2 + 3.0 else j.pied) if not penalty else j.pied
+        mauvais = (pied != j.pied and j.pied_faible < 5)
+        malus = 0.12 * (5 - j.pied_faible) if mauvais else 0.0
         # où il vise : un poteau, avec une erreur qui dépend de la finition et de la pression
         cote = self.rs.choice([-1, 1])
         vise_y = gy + cote * (BUT_LARG / 2 - 0.5) * self.rs.uniform(0.3, 1.0)
-        sigma = math.radians(13.0 + 9.0 * (1 - fin) + 6.0 * pression + 0.3 * d)
+        sigma = math.radians((13.0 + 9.0 * (1 - fin) + 6.0 * pression + 0.3 * d) * (1.0 + malus))
         theta = math.atan2(vise_y - j.y, gx - j.x) + self.rs.gauss(0, sigma)
-        v = VITESSE_TIR[0] + (VITESSE_TIR[1] - VITESSE_TIR[0]) * (0.4 + 0.6 * fin) * (1.0 - 0.3 * pression)
+        v = VITESSE_TIR[0] + (VITESSE_TIR[1] - VITESSE_TIR[0]) * (0.4 + 0.6 * fin) * (1.0 - 0.3 * pression) * (1.0 - 0.25 * malus)
         # la hauteur : un tir tendu, parfois enlevé
         vz = max(0.0, self.rs.gauss(2.0 + 0.08 * d, 2.4 + 2.5 * (1 - fin) + 1.5 * pression))
         j.tirs += 1
@@ -1485,7 +1635,7 @@ class Match:
         self.stats["xg"][camp] += xg
         self._lacher(j, v * math.cos(theta), v * math.sin(theta), vz)
         b.passe_vers = None
-        self.evt("tir", de=j.pid, camp=camp, xg=round(xg, 3), d=round(d, 1), penalty=penalty)
+        self.evt("tir", de=j.pid, camp=camp, xg=round(xg, 3), d=round(d, 1), penalty=penalty, pied=pied[0].upper())
         self.dernier_tir = {"de": j, "xg": xg, "t": self.t, "camp": camp}
 
     # -- le mouvement ----------------------------------------------------------------
@@ -1503,13 +1653,17 @@ class Match:
                 v_lim = j.vmax * (1.0 - 0.12 * j.fatigue)
                 # on ne sprinte que quand ça compte : au ballon, sur un appel, pour recevoir
                 plafond = {"forme": 3.4, "marque": 4.2, "gardien": 6.0, "coupe": 5.5, "soutien": 5.5, "receveur": 7.5,
-                           "chasse": 6.6}.get(j.role)
+                           "chasse": 6.6, "double": 6.2}.get(j.role)
                 if j.role == "presse" and self.d_ballon(j) > 7.0:
                     plafond = 6.6                # on ne sprinte que pour les derniers mètres
                 if plafond is not None:
                     plafond *= j.vmax / 8.83     # un rapide trotte plus vite aussi
                 if j.role == "porteur":
                     plafond = j.vmax * (0.95 if self.t < j.perce_jusqua else 0.88)   # balle au pied, on va moins vite
+                    if self.t < j.provoque_jusqua:
+                        plafond = j.vmax * 0.8       # on provoque à demi-vitesse, le crochet fait le reste
+                if self.t < j.battu_jusqua:
+                    plafond = 2.0                    # passé : le temps de se retourner
                 elif j.role == "forme":
                     ph = self.phase[j.camp]
                     devant = (j.x - b.x) * j.sens() > 3.0
@@ -1527,7 +1681,7 @@ class Match:
             dx, dy = tx - j.x, ty - j.y
             d = math.hypot(dx, dy)
             # une zone morte : personne ne fait deux pas pour un mètre
-            tol = 0.3 if j.role in ("porteur", "presse", "receveur", "gardien", "chasse") else 1.5
+            tol = 0.3 if j.role in ("porteur", "presse", "receveur", "gardien", "chasse") else (2.5 if j.role == "forme" else 1.5)
             if d < tol:
                 vx_v = vy_v = 0.0
             else:
@@ -1628,7 +1782,7 @@ class Match:
                 tir = self._tir_en_cours()
                 if tir:
                     d = self.d_ballon(j)
-                    p = (0.96 - 0.012 * max(0.0, v - 18.0) - 0.10 * d) * (0.72 + 0.28 * j.attr("ARR") / 99)
+                    p = (0.97 - 0.012 * max(0.0, v - 18.0) - 0.10 * d) * (0.72 + 0.28 * j.attr("ARR") / 99)
                     if self.rs.random() > max(0.15, min(0.95, p)):
                         j.dernier_contact = self.t
                         b.dernier = j
@@ -1667,6 +1821,10 @@ class Match:
             self.evt("horsjeu", de=j.pid, camp=j.camp)
             self._arret("coup_franc", 1 - j.camp, j.x, j.y, 14.0)
             return
+        if prec is not None and prec.camp == j.camp and prec is not j and passe_vers is not None:
+            j.recu_de, j.t_recu = prec.pid, self.t
+        else:
+            j.recu_de = -1
         b.porteur = j
         b.passe_vers = None
         b.hors_jeu_au_kick = set()
@@ -1774,6 +1932,31 @@ class Match:
                 continue
             if self.t - o.dernier_contact < 2.0:
                 continue
+            if self.t < p.provoque_jusqua:
+                # le crochet : dribble contre défense, en un coup de rein
+                o.dernier_contact = self.t
+                p_passe = 0.52 + 0.5 * (p.attr("DRI") - o.attr("DEF")) / 99 + (0.08 if self._rentre(p) else 0.0)
+                if self.rs.random() < max(0.15, min(0.85, p_passe)):
+                    o.battu_jusqua = self.t + 0.8
+                    o.vx *= 0.3
+                    o.vy *= 0.3
+                    self.evt("crochet", de=p.pid, sur=o.pid, camp=p.camp)
+                    continue
+                # raté : le défenseur prend le ballon, ou fait faute
+                o.tacles += 1
+                self.stats["tacles"][o.camp] += 1
+                if self.rs.random() < 0.2:
+                    self._faute(o, p)
+                    return
+                self.evt("tacle", de=o.pid, sur=p.pid, camp=o.camp)
+                ang = self.rs.uniform(0, 2 * math.pi)
+                b.porteur = None
+                b.dernier = o
+                b.dernier_camp = o.camp
+                b.t_kick = self.t
+                b.passe_vers = None
+                b.vx, b.vy = 4.0 * math.cos(ang), 4.0 * math.sin(ang)
+                return
             o.dernier_contact = self.t
             # la chance de prendre le ballon : défense contre dribble, et la force
             force_o = (o.physique.get("for", 68) or 68) / 99

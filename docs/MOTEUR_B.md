@@ -36,25 +36,26 @@ pointe médiane 31,8 km/h, 190 m de sprint, 9 sprints).
 
     py -m jeu.emergent --jeu jeu/demo.sqlite --matchs 8 --graine 11
 
-État après les patterns (relance, appels et passes en profondeur,
-percées ; 6 matchs, graine 11) :
+État après les patterns et les duels (relance, appels et passes en
+profondeur, percées, seul au but, ailiers qui provoquent ; 6 matchs,
+graine 11) :
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 2,7 | 2,8 | juste (le gardien ne sort plus tout : 0,96 de base au lieu de 1,08) |
-| tirs | 15 | 25 | trop peu : l'attaque arrive dans la surface mais frappe peu |
-| tirs cadrés | 8,2 | 8,5 | juste |
-| passes | 1 268 | 900 | possessions trop courtes (65 min de jeu effectif, réel 57) |
-| réussite des passes | 80 % | 83 % | proche (les passes en profondeur se perdent plus) |
-| corners | 1,8 | 10 | pas assez de déviations et de dégagements |
-| fautes | 22 | 22 | juste |
-| hors-jeu | 4,0 | 3,5 | juste : un coureur parti un pas trop tôt, un passeur qui n'a pas vu la ligne |
-| distance par joueur | 12,5 km | 10,5 km | trop : le bloc médian suit trop le ballon (2,4 m/s de moyenne dans la forme) |
-| pointe médiane | 31,5 km/h | 31,8 km/h | juste (corrélation 0,93 avec la note EA) |
-| sprint par joueur | 280 m | 190 m | un peu trop : les transitions offensives et les appels |
-| possession du dominant | 56 % | 58 % | proche |
-| tacles | 36 | 32 | proche |
-| cartons jaunes | 4,5 | 4 | proche |
+| buts | 2,0 | 2,8 | un peu peu : le gardien à 0,97 de base, à régler avec les tirs |
+| tirs | 18 | 25 | trop peu : l'attaque arrive dans la surface mais frappe peu |
+| tirs cadrés | 6,2 | 8,5 | un peu peu |
+| passes | 1 122 | 900 | possessions trop courtes (65 min de jeu effectif, réel 57) |
+| réussite des passes | 77 % | 83 % | un peu bas (les passes en profondeur se perdent plus) |
+| corners | 1,0 | 10 | pas assez de déviations et de dégagements |
+| fautes | 25 | 22 | proche |
+| hors-jeu | 4,7 | 3,5 | proche : un coureur parti un pas trop tôt |
+| distance par joueur | 12,4 km | 10,5 km | trop : le bloc suit trop le ballon (2,4 m/s de moyenne dans la forme) |
+| pointe médiane | 31,4 km/h | 31,8 km/h | juste (corrélation 0,93 avec la note EA) |
+| sprint par joueur | 306 m | 190 m | trop : les transitions offensives (un contre = quatre sprints) |
+| possession du dominant | 53 % | 58 % | les matchs sont trop équilibrés |
+| tacles | 45 | 32 | trop : chaque provocation perdue compte un tacle (52 provocations par match) |
+| cartons jaunes | 4,0 | 4 | juste |
 
 Ce que l'œil a corrigé avant les chiffres : les arrêts de jeu vivent (le
 tireur marche au ballon, les autres prennent la forme de la reprise au
@@ -120,6 +121,39 @@ passe dans la course, personne qui part balle au pied. Quatre briques :
   presque deux secondes (sauf un adversaire qui arrive ou une frappe
   qui se présente). Un central en construction ne perce pas, il relance.
 
+**Les duels et les replis** (le second passage de l'œil) :
+
+- *Seul au but* : personne dans le couloir de douze mètres entre lui et
+  le but, personne à six mètres dans son dos, dans l'axe (à moins de
+  seize mètres de l'axe) — il file au duel avec le gardien, une latérale
+  vaut moins, la frappe vaut plus à moins de vingt mètres. Il ne donne
+  qu'à un coéquipier aussi seul et mieux placé. Quatre fois par match.
+- *Le une-deux* : on ne remet pas au passeur dans les deux secondes et
+  demie pour rien ; dans sa course (vers l'avant), oui.
+- *Le marquage colle* : un presseur ou un marqueur garde son homme six
+  secondes tant qu'il reste à portée (`_son_homme`), au lieu de
+  reprendre le plus proche à chaque tic — c'était le fouillis des phases
+  longues.
+- *L'ailier provoque* : dans le dernier tiers, un vis-à-vis à moins de
+  neuf mètres, et il y va balle au pied ; inversé (droitier à gauche,
+  gaucher à droite, ou ambidextre) il rentre sur son bon pied vers
+  l'axe, sinon il déborde. Le crochet se joue en un coup de rein
+  (dribble contre défense, 0,52 de base, +0,08 sur le bon pied) : passé,
+  le défenseur met huit dixièmes à se retourner ; raté, c'est un tacle,
+  une fois sur cinq une faute. Cinquante provocations par match, un
+  tiers passent.
+- *Le pied de la frappe* : le ballon à sa gauche se frappe du droit, à
+  sa droite du gauche, dans l'axe du bon pied ; le mauvais pied coûte
+  en précision et en puissance selon la note du pied faible (un 5/5 ne
+  coûte rien). L'événement de tir porte le pied, le bac le montre.
+- *Le repli forcé* (`_doit_reculer`) : même un bloc haut recule sur un
+  contre adverse dans sa moitié, ou quand il y a autant d'attaquants
+  que de défenseurs à moins de trente-cinq mètres de son but.
+- *Le repli des ailiers* (`_doubler`) : côté ballon, un ailier à travail
+  défensif moyen ou haut (un attaquant à travail haut) revient doubler
+  son latéral sur l'ailier ou le latéral adverse qui attaque le couloir,
+  deux mètres et demi côté but de lui.
+
 Et les allures : la transition offensive se court (les attaquants devant
 le ballon sprintent sur un contre), le repli aussi (un milieu ou un
 attaquant à dix mètres devant le ballon rentre en courant), mais un
@@ -169,6 +203,13 @@ ligne si un milieu peut y aller.
 **L'occasion se prend.** Dans les trente derniers mètres le porteur
 décide plus vite, et une frappe vaut plus quand rien ne bouche l'axe ;
 l'homme libre près du but vaut plus qu'un soutien couvert.
+
+**Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
+arrière puis fouette vers le ballon, le pied dit D ou G), la détente
+d'une tête (le jeton s'élève, son ombre reste au sol), la détente du
+gardien sur un arrêt (il s'allonge vers le ballon), et les filets qui
+tremblent sur un but — le ballon reste au fond quatre secondes avant que
+l'arbitre ne le ramène au centre.
 
 ## Ce qu'il y a dedans
 
