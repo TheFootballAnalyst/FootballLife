@@ -36,26 +36,52 @@ pointe médiane 31,8 km/h, 190 m de sprint, 9 sprints).
 
     py -m jeu.emergent --jeu jeu/demo.sqlite --matchs 8 --graine 11
 
-État après les patterns et les duels (relance, appels et passes en
-profondeur, percées, seul au but, ailiers qui provoquent ; 6 matchs,
-graine 11) :
+**État : recalibration en cours.** Jusqu'ici la forme d'équipe
+réécrivait la cible du porteur à chaque tic : il marchait vers sa place
+au lieu de conduire, et toute la défense avait été réglée contre un
+porteur immobile. Le porteur conduit maintenant vraiment (avec dix
+mètres devant lui, il court 70 % du temps, immobile 6 %), et la défense
+doit être réglée contre un ballon qui avance. Ce qui est déjà en place :
+le bloc anticipe un ballon qui vient (une seconde d'avance), recule vite
+et remonte lentement (7 et 2,5 m/s), les milieux restent six mètres
+derrière le ballon, les défenseurs reculent en courant, le marquage
+dans les vingt-cinq mètres se prend d'avance et l'attribution est
+stable (chacun garde son homme), un porteur lancé sur un défenseur
+côté but ne le contourne pas sans duel, le duel se tranche en un jet
+(un porteur à l'arrêt se fait piquer le ballon, pas tacler), le tacleur
+ressort avec le ballon six fois sur dix et dégage sous pression dans sa
+surface. Ce qui manque : l'attaque entre encore dans la surface trois
+fois trop souvent (160 entrées par match, réel 50 à 60), surtout sur
+des passes vers un attaquant marqué à quatre mètres au lieu d'un et
+demi ; le marqueur reste à six mètres de son homme en médiane
+(`scratchpad/marque.py`), c'est la prochaine ligne à régler.
+
+6 matchs, graine 11 :
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 2,0 | 2,8 | un peu peu : le gardien à 0,97 de base, à régler avec les tirs |
-| tirs | 18 | 25 | trop peu : l'attaque arrive dans la surface mais frappe peu |
-| tirs cadrés | 6,2 | 8,5 | un peu peu |
-| passes | 1 122 | 900 | possessions trop courtes (65 min de jeu effectif, réel 57) |
-| réussite des passes | 77 % | 83 % | un peu bas (les passes en profondeur se perdent plus) |
-| corners | 1,0 | 10 | pas assez de déviations et de dégagements |
-| fautes | 25 | 22 | proche |
-| hors-jeu | 4,7 | 3,5 | proche : un coureur parti un pas trop tôt |
-| distance par joueur | 12,4 km | 10,5 km | trop : le bloc suit trop le ballon (2,4 m/s de moyenne dans la forme) |
-| pointe médiane | 31,4 km/h | 31,8 km/h | juste (corrélation 0,93 avec la note EA) |
-| sprint par joueur | 306 m | 190 m | trop : les transitions offensives (un contre = quatre sprints) |
-| possession du dominant | 53 % | 58 % | les matchs sont trop équilibrés |
-| tacles | 45 | 32 | trop : chaque provocation perdue compte un tacle (52 provocations par match) |
-| cartons jaunes | 4,0 | 4 | juste |
+| buts | 9,0 | 2,8 | beaucoup trop : voir ci-dessus |
+| tirs | 62 | 25 | beaucoup trop, même cause |
+| tirs cadrés | 30 | 8,5 | idem |
+| passes | 1 086 | 900 | un peu trop |
+| réussite des passes | 82 % | 83 % | juste |
+| corners | 4,8 | 10 | pas assez de déviations |
+| fautes | 26 | 22 | proche |
+| hors-jeu | 0,8 | 3,5 | trop peu : les passes en profondeur sont devenues rares |
+| distance par joueur | 13,8 km | 10,5 km | trop : les replacements se courent |
+| pointe médiane | 31,4 km/h | 31,8 km/h | juste (corrélation 0,92 avec la note EA) |
+| sprint par joueur | 363 m | 190 m | trop |
+| possession du dominant | 51 % | 58 % | les matchs sont trop équilibrés |
+| tacles | 182 | 32 | beaucoup trop : un duel tous les deux mètres et demi de conduite |
+| cartons jaunes | 7 | 4 | trop |
+
+Les outils de mesure de cette recalibration sont dans le scratchpad de
+la session et se réécrivent en dix lignes : `espace.py` (le porteur
+prend-il l'espace ?), `entrees.py` (entrées dans les 35 m et dans la
+surface, défenseurs entre le porteur et le but), `surface.py` (comment
+on entre : passe, conduite, large ou axe, marquage à l'entrée),
+`bloc.py` et `cibles.py` (écart des défenseurs à leur place, vitesse des
+places), `marque.py` (distance du marqueur à son homme, stabilité).
 
 Ce que l'œil a corrigé avant les chiffres : les arrêts de jeu vivent (le
 tireur marche au ballon, les autres prennent la forme de la reprise au
