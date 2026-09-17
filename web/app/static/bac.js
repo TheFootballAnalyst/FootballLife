@@ -94,7 +94,7 @@ function charger(res) {
   t.innerHTML = "<tr><th>Joueur</th><th>km</th><th>sprint</th><th>pointe</th><th>EA</th><th title='volume · pressing · récupération, rang dans son poste'>V·P·R</th><th>touches</th><th>passes</th><th>tirs</th></tr>";
   for (const j of res.joueurs) {
     const tr = document.createElement("tr"); tr.className = j.camp === 0 ? "a" : "b";
-    tr.innerHTML = `<td>${j.nom.split(" ").slice(-1)[0]} <small>${j.poste.split(" ")[0]}</small></td><td>${(j.distance / 1000).toFixed(1)}</td><td>${j.sprint}</td><td>${j.vmax_kmh}</td><td>${j.vmax_ea ?? "—"}</td><td>${j.travail ? j.travail.map(v => Math.round(v * 9)).join("") : "—"}</td><td>${j.touches}</td><td>${j.passes_ok}/${j.passes}</td><td>${j.buts ? j.buts + "⚽ " : ""}${j.cadres}/${j.tirs}</td>`;
+    tr.innerHTML = `<td>${j.nom.split(" ").slice(-1)[0]}${j.capitaine ? " <b style='color:#ffd86b'>C</b>" : ""} <small>${j.poste.split(" ")[0]}</small></td><td>${(j.distance / 1000).toFixed(1)}</td><td>${j.sprint}</td><td>${j.vmax_kmh}</td><td>${j.vmax_ea ?? "—"}</td><td>${j.travail ? j.travail.map(v => Math.round(v * 9)).join("") : "—"}</td><td>${j.touches}</td><td>${j.passes_ok}/${j.passes}</td><td>${j.buts ? j.buts + "⚽ " : ""}${j.cadres}/${j.tirs}</td>`;
     t.append(tr);
   }
   J.append(t);
@@ -143,6 +143,7 @@ function dessiner() {
     ctx.beginPath(); ctx.arc(sx(x), sy(y), 9, 0, Math.PI * 2);
     ctx.fillStyle = jo.camp === 0 ? "#1F6FD1" : "#C62E2E"; ctx.fill();
     ctx.lineWidth = 2; ctx.strokeStyle = jo.poste.startsWith("Gardien") ? "#ffd86b" : "rgba(255,255,255,.9)"; ctx.stroke();
+    brassard(x, y, jo);
     ctx.fillStyle = "#fff"; ctx.font = "11px Barlow Condensed, sans-serif"; ctx.textAlign = "center";
     ctx.fillText(BAC.noms[jo.camp + ":" + jo.pid] || "", sx(x), sy(y) + 22);
   }
@@ -175,6 +176,14 @@ function jeton(x, y, jo, r = 9) {
   ctx.beginPath(); ctx.arc(sx(x), sy(y), r, 0, Math.PI * 2);
   ctx.fillStyle = jo.camp === 0 ? "#1F6FD1" : "#C62E2E"; ctx.fill();
   ctx.lineWidth = 2; ctx.strokeStyle = jo.poste.startsWith("Gardien") ? "#ffd86b" : "rgba(255,255,255,.9)"; ctx.stroke();
+  brassard(x, y, jo, r);
+}
+function brassard(x, y, jo, r = 9) {
+  // le capitaine : un brassard jaune, en haut à gauche du jeton
+  if (!jo.capitaine) return;
+  ctx.beginPath(); ctx.arc(sx(x) - r * 0.75, sy(y) - r * 0.75, 5, 0, Math.PI * 2); ctx.fillStyle = "#ffd86b"; ctx.fill();
+  ctx.fillStyle = "#1a1405"; ctx.font = "bold 8px Barlow Condensed, sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("C", sx(x) - r * 0.75, sy(y) - r * 0.75 + 3);
 }
 function geste(g, x, y, t, jo) {
   const u = Math.max(0, Math.min(1, (t - (g.t - 0.45)) / 1.0));

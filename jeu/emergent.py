@@ -131,6 +131,7 @@ class Joueur:
     provoque_jusqua: float = -1.0             # il provoque son vis-à-vis balle au pied
     battu_jusqua: float = -1.0                # il vient de se faire passer : un temps pour se retourner
     dernier_duel: float = -10.0               # le dernier duel subi balle au pied
+    capitaine: bool = False
     # stats
     distance: float = 0.0
     sprint: float = 0.0
@@ -336,7 +337,8 @@ class Match:
                  formation_b: str = "4-3-3", graine: int = 1, minutes: float = 90.0,
                  noms: tuple[str, str] = ("A", "B"), trace: bool = True,
                  tactiques: tuple[dict | None, dict | None] = (None, None),
-                 collectif: tuple[float, float] = (0.6, 0.6)):
+                 collectif: tuple[float, float] = (0.6, 0.6),
+                 capitaines: tuple[int | None, int | None] = (None, None)):
         self.rs = random.Random(graine)
         self.tac = [dict(TACTIQUE_DEFAUT) | (tactiques[0] or {}), dict(TACTIQUE_DEFAUT) | (tactiques[1] or {})]
         self.collectif = list(collectif)
@@ -353,6 +355,14 @@ class Match:
         self.exclus = set()
         for j in self.joueurs:
             j.role_tac = self._role_tac(j)
+        # le capitaine : celui de la compo, sinon le joueur de champ le mieux noté
+        for camp, sur in ((0, sur_a), (1, sur_b)):
+            pid = capitaines[camp]
+            if pid is None or not any(j.pid == pid for j in self.camp[camp]):
+                cand = [j for j in sur if S.FAMILLE_POSTE.get(j.get("slot") or j.get("poste", ""), "MID") != "GK"]
+                pid = max(cand, key=lambda j: j.get("ovr", 0), default={"pid": -1})["pid"] if cand else -1
+            for j in self.camp[camp]:
+                j.capitaine = (j.pid == pid)
         self.noms = noms
         self.ballon = Ballon()
         self.t = 0.0
@@ -490,6 +500,94 @@ class Match:
             tireur, _ = self.plus_proche(camp, x, y, gk=(k == "sortie_but"))
         self.arret = {"k": k, "t": self.t, "camp": camp, "x": x, "y": y, "delai": delai, "tireur": tireur}
 
+    def _forme_arret(self, a: dict):
+        """Les coups de pied arrêtés ont leur forme.  Corner : les grands
+        montent prendre le ballon de la tête, une option courte, les
+        latéraux et le pivot restent couvrir le contre ; en face, deux
+        attaquants restent hauts, les autres défendent la surface.  Coup
+        franc proche : le mur (jusqu'à cinq dans l'axe, deux excentré),
+        la ligne, les attaquants au bord de la surface.  Penalty : tout
+        le monde hors de la surface, prêt à bondir."""
+        k, camp = a["k"], a["camp"]
+        if k not in ("corner", "coup_franc", "penalty"):
+            return
+        df = 1 - camp
+        b = self.ballon
+        gx, gy = self.but_de(camp)                  # le but attaqué
+        s = 1 if camp == 0 else -1
+        tireur = a.get("tireur")
+        att = [j for j in self.actifs(camp) if not j.gk and j is not tireur]
+        defs = [j for j in self.actifs(df) if not j.gk]
+        dbut = math.hypot(gx - b.x, gy - b.y)
+        central = abs(b.y - gy) < 16.0
+
+        def pose(j, x, y):
+            j.cible = (max(1.0, min(LONG - 1.0, x)), max(1.0, min(LARG - 1.0, y)))
+            j.role = "arret"
+
+        if k == "penalty":
+            # au bord de la surface, en alternance, prêts à bondir
+            for i, j in enumerate(sorted(att, key=lambda j: -j.attr("FIN"))):
+                pose(j, gx - 17.5 * s, gy + [-10, -5, 0, 5, 10, -16, 16, 22, -22, 28][i % 10] if i < 5 else gy + [-12, 12, -20, 20, 0][i - 5])
+                if i >= 5:
+                    pose(j, gx - (28.0 + 5.0 * (i - 5)) * s, j.cible[1])
+            for i, j in enumerate(sorted(defs, key=lambda j: j.attr("DEF"), reverse=True)):
+                if i < 6:
+                    pose(j, gx - 17.5 * s, gy + [-12.5, -7.5, -2.5, 2.5, 7.5, 12.5][i])
+                else:
+                    pose(j, gx - (30.0 + 6.0 * (i - 6)) * s, gy + [-8, 8, 0, -16][(i - 6) % 4])
+            return
+
+        if k == "coup_franc" and dbut > 38.0:
+            return                                  # loin : le jeu reprend dans la forme normale
+
+        # --- corner et coup franc proche : la surface
+        grands = sorted(att, key=lambda j: (j.role_tac in ("central", "buteur", "meneur", "ailier"), j.attr("FIN") + j.attr("DEF")), reverse=True)
+        n_dans = 6 if k == "corner" else 5
+        dans, reste = grands[:n_dans], grands[n_dans:]
+        if k == "corner":
+            spots = [(-8.0, -7.0), (-8.0, -2.0), (-8.0, 3.0), (-8.0, 8.0), (-12.0, -4.0), (-12.0, 5.0)]
+        else:
+            spots = [(-11.0, -8.0), (-11.0, -3.0), (-11.0, 2.0), (-11.0, 7.0), (-14.0, 0.0)]
+        for j, (dx, dy) in zip(dans, spots):
+            pose(j, gx + dx * s, gy + dy)
+        # une option courte près du tireur, les autres en couverture
+        if reste:
+            court = min(reste, key=lambda j: math.hypot(j.x - b.x, j.y - b.y))
+            pose(court, b.x - 7.0 * s, b.y + (6.0 if b.y < LARG / 2 else -6.0))
+            reste = [j for j in reste if j is not court]
+        for i, j in enumerate(reste):
+            pose(j, gx - 36.0 * s - 4.0 * s * (i % 2), gy + [-10.0, 10.0, 0.0, -20.0, 20.0][i % 5])
+        # --- la défense : deux restent hauts pour le contre, le mur, la surface
+        hauts = sorted(defs, key=lambda j: (j.role_tac in ("buteur", "ailier"), -j.travail_def, j.attr("FIN")), reverse=True)[:2]
+        for i, j in enumerate(hauts):
+            pose(j, gx - 48.0 * s, gy + (-14.0 if i == 0 else 14.0))
+        restants = [j for j in defs if j not in hauts]
+        if k == "coup_franc":
+            n_mur = (5 if dbut < 22 else 4 if dbut < 28 else 3) if central else (2 if dbut < 30 else 1)
+            n_mur = min(n_mur, len(restants))
+            ux, uy = (gx - b.x) / (dbut or 1.0), (gy - b.y) / (dbut or 1.0)
+            mur = sorted(restants, key=lambda j: (j.fam == "DEF", -j.physique.get("for", 68) if j.physique else 0))[:n_mur]
+            for i, j in enumerate(mur):
+                off = (i - (n_mur - 1) / 2) * 0.9
+                pose(j, b.x + ux * 9.3 - uy * off, b.y + uy * 9.3 + ux * off)
+            restants = [j for j in restants if j not in mur]
+        # la surface : les défenseurs en ligne au second poteau et devant le but, les milieux sur les attaquants
+        ligne = [j for j in restants if j.fam == "DEF"]
+        for i, j in enumerate(ligne):
+            pose(j, gx - 6.0 * s, gy + [-6.0, 6.0, -1.5, 3.0, -10.0, 10.0][i % 6])
+        marqueurs = [j for j in restants if j.fam != "DEF"]
+        libres = [o for o in dans]
+        for j in marqueurs:
+            if not libres:
+                pose(j, gx - 16.0 * s, gy + self.rs.uniform(-10, 10))
+                continue
+            o = min(libres, key=lambda o: math.hypot(o.cible[0] - j.x, o.cible[1] - j.y))
+            libres.remove(o)
+            ox, oy = o.cible
+            n = math.hypot(gx - ox, gy - oy) or 1.0
+            pose(j, ox + (gx - ox) / n * 1.2, oy + (gy - oy) / n * 1.2)
+
     def _reprise(self):
         """Le coup de pied de reprise : qui tire, et quoi."""
         a = self.arret
@@ -525,9 +623,14 @@ class Match:
         j.dernier_contact = self.t
         # dans les 30 m : on peut frapper
         bx, by = self.but_de(camp)
-        if k == "coup_franc" and math.hypot(bx - b.x, by - b.y) < 26 and self.rs.random() < 0.35:
-            self._frapper(j, coup_franc=True)
-            return
+        if k == "coup_franc":
+            d = math.hypot(bx - b.x, by - b.y)
+            if d < 30 and abs(b.y - by) < 16 and self.rs.random() < 0.35 + 0.3 * j.attr("FIN") / 99:
+                self._frapper(j, coup_franc=True)
+                return
+            if d < 38 and self.rs.random() < 0.7:
+                self._centrer(j)                    # dans la surface, où les grands attendent
+                return
         self._decider_porteur(j, force=True)
         if k == "sortie_but":
             b.hors_jeu_au_kick = set()               # pas de hors-jeu sur une sortie de but
@@ -567,6 +670,7 @@ class Match:
                         self._forme(camp, a["camp"])
                     self._gardiens(a["camp"])
                     self._espacer()
+                    self._forme_arret(a)
                 if a["k"] == "engagement" and self.t >= a.get("au_centre", 0.0) and (b.x, b.y) != (a["x"], a["y"]):
                     b.x, b.y, b.z = a["x"], a["y"], 0.0              # l'arbitre ramène le ballon au centre
                 if tireur is not None and tireur.pid not in self.exclus:
@@ -969,7 +1073,7 @@ class Match:
         s'écartent l'un de l'autre : un onze occupe le terrain, il ne
         s'entasse pas autour du ballon.  Ceux qui vont au ballon (porteur,
         receveur, presseur, chasseur) gardent leur cible."""
-        fixes = {"porteur", "receveur", "presse", "chasse", "gardien", "appel", "marque", "double"}
+        fixes = {"porteur", "receveur", "presse", "chasse", "gardien", "appel", "marque", "double", "arret"}
         for camp in (0, 1):
             js = [j for j in self.actifs(camp) if not j.gk]
             for _ in range(2):
@@ -1288,13 +1392,16 @@ class Match:
             if not (dbut < 24 and tenu > 0.3):        # dans la zone de frappe, on ne réfléchit pas trois secondes
                 if dev > 7.0 and pression < 0.6:
                     self._conduire(j)                 # et on réfléchit en avançant
+                elif pression < 0.7 and tenu > 0.5:
+                    self._conduire(j, derive=True)    # fermé devant : on dérive vers le côté ouvert
                 return
         options: list[tuple[float, str, object]] = []
         # le bruit de décision : moins avec le sang-froid, moins dans un
         # collectif rodé (chacun sait ce que l'autre va faire)
         bruit = 0.25 * (1.0 - 0.5 * j.attr("CON") / 99) * (1.25 - 0.5 * coh)
-        # -- frapper : une occasion se prend, surtout si rien ne bouche l'axe
-        if dbut < 32 and not j.gk:
+        # -- frapper : une occasion se prend, surtout si rien ne bouche l'axe ;
+        # de loin, face à un bloc bas qui ne s'ouvre pas, on tente sa chance
+        if dbut < 36 and not j.gk:
             ang = self._angle_but(j.x, j.y, camp)
             xg = self._xg(dbut, ang, pression)
             axe = self._axe_libre(j)
@@ -1303,6 +1410,8 @@ class Match:
                 val -= 0.6                                # un angle fermé : on cherche mieux
             if xg < 0.04 and not seul:
                 val -= 0.4                                # une frappe pour rien : on cherche mieux
+            if 20 < dbut < 36 and self.phase[1 - camp] == "bloc_bas" and axe > 0.6 and pression < 0.4 and abs(j.y - gy) < 14:
+                val += 0.45 + 0.5 * j.attr("FIN") / 99    # le bloc est bas et l'axe s'ouvre : la frappe de loin
             if seul and dbut < 20:
                 val += 1.5                                # le duel avec le gardien se finit
             options.append((val + self.rs.gauss(0, bruit), "tir", None))
@@ -1396,10 +1505,11 @@ class Match:
             options.append((val + self.rs.gauss(0, bruit), "provoque", None))
         # -- percer : un boulevard devant, un dribbleur qui le prend à pleine vitesse
         # (un central qui a vingt mètres devant lui en construction ne perce pas : il relance)
-        if (dev > 14.0 and dbut > 18 and phase in ("progression", "finition", "contre")
+        seuil_dev = 8.0 if dbut < 36 else 14.0        # dans le dernier tiers, huit mètres libres sont déjà un boulevard
+        if (dev > seuil_dev and dbut > 14 and phase in ("progression", "finition", "contre")
                 and (j.fam != "DEF" or j.attr("DRI") > 72)):
             val = (0.15 + 0.05 * min(dev, 24.0) + 0.7 * j.attr("DRI") / 99 - 0.9 * pression + 0.3 * (1.0 - coh)
-                   + (0.4 if phase == "contre" else 0.0) + 0.15 * j.travail_att)
+                   + (0.4 if phase == "contre" else 0.0) + 0.15 * j.travail_att + (0.45 if dbut < 36 else 0.0))
             options.append((val + self.rs.gauss(0, bruit), "percee", None))
         # -- dégager sous pression dans son camp
         if pression > 0.5 and (j.x - LONG / 2) * j.sens() < -20:
@@ -1640,9 +1750,23 @@ class Match:
         self.ballon.passe_vers = None
         self.evt("degagement", de=j.pid, camp=j.camp)
 
-    def _conduire(self, j: Joueur, percee: bool = False, au_but: bool = False, provoque: bool = False):
+    def _conduire(self, j: Joueur, percee: bool = False, au_but: bool = False, provoque: bool = False, derive: bool = False):
         (ux, uy), dev = self._espace_devant(j)
         gx, gy = self.but_de(j.camp)
+        if derive:
+            # à 60° de chaque côté de l'axe du but, le côté le plus ouvert ; quatre mètres, au pas
+            meilleur, best = None, -1.0
+            for a in (-1.05, 1.05):
+                ca, sa = math.cos(a), math.sin(a)
+                vx, vy = ux * ca - uy * sa, ux * sa + uy * ca
+                libre = min((math.hypot(o.x - j.x, o.y - j.y) for o in self.actifs(1 - j.camp)
+                             if ((o.x - j.x) * vx + (o.y - j.y) * vy) / (math.hypot(o.x - j.x, o.y - j.y) or 1.0) > 0.5), default=25.0)
+                if libre > best:
+                    meilleur, best = (vx, vy), libre
+            vx, vy = meilleur
+            j.cible = (max(1.0, min(LONG - 1.0, j.x + vx * 4.0)), max(1.0, min(LARG - 1.0, j.y + vy * 4.0)))
+            j.role = "porteur"
+            return
         if au_but:
             # droit au but, pas vers l'espace : il va au duel
             n = math.hypot(gx - j.x, gy - j.y) or 1.0
@@ -1929,7 +2053,7 @@ class Match:
         gx, gy = self.but_de(j.camp)
         dbut = math.hypot(gx - j.x, gy - j.y)
         j.touches += 1
-        if j.fam == "FWD" and dbut < 14 and self.rs.random() < 0.6:
+        if dbut < 14 and self.rs.random() < (0.6 if j.fam == "FWD" else 0.45):
             # une tête vers le but
             self.dernier_tir = {"de": j, "xg": self._xg(dbut, self._angle_but(j.x, j.y, j.camp), 0.4) * 0.6, "t": self.t, "camp": j.camp}
             j.tirs += 1
@@ -2199,7 +2323,7 @@ class Match:
                             "vmax_ea": j.physique.get("vit"), "touches": j.touches, "passes": j.passes, "passes_ok": j.passes_ok,
                             "tirs": j.tirs, "cadres": j.tirs_cadres, "buts": j.buts, "tacles": j.tacles,
                             "interceptions": j.interceptions, "fautes": j.fautes, "arrets": j.arrets,
-                            "fatigue": round(j.fatigue, 2), "exclu": j.pid in self.exclus,
+                            "fatigue": round(j.fatigue, 2), "exclu": j.pid in self.exclus, "capitaine": j.capitaine,
                             "travail": [round(j.volume, 2), round(j.pressing, 2), round(j.recup, 2)]})
         return {"score": list(self.score), "noms": list(self.noms), "minutes": round(self.duree / 60),
                 "collectif": list(self.collectif), "tactiques": [dict(t) for t in self.tac],

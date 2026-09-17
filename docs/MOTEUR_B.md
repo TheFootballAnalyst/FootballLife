@@ -66,20 +66,20 @@ sur dix et dégage en catastrophe dans sa surface.
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 2,2 | 2,8 | proche |
-| tirs | 22,5 | 25 | proche |
-| tirs cadrés | 6,8 | 8,5 | proche |
-| passes | 1 097 | 900 | un peu trop : le porteur garde 2,3 s en médiane, réel 3 à 4 |
+| buts | 2,3 | 2,8 | proche |
+| tirs | 28 | 25 | proche (les frappes de loin face au bloc bas) |
+| tirs cadrés | 5,8 | 8,5 | un peu peu |
+| passes | 1 123 | 900 | un peu trop : le porteur garde 2,3 s en médiane, réel 3 à 4 |
 | réussite des passes | 79 % | 83 % | proche |
-| corners | 2,2 | 10 | pas assez de déviations et de dégagements qui sortent |
-| fautes | 21 | 22 | juste |
-| hors-jeu | 0,5 | 3,5 | trop peu : les coureurs attendent trop sagement sur la ligne |
-| distance par joueur | 13,3 km | 10,5 km | trop : les replacements se courent |
-| pointe médiane | 31,2 km/h | 31,8 km/h | juste |
-| sprint par joueur | 351 m | 190 m | trop : pressing et transitions |
-| possession du dominant | 53 % | 58 % | les matchs sont trop équilibrés |
-| tacles | 171 | 32 | beaucoup trop : chaque ballon piqué compte, à séparer des vrais tacles |
-| cartons jaunes | 3,7 | 4 | juste |
+| corners | 2,7 | 10 | pas assez de déviations et de dégagements qui sortent |
+| fautes | 25 | 22 | proche |
+| hors-jeu | 0,8 | 3,5 | trop peu : les coureurs attendent trop sagement sur la ligne |
+| distance par joueur | 14,3 km | 10,5 km | trop : les replacements se courent |
+| pointe médiane | 31,1 km/h | 31,8 km/h | juste |
+| sprint par joueur | 412 m | 190 m | trop : pressing et transitions |
+| possession du dominant | 51 % | 58 % | les matchs sont trop équilibrés |
+| tacles | 160 | 32 | beaucoup trop : chaque ballon piqué compte, à séparer des vrais tacles |
+| cartons jaunes | 6,2 | 4 | un peu trop |
 
 Les outils de mesure de cette recalibration sont dans le scratchpad de
 la session et se réécrivent en dix lignes : `espace.py` (le porteur
@@ -235,6 +235,32 @@ ligne si un milieu peut y aller.
 **L'occasion se prend.** Dans les trente derniers mètres le porteur
 décide plus vite, et une frappe vaut plus quand rien ne bouche l'axe ;
 l'homme libre près du but vaut plus qu'un soutien couvert.
+
+**Les coups de pied arrêtés ont leur forme** (`_forme_arret`). Corner :
+six grands montent dans la surface (centraux, buteur, meneur, ailiers,
+placés autour des six mètres), une option courte près du tireur, les
+autres (latéraux, pivot) restent à trente-six mètres couvrir le contre ;
+en face deux attaquants restent hauts, les défenseurs en ligne devant le
+but, les milieux sur les attaquants montés ; le tireur centre, et
+quiconque est à moins de quatorze mètres peut reprendre de la tête vers
+le but (un central monté aussi). Coup franc à moins de trente-huit
+mètres : le mur à 9,15 m — cinq dans l'axe à moins de vingt-deux mètres,
+quatre à moins de vingt-huit, trois plus loin, deux excentré, un très
+loin — les costauds dedans, les défenseurs en ligne à six mètres du
+but, cinq attaquants au bord de la surface, le reste en couverture ; le
+tireur frappe dans l'axe à moins de trente mètres (selon sa finition),
+sinon centre. Penalty : le tireur au point, tout le monde au bord de la
+surface en alternance, prêt à bondir sur un ballon repoussé. Le
+capitaine (celui de la compo, sinon le joueur de champ le mieux noté)
+porte un brassard dans le bac.
+
+**Le porteur ne reste pas planté** : sans espace devant et sans homme
+dans les pieds, il dérive au pas vers le côté le plus ouvert pendant
+qu'il réfléchit. **Le crochet en zone de danger** : dans le dernier
+tiers, huit mètres libres sont déjà un boulevard (quatorze ailleurs) et
+la percée y vaut plus. **La frappe de loin** : entre vingt et
+trente-six mètres, face à un bloc bas, l'axe ouvert et sans pression,
+on tente sa chance.
 
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
