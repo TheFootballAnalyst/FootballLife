@@ -54,7 +54,8 @@ Ce qui tient le bloc : il anticipe un ballon qui vient (une seconde
 d'avance), recule vite et remonte lentement (7 et 2,5 m/s), sa place ne
 fuit jamais plus vite qu'un homme ne court, les milieux restent six
 mètres derrière le ballon, on contient à deux mètres et demi (on ferme,
-on ne saute pas dans les pieds), le marquage dans les vingt-cinq mètres
+on ne saute pas dans les pieds) sauf à moins de vingt-cinq mètres de son
+but, où l'on va au contact, le marquage dans les vingt-cinq mètres
 se prend d'avance et l'attribution est stable (chacun garde son homme,
 le porteur compris), un porteur lancé sur un défenseur côté but ne le
 contourne pas sans duel, le duel se tranche en un jet et pas plus d'un
@@ -66,23 +67,41 @@ sur dix et dégage en catastrophe dans sa surface.
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 3,3 | 2,8 | un peu trop (deux graines : 4,0 et 2,7) |
-| tirs | 35 | 25 | trop : depuis que la surface se frappe au lieu de se remettre en retrait, à doser avec les têtes |
-| tirs cadrés | 7,7 | 8,5 | proche |
-| passes | 900 | 900 | juste, depuis qu'un côté bouché se quitte |
-| réussite des passes | 87 % | 83 % | proche : la passe ratée (sous pression, de loin, dans le dernier tiers) et le marqueur qui souffle le ballon d'un homme tenu |
-| corners | 5,5 | 10 | mieux : les centres se disputent de la tête, le gardien repousse, le défenseur dégage en première intention |
-| fautes | 22 | 22 | juste (la faute de pressing en fait l'essentiel) |
-| hors-jeu | 1,4 | 3,5 | un peu peu : le passeur voit la ligne avec quatre dixièmes de retard, la ligne ne piège pas encore |
-| distance par joueur | 12,5 km | 10,5 km | un peu trop |
-| pointe médiane | 31,6 km/h | 31,8 km/h | juste (corrélation 0,94 avec la note EA) |
-| sprint par joueur | 450 m | 190 m | trop : appels, chasses, pressing sur un porteur qui s'échappe |
-| possession du dominant | 56 % | 58 % | proche |
+| buts | 3,2 | 2,8 | proche (deux graines : 3,2 et 2,7 ; six matchs entre PSG, Arsenal et le Bayern : 2,8) |
+| tirs | 31 | 25 | encore un peu (graine 23 : 27 ; les grands clubs entre eux : 25) : la surface se laisse moins entrer depuis que l'on va au contact à ses abords |
+| tirs cadrés | 7,8 | 8,5 | proche |
+| passes | 890 | 900 | juste, depuis qu'un côté bouché se quitte |
+| réussite des passes | 90 % | 83 % | un peu haut depuis qu'il y a moins de passes en profondeur (elles ratent une fois sur trois) |
+| corners | 7 | 10 | mieux : les centres se disputent de la tête, le gardien repousse, le défenseur dégage en première intention |
+| fautes | 23 | 22 | juste (la faute de pressing en fait l'essentiel) |
+| hors-jeu | 1,5 | 3,5 | un peu peu : le passeur voit la ligne avec six dixièmes de retard, la ligne ne piège pas encore |
+| distance par joueur | 12,2 km | 10,5 km | un peu trop |
+| pointe médiane | 31,2 km/h | 31,8 km/h | juste (corrélation 0,87 avec la note EA) |
+| sprint par joueur | 370 m | 190 m | trop, mais moins : deux fois moins d'appels lancés |
+| possession du dominant | 53 % | 58 % | proche |
 | tacles | 29 | 32 | proche : le porteur ne rentre plus dans le défenseur, le duel se cherche |
-| cartons jaunes | 3,7 | 4 | juste |
+| cartons jaunes | 4,2 | 4 | juste |
 
 Le banc sur six matchs bouge d'une graine à l'autre (les buts de 1,8 à
 3,3) : pour trancher un réglage, on joue deux graines.
+
+**Trop de buts (2-6, 5-2 entre grands clubs) : d'où ils venaient.** Les
+buts suivaient l'xG (la finition et le gardien sont justes) ; c'est
+l'entrée dans la surface qui était trop facile : 49 entrées de porteur
+par match (le réel tourne autour de 30), 51 passes en profondeur
+tentées, 546 appels lancés, et 2 hors-jeu. Quatre corrections, toutes
+de football : un appel se lance deux fois moins souvent et jamais deux
+dans la même seconde et demie pour une équipe ; une passe en profondeur
+avec un défenseur sur la trajectoire vaut moins (il faudrait la lober) ;
+le passeur juge la ligne avec six dixièmes de retard et la manque une
+fois sur vingt ; dans les vingt-cinq derniers mètres le marqueur d'un
+receveur anticipe à trois mètres au lieu de deux vingt ; et surtout, à
+moins de vingt-cinq mètres de son but on ne contient plus à deux ou
+trois mètres, on va au contact (1,2 m), sinon le porteur entrait dans la
+surface en marchant après une passe reçue à son bord (« passe puis
+conduite » faisait 23 entrées sur 51). Résultat : 35 entrées, 25 à 31
+tirs, 2,7 à 3,2 buts, 2,8 sur six matchs entre PSG, Arsenal et le
+Bayern (1-1, 1-1, 2-4, 2-1, 2-2, 0-0).
 
 Les outils de mesure de cette recalibration sont dans le scratchpad de
 la session et se réécrivent en dix lignes : `espace.py` (le porteur
@@ -139,8 +158,8 @@ passe dans la course, personne qui part balle au pied. Quatre briques :
   second ballon. Pas de hors-jeu sur une sortie de but.
 - *L'appel en profondeur* : quand le porteur a le temps (pression
   faible) et qu'il reste quatorze mètres derrière la ligne adverse, un
-  attaquant (les gros travailleurs offensifs d'abord, deux au plus)
-  part DERRIÈRE la ligne, dans la brèche si elle est à portée, sinon
+  attaquant (les gros travailleurs offensifs d'abord, deux au plus, pas
+  deux départs en une seconde et demie) part DERRIÈRE la ligne, dans la brèche si elle est à portée, sinon
   droit devant en glissant vers l'axe. Tant que la passe n'est pas
   partie il court à la ligne sans la franchir — à sa marge à lui : un
   bon lecteur attend, un autre part un pas trop tôt et se fait prendre.
@@ -149,8 +168,9 @@ passe dans la course, personne qui part balle au pied. Quatre briques :
   l'ESPACE où il va (`_passer(point=…)`), pas l'homme ; la passe vaut
   d'autant plus que le point d'arrivée est près du but, que la ligne
   est ouverte, que le coureur y arrive avant le défenseur et qu'il est
-  déjà lancé ; elle vaut moins si le gardien peut sortir dessus. Dans
-  le fil du bac elle s'appelle « passe en profondeur ».
+  déjà lancé ; elle vaut moins si le gardien peut sortir dessus ou si un
+  défenseur est sur la trajectoire. Dans le fil du bac elle s'appelle
+  « passe en profondeur ».
 - *La percée* : un boulevard de quatorze mètres devant un dribbleur,
   et il part balle au pied à 95 % de sa pointe, sans relâcher pendant
   presque deux secondes (sauf un adversaire qui arrive ou une frappe
@@ -305,7 +325,7 @@ la vraie réussite était de 92 %, trop sûre. Trois choses la ramènent à
 87 % : la passe ratée (une sur dix part de travers ou mal dosée, plus
 sous pression, de loin, dans le dernier tiers, moins avec la
 technique), le marqueur d'un homme tenu qui anticipe et souffle le
-ballon, et l'audace d'une équipe menée en fin de match ou qui joue
+ballon (à 2,2 m, à 3 m dans les vingt-cinq derniers mètres), et l'audace d'une équipe menée en fin de match ou qui joue
 direct, qui accepte l'homme tenu. Par type : courtes 94 %, 15 à 30 m
 90 %, longues 93 %, centres 74 %, passes en profondeur 63 %.
 
@@ -333,7 +353,7 @@ coup (quatre mètres, à 6,5 m/s) au lieu de remonter à 2,5 m/s ; le
 presseur arrive vite mais ne sprinte que sur un porteur qui s'échappe.
 
 **Le passeur voit la ligne en retard.** Il juge le hors-jeu d'un coureur
-sur la ligne telle qu'elle était quatre dixièmes plus tôt
+sur la ligne telle qu'elle était six dixièmes plus tôt
 (`ligne_horsjeu(retard=True)`) : un coureur parti un pas trop tôt sur une
 ligne qui vient de bouger se fait prendre, comme en vrai. Le drapeau se
 lève sur la vraie ligne, à l'instant de la passe.
