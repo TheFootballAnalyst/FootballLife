@@ -572,7 +572,24 @@ def contributions(attributs: dict | None, physique: dict | str | None) -> dict:
     ph = ph or {}
     vals = [ph[k] for k in PHY_CLES if isinstance(ph.get(k), (int, float))]
     phy = round(sum(vals) / len(vals)) if vals else None
-    off = ph.get("wr_att") if ph.get("wr_att") in TRAVAIL_LIBELLE else (_travail_devine(a, "att") if a else None)
-    de = ph.get("wr_def") if ph.get("wr_def") in TRAVAIL_LIBELLE else (_travail_devine(a, "def") if a else None)
-    return {"phy": phy, "off": TRAVAIL_LIBELLE.get(off), "def": TRAVAIL_LIBELLE.get(de),
-            "devine": not (ph.get("wr_att") in TRAVAIL_LIBELLE and ph.get("wr_def") in TRAVAIL_LIBELLE)}
+    # les taux de travail : d'abord la fiche EA (work rates), sinon les trois
+    # leviers mesurés (volume, pressing, récupération : des rangs dans son
+    # poste, 0..1), combinés comme le moteur le fait — défensif = pressing
+    # et volume, offensif = volume et ce que disent création et dribble
+    def niveau(v):
+        return "haut" if v >= 0.6 else "bas" if v <= 0.35 else "moyen"
+    leviers = all(isinstance(ph.get(k), (int, float)) for k in ("volume", "pressing", "recup"))
+    if ph.get("wr_att") in TRAVAIL_LIBELLE and ph.get("wr_def") in TRAVAIL_LIBELLE:
+        off, de, source = ph["wr_att"], ph["wr_def"], "fiche EA"
+    elif leviers:
+        att_attr = max(0.0, min(1.0, (float(a.get("CRE", 55)) * 0.5 + float(a.get("DRI", 55)) * 0.5 - 40.0) / 45.0)) if a else 0.5
+        de = niveau(0.6 * float(ph["pressing"]) + 0.4 * float(ph["volume"]))
+        off = niveau(0.6 * float(ph["volume"]) + 0.4 * att_attr)
+        source = "mesure FotMob" if ph.get("travail_src") == "mesure" else "estimation"
+    elif a:
+        off, de, source = _travail_devine(a, "att"), _travail_devine(a, "def"), "deviné sur les attributs"
+    else:
+        off = de = source = None
+    leviers_txt = (f"volume {round(float(ph['volume']) * 9)}/9 · pressing {round(float(ph['pressing']) * 9)}/9 · "
+                   f"récupération {round(float(ph['recup']) * 9)}/9") if leviers else None
+    return {"phy": phy, "off": TRAVAIL_LIBELLE.get(off), "def": TRAVAIL_LIBELLE.get(de), "source": source, "leviers": leviers_txt}

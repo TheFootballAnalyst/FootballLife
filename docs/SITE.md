@@ -714,6 +714,11 @@ colonne `equipe.maillot`). Les clubs réels ont le leur dans
 Chaque carte porte, dans la pointe de l'écusson et sur sa fiche, trois
 globaux à côté de l'OVR : PHY (la moyenne du profil physique EA :
 accélération, pointe, endurance, force, détente), OFF et DEF (les taux
-de travail offensif et défensif de la fiche EA : Bas, Moyen, Haut ;
-devinés sur les attributs quand la fiche ne les a pas) —
-`jeu/scoring.contributions`, champ `globaux` de `/api/cartes`.
+de travail offensif et défensif : Bas, Moyen, Haut). Les work rates
+viennent de la fiche EA quand elle les a ; sinon des trois leviers
+mesurés (`moteur/travail_sans_ballon.csv`, rangs dans le poste),
+combinés comme le moteur le fait : défensif = 0,6 pressing + 0,4 volume,
+offensif = 0,6 volume + 0,4 de ce que disent création et dribble ; haut
+à 0,6 et plus, bas à 0,35 et moins. L'infobulle de la fiche donne la
+source et les trois leviers sur 9 — `jeu/scoring.contributions`, champ
+`globaux` de `/api/cartes`.
