@@ -1109,8 +1109,30 @@ class Match:
         """Deux coéquipiers dont les cibles sont à moins de ESPACE mètres
         s'écartent l'un de l'autre : un onze occupe le terrain, il ne
         s'entasse pas autour du ballon.  Ceux qui vont au ballon (porteur,
-        receveur, presseur, chasseur) gardent leur cible."""
+        receveur, presseur, chasseur) gardent leur cible.  Autour du
+        ballon, les défenseurs (marqueurs, coupeur, doubleur) gardent
+        quatre mètres entre eux et avec le presseur : un pressing, pas un amas."""
         fixes = {"porteur", "receveur", "presse", "chasse", "gardien", "appel", "marque", "double", "arret"}
+        for camp in (0, 1):
+            defs = [j for j in self.actifs(camp) if j.role in ("presse", "coupe", "marque", "double")]
+            for a in range(len(defs)):
+                for c in range(a + 1, len(defs)):
+                    ja, jc = defs[a], defs[c]
+                    dx, dy = jc.cible[0] - ja.cible[0], jc.cible[1] - ja.cible[1]
+                    d = math.hypot(dx, dy)
+                    if d >= 4.0:
+                        continue
+                    # celui qui n'est pas le presseur s'écarte (ou les deux, à parts égales)
+                    if d < 0.1:
+                        dx, dy, d = 1.0, 0.0, 1.0
+                    pousse = (4.0 - d) / d
+                    if ja.role == "presse":
+                        jc.cible = (jc.cible[0] + dx * pousse, jc.cible[1] + dy * pousse)
+                    elif jc.role == "presse":
+                        ja.cible = (ja.cible[0] - dx * pousse, ja.cible[1] - dy * pousse)
+                    else:
+                        ja.cible = (ja.cible[0] - dx * pousse * 0.5, ja.cible[1] - dy * pousse * 0.5)
+                        jc.cible = (jc.cible[0] + dx * pousse * 0.5, jc.cible[1] + dy * pousse * 0.5)
         for camp in (0, 1):
             js = [j for j in self.actifs(camp) if not j.gk]
             for _ in range(2):
@@ -1179,7 +1201,7 @@ class Match:
         if phase in ("pressing", "contre_pressing"):
             devant = sorted([j for j in siens if j.role_tac in ("buteur", "ailier", "meneur", "relayeur")],
                             key=lambda j: -j.pressing)
-            n_press = 4 if phase == "pressing" else 3
+            n_press = 3
             pris: set[int] = set()
             # d'abord le porteur (ou le ballon libre), par le plus envieux des plus proches
             cibles = [(o, math.hypot(o.x - bx, o.y - by)) for o in ([b.porteur] if b.porteur else [])]
@@ -1446,11 +1468,11 @@ class Match:
             ang = self._angle_but(j.x, j.y, camp)
             xg = self._xg(dbut, ang, pression)
             axe = self._axe_libre(j)
-            val = 0.65 + 7.0 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (0.2 if dbut < 16 else 0.0) - 0.15 * pression + 0.35 * axe * (1.0 if dbut < 22 else 0.2)
+            val = 0.55 + 7.5 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (0.4 if dbut < 18 else 0.0) - 0.15 * pression + 0.35 * axe * (1.0 if dbut < 22 else 0.2)
             if ang < 0.25 and dbut > 9:
                 val -= 0.6                                # un angle fermé : on cherche mieux
-            if xg < 0.04 and not seul:
-                val -= 0.4                                # une frappe pour rien : on cherche mieux
+            if xg < 0.05 and not seul:
+                val -= 0.55                               # une frappe pour rien : on cherche mieux
             if 20 < dbut < 36 and self.phase[1 - camp] == "bloc_bas" and axe > 0.6 and pression < 0.5 and abs(j.y - gy) < 14:
                 val += 0.45 + 0.5 * j.attr("FIN") / 99    # le bloc est bas et l'axe s'ouvre : la frappe de loin
             if seul and dbut < 20:
@@ -1481,6 +1503,10 @@ class Match:
             # dans les trente derniers mètres, on ne rend pas le ballon à un
             # central libre à trente mètres derrière — sauf sous pression
             if dbut < 35 and gain < -0.25 and pression < 0.6:
+                val -= 0.7
+            # dans la surface, on ne remet pas en retrait ou de côté : on frappe, sauf
+            # pour un coéquipier encore mieux placé
+            if dbut < 20 and gain < 0.1 and math.hypot(gx - c.x, gy - c.y) > dbut - 3.0:
                 val -= 0.7
             # la balle qui navigue sur la ligne : une latérale vers un homme
             # tenu, dans le camp adverse, n'apporte rien
@@ -2160,10 +2186,13 @@ class Match:
                 return
             # le point d'appui : dos au but, un marqueur dans le dos, un coéquipier
             # qui arrive lancé — on remet en une touche, le troisième homme joue
+            gx, gy = self.but_de(j.camp)
+            dbut_r = math.hypot(gx - j.x, gy - j.y)
+            (_, _), dev_r = self._espace_devant(j)
+            en_position = dbut_r < 26.0 and (self._angle_but(j.x, j.y, j.camp) > 0.3 or dev_r > 6.0)
             if (prec is not None and prec.camp == j.camp and passe_vers is j and j.fam in ("FWD", "MID")
-                    and (j.x - LONG / 2) * j.sens() > 0.0 and gene < 3.0
+                    and (j.x - LONG / 2) * j.sens() > 0.0 and gene < 3.0 and not en_position
                     and self.rs.random() < 0.5 + 0.4 * self.collectif[j.camp]):
-                gx, gy = self.but_de(j.camp)
                 cand = [o for o in self.actifs(j.camp) if o is not j and o is not prec and not o.gk
                         and (math.hypot(o.vx, o.vy) > 2.5 or o.role in ("appel", "soutien") or o.appel_jusqua > self.t)
                         and 4.0 < math.hypot(o.x - j.x, o.y - j.y) < 15.0

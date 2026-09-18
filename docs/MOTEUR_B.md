@@ -66,8 +66,8 @@ sur dix et dégage en catastrophe dans sa surface.
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 3,4 | 2,8 | un peu trop (deux graines : 3,2 et 3,7) |
-| tirs | 29 | 25 | un peu trop : les centres qui arrivent font des têtes |
+| buts | 3,3 | 2,8 | un peu trop (deux graines : 4,0 et 2,7) |
+| tirs | 35 | 25 | trop : depuis que la surface se frappe au lieu de se remettre en retrait, à doser avec les têtes |
 | tirs cadrés | 7,7 | 8,5 | proche |
 | passes | 900 | 900 | juste, depuis qu'un côté bouché se quitte |
 | réussite des passes | 87 % | 83 % | proche : la passe ratée (sous pression, de loin, dans le dernier tiers) et le marqueur qui souffle le ballon d'un homme tenu |
@@ -337,6 +337,15 @@ sur la ligne telle qu'elle était quatre dixièmes plus tôt
 (`ligne_horsjeu(retard=True)`) : un coureur parti un pas trop tôt sur une
 ligne qui vient de bouger se fait prendre, comme en vrai. Le drapeau se
 lève sur la vraie ligne, à l'instant de la passe.
+
+**Dans la surface on frappe.** Une remise en retrait ou de côté depuis
+la surface, vers un coéquipier qui n'est pas mieux placé, vaut moins
+qu'une frappe ; et la remise en une touche du point d'appui ne se fait
+pas quand on est en position de frappe ou avec de l'espace devant — là
+on se retourne. **Un pressing, pas un amas** : trois hommes vont au
+pressing (le presseur et deux), et autour du ballon les défenseurs
+(marqueurs, coupeur, doubleur) gardent quatre mètres entre eux et avec
+le presseur.
 
 **Le porteur ne reste pas planté** : sans espace devant et sans homme
 dans les pieds, il dérive au pas vers le côté le plus ouvert pendant
