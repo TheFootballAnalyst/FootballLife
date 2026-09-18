@@ -98,10 +98,10 @@ def _globaux(im, larg: int, d: dict):
         return im
     haut = int(larg * 1.50)
     dr = ImageDraw.Draw(im)
-    police = CD.F("barb", int(larg * 0.052))
+    police = CD.F("barb", int(larg * 0.046))
     or_ = (216, 180, 90, 255)
     gris = (170, 176, 192, 255)
-    morceaux = [(k.upper(), v) for k, v in (("phy", g["phy"]), ("off", g["off"]), ("def", g["def"])) if v is not None]
+    morceaux = [(k.upper(), str(v).upper()) for k, v in (("phy", g["phy"]), ("off", g["off"]), ("def", g["def"])) if v is not None]
     textes = [f"{k} {v}" for k, v in morceaux]
     larg_tot = sum(dr.textlength(t, font=police) for t in textes) + (len(textes) - 1) * int(larg * 0.05)
     x = MARGE + (larg - larg_tot) / 2

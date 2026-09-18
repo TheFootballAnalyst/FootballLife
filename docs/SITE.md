@@ -713,6 +713,7 @@ colonne `equipe.maillot`). Les clubs réels ont le leur dans
 
 Chaque carte porte, dans la pointe de l'écusson et sur sa fiche, trois
 globaux à côté de l'OVR : PHY (la moyenne du profil physique EA :
-accélération, pointe, endurance, force, détente), OFF (finition,
-création, dribble) et DEF (défense, progression, conservation) —
+accélération, pointe, endurance, force, détente), OFF et DEF (les taux
+de travail offensif et défensif de la fiche EA : Bas, Moyen, Haut ;
+devinés sur les attributs quand la fiche ne les a pas) —
 `jeu/scoring.contributions`, champ `globaux` de `/api/cartes`.

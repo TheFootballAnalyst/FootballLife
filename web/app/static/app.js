@@ -60,9 +60,10 @@ function blocPhysique(d) {
   const g = d.globaux;
   if (g && (g.phy != null || g.off != null)) {
     const ligne = el("div", {class: "globaux"});
-    for (const [k, v, t] of [["PHY", g.phy, "Physique : accélération, pointe, endurance, force, détente"], ["OFF", g.off, "Offensif : finition, création, dribble"], ["DEF", g.def, "Défensif : défense, progression, conservation"]]) {
+    const dev = g.devine ? " (deviné sur les attributs, la fiche EA ne le dit pas)" : " (fiche EA)";
+    for (const [k, v, t] of [["PHY", g.phy, "Physique : accélération, pointe, endurance, force, détente"], ["OFF", g.off, "Taux de travail offensif" + dev], ["DEF", g.def, "Taux de travail défensif" + dev]]) {
       if (v == null) continue;
-      ligne.append(el("div", {class: "global", title: t}, el("span", {}, k), el("b", {class: "num" + (v >= 80 ? " haut" : "")}, String(v))));
+      ligne.append(el("div", {class: "global", title: t}, el("span", {}, k), el("b", {class: "num" + (v >= 80 || v === "Haut" ? " haut" : "")}, String(v))));
     }
     b.append(ligne);
   }

@@ -545,10 +545,20 @@ def score_equipe(compo: Composition, prestas: dict[int, list[Prestation]],
 
 
 # Les trois globaux d'une carte, à côté de l'OVR : PHY (la moyenne du profil
-# physique EA — accélération, pointe, endurance, force, détente), OFF (la
-# moyenne de finition, création, dribble) et DEF (défense, protection,
-# conservation).  Ils se lisent sur la carte dessinée et sur le site.
+# physique EA — accélération, pointe, endurance, force, détente), OFF et DEF
+# (les taux de travail offensif et défensif de la fiche EA : bas, moyen,
+# haut ; devinés sur les attributs quand la fiche ne les a pas, comme le
+# fait le moteur).  Ils se lisent sur la carte dessinée et sur le site.
 PHY_CLES = ("acceleration", "vitesse_pointe", "endurance", "force", "detente")
+TRAVAIL_LIBELLE = {"bas": "Bas", "moyen": "Moyen", "haut": "Haut"}
+
+
+def _travail_devine(a: dict, sens: str) -> str:
+    if sens == "def":
+        v = (float(a.get("DEF", 55)) - 40.0) / 45.0
+    else:
+        v = (float(a.get("CRE", 55)) * 0.5 + float(a.get("DRI", 55)) * 0.5 - 40.0) / 45.0
+    return "haut" if v >= 0.67 else "moyen" if v >= 0.33 else "bas"
 
 
 def contributions(attributs: dict | None, physique: dict | str | None) -> dict:
@@ -556,14 +566,13 @@ def contributions(attributs: dict | None, physique: dict | str | None) -> dict:
     ph = physique
     if isinstance(ph, str):
         try:
-            ph = __import__('json').loads(ph)
+            ph = __import__("json").loads(ph)
         except ValueError:
             ph = None
     ph = ph or {}
     vals = [ph[k] for k in PHY_CLES if isinstance(ph.get(k), (int, float))]
     phy = round(sum(vals) / len(vals)) if vals else None
-    off = round((a.get("FIN", 0) + a.get("CRE", 0) + a.get("DRI", 0)) / 3) if all(k in a for k in ("FIN", "CRE", "DRI")) else None
-    de = round((a.get("DEF", 0) + a.get("PRO", 0) + a.get("CON", 0)) / 3) if all(k in a for k in ("DEF", "PRO", "CON")) else None
-    return {"phy": phy, "off": off, "def": de}
-
-
+    off = ph.get("wr_att") if ph.get("wr_att") in TRAVAIL_LIBELLE else (_travail_devine(a, "att") if a else None)
+    de = ph.get("wr_def") if ph.get("wr_def") in TRAVAIL_LIBELLE else (_travail_devine(a, "def") if a else None)
+    return {"phy": phy, "off": TRAVAIL_LIBELLE.get(off), "def": TRAVAIL_LIBELLE.get(de),
+            "devine": not (ph.get("wr_att") in TRAVAIL_LIBELLE and ph.get("wr_def") in TRAVAIL_LIBELLE)}
