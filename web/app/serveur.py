@@ -1249,6 +1249,8 @@ def bac_match(a: int, b: int, graine: int = 1, minutes: int = 90, formation: str
             collectif_b if collectif_b is not None else EM.collectif_de(jeu, b, [j["pid"] for j in sb]))
     res = EM.Match(sa, sb, formation, formation, graine=graine, minutes=minutes, noms=noms,
                    tactiques=tacs, collectif=(max(0.0, min(1.0, coll[0])), max(0.0, min(1.0, coll[1])))).jouer()
+    from jeu import maillots as MJ
+    res["maillots"] = MJ.tenues(noms[0], noms[1])
     if len(_BAC) >= 6:
         _BAC.pop(next(iter(_BAC)))
     _BAC[cle] = res

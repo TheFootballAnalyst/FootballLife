@@ -70,7 +70,7 @@ sur dix et dégage en catastrophe dans sa surface.
 | tirs | 29 | 25 | un peu trop : les centres qui arrivent font des têtes |
 | tirs cadrés | 7,7 | 8,5 | proche |
 | passes | 900 | 900 | juste, depuis qu'un côté bouché se quitte |
-| réussite des passes | 92 % | 83 % | trop sûre : le porteur choisit l'homme libre, les longues ne sont pas disputées ; le 72 % d'avant était un bug de comptage (les centres et les têtes ne comptaient jamais) |
+| réussite des passes | 87 % | 83 % | proche : la passe ratée (sous pression, de loin, dans le dernier tiers) et le marqueur qui souffle le ballon d'un homme tenu |
 | corners | 5,5 | 10 | mieux : les centres se disputent de la tête, le gardien repousse, le défenseur dégage en première intention |
 | fautes | 22 | 22 | juste (la faute de pressing en fait l'essentiel) |
 | hors-jeu | 1,4 | 3,5 | un peu peu : le passeur voit la ligne avec quatre dixièmes de retard, la ligne ne piège pas encore |
@@ -298,6 +298,27 @@ jeu en triangle des équipes de conservation.
 **On ne s'entasse pas** : l'ailier ne vient pas doubler là où il y a
 déjà deux des nôtres, le gardien ne va pas au ballon pendant un arrêt de
 jeu et c'est lui qui joue un coup franc dans sa surface.
+
+**La réussite des passes.** Le 72 % d'avant était un bug de comptage
+(les centres et les passes reprises de la tête ne comptaient jamais) ;
+la vraie réussite était de 92 %, trop sûre. Trois choses la ramènent à
+87 % : la passe ratée (une sur dix part de travers ou mal dosée, plus
+sous pression, de loin, dans le dernier tiers, moins avec la
+technique), le marqueur d'un homme tenu qui anticipe et souffle le
+ballon, et l'audace d'une équipe menée en fin de match ou qui joue
+direct, qui accepte l'homme tenu. Par type : courtes 94 %, 15 à 30 m
+90 %, longues 93 %, centres 74 %, passes en profondeur 63 %.
+
+**Le terrain ressemble à du football.** Chaque club a son maillot
+(`jeu/maillots.py` : couleur, seconde couleur et motif — uni, bande
+comme le PSG, rayures, cercles, moitiés, écharpe) ; le visiteur passe en
+tenue extérieure quand les couleurs se confondent, les gardiens portent
+une couleur que personne d'autre n'a. Un joueur se dessine vu de
+dessus : les épaules au maillot, la tête un peu en avant, deux pieds
+qui alternent avec la foulée (une foulée par 0,7 à 2,5 m selon
+l'allure, immobiles à l'arrêt), le corps orienté dans le sens de la
+course et, à l'arrêt, vers le ballon. L'orientation se lisse pour ne pas
+sauter d'une image à l'autre.
 
 **Les penaltys.** Dans la surface on défend les mains dans le dos : la
 faute de pressing et la faute sur duel y sont trois fois moins probables

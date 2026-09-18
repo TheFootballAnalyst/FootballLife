@@ -36,6 +36,12 @@ async function jouer() {
 function charger(res) {
   BAC.res = res; BAC.i = 0; BAC.horloge = 0; BAC.joue = true; BAC.derniere = performance.now();
   BAC.noms = {}; for (const j of res.joueurs) BAC.noms[j.camp + ":" + j.pid] = j.nom.split(" ").slice(-1)[0];
+  // les tenues : le maillot du club, le gardien dans une couleur à lui
+  const T = res.maillots || {a: {base: "#1F6FD1", second: "#ffffff", motif: "uni"}, b: {base: "#C62E2E", second: "#ffffff", motif: "uni"}, gardiens: ["#f2d33a", "#3ec46d"]};
+  BAC.tenues = res.joueurs.map(j => j.poste.startsWith("Gardien") ? {base: T.gardiens[j.camp], second: "#222", motif: "uni"} : (j.camp === 0 ? T.a : T.b));
+  BAC.cap = res.joueurs.map((j, i) => j.camp === 0 ? 0 : Math.PI);   // l'orientation du corps, lissée
+  BAC.pas = res.joueurs.map(() => 0);                                 // la foulée : les pieds alternent
+  BAC.prec = null;
   // les gestes : pour chaque frappe, tête, arrêt et but, de quoi les dessiner
   BAC.idx = {}; res.joueurs.forEach((j, i) => BAC.idx[j.camp + ":" + j.pid] = i);
   BAC.gestes = [];
@@ -135,15 +141,27 @@ function dessiner() {
   // les gestes en cours à cet instant (frappe, tête, détente, filets)
   const gestes = (BAC.gestes || []).filter(g => t >= g.t - 0.45 && t <= g.t + (g.k === "but" ? 1.4 : 0.55));
   const enGeste = {}; for (const g of gestes) if (g.k !== "but") enGeste[g.j] = g;
-  // les joueurs
+  // l'orientation et la foulée de chacun : la vitesse entre deux images, ou le ballon quand on est à l'arrêt
+  const fn = image(BAC.i + 1), dtp = BAC.res.trace_pas;
+  const bx0 = f[1] / 10, by0 = f[2] / 10;
   for (let j = 0; j < 22; j++) {
     const x = f[7 + j * 2] / 10, y = f[8 + j * 2] / 10;
+    const vx = (fn[7 + j * 2] / 10 - x) / dtp, vy = (fn[8 + j * 2] / 10 - y) / dtp;
+    const v = Math.hypot(vx, vy);
+    let vise = v > 0.8 ? Math.atan2(vy, vx) : Math.atan2(by0 - y, bx0 - x);
+    let d = vise - BAC.cap[j]; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+    BAC.cap[j] += d * (v > 0.8 ? 0.35 : 0.12);
+    if (BAC.prec) BAC.pas[j] += Math.hypot(x - BAC.prec[j][0], y - BAC.prec[j][1]);
+    BAC.vit = BAC.vit || []; BAC.vit[j] = v;
+  }
+  BAC.prec = Array.from({length: 22}, (_, j) => [f[7 + j * 2] / 10, f[8 + j * 2] / 10]);
+  // les joueurs, du haut du terrain vers le bas pour que les ombres se recouvrent bien
+  const ordre = Array.from({length: 22}, (_, j) => j).sort((a, b) => f[8 + a * 2] - f[8 + b * 2]);
+  for (const j of ordre) {
+    const x = f[7 + j * 2] / 10, y = f[8 + j * 2] / 10;
     const jo = BAC.res.joueurs[j];
-    if (enGeste[j]) { geste(enGeste[j], x, y, t, jo); continue; }
-    ctx.beginPath(); ctx.arc(sx(x), sy(y), 9, 0, Math.PI * 2);
-    ctx.fillStyle = jo.camp === 0 ? "#1F6FD1" : "#C62E2E"; ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = jo.poste.startsWith("Gardien") ? "#ffd86b" : "rgba(255,255,255,.9)"; ctx.stroke();
-    brassard(x, y, jo);
+    if (enGeste[j]) { geste(enGeste[j], x, y, t, jo, j); continue; }
+    joueur(x, y, jo, j);
     ctx.fillStyle = "#fff"; ctx.font = "11px Barlow Condensed, sans-serif"; ctx.textAlign = "center";
     ctx.fillText(BAC.noms[jo.camp + ":" + jo.pid] || "", sx(x), sy(y) + 22);
   }
@@ -172,11 +190,43 @@ function dessiner() {
   $("#curseur").value = Math.floor(BAC.i);
 }
 // -- les gestes : l'élan d'une frappe, la tête, la détente du gardien, les filets
-function jeton(x, y, jo, r = 9) {
-  ctx.beginPath(); ctx.arc(sx(x), sy(y), r, 0, Math.PI * 2);
-  ctx.fillStyle = jo.camp === 0 ? "#1F6FD1" : "#C62E2E"; ctx.fill();
-  ctx.lineWidth = 2; ctx.strokeStyle = jo.poste.startsWith("Gardien") ? "#ffd86b" : "rgba(255,255,255,.9)"; ctx.stroke();
+// -- un footballeur vu de dessus : les pieds qui courent, les épaules au maillot du club, la tête
+const PEAUX = ["#f1c9a5", "#e0ac7e", "#c68642", "#8d5524", "#5a3b25", "#f7d9c4"];
+function joueur(x, y, jo, j, r = 10.5) {
+  const cap = BAC.cap ? BAC.cap[j] : 0, v = BAC.vit ? BAC.vit[j] || 0 : 0;
+  const ten = BAC.tenues ? BAC.tenues[j] : {base: jo.camp === 0 ? "#1F6FD1" : "#C62E2E", second: "#fff", motif: "uni"};
+  const X = sx(x), Y = sy(y);
+  ctx.save(); ctx.translate(X, Y);
+  // l'ombre
+  ctx.beginPath(); ctx.ellipse(2, 3, r + 1, r * 0.6, 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.fill();
+  ctx.rotate(cap);
+  // les pieds : ils alternent avec la foulée (1,4 m par pas en course, plus court au trot), immobiles à l'arrêt
+  const foulee = v > 0.8 ? Math.sin((BAC.pas[j] / (0.7 + 0.25 * Math.min(v, 7))) * Math.PI * 2) : 0;
+  const amp = v > 0.8 ? 5 + Math.min(v, 8) * 0.6 : 0;
+  ctx.fillStyle = "#1c1c1c";
+  ctx.beginPath(); ctx.ellipse(foulee * amp, -4.2, 3.6, 2.1, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-foulee * amp, 4.2, 3.6, 2.1, 0, 0, Math.PI * 2); ctx.fill();
+  // les épaules, au maillot
+  ctx.beginPath(); ctx.ellipse(0, 0, r * 0.8, r, 0, 0, Math.PI * 2);
+  ctx.fillStyle = ten.base; ctx.fill();
+  ctx.save(); ctx.clip();
+  ctx.fillStyle = ten.second;
+  if (ten.motif === "bande") ctx.fillRect(-r, -r * 0.34, 2 * r, r * 0.68);
+  else if (ten.motif === "rayures") for (const o of [-0.66, 0, 0.66]) ctx.fillRect(-r, o * r - r * 0.16, 2 * r, r * 0.32);
+  else if (ten.motif === "cercle") for (const o of [-0.5, 0.5]) ctx.fillRect(o * r - r * 0.18, -r, r * 0.36, 2 * r);
+  else if (ten.motif === "moitie") ctx.fillRect(-r, 0, 2 * r, r);
+  else if (ten.motif === "echarpe") { ctx.rotate(-0.7); ctx.fillRect(-2 * r, -r * 0.2, 4 * r, r * 0.4); }
+  ctx.restore();
+  ctx.lineWidth = 1.2; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.stroke();
+  // la tête, un peu vers l'avant
+  ctx.beginPath(); ctx.arc(r * 0.18, 0, r * 0.42, 0, Math.PI * 2);
+  ctx.fillStyle = PEAUX[(jo.pid || 0) % PEAUX.length]; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.stroke();
+  ctx.restore();
   brassard(x, y, jo, r);
+}
+function jeton(x, y, jo, r = 10.5, j = null) {
+  if (j === null) j = BAC.res.joueurs.indexOf(jo);
+  joueur(x, y, jo, j, r);
 }
 function brassard(x, y, jo, r = 9) {
   // le capitaine : un brassard jaune, en haut à gauche du jeton
@@ -185,20 +235,20 @@ function brassard(x, y, jo, r = 9) {
   ctx.fillStyle = "#1a1405"; ctx.font = "bold 8px Barlow Condensed, sans-serif"; ctx.textAlign = "center";
   ctx.fillText("C", sx(x) - r * 0.75, sy(y) - r * 0.75 + 3);
 }
-function geste(g, x, y, t, jo) {
+function geste(g, x, y, t, jo, j) {
   const u = Math.max(0, Math.min(1, (t - (g.t - 0.45)) / 1.0));
   if (g.k === "tir" && g.tete) {
     // la tête : le jeton s'élève sur sa détente, son ombre reste au sol
     const h = Math.sin(Math.PI * u) * 14;
     ctx.beginPath(); ctx.ellipse(sx(x), sy(y) + 4, 9, 4, 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fill();
-    jeton(x, y, jo); ctx.save(); ctx.translate(0, -h); jeton(x, y, jo, 9 + h * 0.15); ctx.restore();
+    ctx.save(); ctx.translate(0, -h); jeton(x, y, jo, 9 + h * 0.15, j); ctx.restore();
     ctx.fillStyle = "#fff"; ctx.font = "11px Barlow Condensed, sans-serif"; ctx.textAlign = "center";
     ctx.fillText(BAC.noms[jo.camp + ":" + jo.pid] || "", sx(x), sy(y) + 22);
     return;
   }
   if (g.k === "tir") {
     // l'élan : la jambe part en arrière puis fouette vers le ballon ; le pied dit droit ou gauche
-    jeton(x, y, jo);
+    jeton(x, y, jo, 9, j);
     const balancier = u < 0.45 ? -1.3 * (u / 0.45) : -1.3 + 2.0 * ((u - 0.45) / 0.55);
     const cote = g.pied === "G" ? 1 : -1;                 // le pied gauche part de l'autre côté du jeton
     const a = g.dir + balancier * cote;
@@ -215,13 +265,14 @@ function geste(g, x, y, t, jo) {
     const s = Math.sin(Math.PI * Math.min(1, u * 1.2));
     ctx.save(); ctx.translate(sx(x), sy(y)); ctx.rotate(g.dir);
     ctx.beginPath(); ctx.ellipse(s * 12, 0, 9 + s * 15, 9 - s * 4, 0, 0, Math.PI * 2);
-    ctx.fillStyle = jo.camp === 0 ? "#1F6FD1" : "#C62E2E"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "#ffd86b"; ctx.stroke();
+    ctx.fillStyle = (BAC.tenues && BAC.tenues[j]) ? BAC.tenues[j].base : "#ffd86b"; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.stroke();
+    ctx.beginPath(); ctx.arc(s * 12 + 4, 0, 3.8, 0, Math.PI * 2); ctx.fillStyle = PEAUX[(jo.pid || 0) % PEAUX.length]; ctx.fill();
     ctx.restore();
     ctx.fillStyle = "#fff"; ctx.font = "11px Barlow Condensed, sans-serif"; ctx.textAlign = "center";
     ctx.fillText(BAC.noms[jo.camp + ":" + jo.pid] || "", sx(x), sy(y) + 22);
     return;
   }
-  jeton(x, y, jo);
+  jeton(x, y, jo, 9, j);
 }
 function filets(g, t) {
   // le camp qui marque pousse le filet d'en face ; il tremble et s'apaise

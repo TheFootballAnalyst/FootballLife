@@ -1472,9 +1472,11 @@ class Match:
             hj = self.hors_jeu(c, b.x, retard=True)      # la ligne telle qu'il l'a vue, pas telle qu'elle est
             if hj and self.rs.random() < 0.03:
                 hj = False                              # il n'a pas vu la ligne du tout : le drapeau se lèvera
+            # une équipe menée en fin de match, ou qui joue direct, accepte l'homme tenu
+            audace = (0.4 if (self.score[camp] < self.score[1 - camp] and self.t > 55 * 60) else 0.0) + (0.3 if tac["tempo"] == "direct" else 0.0)
             # l'homme libre près du but vaut de l'or ; le tempo direct aime les longues
             val = (0.25 + 1.4 * gain + 0.6 * danger + 0.1 * min(libre, 8.0) + 1.0 * couloir - 0.012 * d
-                   - 0.025 * max(0.0, d - 22.0) * tempo - (1.0 if libre < 3.0 else 0.0)
+                   - 0.025 * max(0.0, d - 22.0) * tempo - ((0.5 - audace * 0.5) if libre < 3.0 else 0.0)
                    + 0.5 * danger * min(libre, 10.0) / 10.0 * (0.6 + 0.4 * coh))
             # dans les trente derniers mètres, on ne rend pas le ballon à un
             # central libre à trente mètres derrière — sauf sous pression
@@ -1757,8 +1759,16 @@ class Match:
         # la précision : l'erreur d'angle dépend de CRE/PRO, de la pression et de la distance
         pression = self._pression(j)
         precision = (j.attr("PRO") * 0.6 + j.attr("CRE") * 0.4) / 99
-        sigma = math.radians(1.0 + 4.0 * (1 - precision) + 3.0 * pression + 0.045 * d)
+        gx_, gy_ = self.but_de(j.camp)
+        serre = 1.35 if math.hypot(gx_ - j.x, gy_ - j.y) < 35.0 else 1.0     # dans le dernier tiers, tout va plus vite
+        sigma = math.radians((1.0 + 4.0 * (1 - precision) + 3.0 * pression + 0.045 * d) * serre)
         ang = math.atan2(dy, dx) + self.rs.gauss(0, sigma)
+        # la passe ratée : sous pression, de loin, dans le dernier tiers, ou par
+        # manque de technique, une passe sur dix part de travers ou mal dosée
+        p_rate = (0.04 + 0.09 * pression + 0.07 * min(d, 40.0) / 40.0 + (0.05 if serre > 1.0 else 0.0)) * (1.4 - 0.8 * precision)
+        if self.rs.random() < p_rate:
+            ang += self.rs.gauss(0, sigma * 4.0 + math.radians(6.0))
+            v *= self.rs.uniform(0.6, 1.3)
         vz = 0.0
         haut = longue or d > 30 or (self._couloir_vers(j, vise_x, vise_y) < 0.2 and d > 15)
         if point is not None and d < 30 and not longue:
@@ -2047,6 +2057,9 @@ class Match:
                 # un ballon qui file se prend moins facilement qu'un ballon qui roule ;
                 # celui à qui la passe est adressée sait où la prendre
                 portee = RAYON_CONTROLE if v_b < 8.0 else (0.5 if j is not b.passe_vers else 1.5)
+                if (b.passe_vers is not None and j.camp != b.passe_vers.camp and not j.gk
+                        and math.hypot(j.x - b.passe_vers.x, j.y - b.passe_vers.y) < 2.2 and b.z < 1.0):
+                    portee = 0.9 + 0.6 * j.recup      # le marqueur d'un homme tenu anticipe : il souffle le ballon
                 if b.z > 1.0:
                     portee = 1.4                      # en l'air, on saute dessus : la tête se dispute
                 if j.gk:
