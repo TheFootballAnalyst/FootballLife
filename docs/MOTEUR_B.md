@@ -204,6 +204,30 @@ buts : sur dix-huit matchs de banc, une ligne serrée à un demi-mètre et
 un marqueur à un mètre et demi donnaient 3,4 buts, les anciens réglages
 2,3, le réglage retenu 3,0.
 
+**Le niveau pèse (PSG–Lorient 0-0).** Mesuré sur quarante matchs
+PSG–Lorient (OVR moyens 80 et 64, chaque équipe vingt fois à gauche) :
+le PSG ne gagnait que 52 % des matchs et en perdait 20 %, pour 2,0 buts
+à 1,1 — trop peu pour seize points d'écart (le réel tourne autour de
+80 % de victoires, 8 % de défaites, 2,8 buts à 0,6). L'xG était déjà
+dans le bon rapport (1,5 contre 0,8) : ce sont les attributs qui ne
+mordaient pas assez sur le jeu. Six leviers, tous de football : la passe
+ratée dépend fortement de la technique (un passeur à 0,85 de précision
+rate une passe sur seize, un à 0,55 une sur sept, et une passe ratée
+part vraiment de travers — douze degrés et une vitesse entre la moitié
+et une fois et demie) ; l'erreur d'angle d'une passe pèse six fois le
+défaut de précision au lieu de quatre ; un contrôle s'échappe sous
+pression (un sur quarante pour un bon technicien, un sur vingt pour un
+joueur moyen) ; un duel se gagne à 0,7 fois l'écart DEF − DRI au lieu
+de 0,4 ; le bruit des décisions dépend plus du sens du jeu (CON) ; et le
+gardien comme la finition s'étalent davantage (arrêt : 0,6 + 0,4·ARR ;
+frappe : 13° + 14° de défaut de finition). Résultat sur quarante
+matchs : 75 % de victoires du PSG, 17 % de nuls, 8 % de défaites, 2,3
+buts à 0,9 ; PSG–Bayern reste équilibré (6-5-9 sur vingt) ; le banc
+donne 3,0 buts et 22 tirs. La réussite des passes ne s'écarte que de
+deux points (89 % contre 86 %) : le reste de l'écart réel vient de ce
+que l'équipe faible joue plus long et sous plus de pression, ce que le
+moteur ne fait pas encore assez.
+
 **La sortie de but se presse aussi en bloc médian.** Le pressing homme
 à homme sur la relance courte ne s'allumait qu'en phase de pressing,
 donc jamais avec le bloc médian par défaut si les attaquants n'aiment

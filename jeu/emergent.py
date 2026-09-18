@@ -1690,7 +1690,7 @@ class Match:
         options: list[tuple[float, str, object]] = []
         # le bruit de décision : moins avec le sang-froid, moins dans un
         # collectif rodé (chacun sait ce que l'autre va faire)
-        bruit = 0.25 * (1.0 - 0.5 * j.attr("CON") / 99) * (1.25 - 0.5 * coh)
+        bruit = 0.32 * (1.0 - 0.7 * j.attr("CON") / 99) * (1.25 - 0.5 * coh)     # un joueur qui lit mal le jeu choisit moins bien
         # -- frapper : une occasion se prend, surtout si rien ne bouche l'axe ;
         # de loin, face à un bloc bas qui ne s'ouvre pas, on tente sa chance
         if dbut < 36 and not j.gk and not self.touche_en_cours:
@@ -2025,14 +2025,16 @@ class Match:
         precision = (j.attr("PRO") * 0.6 + j.attr("CRE") * 0.4) / 99
         gx_, gy_ = self.but_de(j.camp)
         serre = 1.35 if math.hypot(gx_ - j.x, gy_ - j.y) < 35.0 else 1.0     # dans le dernier tiers, tout va plus vite
-        sigma = math.radians((1.0 + 4.0 * (1 - precision) + 3.0 * pression + 0.045 * d) * serre)
+        sigma = math.radians((1.0 + 6.0 * (1 - precision) + 3.0 * pression + 0.045 * d) * serre)
         ang = math.atan2(dy, dx) + self.rs.gauss(0, sigma)
         # la passe ratée : sous pression, de loin, dans le dernier tiers, ou par
         # manque de technique, une passe sur dix part de travers ou mal dosée
-        p_rate = (0.04 + 0.09 * pression + 0.07 * min(d, 40.0) / 40.0 + (0.05 if serre > 1.0 else 0.0)) * (1.4 - 0.8 * precision)
+        # (la technique pèse fort : un passeur à 0,85 de précision rate une passe sur seize, un à 0,55 une sur sept —
+        # c'est ce qui fait 90 % de réussite à Paris et 78 % à Lorient)
+        p_rate = (0.04 + 0.09 * pression + 0.07 * min(d, 40.0) / 40.0 + (0.05 if serre > 1.0 else 0.0)) * (2.6 - 2.3 * precision)
         if self.rs.random() < p_rate:
-            ang += self.rs.gauss(0, sigma * 4.0 + math.radians(6.0))
-            v *= self.rs.uniform(0.6, 1.3)
+            ang += self.rs.gauss(0, sigma * 4.0 + math.radians(12.0))
+            v *= self.rs.uniform(0.5, 1.5)
         vz = 0.0
         haut = longue or d > 30 or (self._couloir_vers(j, vise_x, vise_y) < 0.2 and d > 15)
         if point is not None and d < 30 and not longue:
@@ -2167,7 +2169,7 @@ class Match:
         # où il vise : un poteau, avec une erreur qui dépend de la finition et de la pression
         cote = self.rs.choice([-1, 1])
         vise_y = gy + cote * (BUT_LARG / 2 - 0.5) * self.rs.uniform(0.3, 1.0)
-        sigma = math.radians((14.0 + 10.0 * (1 - fin) + 7.0 * pression + 0.35 * d) * (1.0 + malus))
+        sigma = math.radians((13.0 + 14.0 * (1 - fin) + 7.0 * pression + 0.35 * d) * (1.0 + malus))
         theta = math.atan2(vise_y - j.y, gx - j.x) + self.rs.gauss(0, sigma)
         v = VITESSE_TIR[0] + (VITESSE_TIR[1] - VITESSE_TIR[0]) * (0.4 + 0.6 * fin) * (1.0 - 0.3 * pression) * (1.0 - 0.25 * malus)
         # la hauteur : un tir tendu, parfois enlevé
@@ -2363,7 +2365,7 @@ class Match:
                 tir = self._tir_en_cours()
                 if tir:
                     d = self.d_ballon(j)
-                    p = (1.0 - 0.012 * max(0.0, v - 18.0) - 0.10 * d) * (0.72 + 0.28 * j.attr("ARR") / 99)
+                    p = (1.0 - 0.012 * max(0.0, v - 18.0) - 0.10 * d) * (0.6 + 0.4 * j.attr("ARR") / 99)     # un grand gardien, ça se voit sur une saison
                     if self.rs.random() > max(0.15, min(0.95, p)):
                         j.dernier_contact = self.t
                         b.dernier = j
@@ -2372,6 +2374,10 @@ class Match:
                 self._arret_gardien(j)
                 return
             p_controle = 1.0 if v < VITESSE_CONTROLE else max(0.35, 1.0 - (v - VITESSE_CONTROLE) / 18.0 * (1.0 - 0.5 * j.attr("CON") / 99))
+            # et la technique : un contrôle sur quarante s'échappe sous pression pour un bon
+            # technicien, un sur vingt pour un joueur moyen — c'est là que l'écart de niveau se voit
+            if not j.gk:
+                p_controle = min(p_controle, 1.0 - (0.015 + 0.05 * (1.0 - j.attr("CON") / 99) * (0.5 + self._pression(j))))
             if self.rs.random() > p_controle:
                 # contrôle raté : le ballon rebondit devant
                 b.vx *= 0.35
@@ -2611,7 +2617,7 @@ class Match:
             # porteur qui protège son ballon à l'arrêt, moins
             force_o = (o.physique.get("for", 68) or 68) / 99
             force_p = (p.physique.get("for", 68) or 68) / 99
-            p_gagne = (0.45 + 0.4 * (o.attr("DEF") - p.attr("DRI")) / 99 + 0.15 * (force_o - force_p) + 0.16 * (o.recup - 0.5)
+            p_gagne = (0.45 + 0.7 * (o.attr("DEF") - p.attr("DRI")) / 99 + 0.15 * (force_o - force_p) + 0.16 * (o.recup - 0.5)
                        + 0.12 * min(v_p, 8.0) / 8.0 - 0.1)
             if v_p < 3.0:
                 p_gagne *= 0.4                        # à l'arrêt, il protège son ballon : le défenseur pique, il ne tacle pas
