@@ -1074,8 +1074,12 @@ class Match:
                     # de la profondeur à attaquer, et quand on est en jeu
                     if lances >= 2 or not temps or derriere < 14.0 or self.hors_jeu(j, bx):
                         continue
-                    if math.hypot(j.x - bx, j.y - by) > 42.0 or (j.x - bx) * sens < -6.0:
-                        continue
+                    recul = -18.0 if (j.role_tac == "lateral" and abs(j.y - by) < 22.0) else -6.0
+                    if math.hypot(j.x - bx, j.y - by) > 42.0 or (j.x - bx) * sens < recul:
+                        continue                          # un latéral peut partir de derrière, sur son côté
+                    if j.role_tac == "lateral" and any(o.role_tac == "lateral" and o is not j and o.appel_jusqua > self.t
+                                                       for o in self.actifs(att)):
+                        continue                          # quand un latéral monte, l'autre reste
                     chance = 0.05 * risque * (0.7 + 0.6 * j.travail_att) * (1.8 if phase == "contre" else 1.0)
                     if self.rs.random() >= chance:
                         continue
@@ -1257,7 +1261,7 @@ class Match:
         if second is not None and cand:
             gx, gy = self.but_de(att)
             danger = min(cand, key=lambda o: math.hypot(o.x - mx, o.y - my))
-            second.cible = ((bx + danger.x) / 2, (by + danger.y) / 2)
+            second.cible = self._tenir_ligne(second, (bx + danger.x) / 2, (by + danger.y) / 2)
             second.role = "coupe"
         # le marquage dans le dernier tiers : un défenseur par attaquant, sans
         # jamais descendre sous la ligne (sauf dans la surface).  L'attribution
@@ -1299,11 +1303,7 @@ class Match:
                 # côté but de son homme, et un peu devant sa course : on ne suit pas, on accompagne
                 ax, ay = adv.x + adv.vx * 0.4, adv.y + adv.vy * 0.4
                 cx, cy = ax + (mx - ax) / dm * recul, ay + (my - ay) / dm * recul
-                if j.fam == "DEF" and dm > 22:
-                    cxp, cyp = j.propre(cx, cy)
-                    cxp = max(cxp, self.ligne_def[df] - 1.0)
-                    cx, cy = j.absolu(cxp, cyp)
-                j.cible = (cx, cy)
+                j.cible = self._tenir_ligne(j, cx, cy)
                 j.role = "marque"
         self._doubler(df, siens, adverses)
 
@@ -1321,6 +1321,27 @@ class Match:
         if adv.pid != j.homme:
             j.homme, j.t_homme = adv.pid, self.t
         return adv
+
+    def _tenir_ligne(self, j: Joueur, cx: float, cy: float) -> tuple[float, float]:
+        """Un défenseur ou un milieu ne descend pas sous la ligne défensive
+        de son équipe (moins un mètre) : suivre un homme plus bas que la
+        ligne, c'est remettre tous les autres en jeu.  Sauf quand le ballon
+        est dans les vingt mètres : là on suit jusqu'au bout."""
+        b = self.ballon
+        mx, my = self.but_de(1 - j.camp)
+        if math.hypot(b.x - mx, b.y - my) < 20.0:
+            return cx, cy
+        # un central suit son homme jusqu'au bout ; ce sont les latéraux et les
+        # milieux qui ne descendent pas sous la ligne des centraux
+        if j.role_tac == "central":
+            return cx, cy
+        autres = sorted(o.propre(o.x, o.y)[0] for o in self.actifs(j.camp) if o.role_tac == "central" and o is not j)
+        if not autres:
+            return cx, cy
+        ligne = autres[len(autres) // 2]
+        cxp, cyp = j.propre(cx, cy)
+        cxp = max(cxp, ligne - 2.0)
+        return j.absolu(cxp, cyp)
 
     def _doubler(self, df: int, siens: list[Joueur], adverses: list[Joueur]):
         """Le repli des ailiers (et des attaquants qui travaillent) : côté
@@ -1349,7 +1370,7 @@ class Match:
             if sum(1 for x in siens if x is not j and math.hypot(x.x - o.x, x.y - o.y) < 5.0) >= 2:
                 continue                                # déjà deux des nôtres dessus : on ne s'entasse pas
             dm = math.hypot(mx - o.x, my - o.y) or 1.0
-            j.cible = (o.x + (mx - o.x) / dm * 2.5, o.y + (my - o.y) / dm * 2.5)
+            j.cible = self._tenir_ligne(j, o.x + (mx - o.x) / dm * 2.5, o.y + (my - o.y) / dm * 2.5)
             j.role = "double"
 
     def _gardiens(self, att: int):
@@ -1468,13 +1489,13 @@ class Match:
             ang = self._angle_but(j.x, j.y, camp)
             xg = self._xg(dbut, ang, pression)
             axe = self._axe_libre(j)
-            val = 0.55 + 7.5 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (0.4 if dbut < 18 else 0.0) - 0.15 * pression + 0.35 * axe * (1.0 if dbut < 22 else 0.2)
+            val = 0.35 + 7.5 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (0.3 if dbut < 18 else 0.0) - 0.15 * pression + 0.35 * axe * (1.0 if dbut < 22 else 0.2)
             if ang < 0.25 and dbut > 9:
                 val -= 0.6                                # un angle fermé : on cherche mieux
             if xg < 0.05 and not seul:
                 val -= 0.55                               # une frappe pour rien : on cherche mieux
             if 20 < dbut < 36 and self.phase[1 - camp] == "bloc_bas" and axe > 0.6 and pression < 0.5 and abs(j.y - gy) < 14:
-                val += 0.45 + 0.5 * j.attr("FIN") / 99    # le bloc est bas et l'axe s'ouvre : la frappe de loin
+                val += 0.3 + 0.5 * j.attr("FIN") / 99     # le bloc est bas et l'axe s'ouvre : la frappe de loin
             if seul and dbut < 20:
                 val += 1.5                                # le duel avec le gardien se finit
             options.append((val + self.rs.gauss(0, bruit), "tir", None))

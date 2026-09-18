@@ -700,3 +700,19 @@ en pointe, avec le liseré du club).
 la valeur marchande (`importer.lire_valeurs`). La page d'accueil montre
 quatre cartes vitrine (`/api/vitrine`, sans compte). Sur mobile la
 navigation passe en barre du bas et le marché en deux colonnes.
+
+
+## Le maillot du club et les trois globaux d'une carte
+
+Dans l'écran Équipe, sous la tactique de départ, le manager choisit le
+maillot de son club : une couleur, une seconde couleur, un motif (uni,
+bande centrale, rayures, cerclé, deux moitiés, écharpe), avec un aperçu
+en chemise ; enregistré dès qu'on le touche (`POST /api/equipe/maillot`,
+colonne `equipe.maillot`). Les clubs réels ont le leur dans
+`jeu/maillots.py`.
+
+Chaque carte porte, dans la pointe de l'écusson et sur sa fiche, trois
+globaux à côté de l'OVR : PHY (la moyenne du profil physique EA :
+accélération, pointe, endurance, force, détente), OFF (finition,
+création, dribble) et DEF (défense, progression, conservation) —
+`jeu/scoring.contributions`, champ `globaux` de `/api/cartes`.

@@ -40,6 +40,28 @@ function charger(res) {
   const T = res.maillots || {a: {base: "#1F6FD1", second: "#ffffff", motif: "uni"}, b: {base: "#C62E2E", second: "#ffffff", motif: "uni"}, gardiens: ["#f2d33a", "#3ec46d"]};
   BAC.tenues = res.joueurs.map(j => j.poste.startsWith("Gardien") ? {base: T.gardiens[j.camp], second: "#222", motif: "uni"} : (j.camp === 0 ? T.a : T.b));
   BAC.cap = res.joueurs.map((j, i) => j.camp === 0 ? 0 : Math.PI);   // l'orientation du corps, lissée
+  // la peau : lue sur le portrait du joueur quand il est là (le front, au-dessus des yeux), sinon un ton moyen
+  BAC.peau = res.joueurs.map(() => "#d9a77c");
+  res.joueurs.forEach((j, i) => {
+    const im = new Image(); im.crossOrigin = "anonymous";
+    im.onload = () => {
+      try {
+        const c2 = document.createElement("canvas"); c2.width = im.width; c2.height = im.height;
+        const g = c2.getContext("2d"); g.drawImage(im, 0, 0);
+        // une zone au centre-haut du visage (front et joues), on garde les pixels couleur chair
+        const x0 = Math.floor(im.width * 0.35), x1 = Math.floor(im.width * 0.65), y0 = Math.floor(im.height * 0.28), y1 = Math.floor(im.height * 0.55);
+        const px = g.getImageData(x0, y0, x1 - x0, y1 - y0).data;
+        let r = 0, gg = 0, b = 0, n = 0;
+        for (let k = 0; k < px.length; k += 4) {
+          const R = px[k], G = px[k + 1], B = px[k + 2], A = px[k + 3];
+          if (A < 200) continue;
+          if (R > G && G >= B * 0.85 && R - B > 12 && R + G + B > 90) { r += R; gg += G; b += B; n++; }   // une couleur chair, claire ou foncée
+        }
+        if (n > 40) BAC.peau[i] = `rgb(${Math.round(r / n)},${Math.round(gg / n)},${Math.round(b / n)})`;
+      } catch (e) { /* portrait d'une autre origine : on garde le ton moyen */ }
+    };
+    im.src = `/images/joueurs/${j.pid}.png`;
+  });
   BAC.pas = res.joueurs.map(() => 0);                                 // la foulée : les pieds alternent
   BAC.prec = null;
   // les gestes : pour chaque frappe, tête, arrêt et but, de quoi les dessiner
@@ -220,7 +242,7 @@ function joueur(x, y, jo, j, r = 10.5) {
   ctx.lineWidth = 1.2; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.stroke();
   // la tête, un peu vers l'avant
   ctx.beginPath(); ctx.arc(r * 0.18, 0, r * 0.42, 0, Math.PI * 2);
-  ctx.fillStyle = PEAUX[(jo.pid || 0) % PEAUX.length]; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.stroke();
+  ctx.fillStyle = (BAC.peau && BAC.peau[j]) || "#d9a77c"; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.stroke();
   ctx.restore();
   brassard(x, y, jo, r);
 }
@@ -266,7 +288,7 @@ function geste(g, x, y, t, jo, j) {
     ctx.save(); ctx.translate(sx(x), sy(y)); ctx.rotate(g.dir);
     ctx.beginPath(); ctx.ellipse(s * 12, 0, 9 + s * 15, 9 - s * 4, 0, 0, Math.PI * 2);
     ctx.fillStyle = (BAC.tenues && BAC.tenues[j]) ? BAC.tenues[j].base : "#ffd86b"; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.stroke();
-    ctx.beginPath(); ctx.arc(s * 12 + 4, 0, 3.8, 0, Math.PI * 2); ctx.fillStyle = PEAUX[(jo.pid || 0) % PEAUX.length]; ctx.fill();
+    ctx.beginPath(); ctx.arc(s * 12 + 4, 0, 3.8, 0, Math.PI * 2); ctx.fillStyle = (BAC.peau && BAC.peau[j]) || "#d9a77c"; ctx.fill();
     ctx.restore();
     ctx.fillStyle = "#fff"; ctx.font = "11px Barlow Condensed, sans-serif"; ctx.textAlign = "center";
     ctx.fillText(BAC.noms[jo.camp + ":" + jo.pid] || "", sx(x), sy(y) + 22);

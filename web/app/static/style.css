@@ -879,3 +879,17 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 .pack.ultra{--tier:rgba(120,90,255,.5);border-color:rgba(150,120,255,.55)}
 .pack.ultra .pack-carte{background:linear-gradient(170deg,#7B6CFF,#2A1E7A)}
 .pack.ultra .pack-prix{color:#c9bfff}
+
+/* le maillot du club : l'aperçu et les trois réglages */
+.maillot-choix{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.maillot-choix .reglages{display:flex;flex-direction:column;gap:8px}
+.maillot-choix label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--sourd,#9aa3b8)}
+.maillot-choix input[type=color]{width:38px;height:28px;padding:0;border:1px solid var(--ligne,#26304a);border-radius:6px;background:none}
+.maillot-choix svg{width:96px;height:96px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
+
+/* PHY · OFF · DEF sur la fiche */
+.globaux{display:flex;gap:10px;margin:0 0 10px}
+.globaux .global{background:var(--fond,#0d1117);border:1px solid var(--ligne,#26304a);border-radius:8px;padding:6px 10px;display:flex;gap:8px;align-items:baseline}
+.globaux .global span{font-family:"Barlow Condensed",sans-serif;font-size:11px;letter-spacing:.06em;color:var(--sourd,#9aa3b8)}
+.globaux .global b{font-family:Anton,sans-serif;font-weight:400;font-size:18px}
+.globaux .global b.haut{color:var(--or,#d8b45a)}

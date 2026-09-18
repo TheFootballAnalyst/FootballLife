@@ -56,6 +56,16 @@ const PHYSIQUE_NOMS = {acceleration: "Accélération", vitesse_pointe: "Vitesse"
 function blocPhysique(d) {
   const ph = d.physique;
   const b = el("div", {class: "physique-bloc"});
+  // les trois globaux à côté de l'OVR : PHY (le profil physique), OFF et DEF (les attributs)
+  const g = d.globaux;
+  if (g && (g.phy != null || g.off != null)) {
+    const ligne = el("div", {class: "globaux"});
+    for (const [k, v, t] of [["PHY", g.phy, "Physique : accélération, pointe, endurance, force, détente"], ["OFF", g.off, "Offensif : finition, création, dribble"], ["DEF", g.def, "Défensif : défense, progression, conservation"]]) {
+      if (v == null) continue;
+      ligne.append(el("div", {class: "global", title: t}, el("span", {}, k), el("b", {class: "num" + (v >= 80 ? " haut" : "")}, String(v))));
+    }
+    b.append(ligne);
+  }
   b.append(el("div", {class: "etiq"}, "Physique"));
   if (!ph) { b.append(el("p", {class: "compteur"}, "Pas de fiche physique pour ce joueur (moteur/physique_ea.csv).")); return b; }
   const A = el("div", {class: "attrs physique"});
@@ -653,6 +663,43 @@ function rendreEquipe(recalc = true) {
 // elle n'est jamais verrouillée, et elle sert à tous les matchs.
 let TAC_ENREG = null;
 
+// Le maillot du club : un aperçu (une chemise en SVG au motif choisi) et
+// trois réglages, enregistrés dès qu'on les touche.
+const MOTIFS_MAILLOT = {uni: "Uni", bande: "Bande centrale", rayures: "Rayures", cercle: "Cerclé", moitie: "Deux moitiés", echarpe: "Écharpe"};
+function chemiseSVG(m, taille = 96) {
+  const id = "m" + Math.random().toString(36).slice(2, 8);
+  const corps = "M20 14 L36 6 Q48 14 60 6 L76 14 L92 30 L78 40 L74 34 L74 90 L22 90 L22 34 L18 40 L4 30 Z";
+  let motif = "";
+  if (m.motif === "bande") motif = `<rect x="38" y="6" width="20" height="84" fill="${m.second}"/>`;
+  else if (m.motif === "rayures") motif = [28, 44, 60].map(x => `<rect x="${x}" y="6" width="8" height="84" fill="${m.second}"/>`).join("");
+  else if (m.motif === "cercle") motif = [30, 50, 70].map(y => `<rect x="4" y="${y}" width="88" height="8" fill="${m.second}"/>`).join("");
+  else if (m.motif === "moitie") motif = `<rect x="48" y="6" width="44" height="84" fill="${m.second}"/>`;
+  else if (m.motif === "echarpe") motif = `<polygon points="4,30 20,14 92,74 92,90 78,90" fill="${m.second}"/>`;
+  return `<svg viewBox="0 0 96 96" width="${taille}" height="${taille}"><defs><clipPath id="${id}"><path d="${corps}"/></clipPath></defs>
+    <path d="${corps}" fill="${m.base}"/><g clip-path="url(#${id})">${motif}</g>
+    <path d="${corps}" fill="none" stroke="rgba(0,0,0,.45)" stroke-width="2"/><path d="M36 6 Q48 18 60 6" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="2"/></svg>`;
+}
+let MAILLOT_ENREG = null;
+function rendreMaillot() {
+  const box = $("#maillot-club"); if (!box) return;
+  const m = Object.assign({base: "#1f6fd1", second: "#ffffff", motif: "uni"}, G.equipe?.maillot || {});
+  const apercu = el("div", {class: "apercu"}); apercu.innerHTML = chemiseSVG(m);
+  const maj = () => {
+    apercu.innerHTML = chemiseSVG(m);
+    clearTimeout(MAILLOT_ENREG);
+    MAILLOT_ENREG = setTimeout(async () => {
+      try { const r = await api("/equipe/maillot", m); if (G.equipe) G.equipe.maillot = r.maillot; $("#maillot-etat").textContent = "enregistré"; }
+      catch (e) { $("#maillot-etat").textContent = e.message; }
+    }, 400);
+  };
+  const cBase = el("input", {type: "color", value: m.base, oninput: e => { m.base = e.target.value; maj(); }});
+  const cSecond = el("input", {type: "color", value: m.second, oninput: e => { m.second = e.target.value; maj(); }});
+  const sel = el("select", {onchange: e => { m.motif = e.target.value; maj(); }});
+  for (const [k, v] of Object.entries(MOTIFS_MAILLOT)) sel.append(el("option", {value: k, selected: k === m.motif ? "selected" : null}, v));
+  box.replaceChildren(apercu, el("div", {class: "reglages"},
+    el("label", {}, "Couleur ", cBase), el("label", {}, "Seconde couleur ", cSecond), el("label", {}, "Motif ", sel)));
+}
+
 // Un seul endroit qui écrit la tactique du club, appelé depuis l'écran
 // Équipe comme depuis le lobby.  Retardé d'un instant : cliquer trois
 // réglages d'affilée ne fait pas trois écritures.
@@ -670,6 +717,7 @@ function enregistrerTactique(etat) {
 function rendreTactiqueClub() {
   const boite = $("#tac-club");
   if (!boite) return;
+  rendreMaillot();
   boite.replaceChildren();
   const etat = $("#tac-etat");
   const enregistrer = () => {

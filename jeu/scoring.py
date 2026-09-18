@@ -542,3 +542,28 @@ def score_equipe(compo: Composition, prestas: dict[int, list[Prestation]],
         "entres": [p for p in onze if p not in compo.titulaires],
         "detail": detail,
     }
+
+
+# Les trois globaux d'une carte, à côté de l'OVR : PHY (la moyenne du profil
+# physique EA — accélération, pointe, endurance, force, détente), OFF (la
+# moyenne de finition, création, dribble) et DEF (défense, protection,
+# conservation).  Ils se lisent sur la carte dessinée et sur le site.
+PHY_CLES = ("acceleration", "vitesse_pointe", "endurance", "force", "detente")
+
+
+def contributions(attributs: dict | None, physique: dict | str | None) -> dict:
+    a = attributs or {}
+    ph = physique
+    if isinstance(ph, str):
+        try:
+            ph = __import__('json').loads(ph)
+        except ValueError:
+            ph = None
+    ph = ph or {}
+    vals = [ph[k] for k in PHY_CLES if isinstance(ph.get(k), (int, float))]
+    phy = round(sum(vals) / len(vals)) if vals else None
+    off = round((a.get("FIN", 0) + a.get("CRE", 0) + a.get("DRI", 0)) / 3) if all(k in a for k in ("FIN", "CRE", "DRI")) else None
+    de = round((a.get("DEF", 0) + a.get("PRO", 0) + a.get("CON", 0)) / 3) if all(k in a for k in ("DEF", "PRO", "CON")) else None
+    return {"phy": phy, "off": off, "def": de}
+
+

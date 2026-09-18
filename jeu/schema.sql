@@ -220,6 +220,7 @@ CREATE TABLE IF NOT EXISTS equipe (
     classees         INTEGER NOT NULL DEFAULT 0,    -- ranked matches played in the lobby
     packs_offerts    TEXT,                          -- JSON {type: nombre}, gagnés en campagne solo
     tactique         TEXT,                          -- JSON: la tactique de départ du club, tous matchs
+    maillot          TEXT,                          -- JSON: {base, second, motif}, le kit choisi par le manager
     UNIQUE (utilisateur_id, ligue_jeu_id)
 );
 

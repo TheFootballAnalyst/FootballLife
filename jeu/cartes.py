@@ -29,6 +29,7 @@ MOTEUR = RACINE / "moteur"
 sys.path.insert(0, str(MOTEUR))
 
 import carte_design as CD  # noqa: E402
+from jeu import scoring as S  # noqa: E402
 
 
 SORTIE = RACINE / "out" / "cartes"
@@ -75,18 +76,42 @@ def carte_saison(jeu: sqlite3.Connection, pid: int, saison: str | None = None) -
     if saison:
         cond, args = "AND c.saison = ?", [pid, saison]
     row = jeu.execute(f"""
-        SELECT c.ovr, c.attributs, c.minutes, j.poste, j.nom, COALESCE(cl.couleur, '#14161E'), j.team_id
+        SELECT c.ovr, c.attributs, c.minutes, j.poste, j.nom, COALESCE(cl.couleur, '#14161E'), j.team_id, j.physique
         FROM carte c JOIN joueur j ON j.player_id = c.player_id
         LEFT JOIN club cl ON cl.team_id = j.team_id
         WHERE c.player_id = ? {cond} ORDER BY c.saison DESC LIMIT 1""", args).fetchone()
     if not row:
         return None
-    ovr, attrs, minutes, poste, nom, couleur, tid = row
+    ovr, attrs, minutes, poste, nom, couleur, tid, physique = row
     comp = jeu.execute("""SELECT c.nom FROM prestation p JOIN match m ON m.match_id = p.match_id
         JOIN competition c ON c.competition_id = m.competition_id WHERE p.player_id = ?
         GROUP BY c.nom ORDER BY COUNT(*) DESC LIMIT 1""", (pid,)).fetchone()
     return dict(pid=pid, nom=nom, note=ovr, ovr=ovr, attributs=json.loads(attrs or "{}"), poste=poste,
-                minutes=None, competition=comp[0] if comp else "", couleur=couleur, team_id=tid)
+                minutes=None, competition=comp[0] if comp else "", couleur=couleur, team_id=tid, physique=physique)
+
+
+def _globaux(im, larg: int, d: dict):
+    """La ligne PHY · OFF · DEF, dans la pointe de l'écusson."""
+    from PIL import ImageDraw
+    g = S.contributions(d.get("attributs"), d.get("physique"))
+    if g["phy"] is None and g["off"] is None:
+        return im
+    haut = int(larg * 1.50)
+    dr = ImageDraw.Draw(im)
+    police = CD.F("barb", int(larg * 0.052))
+    or_ = (216, 180, 90, 255)
+    gris = (170, 176, 192, 255)
+    morceaux = [(k.upper(), v) for k, v in (("phy", g["phy"]), ("off", g["off"]), ("def", g["def"])) if v is not None]
+    textes = [f"{k} {v}" for k, v in morceaux]
+    larg_tot = sum(dr.textlength(t, font=police) for t in textes) + (len(textes) - 1) * int(larg * 0.05)
+    x = MARGE + (larg - larg_tot) / 2
+    y = MARGE + haut + int(larg * 0.012)
+    for k, v in morceaux:
+        dr.text((x, y), k, font=police, fill=gris)
+        x += dr.textlength(k + " ", font=police)
+        dr.text((x, y), str(v), font=police, fill=or_)
+        x += dr.textlength(str(v), font=police) + int(larg * 0.05)
+    return im
 
 
 def _jeton_entier(im, cx, cy, note, r, _orig=CD.jeton):
@@ -150,7 +175,7 @@ def dessiner(d: dict, larg: int = 420):
     im = CD.carte(d["pid"], d["nom"], d["note"], d["couleur"], d["competition"],
                   POSTE_COURT.get(d["poste"], d["poste"]), d["minutes"], d["attributs"],
                   larg, d["team_id"], d.get("pied"))
-    return ecusson(im, larg, d["couleur"])
+    return _globaux(ecusson(im, larg, d["couleur"]), larg, d)
 
 
 def main():

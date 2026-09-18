@@ -338,6 +338,19 @@ sur la ligne telle qu'elle était quatre dixièmes plus tôt
 ligne qui vient de bouger se fait prendre, comme en vrai. Le drapeau se
 lève sur la vraie ligne, à l'instant de la passe.
 
+**La ligne tient, et les latéraux plongent.** Un latéral ou un milieu
+qui suit un homme ne descend jamais sous la ligne des centraux (moins
+deux mètres), sauf quand le ballon est dans les vingt mètres : suivre
+plus bas, c'est remettre tous les autres en jeu (les hors-jeu passent de
+1 à 2,8). Les centraux, eux, suivent leur homme jusqu'au bout. Un latéral
+à travail offensif haut peut partir en profondeur depuis dix-huit mètres
+derrière le ballon quand le jeu est de son côté ; quand un latéral monte,
+l'autre reste.
+
+**La peau des joueurs** dans le bac est lue sur leur portrait (une zone
+front-joues, pixels couleur chair), sur la machine où les portraits sont
+présents ; sans portrait, un ton moyen.
+
 **Dans la surface on frappe.** Une remise en retrait ou de côté depuis
 la surface, vers un coéquipier qui n'est pas mieux placé, vaut moins
 qu'une frappe ; et la remise en une touche du point d'appui ne se fait

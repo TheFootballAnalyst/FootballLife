@@ -331,7 +331,7 @@ def cartes_toutes(jeu):
     for r in jeu.execute("""
             SELECT c.player_id, c.ovr, c.prix, c.part, c.note_ovr, c.matchs, c.minutes,
                    c.valeur_base, c.ovr_base, c.arrivee, c.attributs, j.age, j.numero, j.pays, j.pied,
-                   j.pied_faible, j.naissance,
+                   j.pied_faible, j.naissance, j.physique,
                    j.nom, j.poste, j.postes, j.team_id, cl.nom AS club, cl.couleur
             FROM carte c JOIN joueur j ON j.player_id = c.player_id
             LEFT JOIN club cl ON cl.team_id = j.team_id WHERE c.saison = ?""", (SAISON,)):
@@ -352,6 +352,7 @@ def cartes_toutes(jeu):
             "valeur_base": r["valeur_base"], "ovr_base": r["ovr_base"], "valeur_marche": valeurs.get(r["player_id"]),
             "age": r["age"], "numero": r["numero"], "pays": r["pays"], "pied": r["pied"],
             "pied_faible": r["pied_faible"], "naissance": r["naissance"],
+            "globaux": S.contributions(json.loads(r["attributs"] or "{}"), r["physique"]),
             "matchs": r["matchs"], "minutes": int(r["minutes"] or 0), "arrivee": r["arrivee"],
             "notes": notes.get(r["player_id"], [])[-6:],
             # La FORME du joueur sur les six axes, lue contre sa ligne :
@@ -521,7 +522,8 @@ def equipe(u=Depends(exiger), jeu=Depends(bd)):
             "points": round(e["points_total"], 2), "rang": rang,
             "elo_classe": round(e["elo_classe"]), "classees": e["classees"],
             "effectif": effectif_de(jeu, e["equipe_id"]), "composition": compo,
-            "tactique": tactique_de(jeu, e), "marche_ouvert": marche_ouvert(jeu)}
+            "tactique": tactique_de(jeu, e), "marche_ouvert": marche_ouvert(jeu),
+            "maillot": json.loads(e["maillot"]) if e["maillot"] else None}
 
 
 def tactique_de(jeu, e) -> dict:
@@ -823,6 +825,28 @@ def equipe_tactique(t: TactiqueClub, u=Depends(exiger), jeu=Depends(bd)):
                 (json.dumps(d, ensure_ascii=False), e["equipe_id"]))
     jeu.commit()
     return {"tactique": d}
+
+
+class MaillotClub(BaseModel):
+    base: str
+    second: str
+    motif: str
+
+
+@app.post("/api/equipe/maillot")
+def equipe_maillot(m: MaillotClub, u=Depends(exiger), jeu=Depends(bd)):
+    """Le kit du club : une couleur, une seconde couleur, un motif (uni,
+    bande, rayures, cercle, moitie, echarpe)."""
+    import re as _re
+    e = equipe_de(jeu, u)
+    if not all(_re.fullmatch(r"#[0-9a-fA-F]{6}", c) for c in (m.base, m.second)):
+        raise HTTPException(400, "Couleur attendue en #rrggbb")
+    if m.motif not in ("uni", "bande", "rayures", "cercle", "moitie", "echarpe"):
+        raise HTTPException(400, "Motif inconnu")
+    d = {"base": m.base.lower(), "second": m.second.lower(), "motif": m.motif}
+    jeu.execute("UPDATE equipe SET maillot=? WHERE equipe_id=?", (json.dumps(d), e["equipe_id"]))
+    jeu.commit()
+    return {"maillot": d}
 
 
 @app.post("/api/lobby/rejoindre")
