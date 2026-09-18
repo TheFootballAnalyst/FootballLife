@@ -75,7 +75,6 @@ def acceleration_max(acc: float | None) -> float:
 
 PASSE_ARRIVEE = 5.5                          # m/s dans les pieds du receveur : la passe arrive vivante
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
-COUVERTURE_DEF = 5.0                         # un défenseur libre couvre à cinq mètres derrière le plus bas de ses partenaires, pas plus loin
 BALLON_FROTTEMENT = 3.2                      # m/s², un ballon au sol qui roule
 GRAVITE = 9.81
 RAYON_CONTROLE = 1.1                         # à moins d'un mètre, on peut prendre le ballon
@@ -355,6 +354,7 @@ class Match:
         self.cote_suite = [0, 0]                     # les passes d'affilée sur un même côté : un côté bouché se quitte
         self.dernier_appel = [-9.0, -9.0]            # le dernier départ en profondeur de chaque camp
         self.touche_en_cours = False                 # une remise en touche : à la main, pas plus de vingt-six mètres
+        self.t_relance_courte = [-99.0, -99.0]       # la dernière relance courte de chaque camp : le pressing va homme à homme dessus
         self.t_bascule = 0.0
         self.x_bascule = 50.0
         self.joueurs = joueurs_de(sur_a, 0, formation_a) + joueurs_de(sur_b, 1, formation_b)
@@ -696,6 +696,8 @@ class Match:
                     self._phases(a["camp"])
                     for camp in (0, 1):
                         self._forme(camp, a["camp"])
+                    if a["k"] in ("sortie_but", "relance"):
+                        self._roles_defense(1 - a["camp"])      # le pressing homme à homme se place avant le coup
                     self._gardiens(a["camp"])
                     self._espacer()
                     self._forme_arret(a)
@@ -820,9 +822,12 @@ class Match:
         consigne = self.tac[att].get("relance", "mixte")
         if consigne in ("courte", "longue"):
             return consigne
-        # mixte : au sol, sauf face à un bloc haut qui vient chercher la relance
-        # (et au moment de jouer, sans ligne courte, le gardien allonge de lui-même)
-        return "longue" if self.tac[1 - att]["bloc"] == "haut" else "courte"
+        # mixte : au sol — sauf une défense qui ne sait pas ressortir face à un
+        # bloc haut qui vient la chercher (et au moment de jouer, sans ligne
+        # courte, le gardien allonge de lui-même)
+        defs = [j for j in self.actifs(att) if j.fam == "DEF"]
+        technique = sum(j.attr("PRO") for j in defs) / max(1, len(defs))
+        return "longue" if (self.tac[1 - att]["bloc"] == "haut" and technique < 68.0) else "courte"
 
     def _role_tac(self, j: Joueur) -> str:
         base = S.poste_base(j.poste)
@@ -886,13 +891,13 @@ class Match:
             ligne_hj = lh if camp == 0 else LONG - lh
         # --- les profondeurs de ligne
         if phase == "bloc_bas":
-            L = max(7.0, min(24.0, bx - 15.0))
+            L = max(9.0, min(24.0, bx - 12.0))
             prof = {"central": L, "lateral": L + 1.0, "pivot": L + 7.0, "relayeur": L + 8.0, "meneur": L + 10.0,
                     "ailier": L + 9.0, "buteur": min(L + 20.0, 46.0)}
             larg = {"central": 6.0, "lateral": 16.0, "pivot": 0.0, "relayeur": 8.0, "meneur": 4.0, "ailier": 18.0, "buteur": 0.0}
             glisse = 0.35
         elif phase == "bloc_median":
-            L = max(10.0, min(40.0, bx - 18.0))
+            L = max(10.0, min(40.0, bx - 15.0))
             prof = {"central": L, "lateral": L + 2.0, "pivot": L + 8.0, "relayeur": L + 10.0, "meneur": L + 13.0,
                     "ailier": L + 12.0, "buteur": min(L + 22.0, bx + 6.0)}
             larg = {"central": 8.0, "lateral": 21.0, "pivot": 0.0, "relayeur": 11.0, "meneur": 5.0, "ailier": 22.0, "buteur": 0.0}
@@ -1210,6 +1215,58 @@ class Match:
         bxd = bx if df == 0 else LONG - bx                   # le ballon, vu de la défense
         adverses = [o for o in self.actifs(att) if not o.gk]
         porteur = b.porteur
+        # --- la relance courte aux six mètres : le pressing va homme à homme.
+        # Chaque attaquant et milieu prend un relanceur (les plus près de leur
+        # but d'abord), sur la ligne de passe, à un mètre et demi ; le plus
+        # proche du ballon presse le porteur en coupant l'option voisine — sur
+        # le gardien on ne rentre pas, on ferme à six mètres ; les défenseurs
+        # prennent les attaquants restés hauts.  Ça tient huit secondes ou
+        # jusqu'à ce que la relance ait quitté les trente-cinq mètres.
+        if self.phase[att] == "relance" and self.relance_choix[att] == "courte" and phase in ("pressing", "contre_pressing"):
+            self.t_relance_courte[att] = self.t
+        if self.t - self.t_relance_courte[att] < 8.0 and bxd > 70.0 and phase in ("pressing", "contre_pressing"):
+            gx_a, gy_a = self.but_de(df)                       # le but adverse, celui d'où part la relance
+            relanceurs = sorted(adverses, key=lambda o: math.hypot(o.x - gx_a, o.y - gy_a))
+            presseurs = [j for j in siens if j.fam != "DEF"]
+            pris: set[int] = set()
+            # le porteur, s'il n'est pas le gardien : le presseur le plus proche va dessus en coupant l'option voisine
+            # (sur le gardien on ne rentre pas : tout le monde prend un homme, le ballon n'a plus de sortie)
+            if porteur is not None and not porteur.gk and presseurs:
+                p = min(presseurs, key=lambda j: math.hypot(j.x - bx, j.y - by))
+                options = [o for o in adverses if o is not porteur and 4.0 < math.hypot(o.x - bx, o.y - by) < 25.0]
+                o = min(options, key=lambda o: math.hypot(o.x - bx, o.y - by), default=None)
+                dx, dy = ((o.x - bx, o.y - by) if o is not None else (mx - bx, my - by))
+                n = math.hypot(dx, dy) or 1.0
+                p.cible = (bx + dx / n * 1.8, by + dy / n * 1.8)
+                p.role = "presse"
+                pris.add(porteur.pid)
+                presseurs = [j for j in presseurs if j is not p]
+            # les relanceurs les plus près de leur but d'abord (les centraux, le pivot) :
+            # chacun au presseur qui le tenait déjà, sinon au plus proche encore libre
+            for adv in relanceurs:
+                if adv.pid in pris or not presseurs:
+                    continue
+                j = next((j for j in presseurs if j.homme == adv.pid and self.t - j.t_homme < 6.0), None)
+                if j is None:
+                    j = min(presseurs, key=lambda j: math.hypot(j.x - adv.x, j.y - adv.y))
+                    if math.hypot(j.x - adv.x, j.y - adv.y) > 45.0:
+                        continue
+                    j.homme, j.t_homme = adv.pid, self.t
+                pris.add(adv.pid)
+                presseurs.remove(j)
+                dx, dy = bx - adv.x, by - adv.y                # sur la ligne de passe, entre l'homme et le ballon
+                n = math.hypot(dx, dy) or 1.0
+                j.cible = (adv.x + dx / n * 1.5, adv.y + dy / n * 1.5)
+                j.role = "presse"
+            for j in [x for x in siens if x.fam == "DEF"]:
+                adv = self._son_homme(j, [o for o in adverses if o.pid not in pris], 22.0)
+                if adv is None:
+                    continue
+                pris.add(adv.pid)
+                dm = math.hypot(mx - adv.x, my - adv.y) or 1.0
+                j.cible = (adv.x + (mx - adv.x) / dm * 2.0, adv.y + (my - adv.y) / dm * 2.0)
+                j.role = "marque"
+            return
         # --- le pressing : chacun son homme, en couvrant une ligne de passe
         if phase in ("pressing", "contre_pressing"):
             devant = sorted([j for j in siens if j.role_tac in ("buteur", "ailier", "meneur", "relayeur")],
@@ -1287,17 +1344,17 @@ class Match:
             pris: set[int] = set()
             marqueurs = [x for x in tri if x.role == "forme" and x.fam in ("DEF", "MID")]
             attribs: dict[int, Joueur] = {}
-            # la ligne des centraux : un central ne suit pas son homme au-delà
-            # de dix mètres devant elle (un milieu le prend), et personne ne
-            # traverse le terrain derrière son homme — chacun marque dans sa zone
-            centraux = sorted(math.hypot(mx - o.x, my - o.y) for o in siens if o.role_tac == "central")
-            ligne = centraux[len(centraux) // 2] if centraux else 16.0
+            # la ligne de la forme : un central ne suit pas son homme au-delà
+            # de huit mètres devant elle (un milieu le prend : Zubimendi n'est
+            # pas l'affaire de Marquinhos), un latéral quatorze, et personne
+            # ne traverse le terrain derrière son homme — chacun marque dans sa zone
+            ligne = self.ligne_def[df]
             def zone(j: Joueur, o: Joueur) -> bool:
                 if not MARQUAGE_ZONE:
                     return True
                 if abs(o.y - j.cible[1]) > (12.0 if j.role_tac == "central" else 15.0):
                     return False
-                if j.fam == "DEF" and math.hypot(mx - o.x, my - o.y) - ligne > (10.0 if j.role_tac == "central" else 16.0):
+                if j.fam == "DEF" and j.propre(o.x, o.y)[0] - ligne > (8.0 if j.role_tac == "central" else 14.0):
                     return False
                 return True
             for j in marqueurs:
@@ -1337,18 +1394,33 @@ class Match:
                 j.cible = self._tenir_ligne(j, cx, cy)
                 j.role = "marque"
         self._doubler(df, siens, adverses)
-        # la couverture se tient à cinq mètres : un défenseur sans homme ni
-        # ballon ne reste pas planté quinze mètres derrière ses partenaires
-        # qui marquent ou pressent — il couvre cinq mètres derrière le plus
-        # bas d'entre eux, pas en spectateur au fond
-        defs = [j for j in siens if j.fam == "DEF"]
-        for j in defs:
-            if j.role != "forme" or len(defs) < 3:
+        # LA LIGNE : une seule profondeur pour la défense.  Celle de la forme,
+        # remontée aux talons de l'attaquant le plus bas qui est encore en jeu
+        # (à un mètre de lui, sans jamais approcher le ballon à moins de huit
+        # mètres) : compacte, et c'est elle qui fait le hors-jeu.  Un défenseur
+        # qui n'est pas sur le ballon la tient : il glisse en largeur (vers son
+        # homme, vers le ballon), il ne monte ni ne descend seul.  Il peut
+        # sortir de trois mètres sur un homme devant lui, et il suit son homme
+        # dans la surface quand le ballon est à moins de vingt-deux mètres.
+        ligne = self.ligne_def[df]
+        devant = [siens[0].propre(o.x, o.y)[0] for o in adverses if o is not porteur and not o.gk]
+        if devant:
+            ligne = max(ligne, min(bxd - 10.0, min(devant) - 1.0))
+        self.ligne_def[df] = ligne
+        for j in siens:
+            if j.fam != "DEF" or j.role in ("presse", "chasse", "receveur", "porteur", "arret", "double"):
                 continue
-            plus_bas = min(o.propre(o.x, o.y)[0] for o in defs if o is not j)
             cxp, cyp = j.propre(*j.cible)
-            if cxp < plus_bas - COUVERTURE_DEF:
-                j.cible = j.absolu(plus_bas - COUVERTURE_DEF, cyp)
+            if j.role == "marque":
+                if bxd < 22.0:
+                    continue
+                # un homme lancé dans le dos se suit : on ne regarde pas passer un coureur
+                o = next((o for o in adverses if o.pid == j.homme), None)
+                if o is not None and -(o.vx * siens[0].sens()) > 3.5 and j.propre(o.x, o.y)[0] < ligne + 4.0:
+                    continue
+            haut = ligne + (3.0 if j.role in ("marque", "coupe") else 0.0)
+            if cxp < ligne - 1.0 or cxp > haut:
+                j.cible = j.absolu(max(ligne - 1.0, min(haut, cxp)), cyp)
 
     def _son_homme(self, j: Joueur, cand: list[Joueur], portee: float, depuis: tuple[float, float] | None = None):
         """L'homme que j marque : celui qu'il tenait déjà s'il est encore à

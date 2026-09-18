@@ -55,8 +55,9 @@ d'avance), recule vite et remonte lentement (7 et 2,5 m/s), sa place ne
 fuit jamais plus vite qu'un homme ne court, les milieux restent six
 mètres derrière le ballon, on contient à deux mètres et demi (on ferme,
 on ne saute pas dans les pieds) sauf à moins de vingt-cinq mètres de son
-but, où l'on va au contact, le marquage dans les vingt-cinq mètres est
-par zone (un central ne sort pas à plus de dix mètres devant sa ligne)
+but, où l'on va au contact, la ligne est une seule profondeur que tous
+les défenseurs tiennent, le marquage dans les vingt-cinq mètres est
+par zone (un central ne sort pas à plus de huit mètres devant la ligne)
 et
 se prend d'avance et l'attribution est stable (chacun garde son homme,
 le porteur compris), un porteur lancé sur un défenseur côté but ne le
@@ -69,17 +70,17 @@ sur dix et dégage en catastrophe dans sa surface.
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 3,2 | 2,8 | proche (deux graines : 3,2 et 2,7 ; six matchs entre PSG, Arsenal et le Bayern : 2,8) |
-| tirs | 31 | 25 | encore un peu (graine 23 : 27 ; les grands clubs entre eux : 25) : la surface se laisse moins entrer depuis que l'on va au contact à ses abords |
+| buts | 2,3 | 2,8 | proche (deux graines : 2,0 et 2,7 ; douze matchs entre PSG, Arsenal et le Bayern : 3,2) |
+| tirs | 23 | 25 | juste (deux graines : 25 et 20,5 ; les grands clubs entre eux : 24) |
 | tirs cadrés | 7,8 | 8,5 | proche |
 | passes | 890 | 900 | juste, depuis qu'un côté bouché se quitte |
 | réussite des passes | 90 % | 83 % | un peu haut depuis qu'il y a moins de passes en profondeur (elles ratent une fois sur trois) |
 | corners | 7 | 10 | mieux : les centres se disputent de la tête, le gardien repousse, le défenseur dégage en première intention |
 | fautes | 23 | 22 | juste (la faute de pressing en fait l'essentiel) |
-| hors-jeu | 1,5 | 3,5 | un peu peu : le passeur voit la ligne avec six dixièmes de retard, la ligne ne piège pas encore |
+| hors-jeu | 0,9 | 3,5 | peu : la ligne tient aux talons du dernier attaquant en jeu, elle ne monte pas encore au moment de la passe (le piège) |
 | distance par joueur | 12,2 km | 10,5 km | un peu trop |
 | pointe médiane | 31,2 km/h | 31,8 km/h | juste (corrélation 0,87 avec la note EA) |
-| sprint par joueur | 370 m | 190 m | trop, mais moins : deux fois moins d'appels lancés |
+| sprint par joueur | 350 m | 190 m | trop, mais moins : deux fois moins d'appels lancés |
 | possession du dominant | 53 % | 58 % | proche |
 | tacles | 29 | 32 | proche : le porteur ne rentre plus dans le défenseur, le duel se cherche |
 | cartons jaunes | 4,2 | 4 | juste |
@@ -126,17 +127,40 @@ vivante, à 5,5 m/s (7 m/s mesurés à la réception), c'est le receveur qui
 l'arrête. Dans le bac il est blanc à pentagones noirs et tourne avec le
 chemin parcouru.
 
-**Le central planté au fond (Marquinhos, 19').** En bloc médian la
-forme posait la ligne dix-huit mètres derrière le ballon ; quand trois
-défenseurs sont sortis marquer ou presser, le quatrième restait seul à
-sa place, immobile, quinze mètres derrière eux. Un défenseur libre
-couvre maintenant à cinq mètres derrière le plus bas de ses partenaires
-(`COUVERTURE_DEF`), jamais plus loin. Vérifié sur douze matchs entre
-grands clubs que ni cette couverture, ni la passe vivante, ni le
-marquage par zone ne changent le nombre de buts au-delà du bruit
-(2,4 à 3,1 buts selon le réglage, xG 3,4 à 3,6) — ces réglages sont des
-constantes en tête de `jeu/emergent.py`, faciles à débrancher pour
-comparer.
+**La ligne à quatre (Marquinhos planté au fond, Mendes et Neves dans
+les choux, Marquinhos sur Zubimendi).** Le mécanisme, vu dans les
+traces : en bloc bas la forme posait la ligne quinze mètres derrière le
+ballon (à 9 m du but quand le ballon est à 24 m) pendant que les
+marqueurs tenaient à 14–16 m ; le central ou le latéral « de forme »
+filait donc seul au fond. Maintenant LA LIGNE est une seule profondeur
+par tic : celle de la forme (douze mètres derrière le ballon en bloc
+bas, quinze en bloc médian, jamais sous neuf), remontée aux talons de
+l'attaquant le plus bas encore en jeu (à un mètre de lui, sans approcher
+le ballon à moins de dix mètres). Tout défenseur qui n'est pas sur le
+ballon la tient : il glisse en largeur vers son homme ou le ballon, il
+ne monte ni ne descend seul. Il peut sortir de trois mètres sur un homme
+devant lui ; il suit son homme dans la surface quand le ballon est à
+moins de vingt-deux mètres ; et il suit un homme lancé dans son dos (on
+ne regarde pas passer un coureur). La zone d'un marqueur se lit sur
+cette ligne : un central ne sort pas à plus de huit mètres devant elle
+(Zubimendi est l'affaire d'un milieu), un latéral quatorze. Le
+marquage par zone et la passe vivante restent des constantes en tête de
+`jeu/emergent.py` (`MARQUAGE_ZONE`, `PASSE_ARRIVEE`), faciles à
+débrancher pour comparer.
+
+**Le pressing homme à homme sur la relance courte.** Une relance aux
+six mètres jouée court face à une équipe en pressing (bloc haut, ou des
+attaquants qui aiment presser) déclenche l'homme à homme : chaque
+attaquant et milieu prend un relanceur, les plus près de leur but
+d'abord (les centraux, le pivot), sur la ligne de passe à un mètre et
+demi ; le gardien ne se presse pas (le ballon n'a plus de sortie) ; si
+un joueur de champ porte, le presseur le plus proche va dessus en
+coupant l'option voisine ; les défenseurs prennent les attaquants
+restés hauts. Le dispositif se place pendant l'arrêt de jeu, avant le
+coup, et tient huit secondes ou jusqu'à ce que la relance ait quitté les
+trente-cinq mètres. Et une défense technique (PRO moyen des défenseurs
+≥ 68) joue court même face à un bloc haut — c'est tout l'intérêt du
+pressing ; les autres allongent.
 
 Les outils de mesure de cette recalibration sont dans le scratchpad de
 la session et se réécrivent en dix lignes : `espace.py` (le porteur
