@@ -1036,9 +1036,21 @@ class Match:
                 ux, uy = dx / n, dy / n
                 signe = 1 if (s.y - by) >= 0 else -1
                 ray = 11.0 - 3.0 * self.collectif[att]
-                s.cible = (max(2.0, min(LONG - 2.0, bx - ux * ray * 0.7 - uy * signe * ray * 0.7)),
-                           max(2.0, min(LARG - 2.0, by - uy * ray * 0.7 + ux * signe * ray * 0.7)))
+                bouche = self.cote_suite[att] >= 2 and self._zone(by) != "A"
+                if bouche:
+                    # le côté est bouché : on vient proposer en retrait, vers l'axe, pour réorienter
+                    signe = 1 if by < LARG / 2 else -1
+                    s.cible = (max(2.0, min(LONG - 2.0, bx - ux * 8.0)), max(2.0, min(LARG - 2.0, by + signe * 10.0)))
+                else:
+                    s.cible = (max(2.0, min(LONG - 2.0, bx - ux * ray * 0.7 - uy * signe * ray * 0.7)),
+                               max(2.0, min(LARG - 2.0, by - uy * ray * 0.7 + ux * signe * ray * 0.7)))
                 s.role = "soutien"
+                if bouche:
+                    # et un second homme dans l'axe, plus bas : le pivot ou l'autre relayeur
+                    autre = next((j for j in cand if j is not s and j.role == "forme"), None)
+                    if autre is not None and math.hypot(autre.x - bx, autre.y - by) < 30.0:
+                        autre.cible = (max(2.0, min(LONG - 2.0, bx - ux * 13.0)), LARG / 2 + (2.0 if by < LARG / 2 else -2.0))
+                        autre.role = "soutien"
         # l'appel dans la brèche : quand le porteur a le temps, un attaquant
         # attaque le plus grand trou de la dernière ligne, en restant en jeu
         phase = self.phase[att]
@@ -1051,7 +1063,8 @@ class Match:
             derriere = (gx - lh) * sens                 # les mètres entre la ligne adverse et le but
             temps = self._pression(porteur) < 0.55      # le porteur a le temps de voir la course
             breche = self._breche(att)
-            coureurs = sorted([j for j in siens if j.role == "forme" and j.role_tac in ("ailier", "buteur", "meneur")],
+            coureurs = sorted([j for j in siens if j.role == "forme" and (j.role_tac in ("ailier", "buteur", "meneur")
+                                                                          or (j.role_tac == "lateral" and j.travail_att >= 0.6))],
                               key=lambda j: -j.travail_att)
             lances = 0
             for j in coureurs:
@@ -1763,7 +1776,8 @@ class Match:
         # rodé part dans l'espace que la passe ouvre
         if self.collectif[j.camp] > 0.45 and (c.x - j.x) * j.sens() > 4.0 and self.rs.random() < self.collectif[j.camp] * 0.7:
             gx, gy = self.but_de(j.camp)
-            tiers = [o for o in self.actifs(j.camp) if o not in (j, c) and not o.gk and o.fam in ("FWD", "MID")
+            tiers = [o for o in self.actifs(j.camp) if o not in (j, c) and not o.gk
+                     and (o.fam in ("FWD", "MID") or (o.role_tac == "lateral" and o.travail_att >= 0.6))
                      and (o.x - c.x) * j.sens() > -8.0 and math.hypot(o.x - c.x, o.y - c.y) < 25.0]
             if tiers:
                 min(tiers, key=lambda o: math.hypot(gx - o.x, gy - o.y)).appel_jusqua = self.t + 2.2
@@ -2119,6 +2133,21 @@ class Match:
                     and gene < 4.0):
                 self._degager(j)                    # dans sa surface, un attaquant dans le dos : première intention
                 return
+            # le point d'appui : dos au but, un marqueur dans le dos, un coéquipier
+            # qui arrive lancé — on remet en une touche, le troisième homme joue
+            if (prec is not None and prec.camp == j.camp and passe_vers is j and j.fam in ("FWD", "MID")
+                    and (j.x - LONG / 2) * j.sens() > 0.0 and gene < 3.0
+                    and self.rs.random() < 0.5 + 0.4 * self.collectif[j.camp]):
+                gx, gy = self.but_de(j.camp)
+                cand = [o for o in self.actifs(j.camp) if o is not j and o is not prec and not o.gk
+                        and (math.hypot(o.vx, o.vy) > 2.5 or o.role in ("appel", "soutien") or o.appel_jusqua > self.t)
+                        and 4.0 < math.hypot(o.x - j.x, o.y - j.y) < 15.0
+                        and self._couloir_libre(j, o) > 0.5]
+                if cand:
+                    o = min(cand, key=lambda o: math.hypot(gx - o.x, gy - o.y))
+                    self.evt("remise", de=j.pid, a=o.pid, camp=j.camp)
+                    self._passer(j, o, courte=True)
+                    return
             _, dev = self._espace_devant(j)
             if dev > 7.0:
                 self._conduire(j)                   # l'espace devant se prend dès le contrôle

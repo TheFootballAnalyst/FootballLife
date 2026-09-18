@@ -282,6 +282,19 @@ l'axe rapporte, et la transversale vers l'autre côté rapporte sans payer
 la pénalité de longueur si la ligne est ouverte. Mesuré sur un match :
 les enchaînements de quatre passes et plus sur un côté passent de 56 à
 34, les transversales de 17 à 57, les retours par l'axe de 66 à 87.
+Et quand le côté est bouché, le soutien vient proposer en retrait
+dans l'axe (huit mètres derrière, dix vers l'axe) et un second milieu
+s'offre plus bas dans l'axe : la réorientation a des jambes, pas
+seulement une valeur de passe. Les enchaînements de quatre passes et
+plus sur un côté tombent à 22, ceux de six et plus à 1.
+
+**Le latéral qui plonge et le point d'appui.** Un latéral à travail
+offensif haut (0,6 et plus) fait les appels dans le dos comme un ailier,
+et part en troisième homme sur une passe vers l'avant. Un attaquant ou
+un milieu qui reçoit dos au but dans le camp adverse avec un marqueur
+dans le dos remet en une touche au coéquipier qui arrive lancé avec une
+ligne ouverte (une fois sur trois, plus dans un collectif rodé) : le
+jeu en triangle des équipes de conservation.
 **On ne s'entasse pas** : l'ailier ne vient pas doubler là où il y a
 déjà deux des nôtres, le gardien ne va pas au ballon pendant un arrêt de
 jeu et c'est lui qui joue un coup franc dans sa surface.
