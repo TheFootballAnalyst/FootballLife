@@ -70,8 +70,8 @@ sur dix et dégage en catastrophe dans sa surface.
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 2,0 | 2,8 | un peu peu depuis que le ballon roule (deux graines : 2,0 et 2,0 ; douze matchs entre PSG, Arsenal et le Bayern : 2,3) |
-| tirs | 22 | 25 | un peu peu (deux graines : 22 et 21 ; les grands clubs entre eux : 20) : le ballon qui roule sort plus, les seconds ballons filent |
+| buts | 3,0 | 2,8 | juste (dix-huit matchs, graines 41 à 43 ; douze matchs entre PSG, Arsenal et le Bayern : 2,9) |
+| tirs | 23 | 25 | proche (dix-huit matchs : 20 à 25 ; les grands clubs entre eux : 23) |
 | tirs cadrés | 7,8 | 8,5 | proche |
 | passes | 890 | 900 | juste, depuis qu'un côté bouché se quitte |
 | réussite des passes | 90 % | 83 % | un peu haut depuis qu'il y a moins de passes en profondeur (elles ratent une fois sur trois) |
@@ -186,6 +186,23 @@ freiné par l'herbe et l'air (12 m/s → 37 m). Une passe est dosée pour
 arriver à 7 m/s dans les pieds ; un ballon qui retombe garde 60 % de son
 élan. Mesuré : plus aucun ballon libre immobile (0,0 %), 25 % du temps le
 ballon roule libre, 59 % il est conduit, 12 % il est en l'air.
+
+**Des joueurs sous la ligne (le retour).** Mesuré : le pivot, les
+relayeurs et même un ailier passaient une minute et demie par match
+sous la ligne défensive avec une cible sous la ligne. La forme les
+posait sept mètres devant la ligne DE LA FORME, mais la ligne, elle,
+est remontée aux talons des attaquants : ils restaient en dessous.
+Personne d'autre qu'un défenseur ne se place sous la ligne, désormais.
+Et l'effet « le latéral rentre dans l'axe, le central s'excentre plus
+bas que la ligne » : un central glisse vers le ballon de six mètres au
+plus (`CENTRAL_GLISSE_MAX`), la forme se tient à un mètre de la ligne
+et un marqueur sort de deux mètres et demi au plus (`LIGNE_TOLERANCE`),
+et la ligne remonte à 3,5 m/s au plus (`LIGNE_MONTEE`) pour que les
+hommes la suivent au lieu de courir après une ligne qui a sauté de dix
+mètres sur une passe en retrait. Ces trois réglages pèsent sur les
+buts : sur dix-huit matchs de banc, une ligne serrée à un demi-mètre et
+un marqueur à un mètre et demi donnaient 3,4 buts, les anciens réglages
+2,3, le réglage retenu 3,0.
 
 **La sortie de but se presse aussi en bloc médian.** Le pressing homme
 à homme sur la relance courte ne s'allumait qu'en phase de pressing,

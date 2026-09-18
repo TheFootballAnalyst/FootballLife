@@ -74,6 +74,9 @@ def acceleration_max(acc: float | None) -> float:
 
 
 PASSE_ARRIVEE = 7.0                          # m/s dans les pieds du receveur : la passe arrive vivante
+CENTRAL_GLISSE_MAX = 6.0                     # un central glisse vers le ballon de six mètres au plus
+LIGNE_TOLERANCE = (1.0, 2.5)                 # la forme à un mètre de la ligne, un marqueur à deux mètres et demi devant au plus
+LIGNE_MONTEE = 0.7                           # la ligne remonte de 0,7 m par tic au plus (3,5 m/s)
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
 BALLON_ROULE, BALLON_AIR = 1.2, 0.012        # décélération au sol : 1,2 m/s² + 0,012·v² (un ballon lent roule loin, un ballon fort est freiné)
 
@@ -384,6 +387,7 @@ class Match:
         self.presseur_en_titre = [(-1, -99.0), (-1, -99.0)]   # (pid, depuis) : celui qui presse garde le ballon deux secondes, on ne se croise pas
         self.coupe_en_titre = [(-1, -99.0), (-1, -99.0)]      # (pid, depuis) : celui qui coupe la ligne de passe garde le rôle trois secondes
         self.marquage_actif = [False, False]         # le marquage s'allume à quarante mètres et s'éteint à quarante-six : pas de clignotement à la frontière
+        self.ligne_prec = [(0.0, -99.0), (0.0, -99.0)]   # (profondeur, t) : la ligne remonte à 3,5 m/s au plus, elle recule d'un coup
         self.t_bascule = 0.0
         self.x_bascule = 50.0
         self.joueurs = joueurs_de(sur_a, 0, formation_a) + joueurs_de(sur_b, 1, formation_b)
@@ -1016,6 +1020,9 @@ class Match:
                 y += (by - LARG / 2) * glisse
             else:
                 # sans ballon : tout le monde derrière le ballon (sauf en pressing), et le bloc glisse côté ballon
+                # (un central de six mètres au plus : il couvre l'axe, il ne s'excentre pas)
+                if r == "central":
+                    glisse = min(glisse, CENTRAL_GLISSE_MAX / max(1.0, abs(by - LARG / 2)))
                 if phase not in ("pressing", "contre_pressing"):
                     x = min(x, bx - 6.0) if r not in ("buteur", "ailier") else min(x, bx + 6.0 if r == "buteur" else bx - 1.0)
                     # un attaquant qui travaille revient dans le bloc
@@ -1478,9 +1485,23 @@ class Match:
         devant = [siens[0].propre(o.x, o.y)[0] for o in adverses if o is not porteur and not o.gk]
         if devant:
             ligne = max(ligne, min(bxd - 10.0, min(devant) - 1.0))
+        # elle remonte à 3,5 m/s au plus (les hommes suivent, personne ne reste « sous la ligne »
+        # parce qu'elle a sauté de dix mètres sur une passe en retrait) ; elle recule d'un coup
+        prec, t_prec = self.ligne_prec[df]
+        if self.t - t_prec < 1.0 and ligne > prec + LIGNE_MONTEE:
+            ligne = prec + LIGNE_MONTEE
+        self.ligne_prec[df] = (ligne, self.t)
         self.ligne_def[df] = ligne
         for j in siens:
-            if j.fam != "DEF" or j.role in ("presse", "chasse", "receveur", "porteur", "arret", "double"):
+            if j.role in ("presse", "chasse", "receveur", "porteur", "arret", "double"):
+                continue
+            if j.fam != "DEF":
+                # un milieu ou un attaquant ne se place jamais sous la ligne : la forme le posait
+                # sept mètres devant la ligne de la forme, mais la ligne, elle, est remontée aux
+                # talons des attaquants — il remonte avec elle
+                cxp, cyp = j.propre(*j.cible)
+                if cxp < ligne - 1.0 and j.role in ("forme", "coupe", "marque"):
+                    j.cible = j.absolu(ligne - 1.0, cyp)
                 continue
             cxp, cyp = j.propre(*j.cible)
             if j.role == "marque":
@@ -1490,9 +1511,10 @@ class Match:
                 o = next((o for o in adverses if o.pid == j.homme), None)
                 if o is not None and -(o.vx * siens[0].sens()) > 3.5 and j.propre(o.x, o.y)[0] < ligne + 4.0:
                     continue
-            haut = ligne + (3.0 if j.role in ("marque", "coupe") else 0.0)
-            if cxp < ligne - 1.0 or cxp > haut:
-                j.cible = j.absolu(max(ligne - 1.0, min(haut, cxp)), cyp)
+            haut = ligne + (LIGNE_TOLERANCE[1] if j.role in ("marque", "coupe") else LIGNE_TOLERANCE[0])
+            bas = ligne - (1.0 if j.role in ("marque", "coupe") else LIGNE_TOLERANCE[0])
+            if cxp < bas or cxp > haut:
+                j.cible = j.absolu(max(bas, min(haut, cxp)), cyp)
 
     def _son_homme(self, j: Joueur, cand: list[Joueur], portee: float, depuis: tuple[float, float] | None = None):
         """L'homme que j marque : celui qu'il tenait déjà s'il est encore à
