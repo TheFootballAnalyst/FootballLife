@@ -355,6 +355,9 @@ class Match:
         self.dernier_appel = [-9.0, -9.0]            # le dernier départ en profondeur de chaque camp
         self.touche_en_cours = False                 # une remise en touche : à la main, pas plus de vingt-six mètres
         self.t_relance_courte = [-99.0, -99.0]       # la dernière relance courte de chaque camp : le pressing va homme à homme dessus
+        self.presseur_en_titre = [(-1, -99.0), (-1, -99.0)]   # (pid, depuis) : celui qui presse garde le ballon deux secondes, on ne se croise pas
+        self.coupe_en_titre = [(-1, -99.0), (-1, -99.0)]      # (pid, depuis) : celui qui coupe la ligne de passe garde le rôle trois secondes
+        self.marquage_actif = [False, False]         # le marquage s'allume à quarante mètres et s'éteint à quarante-six : pas de clignotement à la frontière
         self.t_bascule = 0.0
         self.x_bascule = 50.0
         self.joueurs = joueurs_de(sur_a, 0, formation_a) + joueurs_de(sur_b, 1, formation_b)
@@ -1229,9 +1232,34 @@ class Match:
             relanceurs = sorted(adverses, key=lambda o: math.hypot(o.x - gx_a, o.y - gy_a))
             presseurs = [j for j in siens if j.fam != "DEF"]
             pris: set[int] = set()
-            # le porteur, s'il n'est pas le gardien : le presseur le plus proche va dessus en coupant l'option voisine
-            # (sur le gardien on ne rentre pas : tout le monde prend un homme, le ballon n'a plus de sortie)
-            if porteur is not None and not porteur.gk and presseurs:
+            sortie = self.arret is not None and self.arret["k"] == "sortie_but"
+            s_a = 1 if gx_a > LONG / 2 else -1                 # vers le but adverse
+
+            def hors_surface(x: float, y: float) -> tuple[float, float]:
+                # sur une sortie de but, personne dans la surface adverse : on se place à son bord
+                if not sortie or abs(x - gx_a) >= SURFACE_X + 1.0 or abs(y - gy_a) >= SURFACE_Y + 1.0:
+                    return x, y
+                return gx_a - s_a * (SURFACE_X + 1.0), y
+
+            # le gardien a le ballon (ou va l'avoir) : on ne le presse pas.  Le buteur se
+            # place au bord de la surface sur la ligne gardien → central voisin, prêt à
+            # jaillir sur le gardien en cachant la passe facile ; ce central est « tenu »
+            if (porteur is None or porteur.gk) and presseurs:
+                p = min(presseurs, key=lambda j: (j.role_tac != "buteur", math.hypot(j.x - gx_a, j.y - gy_a)))
+                centraux = [o for o in relanceurs if o.role_tac == "central"] or relanceurs[:2]
+                o = min(centraux, key=lambda o: math.hypot(o.x - bx, o.y - by), default=None)
+                if o is not None:
+                    cx, cy = (bx + o.x) / 2, (by + o.y) / 2
+                    if not sortie:
+                        dx, dy = o.x - bx, o.y - by
+                        n = math.hypot(dx, dy) or 1.0
+                        cx, cy = bx + dx / n * 6.0, by + dy / n * 6.0
+                    p.cible = hors_surface(cx, cy)
+                    p.role = "presse"
+                    pris.add(o.pid)
+                    presseurs = [j for j in presseurs if j is not p]
+            # un joueur de champ porte : le presseur le plus proche va dessus en coupant l'option voisine
+            elif porteur is not None and not porteur.gk and presseurs:
                 p = min(presseurs, key=lambda j: math.hypot(j.x - bx, j.y - by))
                 options = [o for o in adverses if o is not porteur and 4.0 < math.hypot(o.x - bx, o.y - by) < 25.0]
                 o = min(options, key=lambda o: math.hypot(o.x - bx, o.y - by), default=None)
@@ -1256,7 +1284,7 @@ class Match:
                 presseurs.remove(j)
                 dx, dy = bx - adv.x, by - adv.y                # sur la ligne de passe, entre l'homme et le ballon
                 n = math.hypot(dx, dy) or 1.0
-                j.cible = (adv.x + dx / n * 1.5, adv.y + dy / n * 1.5)
+                j.cible = hors_surface(adv.x + dx / n * 1.5, adv.y + dy / n * 1.5)
                 j.role = "presse"
             for j in [x for x in siens if x.fam == "DEF"]:
                 adv = self._son_homme(j, [o for o in adverses if o.pid not in pris], 22.0)
@@ -1264,7 +1292,7 @@ class Match:
                     continue
                 pris.add(adv.pid)
                 dm = math.hypot(mx - adv.x, my - adv.y) or 1.0
-                j.cible = (adv.x + (mx - adv.x) / dm * 2.0, adv.y + (my - adv.y) / dm * 2.0)
+                j.cible = hors_surface(adv.x + (mx - adv.x) / dm * 2.0, adv.y + (my - adv.y) / dm * 2.0)
                 j.role = "marque"
             return
         # --- le pressing : chacun son homme, en couvrant une ligne de passe
@@ -1308,6 +1336,15 @@ class Match:
             autre = next((j for j in tri[1:] if j.fam != "DEF" and math.hypot(j.x - bx, j.y - by) < 18.0), None)
             if autre is not None:
                 p = autre
+        # celui qui pressait garde le ballon deux secondes, sauf si le nouveau est plus près de quatre
+        # mètres : deux hommes qui se relaient à chaque tic font des courses inverses
+        pid_t, depuis = self.presseur_en_titre[df]
+        titre = next((j for j in siens if j.pid == pid_t), None)
+        if titre is not None and titre is not p and self.t - depuis < 2.0 \
+                and math.hypot(titre.x - bx, titre.y - by) < math.hypot(p.x - bx, p.y - by) + 4.0:
+            p = titre
+        if p.pid != pid_t:
+            self.presseur_en_titre[df] = (p.pid, self.t)
         dx, dy = mx - bx, my - by
         n = math.hypot(dx, dy) or 1.0
         # on contient à deux mètres et demi : on ferme, on ne saute pas dans les pieds
@@ -1329,6 +1366,14 @@ class Match:
             p.role = "presse"
         # le second coupe la ligne vers l'option la plus dangereuse
         second = next((j for j in tri[1:] if j.role == "forme"), None)
+        # le coupeur garde son rôle trois secondes tant qu'il reste à moins de vingt mètres du ballon :
+        # un coupeur qui change de titulaire à chaque tic, c'est deux hommes qui se croisent en courant
+        pid_c, depuis_c = self.coupe_en_titre[df]
+        titre_c = next((j for j in siens if j.pid == pid_c and j.role == "forme" and j is not p), None)
+        if titre_c is not None and self.t - depuis_c < 3.0 and math.hypot(titre_c.x - bx, titre_c.y - by) < 20.0:
+            second = titre_c
+        if second is not None and second.pid != pid_c:
+            self.coupe_en_titre[df] = (second.pid, self.t)
         cand = [o for o in adverses if o is not porteur]
         if second is not None and cand:
             gx, gy = self.but_de(att)
@@ -1340,7 +1385,8 @@ class Match:
         # est STABLE : chacun garde d'abord son homme (le porteur compris),
         # puis les libres prennent le plus proche — un marquage qui change
         # d'homme à chaque passe n'est jamais au contact.
-        if bxd < 40.0:
+        self.marquage_actif[df] = bxd < 40.0 or (self.marquage_actif[df] and bxd < 46.0)
+        if self.marquage_actif[df]:
             pris: set[int] = set()
             marqueurs = [x for x in tri if x.role == "forme" and x.fam in ("DEF", "MID")]
             attribs: dict[int, Joueur] = {}
@@ -1349,18 +1395,18 @@ class Match:
             # pas l'affaire de Marquinhos), un latéral quatorze, et personne
             # ne traverse le terrain derrière son homme — chacun marque dans sa zone
             ligne = self.ligne_def[df]
-            def zone(j: Joueur, o: Joueur) -> bool:
+            def zone(j: Joueur, o: Joueur, marge: float = 0.0) -> bool:
                 if not MARQUAGE_ZONE:
                     return True
-                if abs(o.y - j.cible[1]) > (12.0 if j.role_tac == "central" else 15.0):
+                if abs(o.y - j.cible[1]) > (12.0 if j.role_tac == "central" else 15.0) + marge:
                     return False
-                if j.fam == "DEF" and j.propre(o.x, o.y)[0] - ligne > (8.0 if j.role_tac == "central" else 14.0):
+                if j.fam == "DEF" and j.propre(o.x, o.y)[0] - ligne > (8.0 if j.role_tac == "central" else 14.0) + marge:
                     return False
                 return True
             for j in marqueurs:
                 if j.homme >= 0 and self.t - j.t_homme < 8.0:
                     o = next((o for o in adverses if o.pid == j.homme and o.pid not in pris), None)
-                    if o is not None and math.hypot(o.x - j.x, o.y - j.y) <= (26.0 if j.fam == "DEF" else 18.0) and zone(j, o):
+                    if o is not None and math.hypot(o.x - j.x, o.y - j.y) <= (26.0 if j.fam == "DEF" else 18.0) and zone(j, o, 3.0):
                         attribs[j.pid] = o
                         pris.add(o.pid)
                     elif o is not None:

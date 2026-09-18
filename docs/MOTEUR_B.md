@@ -153,12 +153,28 @@ six mètres jouée court face à une équipe en pressing (bloc haut, ou des
 attaquants qui aiment presser) déclenche l'homme à homme : chaque
 attaquant et milieu prend un relanceur, les plus près de leur but
 d'abord (les centraux, le pivot), sur la ligne de passe à un mètre et
-demi ; le gardien ne se presse pas (le ballon n'a plus de sortie) ; si
-un joueur de champ porte, le presseur le plus proche va dessus en
-coupant l'option voisine ; les défenseurs prennent les attaquants
-restés hauts. Le dispositif se place pendant l'arrêt de jeu, avant le
-coup, et tient huit secondes ou jusqu'à ce que la relance ait quitté les
-trente-cinq mètres. Et une défense technique (PRO moyen des défenseurs
+demi. Le gardien ne se presse pas : le buteur se place au bord de la
+surface sur la ligne gardien → central voisin, prêt à jaillir sur le
+gardien en cachant la passe facile — il « tient » ce central, l'autre
+central est l'homme libre du dispositif. Sur une sortie de but personne
+n'entre dans la surface adverse (chacun se place à son bord). Si un
+joueur de champ porte, le presseur le plus proche va dessus en coupant
+l'option voisine ; les défenseurs prennent les attaquants restés hauts.
+Le dispositif se place pendant l'arrêt de jeu, avant le coup, et tient
+huit secondes ou jusqu'à ce que la relance ait quitté les trente-cinq
+mètres.
+
+**Les courses inverses (Neves et Hakimi qui se croisent).** Mesuré : le
+« coupeur » (celui qui ferme la ligne de passe derrière le presseur)
+changeait de titulaire 55 fois par minute de bloc — deux hommes qui se
+relaient à chaque tic font des courses inverses. Quatre hystérésis :
+le presseur garde le ballon deux secondes sauf si un autre est plus
+près de quatre mètres, le coupeur garde son rôle trois secondes tant
+qu'il reste à moins de vingt mètres du ballon, un marqueur lâche son
+homme trois mètres plus loin qu'il ne le prend, et le marquage s'allume
+à quarante mètres du but pour s'éteindre à quarante-six. Les
+changements de coupeur tombent à 23 par minute et les allers-retours de
+rôle en moins de deux secondes de moitié. Et une défense technique (PRO moyen des défenseurs
 ≥ 68) joue court même face à un bloc haut — c'est tout l'intérêt du
 pressing ; les autres allongent.
 
