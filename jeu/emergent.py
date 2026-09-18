@@ -73,6 +73,9 @@ def acceleration_max(acc: float | None) -> float:
     return 2.6 + 0.045 * a                     # 40 → 4,4 m/s², 95 → 6,9 m/s²
 
 
+PASSE_ARRIVEE = 5.5                          # m/s dans les pieds du receveur : la passe arrive vivante
+MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
+COUVERTURE_DEF = 5.0                         # un défenseur libre couvre à cinq mètres derrière le plus bas de ses partenaires, pas plus loin
 BALLON_FROTTEMENT = 3.2                      # m/s², un ballon au sol qui roule
 GRAVITE = 9.81
 RAYON_CONTROLE = 1.1                         # à moins d'un mètre, on peut prendre le ballon
@@ -351,6 +354,7 @@ class Match:
         self.relance_choix = ["courte", "courte"]    # ce que chaque camp fait de SA relance en cours
         self.cote_suite = [0, 0]                     # les passes d'affilée sur un même côté : un côté bouché se quitte
         self.dernier_appel = [-9.0, -9.0]            # le dernier départ en profondeur de chaque camp
+        self.touche_en_cours = False                 # une remise en touche : à la main, pas plus de vingt-six mètres
         self.t_bascule = 0.0
         self.x_bascule = 50.0
         self.joueurs = joueurs_de(sur_a, 0, formation_a) + joueurs_de(sur_b, 1, formation_b)
@@ -653,7 +657,9 @@ class Match:
             if d < 38 and self.rs.random() < 0.7:
                 self._centrer(j)                    # dans la surface, où les grands attendent
                 return
+        self.touche_en_cours = (k == "touche")
         self._decider_porteur(j, force=True)
+        self.touche_en_cours = False
         if k == "sortie_but":
             b.hors_jeu_au_kick = set()               # pas de hors-jeu sur une sortie de but
 
@@ -927,7 +933,8 @@ class Match:
             larg = {"central": 9.0, "lateral": 24.0, "pivot": 0.0, "relayeur": 10.0, "meneur": 4.0, "ailier": 22.0, "buteur": 0.0}
             glisse = 0.1
         else:  # finition : la surcharge côté ballon, le poteau opposé, la défense de repli
-            prof = {"central": 52.0, "lateral": 60.0, "pivot": 63.0, "relayeur": 72.0, "meneur": 82.0, "ailier": 90.0, "buteur": 90.0}
+            C = 52.0
+            prof = {"central": C, "lateral": 60.0, "pivot": 63.0, "relayeur": 72.0, "meneur": 82.0, "ailier": 90.0, "buteur": 90.0}
             larg = {"central": 8.0, "lateral": 8.0, "pivot": 0.0, "relayeur": 10.0, "meneur": 4.0, "ailier": 22.0, "buteur": 0.0}
             glisse = 0.1
         self.ligne_def[camp] = prof["central"]
@@ -952,7 +959,7 @@ class Match:
                         # côté ballon : la surcharge avec le latéral ; côté opposé : le second poteau
                         x, y = (min(96.0, bx + 4.0), LARG / 2 + signe * 22.0) if cote_ballon else (92.0, LARG / 2 + signe * 7.0)
                     elif r == "lateral":
-                        x, y = (min(95.0, bx + 3.0), LARG / 2 + signe * 30.0) if cote_ballon else (58.0, LARG / 2 + signe * 8.0)
+                        x, y = (min(95.0, bx + 3.0), LARG / 2 + signe * 30.0) if cote_ballon else (C + 6.0, LARG / 2 + signe * 8.0)
                     elif r == "relayeur":
                         x, y = (max(55.0, bx - 8.0), by - cote * 8.0) if cote_ballon else (70.0, LARG / 2 + signe * 10.0)
                     elif r == "buteur":
@@ -1280,23 +1287,39 @@ class Match:
             pris: set[int] = set()
             marqueurs = [x for x in tri if x.role == "forme" and x.fam in ("DEF", "MID")]
             attribs: dict[int, Joueur] = {}
+            # la ligne des centraux : un central ne suit pas son homme au-delà
+            # de dix mètres devant elle (un milieu le prend), et personne ne
+            # traverse le terrain derrière son homme — chacun marque dans sa zone
+            centraux = sorted(math.hypot(mx - o.x, my - o.y) for o in siens if o.role_tac == "central")
+            ligne = centraux[len(centraux) // 2] if centraux else 16.0
+            def zone(j: Joueur, o: Joueur) -> bool:
+                if not MARQUAGE_ZONE:
+                    return True
+                if abs(o.y - j.cible[1]) > (12.0 if j.role_tac == "central" else 15.0):
+                    return False
+                if j.fam == "DEF" and math.hypot(mx - o.x, my - o.y) - ligne > (10.0 if j.role_tac == "central" else 16.0):
+                    return False
+                return True
             for j in marqueurs:
                 if j.homme >= 0 and self.t - j.t_homme < 8.0:
                     o = next((o for o in adverses if o.pid == j.homme and o.pid not in pris), None)
-                    if o is not None and math.hypot(o.x - j.x, o.y - j.y) <= (26.0 if j.fam == "DEF" else 18.0):
+                    if o is not None and math.hypot(o.x - j.x, o.y - j.y) <= (26.0 if j.fam == "DEF" else 18.0) and zone(j, o):
                         attribs[j.pid] = o
                         pris.add(o.pid)
+                    elif o is not None:
+                        j.homme = -1                    # il sort de ma zone : je le lâche, un autre le prend
             # les attaquants déjà dans les vingt-cinq mètres se prennent d'abord, par les défenseurs libres
             proches = [o for o in adverses if o.pid not in pris and math.hypot(o.x - mx, o.y - my) < 25.0]
             for j in [x for x in marqueurs if x.pid not in attribs and x.fam == "DEF"]:
-                adv = min((o for o in proches if o.pid not in pris), key=lambda o: math.hypot(o.x - j.x, o.y - j.y), default=None)
+                adv = min((o for o in proches if o.pid not in pris and zone(j, o)), key=lambda o: math.hypot(o.x - j.x, o.y - j.y), default=None)
                 if adv is None or math.hypot(adv.x - j.x, adv.y - j.y) > 22.0:
                     continue
                 attribs[j.pid] = adv
                 pris.add(adv.pid)
                 j.homme, j.t_homme = adv.pid, self.t
             for j in [x for x in marqueurs if x.pid not in attribs]:
-                adv = min((o for o in adverses if o.pid not in pris), key=lambda o: math.hypot(o.x - j.cible[0], o.y - j.cible[1]), default=None)
+                adv = min((o for o in adverses if o.pid not in pris and (j.role_tac != "central" or zone(j, o))),
+                          key=lambda o: math.hypot(o.x - j.cible[0], o.y - j.cible[1]), default=None)
                 if adv is None or math.hypot(adv.x - j.cible[0], adv.y - j.cible[1]) > 14.0:
                     continue
                 attribs[j.pid] = adv
@@ -1314,6 +1337,18 @@ class Match:
                 j.cible = self._tenir_ligne(j, cx, cy)
                 j.role = "marque"
         self._doubler(df, siens, adverses)
+        # la couverture se tient à cinq mètres : un défenseur sans homme ni
+        # ballon ne reste pas planté quinze mètres derrière ses partenaires
+        # qui marquent ou pressent — il couvre cinq mètres derrière le plus
+        # bas d'entre eux, pas en spectateur au fond
+        defs = [j for j in siens if j.fam == "DEF"]
+        for j in defs:
+            if j.role != "forme" or len(defs) < 3:
+                continue
+            plus_bas = min(o.propre(o.x, o.y)[0] for o in defs if o is not j)
+            cxp, cyp = j.propre(*j.cible)
+            if cxp < plus_bas - COUVERTURE_DEF:
+                j.cible = j.absolu(plus_bas - COUVERTURE_DEF, cyp)
 
     def _son_homme(self, j: Joueur, cand: list[Joueur], portee: float, depuis: tuple[float, float] | None = None):
         """L'homme que j marque : celui qu'il tenait déjà s'il est encore à
@@ -1493,7 +1528,7 @@ class Match:
         bruit = 0.25 * (1.0 - 0.5 * j.attr("CON") / 99) * (1.25 - 0.5 * coh)
         # -- frapper : une occasion se prend, surtout si rien ne bouche l'axe ;
         # de loin, face à un bloc bas qui ne s'ouvre pas, on tente sa chance
-        if dbut < 36 and not j.gk:
+        if dbut < 36 and not j.gk and not self.touche_en_cours:
             ang = self._angle_but(j.x, j.y, camp)
             xg = self._xg(dbut, ang, pression)
             axe = self._axe_libre(j)
@@ -1512,7 +1547,7 @@ class Match:
             if c is j:
                 continue
             d = math.hypot(c.x - j.x, c.y - j.y)
-            if d < 3.0 or d > 55.0:
+            if d < 3.0 or d > (26.0 if self.touche_en_cours else 55.0):
                 continue
             if c.gk and dbut < 60:
                 continue
@@ -1569,6 +1604,7 @@ class Match:
                 val -= 0.6
             val += self.rs.gauss(0, bruit)
             options.append((val, "passe", c))
+            i_pieds = len(options) - 1
             # -- la passe en profondeur : dans l'espace derrière la ligne, pour
             # un coéquipier lancé qui y arrive avant le défenseur
             # (un coureur parti un pas trop tôt : le passeur l'a vu partir en jeu, il joue quand même)
@@ -1576,7 +1612,7 @@ class Match:
             if c.role == "appel" and c.appel_vers is not None and not hj_course and not c.gk:
                 px, py = c.appel_vers
                 dp = math.hypot(px - j.x, py - j.y)
-                if 8.0 < dp < 52.0 and (px - j.x) * j.sens() > 4.0 and math.hypot(px - c.x, py - c.y) > 4.0:
+                if 8.0 < dp < (26.0 if self.touche_en_cours else 52.0) and (px - j.x) * j.sens() > 4.0 and math.hypot(px - c.x, py - c.y) > 4.0:
                     _, libre_p = self.plus_proche(1 - camp, px, py, gk=False)
                     d_c = math.hypot(px - c.x, py - c.y)
                     gk_adv = next((o for o in self.actifs(1 - camp) if o.gk), None)
@@ -1597,6 +1633,11 @@ class Match:
                         val -= 0.6
                     if couloir_p < 0.3:
                         val -= 0.4                      # un défenseur sur la trajectoire : il faudrait la lober
+                    elif avantage > 0.15 and couloir_p > 0.5:
+                        # le coureur est lancé et la passe est ouverte : dans les pieds, on casserait sa course
+                        vp, _, cp = options[i_pieds]
+                        options[i_pieds] = (vp - 0.45, "passe", cp)
+                        val += 0.2
                     options.append((val + self.rs.gauss(0, bruit), "profondeur", (c, px, py)))
         # -- centrer, depuis le couloir dans les trente derniers mètres
         if abs(j.y - LARG / 2) > 18.0 and (gx - j.x) * j.sens() < 32 and not j.gk:
@@ -1810,8 +1851,9 @@ class Match:
             vise_x, vise_y = c.x + c.vx * min(1.2, d / 15.0), c.y + c.vy * min(1.2, d / 15.0)
         dx, dy = vise_x - j.x, vise_y - j.y
         d = math.hypot(dx, dy) or 1.0
-        # la vitesse : assez pour arriver, pas plus
-        v = math.sqrt(max(0.0, 2 * BALLON_FROTTEMENT * d)) + 1.0
+        # la vitesse : assez pour arriver encore vivante (cinq mètres et demi
+        # par seconde dans les pieds : c'est le receveur qui l'arrête, pas l'herbe)
+        v = math.sqrt(max(0.0, 2 * BALLON_FROTTEMENT * d + PASSE_ARRIVEE ** 2))
         v = max(VITESSE_PASSE[0], min(VITESSE_PASSE[1], v))
         # la précision : l'erreur d'angle dépend de CRE/PRO, de la pression et de la distance
         pression = self._pression(j)

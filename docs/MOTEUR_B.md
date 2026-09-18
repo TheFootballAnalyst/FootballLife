@@ -55,7 +55,9 @@ d'avance), recule vite et remonte lentement (7 et 2,5 m/s), sa place ne
 fuit jamais plus vite qu'un homme ne court, les milieux restent six
 mètres derrière le ballon, on contient à deux mètres et demi (on ferme,
 on ne saute pas dans les pieds) sauf à moins de vingt-cinq mètres de son
-but, où l'on va au contact, le marquage dans les vingt-cinq mètres
+but, où l'on va au contact, le marquage dans les vingt-cinq mètres est
+par zone (un central ne sort pas à plus de dix mètres devant sa ligne)
+et
 se prend d'avance et l'attribution est stable (chacun garde son homme,
 le porteur compris), un porteur lancé sur un défenseur côté but ne le
 contourne pas sans duel, le duel se tranche en un jet et pas plus d'un
@@ -102,6 +104,39 @@ surface en marchant après une passe reçue à son bord (« passe puis
 conduite » faisait 23 entrées sur 51). Résultat : 35 entrées, 25 à 31
 tirs, 2,7 à 3,2 buts, 2,8 sur six matchs entre PSG, Arsenal et le
 Bayern (1-1, 1-1, 2-4, 2-1, 2-2, 0-0).
+
+**Ce que l'œil a relevé ensuite, et la réponse.** Un coureur lancé qui
+reçoit dans les pieds (Dembélé pour Doué) : quand la passe en profondeur
+est ouverte (le coureur a un temps d'avance, le couloir est libre), la
+passe dans les pieds du même coureur perd 0,45 et la profondeur gagne
+0,2 — on le sert dans sa course. Une touche de quarante mètres : une
+remise en touche est à la main, vingt-six mètres au plus, jamais une
+frappe. Un central qui suit son homme hors de la ligne (Pacho derrière
+Ødegaard), un central qui traverse jusqu'au côté de son latéral
+(Marquinhos derrière Trossard, Hakimi sur personne) : le marquage est
+par ZONE — chacun garde son homme tant qu'il reste dans sa zone (douze
+mètres de large autour de sa place pour un central, quinze pour les
+autres, et pas plus de dix mètres devant la ligne des centraux pour un
+central, seize pour un latéral) ; sinon il le lâche et le voisin dont
+c'est la zone le prend. Mesuré : l'homme d'un central est en médiane sur
+la ligne, à 4 m devant au neuvième décile, jamais à plus de dix. Et le
+ballon qui « s'arrêtait » : une passe était dosée pour mourir dans les
+pieds (un mètre par seconde à l'arrivée) ; elle arrive maintenant
+vivante, à 5,5 m/s (7 m/s mesurés à la réception), c'est le receveur qui
+l'arrête. Dans le bac il est blanc à pentagones noirs et tourne avec le
+chemin parcouru.
+
+**Le central planté au fond (Marquinhos, 19').** En bloc médian la
+forme posait la ligne dix-huit mètres derrière le ballon ; quand trois
+défenseurs sont sortis marquer ou presser, le quatrième restait seul à
+sa place, immobile, quinze mètres derrière eux. Un défenseur libre
+couvre maintenant à cinq mètres derrière le plus bas de ses partenaires
+(`COUVERTURE_DEF`), jamais plus loin. Vérifié sur douze matchs entre
+grands clubs que ni cette couverture, ni la passe vivante, ni le
+marquage par zone ne changent le nombre de buts au-delà du bruit
+(2,4 à 3,1 buts selon le réglage, xG 3,4 à 3,6) — ces réglages sont des
+constantes en tête de `jeu/emergent.py`, faciles à débrancher pour
+comparer.
 
 Les outils de mesure de cette recalibration sont dans le scratchpad de
 la session et se réécrivent en dix lignes : `espace.py` (le porteur

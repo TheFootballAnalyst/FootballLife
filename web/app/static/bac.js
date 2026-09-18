@@ -190,7 +190,10 @@ function dessiner() {
   // le ballon, avec son ombre selon la hauteur
   const bx = f[1] / 10, by = f[2] / 10, bz = f[3] / 10;
   ctx.beginPath(); ctx.ellipse(sx(bx), sy(by), 5 + bz, 2.5 + bz * 0.5, 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fill();
-  ctx.beginPath(); ctx.arc(sx(bx), sy(by) - bz * 6, 5 + bz * 0.8, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = "#222"; ctx.lineWidth = 1; ctx.stroke();
+  // blanc à pentagones noirs, et il tourne avec le chemin parcouru pour qu'on le voie rouler
+  if (BAC.prec_ballon) BAC.rot_ballon = (BAC.rot_ballon || 0) + Math.hypot(bx - BAC.prec_ballon[0], by - BAC.prec_ballon[1]) * 0.9;
+  BAC.prec_ballon = [bx, by];
+  ballon(sx(bx), sy(by) - bz * 6, 6 + bz * 0.8, BAC.rot_ballon || 0);
   // les filets qui tremblent
   for (const g of gestes) if (g.k === "but") filets(g, t);
   // la phase de chaque camp, en haut du terrain
@@ -210,6 +213,21 @@ function dessiner() {
   for (const e of BAC.res.evenements) if (e.k === "but" && e.t <= t) s = e.score;
   $("#score").textContent = `${s[0]} – ${s[1]}`;
   $("#curseur").value = Math.floor(BAC.i);
+}
+// -- le ballon : blanc, cerclé, trois pentagones noirs qui tournent
+function ballon(x, y, r, rot) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill();
+  ctx.strokeStyle = "#111"; ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
+  ctx.fillStyle = "#111";
+  for (let k = 0; k < 3; k++) {
+    const a = k * Math.PI * 2 / 3, cx = Math.cos(a) * r * 0.55, cy = Math.sin(a) * r * 0.55;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) { const b = a + i * Math.PI * 2 / 5; ctx.lineTo(cx + Math.cos(b) * r * 0.34, cy + Math.sin(b) * r * 0.34); }
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
 }
 // -- les gestes : l'élan d'une frappe, la tête, la détente du gardien, les filets
 // -- un footballeur vu de dessus : les pieds qui courent, les épaules au maillot du club, la tête
