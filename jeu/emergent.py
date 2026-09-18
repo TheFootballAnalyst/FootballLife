@@ -1757,7 +1757,7 @@ class Match:
         # la précision : l'erreur d'angle dépend de CRE/PRO, de la pression et de la distance
         pression = self._pression(j)
         precision = (j.attr("PRO") * 0.6 + j.attr("CRE") * 0.4) / 99
-        sigma = math.radians(1.0 + 4.0 * (1 - precision) + 3.0 * pression + 0.03 * d)
+        sigma = math.radians(1.0 + 4.0 * (1 - precision) + 3.0 * pression + 0.045 * d)
         ang = math.atan2(dy, dx) + self.rs.gauss(0, sigma)
         vz = 0.0
         haut = longue or d > 30 or (self._couloir_vers(j, vise_x, vise_y) < 0.2 and d > 15)
@@ -1792,6 +1792,7 @@ class Match:
         gx, gy = self.but_de(j.camp)
         dans = [c for c in self.actifs(j.camp) if c is not j and not c.gk
                 and abs(c.x - gx) < 18.0 and abs(c.y - gy) < 18.0]
+        c = None
         if dans:
             def valeur(c):
                 _, libre = self.plus_proche(1 - j.camp, c.x, c.y, gk=False)
@@ -1810,8 +1811,9 @@ class Match:
         j.passes += 1
         self.stats["passes"][j.camp] += 1
         self._lacher(j, v * math.cos(ang), v * math.sin(ang), vz)
-        self.ballon.passe_vers = None
-        self.evt("centre", de=j.pid, camp=j.camp)
+        self.ballon.passe_vers = c
+        self.ballon.hors_jeu_au_kick = {x.pid for x in self.actifs(j.camp) if x is not j and self.hors_jeu(x, self.ballon.x)}
+        self.evt("centre", de=j.pid, camp=j.camp, a=c.pid if c else None)
 
     def _degager(self, j: Joueur):
         gx, gy = self.but_de(j.camp)
@@ -2065,6 +2067,16 @@ class Match:
             cand.sort(key=lambda c: c[0])
             _, j = cand[0]
             if b.z > 1.0 and not j.gk:
+                # le duel aérien : si les deux camps sont sous le ballon, ce n'est pas
+                # le plus près qui l'emporte mais le plus costaud — et celui qui l'attendait
+                autre = next((c for _, c in cand[1:] if c.camp != j.camp and not c.gk), None)
+                if autre is not None:
+                    f_j = (j.physique.get("for", 68) or 68) if j.physique else 68
+                    f_a = (autre.physique.get("for", 68) or 68) if autre.physique else 68
+                    p_j = 0.5 + 0.3 * (f_j - f_a) / 99 + (0.12 if b.passe_vers is j else 0.0) - (0.12 if b.passe_vers is autre else 0.0) \
+                        + 0.1 * (j.attr("DEF") - autre.attr("DEF")) / 99
+                    if self.rs.random() > p_j:
+                        j = autre
                 self._tete(j)
                 return
             # un ballon rapide se contrôle avec les attributs ; le gardien capte,
@@ -2160,14 +2172,22 @@ class Match:
         gx, gy = self.but_de(j.camp)
         dbut = math.hypot(gx - j.x, gy - j.y)
         j.touches += 1
-        if dbut < 14 and self.rs.random() < (0.6 if j.fam == "FWD" else 0.45):
+        prec = b.dernier
+        if prec is not None and prec.camp == j.camp and prec is not j and b.passe_vers is not None:
+            prec.passes_ok += 1                         # la passe (ou le centre) est arrivée à un coéquipier
+            self.stats["passes_ok"][j.camp] += 1
+        elif prec is not None and prec.camp != j.camp and b.passe_vers is not None:
+            j.interceptions += 1
+            self.stats["interceptions"][j.camp] += 1
+        b.passe_vers = None
+        if dbut < 13 and self.rs.random() < (0.45 if j.fam == "FWD" else 0.3):
             # une tête vers le but
             self.dernier_tir = {"de": j, "xg": self._xg(dbut, self._angle_but(j.x, j.y, j.camp), 0.4) * 0.6, "t": self.t, "camp": j.camp}
             j.tirs += 1
             self.stats["tirs"][j.camp] += 1
             self.stats["xg"][j.camp] += self.dernier_tir["xg"]
-            ang = math.atan2(gy - j.y, gx - j.x) + self.rs.gauss(0, 0.22)
-            self._lacher(j, 16.0 * math.cos(ang), 16.0 * math.sin(ang), 1.5)
+            ang = math.atan2(gy - j.y, gx - j.x) + self.rs.gauss(0, 0.34)
+            self._lacher(j, 14.0 * math.cos(ang), 14.0 * math.sin(ang), 1.5)
             self.evt("tir", de=j.pid, camp=j.camp, xg=round(self.dernier_tir["xg"], 3), d=round(dbut, 1), tete=True)
             return
         ang = math.atan2(j.y - my, j.x - mx) + self.rs.gauss(0, 0.9 if j.fam == "DEF" else 1.2)
@@ -2253,10 +2273,12 @@ class Match:
             v_p = math.hypot(p.vx, p.vy)
             # la faute de pressing : un défenseur qui arrive lancé dans les pieds du
             # porteur le bouscule parfois — la plupart des fautes d'un match
+            gxp, gyp = self.but_de(p.camp)
+            prudence = 0.35 if (abs(p.x - gxp) < SURFACE_X + 2.0 and abs(p.y - gyp) < SURFACE_Y + 2.0) else 1.0
             if d < 1.4 and math.hypot(o.vx, o.vy) > 4.0 and self.t - o.dernier_choc > 2.0:
                 o.dernier_choc = self.t
-                if self.rs.random() < 0.04 + 0.03 * (1.0 - o.recup):
-                    self._faute(o, p)
+                if self.rs.random() < (0.04 + 0.03 * (1.0 - o.recup)) * prudence:
+                    self._faute(o, p)                     # dans la surface, on défend les mains dans le dos
                     return
             gx, gy = self.but_de(p.camp)
             cote_but = (o.x - p.x) * (gx - p.x) + (o.y - p.y) * (gy - p.y) > 0.0
@@ -2311,15 +2333,15 @@ class Match:
             r = self.rs.random()
             if r >= p_gagne:
                 o.battu_jusqua = self.t + 0.5
-                if self.rs.random() < 0.03:
+                if self.rs.random() < 0.03 * prudence:
                     self._faute(o, p)
                     return
                 continue
             if r < p_gagne:
                 o.tacles += 1
                 self.stats["tacles"][o.camp] += 1
-                # une faute une fois sur douze
-                if self.rs.random() < 0.08:
+                # une faute une fois sur douze, moins dans la surface
+                if self.rs.random() < 0.08 * prudence:
                     self._faute(o, p)
                     return
                 self.evt("tacle", de=o.pid, sur=p.pid, camp=o.camp)

@@ -66,12 +66,12 @@ sur dix et dégage en catastrophe dans sa surface.
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 3,3 | 2,8 | un peu trop (deux graines : 3,2 et 3,5) |
-| tirs | 27 | 25 | proche |
-| tirs cadrés | 9 | 8,5 | juste |
+| buts | 3,4 | 2,8 | un peu trop (deux graines : 3,2 et 3,7) |
+| tirs | 29 | 25 | un peu trop : les centres qui arrivent font des têtes |
+| tirs cadrés | 7,7 | 8,5 | proche |
 | passes | 900 | 900 | juste, depuis qu'un côté bouché se quitte |
-| réussite des passes | 76 % | 83 % | un peu bas : les transversales se perdent |
-| corners | 6 | 10 | mieux : les centres se disputent de la tête, le gardien repousse, le défenseur dégage en première intention |
+| réussite des passes | 92 % | 83 % | trop sûre : le porteur choisit l'homme libre, les longues ne sont pas disputées ; le 72 % d'avant était un bug de comptage (les centres et les têtes ne comptaient jamais) |
+| corners | 5,5 | 10 | mieux : les centres se disputent de la tête, le gardien repousse, le défenseur dégage en première intention |
 | fautes | 22 | 22 | juste (la faute de pressing en fait l'essentiel) |
 | hors-jeu | 1,4 | 3,5 | un peu peu : le passeur voit la ligne avec quatre dixièmes de retard, la ligne ne piège pas encore |
 | distance par joueur | 12,5 km | 10,5 km | un peu trop |
@@ -298,6 +298,14 @@ jeu en triangle des équipes de conservation.
 **On ne s'entasse pas** : l'ailier ne vient pas doubler là où il y a
 déjà deux des nôtres, le gardien ne va pas au ballon pendant un arrêt de
 jeu et c'est lui qui joue un coup franc dans sa surface.
+
+**Les penaltys.** Dans la surface on défend les mains dans le dos : la
+faute de pressing et la faute sur duel y sont trois fois moins probables
+(un tiers de penalty par match). **Le duel aérien** : deux camps sous un
+ballon en l'air, ce n'est pas le plus près qui l'emporte mais le plus
+costaud, et celui qui l'attendait. Un centre est une passe vers un
+homme : il compte réussi si un coéquipier le reprend, de la tête ou au
+pied.
 
 **Le piège.** Quand le ballon repart en arrière, la ligne remonte d'un
 coup (quatre mètres, à 6,5 m/s) au lieu de remonter à 2,5 m/s ; le
