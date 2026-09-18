@@ -70,8 +70,8 @@ sur dix et dégage en catastrophe dans sa surface.
 
 | mesure | simulé | cible | lecture |
 |---|---|---|---|
-| buts | 2,3 | 2,8 | proche (deux graines : 2,0 et 2,7 ; douze matchs entre PSG, Arsenal et le Bayern : 3,2) |
-| tirs | 23 | 25 | juste (deux graines : 25 et 20,5 ; les grands clubs entre eux : 24) |
+| buts | 2,0 | 2,8 | un peu peu depuis que le ballon roule (deux graines : 2,0 et 2,0 ; douze matchs entre PSG, Arsenal et le Bayern : 2,3) |
+| tirs | 22 | 25 | un peu peu (deux graines : 22 et 21 ; les grands clubs entre eux : 20) : le ballon qui roule sort plus, les seconds ballons filent |
 | tirs cadrés | 7,8 | 8,5 | proche |
 | passes | 890 | 900 | juste, depuis qu'un côté bouché se quitte |
 | réussite des passes | 90 % | 83 % | un peu haut depuis qu'il y a moins de passes en profondeur (elles ratent une fois sur trois) |
@@ -174,7 +174,25 @@ qu'il reste à moins de vingt mètres du ballon, un marqueur lâche son
 homme trois mètres plus loin qu'il ne le prend, et le marquage s'allume
 à quarante mètres du but pour s'éteindre à quarante-six. Les
 changements de coupeur tombent à 23 par minute et les allers-retours de
-rôle en moins de deux secondes de moitié. Et une défense technique (PRO moyen des défenseurs
+rôle en moins de deux secondes de moitié.
+
+**Le ballon roule.** Le frottement au sol était une décélération
+constante de 3,2 m/s² : un ballon à 5 m/s mourait en quatre mètres, et
+2,3 % du temps de jeu le ballon était libre et immobile au sol. La
+décélération dépend maintenant de la vitesse, 1,2 m/s² + 0,012·v²
+(`frottement`, `distance_arret`, `vitesse_pour`, `avance` en tête du
+module) : un ballon lent roule loin (5 m/s → 9 m), un ballon fort est
+freiné par l'herbe et l'air (12 m/s → 37 m). Une passe est dosée pour
+arriver à 7 m/s dans les pieds ; un ballon qui retombe garde 60 % de son
+élan. Mesuré : plus aucun ballon libre immobile (0,0 %), 25 % du temps le
+ballon roule libre, 59 % il est conduit, 12 % il est en l'air.
+
+**La sortie de but se presse aussi en bloc médian.** Le pressing homme
+à homme sur la relance courte ne s'allumait qu'en phase de pressing,
+donc jamais avec le bloc médian par défaut si les attaquants n'aiment
+pas presser. Une relance courte adverse met désormais un bloc médian en
+pressing, quels que soient les attaquants ; seul le bloc bas reste
+assis. Et une défense technique (PRO moyen des défenseurs
 ≥ 68) joue court même face à un bloc haut — c'est tout l'intérêt du
 pressing ; les autres allongent.
 

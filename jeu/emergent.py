@@ -73,9 +73,35 @@ def acceleration_max(acc: float | None) -> float:
     return 2.6 + 0.045 * a                     # 40 → 4,4 m/s², 95 → 6,9 m/s²
 
 
-PASSE_ARRIVEE = 5.5                          # m/s dans les pieds du receveur : la passe arrive vivante
+PASSE_ARRIVEE = 7.0                          # m/s dans les pieds du receveur : la passe arrive vivante
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
-BALLON_FROTTEMENT = 3.2                      # m/s², un ballon au sol qui roule
+BALLON_ROULE, BALLON_AIR = 1.2, 0.012        # décélération au sol : 1,2 m/s² + 0,012·v² (un ballon lent roule loin, un ballon fort est freiné)
+
+
+def frottement(v: float) -> float:
+    """La décélération d'un ballon au sol à la vitesse v."""
+    return BALLON_ROULE + BALLON_AIR * v * v
+
+
+def distance_arret(v: float) -> float:
+    """Où s'arrête un ballon lancé à v au sol."""
+    return math.log((BALLON_ROULE + BALLON_AIR * v * v) / BALLON_ROULE) / (2 * BALLON_AIR)
+
+
+def vitesse_pour(d: float, v_arrivee: float) -> float:
+    """La vitesse de départ pour arriver à d mètres encore à v_arrivee."""
+    return math.sqrt(max(0.0, ((BALLON_ROULE + BALLON_AIR * v_arrivee ** 2) * math.exp(2 * BALLON_AIR * d) - BALLON_ROULE) / BALLON_AIR))
+
+
+def avance(v: float, t: float) -> tuple[float, float]:
+    """(distance parcourue, vitesse restante) d'un ballon au sol après t secondes."""
+    s = 0.0
+    while t > 0 and v > 0.05:
+        dt = min(0.1, t)
+        v = max(0.0, v - frottement(v) * dt)
+        s += v * dt
+        t -= dt
+    return s, v
 GRAVITE = 9.81
 RAYON_CONTROLE = 1.1                         # à moins d'un mètre, on peut prendre le ballon
 VITESSE_CONTROLE = 14.0                      # au-delà, il faut un contrôle (et il peut rater)
@@ -798,8 +824,8 @@ class Match:
             self.phase[df] = "contre_pressing"
         elif tac_d["bloc"] == "haut" and bxd > 40.0:
             self.phase[df] = "pressing"
-        elif tac_d["bloc"] == "median" and bxd > 68.0 and envie > 0.55:
-            self.phase[df] = "pressing"                  # on va chercher une relance, si les attaquants aiment ça
+        elif tac_d["bloc"] == "median" and bxd > 68.0 and (envie > 0.55 or self.phase[att] == "relance"):
+            self.phase[df] = "pressing"                  # on va chercher une relance (courte : toujours ; sinon si les attaquants aiment ça)
         elif tac_d["bloc"] == "bas" or bxd < 32.0 or self._doit_reculer(df, bxd):
             self.phase[df] = "bloc_bas"
         else:
@@ -1185,7 +1211,7 @@ class Match:
             return
         v = b.vitesse()
         if v > 0.5:
-            s_ = (v * v) / (2 * BALLON_FROTTEMENT)
+            s_ = distance_arret(v)
             px, py = b.x + b.vx / v * s_, b.y + b.vy / v * s_
         else:
             px, py = b.x, b.y
@@ -1575,8 +1601,7 @@ class Match:
         t = 0.0
         while t < 4.0:
             t += 0.2
-            vv = max(0.0, v - BALLON_FROTTEMENT * t)
-            s = v * t - 0.5 * BALLON_FROTTEMENT * t * t if vv > 0 else (v * v) / (2 * BALLON_FROTTEMENT)
+            s, vv = avance(v, t)
             px, py = x + vx / v * s, y + vy / v * s
             if math.hypot(px - r.x, py - r.y) <= r.vmax * (1 - 0.15 * r.fatigue) * t + 1.0:
                 return (px, py)
@@ -1971,7 +1996,7 @@ class Match:
         d = math.hypot(dx, dy) or 1.0
         # la vitesse : assez pour arriver encore vivante (cinq mètres et demi
         # par seconde dans les pieds : c'est le receveur qui l'arrête, pas l'herbe)
-        v = math.sqrt(max(0.0, 2 * BALLON_FROTTEMENT * d + PASSE_ARRIVEE ** 2))
+        v = vitesse_pour(d, PASSE_ARRIVEE)
         v = max(VITESSE_PASSE[0], min(VITESSE_PASSE[1], v))
         # la précision : l'erreur d'angle dépend de CRE/PRO, de la pression et de la distance
         pression = self._pression(j)
@@ -2247,12 +2272,12 @@ class Match:
             if b.z <= 0.0:
                 b.z = 0.0
                 b.vz = -b.vz * 0.35 if b.vz < -2.0 else 0.0
-                b.vx *= 0.45                     # l'herbe mange l'élan d'un ballon qui retombe
-                b.vy *= 0.45
+                b.vx *= 0.6                      # l'herbe mange une part de l'élan d'un ballon qui retombe
+                b.vy *= 0.6
         else:
             v = b.vitesse()
             if v > 0:
-                nv = max(0.0, v - BALLON_FROTTEMENT * DT)
+                nv = max(0.0, v - frottement(v) * DT)
                 b.vx, b.vy = b.vx / v * nv, b.vy / v * nv
         b.x += b.vx * DT
         b.y += b.vy * DT
