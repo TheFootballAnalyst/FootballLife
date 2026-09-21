@@ -245,6 +245,20 @@ d'écart au lieu de deux ; le réel en donne douze), 82 % de victoires,
 8 % de nuls, 10 % de défaites, 3,2 buts à 0,8. PSG–Bayern reste
 équilibré (8-6-6), le banc 2,8 buts et 23 tirs.
 
+**Marquinhos seul au fond (le retour).** Le scan montrait le cas : la
+ligne était juste (treize mètres derrière le ballon) mais trois
+défenseurs l'avaient quittée pour presser ou chasser un ballon vingt
+mètres devant, et le quatrième restait seul dessus. Remonter le
+quatrième vers ses partenaires (essayé : six mètres sous leur médiane)
+coûte un but par match sur le banc, parce que c'est lui qui fait le
+hors-jeu et la couverture. La bonne réponse est de garder les trois
+autres : un défenseur ne sort presser ou chasser un ballon qu'à moins
+de douze mètres devant sa ligne (vingt-deux avant), au-delà c'est un
+milieu qui y va. Les centraux « de forme » sept mètres sous leurs
+partenaires passent de 18 à 8 ticks par match, les latéraux de 80 à 40 ;
+ce qui reste, c'est un défenseur qui chasse un ballon qui roule vers
+son but, ce qui est du football. Banc : 2,9 buts, 23 tirs.
+
 **Un exclu sort du terrain.** Un carton rouge laissait le joueur figé
 à l'endroit de la faute jusqu'à la fin, toujours dessiné dans le bac
 (« Doué bloqué dans le mur à la 71' »). L'exclu sort au pas par la

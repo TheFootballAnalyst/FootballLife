@@ -1230,10 +1230,12 @@ class Match:
             j, d = self.plus_proche(camp, px, py, gk=False)
             if j is not None and j.fam == "DEF":
                 pxp = px if camp == 0 else LONG - px
-                if pxp - self.ligne_def[camp] > 22.0:
+                if pxp - self.ligne_def[camp] > 12.0:
+                    # un défenseur ne sort pas chasser un ballon à plus de douze mètres devant sa ligne :
+                    # c'est un milieu qui y va, la ligne reste à quatre (Marquinhos ne reste pas seul au fond)
                     autre, da = min(((o, math.hypot(o.x - px, o.y - py)) for o in self.actifs(camp) if o.fam not in ("DEF", "GK")),
                                     key=lambda t: t[1], default=(None, 1e9))
-                    if autre is not None and da < d + 12.0:
+                    if autre is not None and da < d + 16.0:
                         j = autre
             if j is not None:
                 j.cible = (px, py)
@@ -1366,10 +1368,10 @@ class Match:
         # --- les blocs : le plus proche va au contact ou contient, la ligne tient
         tri = sorted(siens, key=lambda j: math.hypot(j.x - bx, j.y - by) / (0.65 + 0.7 * j.pressing))
         p = tri[0]
-        if p.fam == "DEF" and bxd - self.ligne_def[df] > 20.0:
-            autre = next((j for j in tri[1:] if j.fam != "DEF" and math.hypot(j.x - bx, j.y - by) < 18.0), None)
+        if p.fam == "DEF" and bxd - self.ligne_def[df] > 12.0:
+            autre = next((j for j in tri[1:] if j.fam != "DEF" and math.hypot(j.x - bx, j.y - by) < 22.0), None)
             if autre is not None:
-                p = autre
+                p = autre                                   # à plus de douze mètres devant la ligne, c'est un milieu qui presse
         # celui qui pressait garde le ballon deux secondes, sauf si le nouveau est plus près de quatre
         # mètres : deux hommes qui se relaient à chaque tic font des courses inverses
         pid_t, depuis = self.presseur_en_titre[df]
