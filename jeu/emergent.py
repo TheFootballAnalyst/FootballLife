@@ -163,6 +163,7 @@ class Joueur:
     battu_jusqua: float = -1.0                # il vient de se faire passer : un temps pour se retourner
     dernier_duel: float = -10.0               # le dernier duel subi balle au pied
     tacle_gagne: float = -10.0                # le dernier tacle gagné : dans sa surface, on dégage au tic suivant, pas dans le même
+    t_recu_prof: float = -10.0                # quand il a reçu une passe en profondeur : lancé vers le but, on ne rend pas le ballon en arrière
     dernier_choc: float = -10.0               # la dernière arrivée lancée sur un porteur (la faute de pressing)
     capitaine: bool = False
     # stats
@@ -273,6 +274,7 @@ class Ballon:
     dernier_camp: int | None = None
     t_kick: float = -10.0
     passe_vers: Joueur | None = None          # la passe en cours : à qui
+    en_profondeur: bool = False               # la passe en cours est une passe en profondeur (dans l'espace)
     hors_jeu_au_kick: set = field(default_factory=set)   # les pids hors jeu à l'instant de la passe
 
     def vitesse(self) -> float:
@@ -1744,6 +1746,10 @@ class Match:
             # central libre à trente mètres derrière — sauf sous pression
             if dbut < 35 and gain < -0.25 and pression < 0.6:
                 val -= 0.7
+            # lancé dans la profondeur, on va au bout : pas de ballon rendu dix mètres en
+            # arrière dans les trois secondes (on frappe, on centre, on protège)
+            if self.t - j.t_recu_prof < 3.0 and dbut < 40 and gain < -0.15:
+                val -= 0.9
             # dans la surface, on ne remet pas en retrait ou de côté : on frappe, sauf
             # pour un coéquipier encore mieux placé
             if dbut < 20 and gain < 0.1 and math.hypot(gx - c.x, gy - c.y) > dbut - 3.0:
@@ -2023,6 +2029,7 @@ class Match:
         self.cote_suite[j.camp] = self.cote_suite[j.camp] + 1 if (zj != "A" and zc == zj) else 0
         dx, dy = c.x - j.x, c.y - j.y
         d = math.hypot(dx, dy) or 1.0
+        b.en_profondeur = point is not None
         if point is not None:
             # dans l'espace : le ballon va où le coureur va, pas où il est
             vise_x, vise_y = point
@@ -2049,7 +2056,7 @@ class Match:
         p_rate = (0.04 + 0.09 * pression + 0.07 * min(d, 40.0) / 40.0 + (0.05 if serre > 1.0 else 0.0)) * (2.6 - 2.3 * precision)
         if self.rs.random() < p_rate:
             ang += self.rs.gauss(0, sigma * 4.0 + math.radians(12.0))
-            v *= self.rs.uniform(0.5, 1.5)
+            v *= self.rs.uniform(0.6, 1.3)
         vz = 0.0
         haut = longue or d > 30 or (self._couloir_vers(j, vise_x, vise_y) < 0.2 and d > 15)
         if point is not None and d < 30 and not longue:
@@ -2440,6 +2447,9 @@ class Match:
         j.touches += 1
         j.role = "porteur"
         j.cible = (j.x, j.y)
+        if getattr(b, "en_profondeur", False) and prec is not None and prec.camp == j.camp:
+            j.t_recu_prof = self.t
+        b.en_profondeur = False
         if not j.gk:
             mx, my = self.but_de(1 - j.camp)
             _, gene = self.plus_proche(1 - j.camp, j.x, j.y, gk=False)

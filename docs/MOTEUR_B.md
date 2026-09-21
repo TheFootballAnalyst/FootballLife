@@ -259,15 +259,20 @@ partenaires passent de 18 à 8 ticks par match, les latéraux de 80 à 40 ;
 ce qui reste, c'est un défenseur qui chasse un ballon qui roule vers
 son but, ce qui est du football. Banc : 2,9 buts, 23 tirs.
 
-**Mendes « envoie le ballon en touche pour rien » (8').** Ce n'était
-pas lui : un défenseur du Bayern gagnait le duel dans son dos et, dans
-sa surface sous pression, dégageait dans le MÊME tic — le tacle ne se
-voyait pas, le ballon partait en arrière très fort, on aurait dit que
-l'attaquant l'avait fait. Le tacleur garde maintenant le ballon dans les
-pieds et décide dans la seconde (le dégagement reste son premier choix
-dans sa surface sous pression), et le bac dessine le tacle : le corps
-glisse vers le porteur, une trace dans l'herbe, « Tacle » dans le fil
-(bac.js v24).
+**Mendes « envoie le ballon en touche pour rien » (8').** La touche
+était pour l'adversaire, donc c'était bien lui. Mesuré sur six matchs :
+sur 34 passes jouées juste après avoir reçu une passe en profondeur,
+12 partaient dix à dix-sept mètres en arrière dans les quarante
+derniers mètres, et deux filaient en touche — une passe en retrait sous
+pression, ratée « trop fort » (jusqu'à une fois et demie la vitesse).
+Deux règles : lancé dans la profondeur, on va au bout (dans les trois
+secondes qui suivent la réception, un ballon rendu en arrière perd
+0,9 : on frappe, on centre, on protège), et une passe ratée part de
+travers, jamais au canon (0,6 à 1,3 fois la vitesse, plus 0,5 à 1,5).
+Après : 6 retours sur 22, aucun en touche. Au passage, un tacle gagné
+dans sa surface ne dégage plus dans le même tic (le tacleur garde le
+ballon un instant, et le bac dessine la glissade, « Tacle » dans le
+fil, bac.js v24).
 
 **Un exclu sort du terrain.** Un carton rouge laissait le joueur figé
 à l'endroit de la faute jusqu'à la fin, toujours dessiné dans le bac
