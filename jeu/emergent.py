@@ -77,6 +77,10 @@ PASSE_ARRIVEE = 7.0                          # m/s dans les pieds du receveur : 
 CENTRAL_GLISSE_MAX = 6.0                     # un central glisse vers le ballon de six mètres au plus
 LIGNE_TOLERANCE = (1.0, 2.5)                 # la forme à un mètre de la ligne, un marqueur à deux mètres et demi devant au plus
 LIGNE_MONTEE = 0.7                           # la ligne remonte de 0,7 m par tic au plus (3,5 m/s)
+ESPACE_PRESSE = 4.0                          # autour du ballon, quatre mètres entre presseur, coupeur et marqueurs (six coûte un but et demi par match)
+LATERAL_ZONE_DEDANS = 22.0                   # un latéral suit son ailier vers l'intérieur jusqu'à vingt-deux mètres
+LATERAL_MARGE = 6.0                          # ... au plus six mètres plus large que l'attaquant le plus large de son côté
+LATERAL_TOUCHE = True                        # un latéral de forme ne défend pas la ligne de touche vide
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
 BALLON_ROULE, BALLON_AIR = 1.2, 0.012        # décélération au sol : 1,2 m/s² + 0,012·v² (un ballon lent roule loin, un ballon fort est freiné)
 
@@ -1178,12 +1182,12 @@ class Match:
                     ja, jc = defs[a], defs[c]
                     dx, dy = jc.cible[0] - ja.cible[0], jc.cible[1] - ja.cible[1]
                     d = math.hypot(dx, dy)
-                    if d >= 4.0:
+                    if d >= ESPACE_PRESSE:
                         continue
                     # celui qui n'est pas le presseur s'écarte (ou les deux, à parts égales)
                     if d < 0.1:
                         dx, dy, d = 1.0, 0.0, 1.0
-                    pousse = (4.0 - d) / d
+                    pousse = (ESPACE_PRESSE - d) / d
                     if ja.role == "presse":
                         jc.cible = (jc.cible[0] + dx * pousse, jc.cible[1] + dy * pousse)
                     elif jc.role == "presse":
@@ -1437,7 +1441,14 @@ class Match:
             def zone(j: Joueur, o: Joueur, marge: float = 0.0) -> bool:
                 if not MARQUAGE_ZONE:
                     return True
-                if abs(o.y - j.cible[1]) > (12.0 if j.role_tac == "central" else 15.0) + marge:
+                ecart = abs(o.y - j.cible[1])
+                if j.role_tac == "lateral":
+                    # vers l'intérieur, un latéral suit son ailier jusqu'à vingt-deux mètres (le central le
+                    # prend ensuite) ; vers la touche, quinze
+                    dedans = abs(o.y - LARG / 2) < abs(j.cible[1] - LARG / 2)
+                    if ecart > (LATERAL_ZONE_DEDANS if dedans else 15.0) + marge:
+                        return False
+                elif ecart > (12.0 if j.role_tac == "central" else 15.0) + marge:
                     return False
                 if j.fam == "DEF" and j.propre(o.x, o.y)[0] - ligne > (8.0 if j.role_tac == "central" else 14.0) + marge:
                     return False
@@ -1519,8 +1530,19 @@ class Match:
                     continue
             haut = ligne + (LIGNE_TOLERANCE[1] if j.role in ("marque", "coupe") else LIGNE_TOLERANCE[0])
             bas = ligne - (1.0 if j.role in ("marque", "coupe") else LIGNE_TOLERANCE[0])
+            if LATERAL_TOUCHE and j.role_tac == "lateral" and j.role == "forme":
+                # on ne défend pas la ligne de touche vide : un latéral de forme ne se place pas plus
+                # large que l'attaquant le plus large de son côté (plus trois mètres), et jamais à moins
+                # de dix mètres de la touche sans attaquant dedans
+                cote = 1.0 if j.home[1] >= LARG / 2 else -1.0
+                largeur = max(((o.y - LARG / 2) * cote for o in adverses if abs(o.x - j.x) < 25.0 and (o.y - LARG / 2) * cote > 0.0), default=6.0)
+                ext = (j.cible[1] - LARG / 2) * cote
+                if ext > largeur + LATERAL_MARGE:
+                    cyp = j.propre(j.x, LARG / 2 + cote * (largeur + LATERAL_MARGE))[1]
             if cxp < bas or cxp > haut:
                 j.cible = j.absolu(max(bas, min(haut, cxp)), cyp)
+            elif j.role_tac == "lateral" and j.role == "forme":
+                j.cible = j.absolu(cxp, cyp)
 
     def _son_homme(self, j: Joueur, cand: list[Joueur], portee: float, depuis: tuple[float, float] | None = None):
         """L'homme que j marque : celui qu'il tenait déjà s'il est encore à

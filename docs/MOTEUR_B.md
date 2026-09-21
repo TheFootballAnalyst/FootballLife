@@ -259,6 +259,24 @@ partenaires passent de 18 à 8 ticks par match, les latéraux de 80 à 40 ;
 ce qui reste, c'est un défenseur qui chasse un ballon qui roule vers
 son but, ce qui est du football. Banc : 2,9 buts, 23 tirs.
 
+**Le latéral qui va se perdre sur le côté, les milieux et latéraux qui
+s'échangent leurs places.** Mesuré : un latéral de forme passait 3,7 s
+par minute de bloc plus large que tout attaquant de son côté — il
+allait défendre la ligne de touche vide pendant que son ailier rentrait
+(la zone le lâchait à quinze mètres, et sa place de forme est large).
+Deux règles : la zone d'un latéral est plus large vers l'intérieur
+(`LATERAL_ZONE_DEDANS`, vingt-deux mètres : il suit son ailier qui
+rentre jusqu'à ce que le central le prenne), et un latéral de forme ne
+se place jamais plus de six mètres plus large que l'attaquant le plus
+large de son côté (`LATERAL_TOUCHE`, `LATERAL_MARGE`). Le temps « trop
+large » tombe à 2,3–3,2 s par minute. Les amas de trois défenseurs dans
+cinq mètres (presseur, coupeur, marqueur : 3,8 s par minute) ne bougent
+pas quand on écarte le pressing à six mètres (`ESPACE_PRESSE`), et
+six mètres coûte un but par match : on reste à quatre. Sur ces réglages
+les bancs de dix-huit matchs bougent de ±0,6 but d'une graine à
+l'autre, même à code identique — le banc est chaotique, et il faut une
+centaine de matchs pour trancher un dixième de but.
+
 **Mendes « envoie le ballon en touche pour rien » (8').** La touche
 était pour l'adversaire, donc c'était bien lui. Mesuré sur six matchs :
 sur 34 passes jouées juste après avoir reçu une passe en profondeur,
