@@ -228,6 +228,29 @@ deux points (89 % contre 86 %) : le reste de l'écart réel vient de ce
 que l'équipe faible joue plus long et sous plus de pression, ce que le
 moteur ne fait pas encore assez.
 
+**L'équipe faible joue plus long (la réussite des passes, suite).** La
+réussite des passes ne s'écartait que de deux points entre Paris et
+Lorient parce que le choix de passe ne dépendait pas du joueur. Trois
+choses, dans l'ordre du plan : un porteur peu technique (précision
+PRO/CRE sous 0,72 : la « maladresse ») pressé allonge devant (bonus sur
+les passes de plus de vingt-cinq mètres vers l'avant), dégage plus tôt
+et de plus haut, et sa défense joue long dès qu'on la presse, pas
+seulement face à un bloc haut ; la passe précipitée : sa garde
+raccourcit sous pression et l'erreur d'angle sous pression pèse plus ;
+le soutien d'un milieu qui lit mal le jeu (CON) propose plus loin, donc
+la ligne courte est plus longue. Mesuré sur quarante matchs PSG–Lorient :
+part de passes longues 18 % contre 12 % (réel 16 contre 9), dégagements
+5,4 contre 2,1, réussite 84–85 % contre 87–88 % (trois à quatre points
+d'écart au lieu de deux ; le réel en donne douze), 82 % de victoires,
+8 % de nuls, 10 % de défaites, 3,2 buts à 0,8. PSG–Bayern reste
+équilibré (8-6-6), le banc 2,8 buts et 23 tirs.
+
+**Un exclu sort du terrain.** Un carton rouge laissait le joueur figé
+à l'endroit de la faute jusqu'à la fin, toujours dessiné dans le bac
+(« Doué bloqué dans le mur à la 71' »). L'exclu sort au pas par la
+touche la plus proche et le bac ne dessine plus un joueur sorti des
+lignes.
+
 **La sortie de but se presse aussi en bloc médian.** Le pressing homme
 à homme sur la relance courte ne s'allumait qu'en phase de pressing,
 donc jamais avec le bloc médian par défaut si les attaquants n'aiment

@@ -183,6 +183,7 @@ function dessiner() {
     const x = f[7 + j * 2] / 10, y = f[8 + j * 2] / 10;
     const jo = BAC.res.joueurs[j];
     if (enGeste[j]) { geste(enGeste[j], x, y, t, jo, j); continue; }
+    if (y < -1.5 || y > 69.5) continue;                                  // un exclu est sorti par la touche
     joueur(x, y, jo, j);
     ctx.fillStyle = "#fff"; ctx.font = "11px Barlow Condensed, sans-serif"; ctx.textAlign = "center";
     ctx.fillText(BAC.noms[jo.camp + ":" + jo.pid] || "", sx(x), sy(y) + 22);

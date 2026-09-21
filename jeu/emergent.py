@@ -860,7 +860,8 @@ class Match:
         # courte, le gardien allonge de lui-même)
         defs = [j for j in self.actifs(att) if j.fam == "DEF"]
         technique = sum(j.attr("PRO") for j in defs) / max(1, len(defs))
-        return "longue" if (self.tac[1 - att]["bloc"] == "haut" and technique < 68.0) else "courte"
+        presse = self.tac[1 - att]["bloc"] == "haut" or self.phase[1 - att] in ("pressing", "contre_pressing")
+        return "longue" if (presse and technique < 68.0) else "courte"
 
     def _role_tac(self, j: Joueur) -> str:
         base = S.poste_base(j.poste)
@@ -1084,7 +1085,7 @@ class Match:
                 n = math.hypot(dx, dy) or 1.0
                 ux, uy = dx / n, dy / n
                 signe = 1 if (s.y - by) >= 0 else -1
-                ray = 11.0 - 3.0 * self.collectif[att]
+                ray = 11.0 - 3.0 * self.collectif[att] + 4.0 * (1.0 - s.attr("CON") / 99)   # un soutien qui lit mal propose plus loin
                 bouche = self.cote_suite[att] >= 2 and self._zone(by) != "A"
                 if bouche:
                     # le côté est bouché : on vient proposer en retrait, vers l'axe, pour réorienter
@@ -1670,9 +1671,13 @@ class Match:
             self._conduire(j, percee=True)
             return
         tempo = {"possession": 1.25, "equilibre": 1.0, "direct": 0.7}[tac["tempo"]]
+        # la technique du porteur : un joueur peu technique pressé lâche plus tôt, allonge, dégage
+        technique = (j.attr("PRO") * 0.6 + j.attr("CRE") * 0.4) / 99
+        maladresse = max(0.0, 0.72 - technique)          # 0 pour un bon passeur, 0,17 pour un joueur de bas de tableau
         # un temps de contrôle, plus court sous pression, plus court dans les
-        # trente derniers mètres, plus court quand on joue direct
-        garde = (3.6 + 3.0 * (1 - pression)) * (1.0 - 0.3 * j.attr("CON") / 99) * tempo
+        # trente derniers mètres, plus court quand on joue direct — et plus court
+        # pour un joueur peu technique sous pression : la passe précipitée
+        garde = (3.6 + 3.0 * (1 - pression)) * (1.0 - 0.3 * j.attr("CON") / 99) * tempo * (1.0 - 2.0 * maladresse * pression)
         if dbut < 32:
             garde *= 0.7
         if pression > 0.6:
@@ -1729,6 +1734,9 @@ class Match:
             val = (0.25 + 1.4 * gain + 0.6 * danger + 0.1 * min(libre, 8.0) + 1.0 * couloir - 0.012 * d
                    - 0.025 * max(0.0, d - 22.0) * tempo - ((0.5 - audace * 0.5) if libre < 3.0 else 0.0)
                    + 0.5 * danger * min(libre, 10.0) / 10.0 * (0.6 + 0.4 * coh))
+            # un porteur peu technique pressé n'a pas le temps de la courte : il allonge devant
+            if d > 25.0 and gain > 0.3:
+                val += 3.0 * maladresse * pression
             # dans les trente derniers mètres, on ne rend pas le ballon à un
             # central libre à trente mètres derrière — sauf sous pression
             if dbut < 35 and gain < -0.25 and pression < 0.6:
@@ -1830,9 +1838,9 @@ class Match:
             val = (0.15 + 0.05 * min(dev, 24.0) + 0.7 * j.attr("DRI") / 99 - 0.9 * pression + 0.3 * (1.0 - coh)
                    + (0.4 if phase == "contre" else 0.0) + 0.15 * j.travail_att + (0.2 if dbut < 36 else 0.0))
             options.append((val + self.rs.gauss(0, bruit), "percee", None))
-        # -- dégager sous pression dans son camp
-        if pression > 0.5 and (j.x - LONG / 2) * j.sens() < -20:
-            options.append((0.9 + self.rs.gauss(0, bruit), "degagement", None))
+        # -- dégager sous pression dans son camp (un joueur peu technique dégage plus tôt et de plus haut)
+        if pression > 0.5 and (j.x - LONG / 2) * j.sens() < -20 + 60.0 * maladresse:
+            options.append((0.9 + 1.5 * maladresse + self.rs.gauss(0, bruit), "degagement", None))
         options.sort(key=lambda o: -o[0])
         _, quoi, cible = options[0]
         if quoi == "tir":
@@ -2025,7 +2033,7 @@ class Match:
         precision = (j.attr("PRO") * 0.6 + j.attr("CRE") * 0.4) / 99
         gx_, gy_ = self.but_de(j.camp)
         serre = 1.35 if math.hypot(gx_ - j.x, gy_ - j.y) < 35.0 else 1.0     # dans le dernier tiers, tout va plus vite
-        sigma = math.radians((1.0 + 6.0 * (1 - precision) + 3.0 * pression + 0.045 * d) * serre)
+        sigma = math.radians((1.0 + 6.0 * (1 - precision) + 3.0 * pression * (1.6 - 0.8 * precision) + 0.045 * d) * serre)
         ang = math.atan2(dy, dx) + self.rs.gauss(0, sigma)
         # la passe ratée : sous pression, de loin, dans le dernier tiers, ou par
         # manque de technique, une passe sur dix part de travers ou mal dosée
@@ -2187,6 +2195,10 @@ class Match:
         b = self.ballon
         for j in self.joueurs:
             if j.pid in self.exclus:
+                # un exclu sort du terrain au pas, par la touche la plus proche, et n'y revient pas
+                if -2.2 < j.y < LARG + 2.2:
+                    j.y += (-2.0 if j.y < LARG / 2 else 2.0) * DT
+                j.vx = j.vy = 0.0
                 continue
             if gel:
                 # à l'arrêt, chacun rejoint sa place au pas
