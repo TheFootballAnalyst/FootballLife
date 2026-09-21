@@ -162,6 +162,7 @@ class Joueur:
     provoque_jusqua: float = -1.0             # il provoque son vis-à-vis balle au pied
     battu_jusqua: float = -1.0                # il vient de se faire passer : un temps pour se retourner
     dernier_duel: float = -10.0               # le dernier duel subi balle au pied
+    tacle_gagne: float = -10.0                # le dernier tacle gagné : dans sa surface, on dégage au tic suivant, pas dans le même
     dernier_choc: float = -10.0               # la dernière arrivée lancée sur un porteur (la faute de pressing)
     capitaine: bool = False
     # stats
@@ -1843,6 +1844,10 @@ class Match:
         # -- dégager sous pression dans son camp (un joueur peu technique dégage plus tôt et de plus haut)
         if pression > 0.5 and (j.x - LONG / 2) * j.sens() < -20 + 60.0 * maladresse:
             options.append((0.9 + 1.5 * maladresse + self.rs.gauss(0, bruit), "degagement", None))
+        # -- un tacle gagné dans sa surface, un attaquant encore dessus : on dégage, on ne fait pas le beau
+        mx_, my_ = self.but_de(1 - camp)
+        if self.t - j.tacle_gagne < 3.0 and math.hypot(j.x - mx_, j.y - my_) < 28.0 and pression > 0.25:
+            options.append((2.2 + self.rs.gauss(0, bruit), "degagement", None))
         options.sort(key=lambda o: -o[0])
         _, quoi, cible = options[0]
         if quoi == "tir":
@@ -2665,10 +2670,11 @@ class Match:
                     o.role = "porteur"
                     o.cible = (o.x, o.y)
                     o.recu_de = -1
-                    # dans sa surface, sous pression, on ne fait pas le beau : on dégage
-                    mx, my = self.but_de(1 - o.camp)
-                    if math.hypot(o.x - mx, o.y - my) < 28.0 and self._pression(o) > 0.25:
-                        self._degager(o)
+                    # dans sa surface, sous pression, on ne fait pas le beau : on dégage — mais au
+                    # tic suivant, le ballon dans les pieds, pour que le tacle se voie (sinon on
+                    # dirait que l'attaquant a lui-même envoyé le ballon en touche)
+                    o.tacle_gagne = self.t
+                    o.dernier_contact = self.t - 1.2          # il décide dans la seconde, le ballon dans les pieds
                     return
                 # sinon le ballon part libre, un peu devant le tacleur
                 ang = self.rs.uniform(0, 2 * math.pi)

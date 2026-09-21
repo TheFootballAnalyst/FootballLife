@@ -259,6 +259,16 @@ partenaires passent de 18 à 8 ticks par match, les latéraux de 80 à 40 ;
 ce qui reste, c'est un défenseur qui chasse un ballon qui roule vers
 son but, ce qui est du football. Banc : 2,9 buts, 23 tirs.
 
+**Mendes « envoie le ballon en touche pour rien » (8').** Ce n'était
+pas lui : un défenseur du Bayern gagnait le duel dans son dos et, dans
+sa surface sous pression, dégageait dans le MÊME tic — le tacle ne se
+voyait pas, le ballon partait en arrière très fort, on aurait dit que
+l'attaquant l'avait fait. Le tacleur garde maintenant le ballon dans les
+pieds et décide dans la seconde (le dégagement reste son premier choix
+dans sa surface sous pression), et le bac dessine le tacle : le corps
+glisse vers le porteur, une trace dans l'herbe, « Tacle » dans le fil
+(bac.js v24).
+
 **Un exclu sort du terrain.** Un carton rouge laissait le joueur figé
 à l'endroit de la faute jusqu'à la fin, toujours dessiné dans le bac
 (« Doué bloqué dans le mur à la 71' »). L'exclu sort au pas par la

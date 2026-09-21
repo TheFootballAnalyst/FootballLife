@@ -69,9 +69,15 @@ function charger(res) {
   BAC.gestes = [];
   const pas = res.trace_pas;
   for (const e of res.evenements) {
-    if (!["tir", "arret", "but"].includes(e.k)) continue;
+    if (!["tir", "arret", "but", "tacle"].includes(e.k)) continue;
     const k = Math.max(0, Math.min(res.trace.length - 2, Math.round(e.t / pas) - 1));   // l'image k est à (k+1)·pas
     const g = {k: e.k, t: e.t, camp: e.camp, tete: !!e.tete, pied: e.pied || "", j: BAC.idx[e.camp + ":" + e.de]};
+    if (e.k === "tacle") {
+      // le tacle : vers celui qui portait le ballon
+      const f0 = res.trace[k], jv = BAC.idx[(1 - e.camp) + ":" + e.sur];
+      const jx = f0[7 + g.j * 2] / 10, jy = f0[8 + g.j * 2] / 10;
+      g.dir = jv === undefined ? 0 : Math.atan2(f0[8 + jv * 2] / 10 - jy, f0[7 + jv * 2] / 10 - jx);
+    }
     if (e.k === "tir" || e.k === "arret") {
       const f0 = res.trace[k], f1 = res.trace[Math.min(res.trace.length - 1, k + (e.k === "tir" ? 1 : 0))];
       const fb = e.k === "tir" ? f1 : res.trace[Math.max(0, k - 1)];
@@ -88,7 +94,7 @@ function charger(res) {
   const LIB = {but: "BUT", tir: "Frappe", arret: "Arrêt", rate: "À côté", contre: "Contré", faute: "Faute", corner: "Corner",
     penalty: "Penalty", horsjeu: "Hors-jeu", mi_temps: "Mi-temps", fin: "Fin du match", carton: "Carton",
     percee: "Percée balle au pied", passe: "Passe en profondeur", provoque: "Provoque son vis-à-vis", crochet: "Crochet",
-    seul: "Seul face au gardien"};
+    seul: "Seul face au gardien", tacle: "Tacle"};
   for (const e of res.evenements) {
     if (!LIB[e.k]) continue;
     if (e.k === "faute" && !e.carton) continue;
@@ -161,7 +167,7 @@ function dessiner() {
   const f = image(BAC.i);
   const t = f[0] / 10;
   // les gestes en cours à cet instant (frappe, tête, détente, filets)
-  const gestes = (BAC.gestes || []).filter(g => t >= g.t - 0.45 && t <= g.t + (g.k === "but" ? 1.4 : 0.55));
+  const gestes = (BAC.gestes || []).filter(g => t >= g.t - (g.k === "tacle" ? 0.1 : 0.45) && t <= g.t + (g.k === "but" ? 1.4 : g.k === "tacle" ? 0.7 : 0.55));
   const enGeste = {}; for (const g of gestes) if (g.k !== "but") enGeste[g.j] = g;
   // l'orientation et la foulée de chacun : la vitesse entre deux images, ou le ballon quand on est à l'arrêt
   const fn = image(BAC.i + 1), dtp = BAC.res.trace_pas;
@@ -299,6 +305,19 @@ function geste(g, x, y, t, jo, j) {
     ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fillStyle = "#ffd86b"; ctx.fill();
     ctx.fillStyle = "#1a1405"; ctx.font = "bold 8px Barlow Condensed, sans-serif"; ctx.textAlign = "center"; ctx.fillText(g.pied, px, py + 3);
     ctx.fillStyle = "#fff"; ctx.font = "11px Barlow Condensed, sans-serif"; ctx.fillText(BAC.noms[jo.camp + ":" + jo.pid] || "", sx(x), sy(y) + 22);
+    return;
+  }
+  if (g.k === "tacle") {
+    // le tacle : le corps glisse vers le porteur, une trace dans l'herbe derrière
+    const s = Math.sin(Math.PI * Math.min(1, u));
+    ctx.save(); ctx.translate(sx(x), sy(y)); ctx.rotate(g.dir);
+    ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(-6 - s * 22, 0); ctx.lineWidth = 6; ctx.strokeStyle = "rgba(255,255,255,.28)"; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(s * 6, 0, 9 + s * 10, 8 - s * 2.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = (BAC.tenues && BAC.tenues[j]) ? BAC.tenues[j].base : "#ffd86b"; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.stroke();
+    ctx.beginPath(); ctx.arc(-2, 0, 3.8, 0, Math.PI * 2); ctx.fillStyle = (BAC.peau && BAC.peau[j]) || "#d9a77c"; ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = "#fff"; ctx.font = "11px Barlow Condensed, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(BAC.noms[jo.camp + ":" + jo.pid] || "", sx(x), sy(y) + 22);
     return;
   }
   if (g.k === "arret") {
