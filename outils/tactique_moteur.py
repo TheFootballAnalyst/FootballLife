@@ -53,10 +53,11 @@ class Mesure(EM.Match):
         self._prec[df] = (att, bx, ligne, self.t)
         # le pressing : un joueur en rôle presse à moins de 3 m du porteur, c'est une pression
         if b.porteur is not None:
-            # une pression = un presseur qui ARRIVE à moins de 3 m du porteur (le début, pas chaque image)
-            au_contact = {j.pid for j in siens if j.role == "presse" and math.hypot(j.x - b.porteur.x, j.y - b.porteur.y) < 3.0}
-            pres = bool(au_contact - getattr(self, "_contact_prec", set()))
-            self._contact_prec = au_contact
+            # une pression = un presseur qui ARRIVE à moins de 3 m du porteur (il était plus loin à l'image d'avant)
+            dist = {j.pid: math.hypot(j.x - b.porteur.x, j.y - b.porteur.y) for j in siens}
+            prec = getattr(self, "_dist_prec", {})
+            pres = any(j.role == "presse" and dist[j.pid] < 3.0 and prec.get(j.pid, 99.0) >= 3.0 for j in siens)
+            self._dist_prec = dist
             if self._poss is None or self._poss[0] != att:
                 # une possession qui commence ; si l'autre camp vient de perdre haut, on note la perte
                 if self._poss is not None and self._poss[0] == df and self._poss[4] > 55.0:
@@ -67,6 +68,8 @@ class Mesure(EM.Match):
                 if bx > 70:                  # depuis le but défendu : la relance adverse part de son tiers
                     m["relances"] += 1
                     self._poss.append("relance")
+                    if self.t < self.vague[df][1]:
+                        m["relances_pressees"] += 1
             self._poss[4] = bx
             if pres:
                 self._poss[3].append(self.t)
@@ -117,7 +120,7 @@ def main():
     print("ligne par position du ballon (m depuis le but défendu) :")
     for k, v in t["ligne_par_ballon"].items():
         print(f"  ballon à {k:>2s} m : ligne {v['ligne']:5} m, épaisseur {v['epaisseur']:5} m, largeur {v['largeur']:5} m, {v['devant_ballon']} joueurs entre ballon et but")
-    print("recul", t["vitesse_recul_m_s"], "m/s ; montée", t["vitesse_montee_m_s"], "m/s ; pressions/possession", t["pressions_par_possession"], t["pressions_zone_pct"], "; contre-pressing", t["contre_pressing_pct"], "%")
+    print("recul", t["vitesse_recul_m_s"], "m/s ; montée", t["vitesse_montee_m_s"], "m/s ; pressions/possession", t["pressions_par_possession"], t["pressions_zone_pct"], "; contre-pressing", t["contre_pressing_pct"], "% ; relances pressées", t["relances_pressees_pct"], "%")
 
 
 if __name__ == "__main__":

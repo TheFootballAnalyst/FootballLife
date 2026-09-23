@@ -76,7 +76,15 @@ def acceleration_max(acc: float | None) -> float:
 PASSE_ARRIVEE = 7.0                          # m/s dans les pieds du receveur : la passe arrive vivante
 CENTRAL_GLISSE_MAX = 6.0                     # un central glisse vers le ballon de six mètres au plus
 LIGNE_TOLERANCE = (1.0, 2.5)                 # la forme à un mètre de la ligne, un marqueur à deux mètres et demi devant au plus
-LIGNE_MONTEE = 0.7                           # la ligne remonte de 0,7 m par tic au plus (3,5 m/s)
+LIGNE_MONTEE = 0.5                           # la ligne remonte de 0,5 m par tic au plus (2,5 m/s ; réel : 1,1 à 1,2 m/s en moyenne)
+LIGNE_RECUL = 0.7                            # et recule de 0,7 m par tic au plus (3,5 m/s ; réel : 1,8 à 2 m/s en moyenne, avec des sprints)
+LIGNE_PENTE, LIGNE_BASE = 0.75, -6.0         # la ligne suit le ballon : ligne = 0,75 × distance du ballon − 6 (StatsBomb, 300 matchs)
+LIGNE_PROFIL = {"haut": 3.0, "median": 0.0, "bas": -3.0}   # ... plus ou moins trois mètres selon le bloc demandé
+VAGUE_DECLENCHEUR = {"haut": 0.8, "median": 0.62, "bas": 0.5}   # une relance ou un déclencheur lance une vague de pressing (réel : deux relances sur trois pressées)
+VAGUE_DUREE = (3.0, 6.0)                     # une vague dure trois à six secondes si elle ne récupère rien (réel : 3,7 s, p90 5,7 s), puis on se replace
+VAGUE_REPOS = 5.0                            # ... et on ne relance pas de vague dans les cinq secondes qui suivent
+CONTRE_PRESSING = {"haut": 0.42, "median": 0.32, "bas": 0.25}   # après une perte haute, on contre-presse une fois sur trois (réel : 29 à 32 %)
+CONTRE_PRESSING_DUREE = 5.0                  # ... pendant cinq secondes, la ligne reste haute ; sinon on se replie tout de suite
 ESPACE_PRESSE = 4.0                          # autour du ballon, quatre mètres entre presseur, coupeur et marqueurs (six coûte un but et demi par match)
 LATERAL_ZONE_DEDANS = 22.0                   # un latéral suit son ailier vers l'intérieur jusqu'à vingt-deux mètres
 LATERAL_MARGE = 6.0                          # ... au plus six mètres plus large que l'attaquant le plus large de son côté
@@ -391,6 +399,13 @@ class Match:
         self.dernier_appel = [-9.0, -9.0]            # le dernier départ en profondeur de chaque camp
         self.touche_en_cours = False                 # une remise en touche : à la main, pas plus de vingt-six mètres
         self.t_relance_courte = [-99.0, -99.0]       # la dernière relance courte de chaque camp : le pressing va homme à homme dessus
+        self.vague = [(-99.0, -99.0), (-99.0, -99.0)]   # (début, fin) de la vague de pressing en cours de chaque camp
+        self.vague_repos = [-99.0, -99.0]            # avant quoi on ne relance pas de vague
+        self.contre_choix = [False, False]           # après la dernière perte haute : on contre-presse, ou on se replie
+        self.ligne_gel = [None, None]                # (profondeur, jusqu'à) : la ligne tenue haute pendant le contre-pressing
+        self.relance_num = [0, 0]                    # le numéro de la relance en cours de chaque camp : une vague se tire une fois par relance
+        self.relance_tiree = [-1, -1]                # la dernière relance adverse sur laquelle chaque camp a tiré sa vague (ou pas)
+        self.t_perte_haute = [-99.0, -99.0]          # la dernière perte haute de chaque camp : sans contre-pressing, on se replie sans aller au contact
         self.presseur_en_titre = [(-1, -99.0), (-1, -99.0)]   # (pid, depuis) : celui qui presse garde le ballon deux secondes, on ne se croise pas
         self.coupe_en_titre = [(-1, -99.0), (-1, -99.0)]      # (pid, depuis) : celui qui coupe la ligne de passe garde le rôle trois secondes
         self.marquage_actif = [False, False]         # le marquage s'allume à quarante mètres et s'éteint à quarante-six : pas de clignotement à la frontière
@@ -816,6 +831,7 @@ class Match:
         if en_relance:
             if self.phase[att] != "relance":
                 self.relance_choix[att] = self._choix_relance(att)
+                self.relance_num[att] += 1
             self.phase[att] = "relance"
         elif (depuis < 6.0 and getattr(self, "x_bascule", 60.0) < 45.0 and tac_a["tempo"] != "possession"
               and (depuis < 2.5 or bxp - self.x_bascule > 8.0 + 4.0 * (depuis - 2.5))):
@@ -828,19 +844,52 @@ class Match:
             self.phase[att] = "finition"
         if depuis == 0.0:
             self.x_bascule = bxp
-        # --- la défense
+        # --- la défense : un bloc, d'où partent des vagues de pressing (déclenchées, courtes), et le
+        # contre-pressing dans les cinq secondes après une perte haute (un choix, une fois sur trois)
         bxd = LONG - bxp                                   # le ballon, vu de la défense
-        envie = sum(j.pressing for j in self.actifs(df) if j.fam == "FWD") / max(1, sum(1 for j in self.actifs(df) if j.fam == "FWD"))
-        if depuis < 5.0 and (tac_d["bloc"] == "haut" or self.collectif[df] > 0.7) and bxd > 45.0:
+        profil = tac_d["bloc"]
+        if depuis == 0.0:
+            # la perte vient d'avoir lieu : dans la moitié adverse (pour celui qui a perdu), on choisit
+            perdu_haut = bxp < 45.0
+            self.contre_choix[df] = perdu_haut and self.rs.random() < CONTRE_PRESSING[profil] * (0.6 + 0.8 * self._envie(df))
+            self.ligne_gel[df] = (self.ligne_def[df], self.t + CONTRE_PRESSING_DUREE) if self.contre_choix[df] else None
+            if perdu_haut:
+                self.t_perte_haute[df] = self.t
+            self.vague[df] = (-99.0, -99.0)
+        if self.phase[att] == "relance" and self.relance_choix[att] == "courte" and self.relance_tiree[df] != self.relance_num[att]:
+            self.relance_tiree[df] = self.relance_num[att]     # une relance, un tirage
+            self._declencheur(df, "relance")
+        deb, fin = self.vague[df]
+        if self.t < fin and (bxd < 50.0 or (b.porteur is not None and b.porteur.camp == df)):
+            fin = self.t                                   # la vague est passée : le ballon nous a dépassés, ou on l'a
+            self.vague[df] = (deb, fin)
+            self.vague_repos[df] = self.t + VAGUE_REPOS
+        if depuis < CONTRE_PRESSING_DUREE and self.contre_choix[df] and bxd > 45.0:
             self.phase[df] = "contre_pressing"
-        elif tac_d["bloc"] == "haut" and bxd > 40.0:
+        elif self.t < fin:
             self.phase[df] = "pressing"
-        elif tac_d["bloc"] == "median" and bxd > 68.0 and (envie > 0.55 or self.phase[att] == "relance"):
-            self.phase[df] = "pressing"                  # on va chercher une relance (courte : toujours ; sinon si les attaquants aiment ça)
-        elif tac_d["bloc"] == "bas" or bxd < 32.0 or self._doit_reculer(df, bxd):
+        elif profil == "bas" or bxd < 32.0 or self._doit_reculer(df, bxd):
             self.phase[df] = "bloc_bas"
         else:
             self.phase[df] = "bloc_median"
+
+    def _envie(self, df: int) -> float:
+        """L'envie de presser des attaquants et des milieux : leur pressing moyen."""
+        js = [j for j in self.actifs(df) if j.fam in ("FWD", "MID")]
+        return sum(j.pressing for j in js) / max(1, len(js))
+
+    def _declencheur(self, df: int, genre: str):
+        """Un déclencheur de pressing (relance courte, passe au latéral, passe en
+        retrait dans leur moitié) : selon le profil et l'envie, on lance une
+        vague de trois à six secondes — pas un état permanent."""
+        if self.t < self.vague[df][1] or self.t < self.vague_repos[df]:
+            return
+        p = VAGUE_DECLENCHEUR[self.tac[df]["bloc"]] * (0.7 + 0.6 * self._envie(df))
+        if genre != "relance":
+            p *= 0.6                                       # une passe au latéral déclenche moins souvent qu'une relance
+        if self.rs.random() < p:
+            self.vague[df] = (self.t, self.t + self.rs.uniform(*VAGUE_DUREE))
+            self.evt("vague", camp=df, genre=genre)
 
     def _doit_reculer(self, df: int, bxd: float) -> bool:
         """Même une équipe haute dans ses principes recule quand il le faut :
@@ -919,7 +968,7 @@ class Match:
             if vers_nous < -3.0:
                 bx = min(bx + 4.0, ref[0] + 1.3)          # le ballon repart en arrière : la ligne remonte d'un coup (le piège)
             else:
-                bx = max(bx, ref[0] - 1.4) if bx < ref[0] else min(bx, ref[0] + 0.5)
+                bx = max(bx, ref[0] - LIGNE_RECUL) if bx < ref[0] else min(bx, ref[0] + LIGNE_MONTEE)
             by = ref[1] + max(-1.0, min(1.0, by - ref[1]))
             if not hasattr(self, "bloc_ref"):
                 self.bloc_ref = {}
@@ -931,23 +980,33 @@ class Match:
             lh = self.ligne_horsjeu(camp)
             ligne_hj = lh if camp == 0 else LONG - lh
         # --- les profondeurs de ligne
+        # la ligne défensive suit le ballon : 0,75 × distance − 6, plus ou moins le profil (docs/TACTIQUE.md)
+        L0 = LIGNE_PENTE * bx + LIGNE_BASE + LIGNE_PROFIL[tac["bloc"]]
         if phase == "bloc_bas":
-            L = max(9.0, min(24.0, bx - 12.0))
-            prof = {"central": L, "lateral": L + 1.0, "pivot": L + 7.0, "relayeur": L + 8.0, "meneur": L + 10.0,
-                    "ailier": L + 9.0, "buteur": min(L + 20.0, 46.0)}
-            larg = {"central": 6.0, "lateral": 16.0, "pivot": 0.0, "relayeur": 8.0, "meneur": 4.0, "ailier": 18.0, "buteur": 0.0}
+            # tassé : seize mètres d'épaisseur dans la surface, vingt-deux au milieu, vingt-huit à trente-deux de large
+            L = max(7.0, min(30.0, L0 - 1.0))
+            serre = max(0.0, min(1.0, (bx - 20.0) / 30.0))      # 0 dans la surface, 1 à cinquante mètres
+            prof = {"central": L, "lateral": L + 1.0, "pivot": L + 6.0 + 3.0 * serre, "relayeur": L + 7.0 + 4.0 * serre,
+                    "meneur": L + 10.0 + 5.0 * serre, "ailier": L + 8.0 + 5.0 * serre, "buteur": min(L + 15.0 + 6.0 * serre, bx + 2.0)}
+            larg = {"central": 6.0, "lateral": 13.0 + 2.0 * serre, "pivot": 0.0, "relayeur": 7.0 + 2.0 * serre, "meneur": 3.0,
+                    "ailier": 13.0 + 3.0 * serre, "buteur": 0.0}
             glisse = 0.35
         elif phase == "bloc_median":
-            L = max(10.0, min(40.0, bx - 15.0))
-            prof = {"central": L, "lateral": L + 2.0, "pivot": L + 8.0, "relayeur": L + 10.0, "meneur": L + 13.0,
-                    "ailier": L + 12.0, "buteur": min(L + 22.0, bx + 6.0)}
-            larg = {"central": 8.0, "lateral": 21.0, "pivot": 0.0, "relayeur": 11.0, "meneur": 5.0, "ailier": 22.0, "buteur": 0.0}
+            # trois lignes : les milieux dix mètres devant la défense, les attaquants dix devant les milieux ; 35 m de large
+            L = max(10.0, min(62.0, L0))
+            prof = {"central": L, "lateral": L + 1.5, "pivot": L + 9.0, "relayeur": L + 11.0, "meneur": L + 16.0,
+                    "ailier": L + 14.0, "buteur": min(L + 21.0, bx + 4.0)}
+            larg = {"central": 8.0, "lateral": 16.5, "pivot": 0.0, "relayeur": 9.0, "meneur": 4.0, "ailier": 17.0, "buteur": 0.0}
             glisse = 0.4
         elif phase in ("pressing", "contre_pressing"):
-            L = max(20.0, min(60.0, bx - 8.0))
-            prof = {"central": L, "lateral": L + 3.0, "pivot": L + 12.0, "relayeur": L + 15.0, "meneur": L + 22.0,
-                    "ailier": L + 24.0, "buteur": L + 30.0}
-            larg = {"central": 9.0, "lateral": 22.0, "pivot": 0.0, "relayeur": 12.0, "meneur": 5.0, "ailier": 22.0, "buteur": 0.0}
+            # la vague : le bloc monte de quatre mètres et les lignes s'étirent vers le ballon
+            gel = self.ligne_gel[camp]
+            L = max(15.0, min(62.0, L0 + 4.0))
+            if phase == "contre_pressing" and gel is not None and self.t < gel[1]:
+                L = max(L, gel[0])                            # la ligne reste où elle était à la perte
+            prof = {"central": L, "lateral": L + 3.0, "pivot": L + 11.0, "relayeur": L + 14.0, "meneur": L + 20.0,
+                    "ailier": L + 22.0, "buteur": min(L + 27.0, bx + 6.0)}
+            larg = {"central": 9.0, "lateral": 18.0, "pivot": 0.0, "relayeur": 10.0, "meneur": 5.0, "ailier": 19.0, "buteur": 0.0}
             glisse = 0.3
         elif phase == "relance" and self.relance_choix[camp] == "courte":
             # les six mètres au sol : les centraux ouverts au bord de la
@@ -1396,6 +1455,8 @@ class Match:
         # sinon le porteur entre dans la surface en marchant)
         if porteur is None:
             contient = 0.0
+        elif self.t - self.t_perte_haute[df] < CONTRE_PRESSING_DUREE and not self.contre_choix[df] and bxd > 40.0:
+            contient = 7.0                                  # le repli : on ferme à sept mètres en reculant, on ne saute pas
         elif bxd < 25.0:
             contient = 1.2
         elif phase == "bloc_bas":
@@ -1501,7 +1562,7 @@ class Match:
         ligne = self.ligne_def[df]
         devant = [siens[0].propre(o.x, o.y)[0] for o in adverses if o is not porteur and not o.gk]
         if devant:
-            ligne = max(ligne, min(bxd - 10.0, min(devant) - 1.0))
+            ligne = max(ligne, min(bxd - 10.0, min(devant) - 1.0, ligne + 4.0))
         # elle remonte à 3,5 m/s au plus (les hommes suivent, personne ne reste « sous la ligne »
         # parce qu'elle a sauté de dix mètres sur une passe en retrait) ; elle recule d'un coup
         prec, t_prec = self.ligne_prec[df]
@@ -2102,6 +2163,12 @@ class Match:
             if tiers:
                 min(tiers, key=lambda o: math.hypot(gx - o.x, gy - o.y)).appel_jusqua = self.t + 2.2
         b.hors_jeu_au_kick = {x.pid for x in self.actifs(j.camp) if x is not j and self.hors_jeu(x, b.x)}
+        # la passe au latéral ou en retrait dans sa moitié : un déclencheur pour le pressing adverse
+        if j.propre(j.x, j.y)[0] < 50.0 and point is None and not longue:
+            if c.role_tac == "lateral" and j.role_tac != "lateral":
+                self._declencheur(1 - j.camp, "lateral")
+            elif j.propre(c.x, c.y)[0] < j.propre(j.x, j.y)[0] - 8.0:
+                self._declencheur(1 - j.camp, "retrait")
         self.evt("passe", de=j.pid, a=c.pid, camp=j.camp, x=round(j.x, 1), y=round(j.y, 1), d=round(d, 1), haut=vz > 0, role=c.role,
                  prof=point is not None, longue=longue)
 

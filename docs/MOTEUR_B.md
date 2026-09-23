@@ -259,6 +259,15 @@ partenaires passent de 18 à 8 ticks par match, les latéraux de 80 à 40 ;
 ce qui reste, c'est un défenseur qui chasse un ballon qui roule vers
 son but, ce qui est du football. Banc : 2,9 buts, 23 tirs.
 
+**Le jeu sans ballon sur les principes réels.** Le bloc était une dalle
+haute et plate (ligne à 41 m au milieu, dix joueurs sur douze mètres) et
+le pressing un état qui clignotait (1,3 s). Les principes chiffrés dans
+`docs/TACTIQUE.md` (300 matchs StatsBomb, rapport UEFA) sont maintenant
+dans le moteur : la ligne à 0,75 × ballon − 6, trois lignes sur vingt-deux
+mètres, le pressing en vagues déclenchées de trois à six secondes, le
+contre-pressing comme un choix une fois sur trois, le repli sinon. La
+mesure à règle égale est dans ce doc-là.
+
 **Le latéral qui va se perdre sur le côté, les milieux et latéraux qui
 s'échangent leurs places.** Mesuré : un latéral de forme passait 3,7 s
 par minute de bloc plus large que tout attaquant de son côté — il

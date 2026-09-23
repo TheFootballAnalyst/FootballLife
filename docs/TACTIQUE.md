@@ -114,40 +114,74 @@ relances haut, et qui contre-presse un peu plus. Le bloc bas presse
 autant de relances, mais moins efficacement, et concède beaucoup plus de
 passes par action défensive.
 
-## 7. Le moteur B aujourd'hui, à la même règle
+## 7. Le moteur B à la même règle, avant et après
 
 `outils/tactique_moteur.py` sur quatre matchs du banc :
 
-| | réel | moteur |
-|---|---|---|
-| ligne, ballon à 50 m | 32 m | 37 m |
-| ligne, ballon à 60 m | 39 m | 44 m |
-| ligne, ballon à 80 m | 58 m | 55 m |
-| épaisseur au milieu | 22–23 m | 19 m |
-| largeur au milieu | 33–35 m | 45 m |
-| recul / montée de la ligne | 1,8 / 1,1 m/s | 1,1 / 0,6 m/s |
-| contre-pressing en 5 s | 31 % | 93 % |
+| | réel | moteur avant | moteur après |
+|---|---|---|---|
+| ligne, ballon à 40 m | 25 m | 27 m | 26 m |
+| ligne, ballon à 50 m | 32 m | 37 m | 34,5 m |
+| ligne, ballon à 60 m | 39 m | 44 m | 42 m |
+| ligne, ballon à 80 m | 58 m | 55 m | 56 m |
+| ligne, ballon à 90 m | 67 m | 58 m | 62 m |
+| épaisseur au milieu | 22–23 m | 19 m | 22–23 m |
+| largeur au milieu | 33–35 m | 45 m | 39 m |
+| recul de la ligne | 1,8 m/s | 1,1 m/s | 1,6 m/s |
+| relances pressées | 67–70 % | (état permanent) | 67 % |
+| durée d'une vague de pressing | 3,7 s | 1,3 s | 3,5 s |
+| contre-pressing choisi après une perte haute | 29–32 % | 100 % | 30 % |
+| hors-jeu par match | 3,5 | 1,3 | 2,1 |
 
-Le diagnostic est net : la ligne est cinq mètres trop haute au milieu et
-trop basse face à la relance adverse, le bloc est dix mètres trop large et
-trop plat, la ligne bouge deux fois trop lentement, et le contre-pressing
-est systématique au lieu d'être un choix une fois sur trois.
+Et sur un PSG–Bayern de 90 minutes, le bloc médian a maintenant sa ligne
+à 37 m (41 avant), les milieux 9 à 10 m devant, les attaquants 7 à 10 m
+devant les milieux : trois lignes sur vingt mètres au lieu d'une dalle
+sur douze. Restent au-dessus du réel : la largeur (39 m contre 35) et la
+montée de la ligne, encore lente.
 
-## 8. Ce que ça change dans le moteur (à faire)
+## 8. Comment le moteur porte ces principes
 
-1. **La ligne = 0,75 × ballon − 6**, plus ou moins trois mètres selon le
-   profil ; elle recule à 2 m/s et remonte à 1,2 m/s.
-2. **Trois lignes** : milieux 10 m devant la défense, attaquants 10 m
-   devant les milieux ; largeur 35 m au milieu, 28 m dans la surface ; les
-   attaquants redescendent pour tenir l'épaisseur.
-3. **Le pressing comme une vague** : un déclencheur (relance, passe au
-   latéral, passe en retrait), une séquence de une à trois pressions,
-   trois à six secondes, puis on se replace ; deux relances sur trois
-   pressées ; le PPDA du profil comme cible.
-4. **Le contre-pressing comme un choix** : une fois sur trois dans les
-   cinq secondes, la ligne reste haute pendant ces cinq secondes, puis le
-   repli.
-5. **Le profil d'une équipe fantasy** se lit dans ses joueurs : le taux de
-   travail défensif et le pressing des attaquants et milieux (les cartes
-   les portent déjà) donnent le PPDA et la part de contre-pressing ; la
-   consigne du manager (bloc haut/médian/bas) donne la hauteur de ligne.
+Tout est dans `jeu/emergent.py`, en constantes de tête de module :
+
+1. **La ligne** (`LIGNE_PENTE`, `LIGNE_BASE`, `LIGNE_PROFIL`) : la forme
+   pose la défense à 0,75 × ballon − 6, plus trois mètres pour un bloc
+   haut, moins trois pour un bloc bas ; le bloc lit un ballon filtré qui
+   ne recule que de `LIGNE_RECUL` (3,5 m/s) et ne remonte que de
+   `LIGNE_MONTEE` (2,5 m/s) par tic ; la ligne peut monter aux talons
+   du dernier attaquant en jeu, de quatre mètres au plus.
+2. **Trois lignes** : en bloc médian les milieux à 9–11 m devant la
+   défense, le meneur à 16, les ailiers à 14, le buteur à 21 (jamais plus
+   de quatre mètres devant le ballon) ; latéraux à 16,5 m de l'axe, ailiers
+   à 17. En bloc bas tout se resserre avec la distance du ballon : seize
+   mètres d'épaisseur et 26 m de large dans la surface, 22 et 32 à
+   cinquante mètres.
+3. **La vague** (`VAGUE_DECLENCHEUR`, `VAGUE_DUREE`, `VAGUE_REPOS`) : une
+   relance courte adverse (un tirage par relance), une passe au latéral
+   ou une passe en retrait dans leur moitié tirent une vague avec une
+   probabilité qui dépend du profil (0,8 / 0,62 / 0,5) et de l'envie de
+   presser des attaquants et des milieux ; la vague dure trois à six
+   secondes, s'arrête dès que le ballon nous a dépassés ou qu'on l'a
+   récupéré, et cinq secondes de repos suivent. Pendant la vague, la
+   phase est `pressing` : le bloc monte de quatre mètres, l'homme à
+   homme sur la relance courte s'applique. Le fil du bac note chaque
+   vague (`vague`, avec son déclencheur).
+4. **Le contre-pressing** (`CONTRE_PRESSING`, `CONTRE_PRESSING_DUREE`) :
+   à chaque perte dans la moitié adverse, un tirage (0,42 / 0,32 / 0,25
+   selon le profil, modulé par l'envie) ; si oui, cinq secondes de
+   `contre_pressing` avec la ligne gelée où elle était ; sinon le repli :
+   le presseur ferme à sept mètres en reculant au lieu de sauter dans les
+   pieds, et la ligne redescend à sa hauteur de forme.
+5. **La consigne « bloc haut »** ne veut plus dire « presser tout le
+   temps » : c'est une ligne trois mètres plus haute, des vagues plus
+   probables et un contre-pressing plus fréquent — ce que le réel montre.
+
+## 9. Pour les équipes fantasy
+
+Les principes sont les mêmes pour toutes les équipes. Ce qui varie :
+la consigne du manager (bloc haut, médian, bas : la hauteur de ligne et
+les probabilités de vague et de contre-pressing) et les joueurs (l'envie
+de presser des attaquants et des milieux, lue sur leurs cartes, module
+ces probabilités ; leur vitesse et leur endurance décident si la vague
+arrive à temps). Une équipe de presseurs avec un manager qui demande un
+bloc haut pressera comme Liverpool ; la même consigne avec des
+attaquants qui ne courent pas donnera un bloc haut qui ne mord pas.
