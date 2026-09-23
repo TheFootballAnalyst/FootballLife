@@ -1,0 +1,8210 @@
+{
+ "source": "StatsBomb open data (360)",
+ "competitions": [
+  "1. Bundesliga",
+  "Ligue 1",
+  "La Liga",
+  "Major League Soccer",
+  "UEFA Euro",
+  "FIFA World Cup",
+  "African Cup of Nations"
+ ],
+ "matchs": 300,
+ "equipes_saisons": 85,
+ "tous": {
+  "ligne_par_ballon": {
+   "10": {
+    "ligne": 7.9,
+    "epaisseur": 14.1,
+    "largeur": 26.2,
+    "devant_ballon": 3,
+    "n": 20971
+   },
+   "20": {
+    "ligne": 14.3,
+    "epaisseur": 16.0,
+    "largeur": 29.3,
+    "devant_ballon": 6,
+    "n": 36809
+   },
+   "30": {
+    "ligne": 18.6,
+    "epaisseur": 18.6,
+    "largeur": 31.3,
+    "devant_ballon": 7.0,
+    "n": 56832
+   },
+   "40": {
+    "ligne": 24.6,
+    "epaisseur": 21.0,
+    "largeur": 33.4,
+    "devant_ballon": 8.0,
+    "n": 72948
+   },
+   "50": {
+    "ligne": 31.7,
+    "epaisseur": 22.3,
+    "largeur": 34.7,
+    "devant_ballon": 8,
+    "n": 65087
+   },
+   "60": {
+    "ligne": 39.4,
+    "epaisseur": 23.5,
+    "largeur": 35.7,
+    "devant_ballon": 8,
+    "n": 65931
+   },
+   "70": {
+    "ligne": 47.8,
+    "epaisseur": 24.9,
+    "largeur": 36.3,
+    "devant_ballon": 8,
+    "n": 44893
+   },
+   "80": {
+    "ligne": 58.3,
+    "epaisseur": 25.0,
+    "largeur": 36.3,
+    "devant_ballon": 7.0,
+    "n": 24256
+   },
+   "90": {
+    "ligne": 67.5,
+    "epaisseur": 25.9,
+    "largeur": 35.8,
+    "devant_ballon": 7,
+    "n": 18143
+   }
+  },
+  "ligne_milieu": 35.1,
+  "epaisseur_milieu": 22.8,
+  "largeur_milieu": 35.1,
+  "ligne_bas": 14.0,
+  "epaisseur_bas": 16.1,
+  "vitesse_recul_m_s": -1.8,
+  "vitesse_montee_m_s": 1.1,
+  "ppda": 17.0,
+  "relances_pressees_pct": 69,
+  "relances_gagnees_haut_pct": 28,
+  "pressions_par_possession": 1.65,
+  "pressions_zone_pct": {
+   "haut": 37,
+   "milieu": 45,
+   "bas": 19
+  },
+  "sequence_pressing_n_moy": 1.29,
+  "sequences_3_et_plus_pct": 5,
+  "sequence_longue_s": 3.7,
+  "sequence_longue_p90_s": 5.7,
+  "contre_pressing_pct": 31,
+  "ligne_5s_apres_perte": 47.1,
+  "n_frames": 405870,
+  "n_possessions": 47493
+ },
+ "profils": {
+  "bas": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.7,
+     "epaisseur": 14.3,
+     "largeur": 27.0,
+     "devant_ballon": 3.0,
+     "n": 4836
+    },
+    "20": {
+     "ligne": 14.0,
+     "epaisseur": 16.4,
+     "largeur": 30.6,
+     "devant_ballon": 6.0,
+     "n": 8594
+    },
+    "30": {
+     "ligne": 18.0,
+     "epaisseur": 18.6,
+     "largeur": 32.4,
+     "devant_ballon": 8,
+     "n": 13267
+    },
+    "40": {
+     "ligne": 23.4,
+     "epaisseur": 20.7,
+     "largeur": 34.3,
+     "devant_ballon": 8.0,
+     "n": 17672
+    },
+    "50": {
+     "ligne": 29.8,
+     "epaisseur": 21.8,
+     "largeur": 35.3,
+     "devant_ballon": 8,
+     "n": 14859
+    },
+    "60": {
+     "ligne": 37.0,
+     "epaisseur": 23.1,
+     "largeur": 36.2,
+     "devant_ballon": 8.0,
+     "n": 13914
+    },
+    "70": {
+     "ligne": 45.4,
+     "epaisseur": 24.6,
+     "largeur": 37.0,
+     "devant_ballon": 8.0,
+     "n": 8266
+    },
+    "80": {
+     "ligne": 55.1,
+     "epaisseur": 25.4,
+     "largeur": 37.0,
+     "devant_ballon": 7,
+     "n": 3773
+    },
+    "90": {
+     "ligne": 64.0,
+     "epaisseur": 26.8,
+     "largeur": 36.9,
+     "devant_ballon": 7.0,
+     "n": 2812
+    }
+   },
+   "ligne_milieu": 32.6,
+   "epaisseur_milieu": 22.4,
+   "largeur_milieu": 35.6,
+   "ligne_bas": 13.6,
+   "epaisseur_bas": 16.4,
+   "vitesse_recul_m_s": -1.7,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 19.6,
+   "relances_pressees_pct": 70,
+   "relances_gagnees_haut_pct": 26,
+   "pressions_par_possession": 1.67,
+   "pressions_zone_pct": {
+    "haut": 42,
+    "bas": 15,
+    "milieu": 43
+   },
+   "sequence_pressing_n_moy": 1.29,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.7,
+   "sequence_longue_p90_s": 5.7,
+   "contre_pressing_pct": 29,
+   "ligne_5s_apres_perte": 44.3,
+   "n_frames": 87993,
+   "n_possessions": 8871
+  },
+  "median": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.7,
+     "epaisseur": 13.9,
+     "largeur": 26.4,
+     "devant_ballon": 3,
+     "n": 3677
+    },
+    "20": {
+     "ligne": 13.9,
+     "epaisseur": 16.0,
+     "largeur": 29.8,
+     "devant_ballon": 6,
+     "n": 6553
+    },
+    "30": {
+     "ligne": 18.5,
+     "epaisseur": 19.2,
+     "largeur": 31.7,
+     "devant_ballon": 7.0,
+     "n": 9988
+    },
+    "40": {
+     "ligne": 24.5,
+     "epaisseur": 22.0,
+     "largeur": 33.7,
+     "devant_ballon": 7.0,
+     "n": 12410
+    },
+    "50": {
+     "ligne": 31.9,
+     "epaisseur": 23.0,
+     "largeur": 34.9,
+     "devant_ballon": 7.0,
+     "n": 11084
+    },
+    "60": {
+     "ligne": 39.6,
+     "epaisseur": 23.9,
+     "largeur": 36.1,
+     "devant_ballon": 7.0,
+     "n": 10658
+    },
+    "70": {
+     "ligne": 48.1,
+     "epaisseur": 24.7,
+     "largeur": 36.5,
+     "devant_ballon": 7,
+     "n": 7413
+    },
+    "80": {
+     "ligne": 59.3,
+     "epaisseur": 24.7,
+     "largeur": 36.3,
+     "devant_ballon": 7.0,
+     "n": 3852
+    },
+    "90": {
+     "ligne": 66.2,
+     "epaisseur": 25.2,
+     "largeur": 36.5,
+     "devant_ballon": 7.0,
+     "n": 2498
+    }
+   },
+   "ligne_milieu": 35.1,
+   "epaisseur_milieu": 23.4,
+   "largeur_milieu": 35.4,
+   "ligne_bas": 13.6,
+   "epaisseur_bas": 16.2,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 15.7,
+   "relances_pressees_pct": 67,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.48,
+   "pressions_zone_pct": {
+    "milieu": 46,
+    "haut": 36,
+    "bas": 18
+   },
+   "sequence_pressing_n_moy": 1.27,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.6,
+   "sequence_longue_p90_s": 5.6,
+   "contre_pressing_pct": 29,
+   "ligne_5s_apres_perte": 46.9,
+   "n_frames": 68133,
+   "n_possessions": 9617
+  },
+  "haut": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.9,
+     "epaisseur": 14.3,
+     "largeur": 26.7,
+     "devant_ballon": 2,
+     "n": 6097
+    },
+    "20": {
+     "ligne": 14.5,
+     "epaisseur": 16.4,
+     "largeur": 29.7,
+     "devant_ballon": 6,
+     "n": 9507
+    },
+    "30": {
+     "ligne": 19.0,
+     "epaisseur": 19.8,
+     "largeur": 31.6,
+     "devant_ballon": 7,
+     "n": 13813
+    },
+    "40": {
+     "ligne": 25.8,
+     "epaisseur": 22.4,
+     "largeur": 33.7,
+     "devant_ballon": 7,
+     "n": 18429
+    },
+    "50": {
+     "ligne": 33.4,
+     "epaisseur": 23.8,
+     "largeur": 35.1,
+     "devant_ballon": 7.0,
+     "n": 17788
+    },
+    "60": {
+     "ligne": 41.3,
+     "epaisseur": 24.7,
+     "largeur": 35.9,
+     "devant_ballon": 7,
+     "n": 20815
+    },
+    "70": {
+     "ligne": 49.5,
+     "epaisseur": 25.5,
+     "largeur": 36.3,
+     "devant_ballon": 7,
+     "n": 16355
+    },
+    "80": {
+     "ligne": 60.8,
+     "epaisseur": 24.8,
+     "largeur": 36.4,
+     "devant_ballon": 7.0,
+     "n": 9842
+    },
+    "90": {
+     "ligne": 69.2,
+     "epaisseur": 25.2,
+     "largeur": 35.6,
+     "devant_ballon": 7,
+     "n": 7543
+    }
+   },
+   "ligne_milieu": 37.5,
+   "epaisseur_milieu": 24.2,
+   "largeur_milieu": 35.5,
+   "ligne_bas": 13.9,
+   "epaisseur_bas": 16.5,
+   "vitesse_recul_m_s": -2.0,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 14.3,
+   "relances_pressees_pct": 67,
+   "relances_gagnees_haut_pct": 30,
+   "pressions_par_possession": 1.5,
+   "pressions_zone_pct": {
+    "haut": 31,
+    "milieu": 46,
+    "bas": 23
+   },
+   "sequence_pressing_n_moy": 1.29,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.8,
+   "sequence_longue_p90_s": 5.6,
+   "contre_pressing_pct": 32,
+   "ligne_5s_apres_perte": 48.5,
+   "n_frames": 120189,
+   "n_possessions": 17673
+  }
+ },
+ "profils_equipes": {
+  "bas": [
+   "Georgia (UEFA Euro 2024)",
+   "Finland (UEFA Euro 2020)",
+   "Albania (UEFA Euro 2024)",
+   "Hungary (UEFA Euro 2020)",
+   "Slovakia (UEFA Euro 2020)",
+   "Qatar (FIFA World Cup 2022)",
+   "Slovenia (UEFA Euro 2024)",
+   "Costa Rica (FIFA World Cup 2022)",
+   "Hungary (UEFA Euro 2024)",
+   "Sweden (UEFA Euro 2020)",
+   "Switzerland (UEFA Euro 2024)",
+   "Italy (UEFA Euro 2024)",
+   "Japan (FIFA World Cup 2022)",
+   "Poland (UEFA Euro 2020)",
+   "Poland (UEFA Euro 2024)",
+   "Romania (UEFA Euro 2024)",
+   "Turkey (UEFA Euro 2024)",
+   "Poland (FIFA World Cup 2022)",
+   "Wales (UEFA Euro 2020)",
+   "Russia (UEFA Euro 2020)",
+   "Croatia (UEFA Euro 2020)",
+   "Czech Republic (UEFA Euro 2024)",
+   "Morocco (FIFA World Cup 2022)",
+   "England (UEFA Euro 2024)",
+   "Ukraine (UEFA Euro 2020)",
+   "Argentina (FIFA World Cup 2022)",
+   "Australia (FIFA World Cup 2022)",
+   "Belgium (UEFA Euro 2024)"
+  ],
+  "median": [
+   "Serbia (FIFA World Cup 2022)",
+   "Tunisia (FIFA World Cup 2022)",
+   "Wales (FIFA World Cup 2022)",
+   "Netherlands (UEFA Euro 2024)",
+   "Serbia (UEFA Euro 2024)",
+   "Denmark (UEFA Euro 2020)",
+   "France (UEFA Euro 2024)",
+   "Belgium (UEFA Euro 2020)",
+   "Mexico (FIFA World Cup 2022)",
+   "Netherlands (FIFA World Cup 2022)",
+   "South Korea (FIFA World Cup 2022)",
+   "Switzerland (FIFA World Cup 2022)",
+   "Switzerland (UEFA Euro 2020)",
+   "Croatia (UEFA Euro 2024)",
+   "Iran (FIFA World Cup 2022)",
+   "Scotland (UEFA Euro 2020)",
+   "Brazil (FIFA World Cup 2022)",
+   "England (UEFA Euro 2020)",
+   "Italy (UEFA Euro 2020)",
+   "Slovakia (UEFA Euro 2024)",
+   "Cameroon (FIFA World Cup 2022)",
+   "Turkey (UEFA Euro 2020)",
+   "Croatia (FIFA World Cup 2022)",
+   "Ghana (FIFA World Cup 2022)",
+   "North Macedonia (UEFA Euro 2020)",
+   "Portugal (UEFA Euro 2020)",
+   "Inter Miami (Major League Soccer 2023)",
+   "Uruguay (FIFA World Cup 2022)"
+  ],
+  "haut": [
+   "Denmark (UEFA Euro 2024)",
+   "France (FIFA World Cup 2022)",
+   "France (UEFA Euro 2020)",
+   "Ukraine (UEFA Euro 2024)",
+   "Czech Republic (UEFA Euro 2020)",
+   "Senegal (FIFA World Cup 2022)",
+   "Ecuador (FIFA World Cup 2022)",
+   "Austria (UEFA Euro 2024)",
+   "Paris Saint-Germain (Ligue 1 2022/2023)",
+   "Bayer Leverkusen (1. Bundesliga 2023/2024)",
+   "Germany (UEFA Euro 2020)",
+   "Scotland (UEFA Euro 2024)",
+   "Austria (UEFA Euro 2020)",
+   "Portugal (UEFA Euro 2024)",
+   "Belgium (FIFA World Cup 2022)",
+   "Spain (UEFA Euro 2024)",
+   "Germany (UEFA Euro 2024)",
+   "England (FIFA World Cup 2022)",
+   "Barcelona (La Liga 2020/2021)",
+   "Portugal (FIFA World Cup 2022)",
+   "Denmark (FIFA World Cup 2022)",
+   "Paris Saint-Germain (Ligue 1 2021/2022)",
+   "Netherlands (UEFA Euro 2020)",
+   "United States (FIFA World Cup 2022)",
+   "Canada (FIFA World Cup 2022)",
+   "Saudi Arabia (FIFA World Cup 2022)",
+   "Spain (UEFA Euro 2020)",
+   "Spain (FIFA World Cup 2022)",
+   "Germany (FIFA World Cup 2022)"
+  ]
+ },
+ "equipes": {
+  "Bayer Leverkusen (1. Bundesliga 2023/2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.6,
+     "epaisseur": 14.5,
+     "largeur": 25.6,
+     "devant_ballon": 3,
+     "n": 857
+    },
+    "20": {
+     "ligne": 14.0,
+     "epaisseur": 17.4,
+     "largeur": 29.1,
+     "devant_ballon": 6,
+     "n": 1095
+    },
+    "30": {
+     "ligne": 18.5,
+     "epaisseur": 20.5,
+     "largeur": 31.0,
+     "devant_ballon": 7,
+     "n": 1617
+    },
+    "40": {
+     "ligne": 25.5,
+     "epaisseur": 22.4,
+     "largeur": 33.0,
+     "devant_ballon": 7.0,
+     "n": 2394
+    },
+    "50": {
+     "ligne": 32.3,
+     "epaisseur": 23.0,
+     "largeur": 34.4,
+     "devant_ballon": 7.0,
+     "n": 2470
+    },
+    "60": {
+     "ligne": 40.8,
+     "epaisseur": 23.4,
+     "largeur": 35.4,
+     "devant_ballon": 7,
+     "n": 2909
+    },
+    "70": {
+     "ligne": 49.9,
+     "epaisseur": 23.8,
+     "largeur": 36.1,
+     "devant_ballon": 7.0,
+     "n": 2168
+    },
+    "80": {
+     "ligne": 61.7,
+     "epaisseur": 23.8,
+     "largeur": 35.5,
+     "devant_ballon": 6,
+     "n": 1259
+    },
+    "90": {
+     "ligne": 71.1,
+     "epaisseur": 24.2,
+     "largeur": 34.3,
+     "devant_ballon": 7,
+     "n": 1151
+    }
+   },
+   "ligne_milieu": 37.0,
+   "epaisseur_milieu": 23.2,
+   "largeur_milieu": 35.0,
+   "ligne_bas": 13.3,
+   "epaisseur_bas": 17.1,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 14.9,
+   "relances_pressees_pct": 67,
+   "relances_gagnees_haut_pct": 31,
+   "pressions_par_possession": 1.58,
+   "pressions_zone_pct": {
+    "haut": 29,
+    "milieu": 43,
+    "bas": 28
+   },
+   "sequence_pressing_n_moy": 1.31,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 4.1,
+   "sequence_longue_p90_s": 6.1,
+   "contre_pressing_pct": 34,
+   "ligne_5s_apres_perte": 48.0,
+   "n_frames": 15920,
+   "n_possessions": 2476
+  },
+  "Canada (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.3,
+     "epaisseur": 14.6,
+     "largeur": 27.3,
+     "devant_ballon": 4.0,
+     "n": 82
+    },
+    "20": {
+     "ligne": 13.7,
+     "epaisseur": 18.3,
+     "largeur": 30.2,
+     "devant_ballon": 6,
+     "n": 127
+    },
+    "30": {
+     "ligne": 18.7,
+     "epaisseur": 21.5,
+     "largeur": 31.0,
+     "devant_ballon": 6,
+     "n": 113
+    },
+    "40": {
+     "ligne": 27.8,
+     "epaisseur": 23.2,
+     "largeur": 33.4,
+     "devant_ballon": 6,
+     "n": 157
+    },
+    "50": {
+     "ligne": 35.0,
+     "epaisseur": 25.1,
+     "largeur": 37.1,
+     "devant_ballon": 6.0,
+     "n": 180
+    },
+    "60": {
+     "ligne": 44.4,
+     "epaisseur": 24.6,
+     "largeur": 39.0,
+     "devant_ballon": 6.0,
+     "n": 226
+    },
+    "70": {
+     "ligne": 50.5,
+     "epaisseur": 26.3,
+     "largeur": 39.1,
+     "devant_ballon": 7.0,
+     "n": 244
+    },
+    "80": {
+     "ligne": 52.5,
+     "epaisseur": 26.7,
+     "largeur": 40.4,
+     "devant_ballon": 7,
+     "n": 171
+    },
+    "90": {
+     "ligne": 60.3,
+     "epaisseur": 30.2,
+     "largeur": 42.5,
+     "devant_ballon": 8,
+     "n": 215
+    }
+   },
+   "ligne_milieu": 39.4,
+   "epaisseur_milieu": 25.1,
+   "largeur_milieu": 38.0,
+   "ligne_bas": 12.6,
+   "epaisseur_bas": 17.7,
+   "vitesse_recul_m_s": -2.1,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 15.0,
+   "relances_pressees_pct": 58,
+   "relances_gagnees_haut_pct": 30,
+   "pressions_par_possession": 1.26,
+   "pressions_zone_pct": {
+    "milieu": 48,
+    "bas": 23,
+    "haut": 29
+   },
+   "sequence_pressing_n_moy": 1.23,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 2.9,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 29,
+   "ligne_5s_apres_perte": 57.3,
+   "n_frames": 1515,
+   "n_possessions": 241
+  },
+  "Morocco (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.6,
+     "epaisseur": 14.4,
+     "largeur": 27.9,
+     "devant_ballon": 2,
+     "n": 197
+    },
+    "20": {
+     "ligne": 14.7,
+     "epaisseur": 16.2,
+     "largeur": 33.0,
+     "devant_ballon": 6,
+     "n": 417
+    },
+    "30": {
+     "ligne": 18.8,
+     "epaisseur": 17.1,
+     "largeur": 34.1,
+     "devant_ballon": 7.0,
+     "n": 714
+    },
+    "40": {
+     "ligne": 24.1,
+     "epaisseur": 18.3,
+     "largeur": 35.5,
+     "devant_ballon": 8,
+     "n": 1089
+    },
+    "50": {
+     "ligne": 30.1,
+     "epaisseur": 19.5,
+     "largeur": 36.9,
+     "devant_ballon": 8.0,
+     "n": 1168
+    },
+    "60": {
+     "ligne": 37.8,
+     "epaisseur": 21.2,
+     "largeur": 37.3,
+     "devant_ballon": 8,
+     "n": 1089
+    },
+    "70": {
+     "ligne": 44.5,
+     "epaisseur": 22.6,
+     "largeur": 37.1,
+     "devant_ballon": 8,
+     "n": 555
+    },
+    "80": {
+     "ligne": 56.3,
+     "epaisseur": 23.0,
+     "largeur": 36.5,
+     "devant_ballon": 7,
+     "n": 197
+    },
+    "90": {
+     "ligne": 75.8,
+     "epaisseur": 22.2,
+     "largeur": 35.3,
+     "devant_ballon": 7.0,
+     "n": 82
+    }
+   },
+   "ligne_milieu": 33.7,
+   "epaisseur_milieu": 20.3,
+   "largeur_milieu": 37.0,
+   "ligne_bas": 14.3,
+   "epaisseur_bas": 16.2,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 17.6,
+   "relances_pressees_pct": 67,
+   "relances_gagnees_haut_pct": 24,
+   "pressions_par_possession": 1.52,
+   "pressions_zone_pct": {
+    "haut": 37,
+    "bas": 14,
+    "milieu": 49
+   },
+   "sequence_pressing_n_moy": 1.29,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.7,
+   "sequence_longue_p90_s": 5.5,
+   "contre_pressing_pct": 35,
+   "ligne_5s_apres_perte": 42.6,
+   "n_frames": 5508,
+   "n_possessions": 633
+  },
+  "England (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.8,
+     "epaisseur": 13.9,
+     "largeur": 27.7,
+     "devant_ballon": 3.0,
+     "n": 120
+    },
+    "20": {
+     "ligne": 13.4,
+     "epaisseur": 16.6,
+     "largeur": 30.4,
+     "devant_ballon": 6.0,
+     "n": 172
+    },
+    "30": {
+     "ligne": 19.1,
+     "epaisseur": 20.3,
+     "largeur": 31.6,
+     "devant_ballon": 6.0,
+     "n": 236
+    },
+    "40": {
+     "ligne": 25.3,
+     "epaisseur": 22.4,
+     "largeur": 33.8,
+     "devant_ballon": 7,
+     "n": 297
+    },
+    "50": {
+     "ligne": 34.8,
+     "epaisseur": 23.5,
+     "largeur": 35.3,
+     "devant_ballon": 7,
+     "n": 271
+    },
+    "60": {
+     "ligne": 42.3,
+     "epaisseur": 24.2,
+     "largeur": 36.2,
+     "devant_ballon": 7,
+     "n": 267
+    },
+    "70": {
+     "ligne": 49.7,
+     "epaisseur": 24.2,
+     "largeur": 35.2,
+     "devant_ballon": 7,
+     "n": 205
+    },
+    "80": {
+     "ligne": 63.9,
+     "epaisseur": 23.0,
+     "largeur": 36.5,
+     "devant_ballon": 6,
+     "n": 127
+    },
+    "90": {
+     "ligne": 60.6,
+     "epaisseur": 25.8,
+     "largeur": 33.6,
+     "devant_ballon": 7.0,
+     "n": 74
+    }
+   },
+   "ligne_milieu": 37.5,
+   "epaisseur_milieu": 23.6,
+   "largeur_milieu": 35.5,
+   "ligne_bas": 12.8,
+   "epaisseur_bas": 16.4,
+   "vitesse_recul_m_s": -2.5,
+   "vitesse_montee_m_s": 1.4,
+   "ppda": 13.5,
+   "relances_pressees_pct": 61,
+   "relances_gagnees_haut_pct": 25,
+   "pressions_par_possession": 1.17,
+   "pressions_zone_pct": {
+    "bas": 23,
+    "haut": 30,
+    "milieu": 48
+   },
+   "sequence_pressing_n_moy": 1.17,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 3.6,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 39,
+   "ligne_5s_apres_perte": 46.9,
+   "n_frames": 1769,
+   "n_possessions": 342
+  },
+  "Iran (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.2,
+     "epaisseur": 13.5,
+     "largeur": 26.3,
+     "devant_ballon": 2,
+     "n": 111
+    },
+    "20": {
+     "ligne": 14.0,
+     "epaisseur": 16.5,
+     "largeur": 29.1,
+     "devant_ballon": 6.0,
+     "n": 250
+    },
+    "30": {
+     "ligne": 17.9,
+     "epaisseur": 19.3,
+     "largeur": 29.4,
+     "devant_ballon": 7.0,
+     "n": 280
+    },
+    "40": {
+     "ligne": 24.6,
+     "epaisseur": 23.0,
+     "largeur": 31.4,
+     "devant_ballon": 7.0,
+     "n": 370
+    },
+    "50": {
+     "ligne": 33.0,
+     "epaisseur": 23.8,
+     "largeur": 32.8,
+     "devant_ballon": 7.0,
+     "n": 328
+    },
+    "60": {
+     "ligne": 40.4,
+     "epaisseur": 25.2,
+     "largeur": 34.2,
+     "devant_ballon": 7,
+     "n": 225
+    },
+    "70": {
+     "ligne": 48.0,
+     "epaisseur": 25.8,
+     "largeur": 34.0,
+     "devant_ballon": 7.0,
+     "n": 152
+    },
+    "80": {
+     "ligne": 63.8,
+     "epaisseur": 23.1,
+     "largeur": 32.2,
+     "devant_ballon": 6.0,
+     "n": 68
+    },
+    "90": {
+     "ligne": 72.9,
+     "epaisseur": 19.4,
+     "largeur": 30.3,
+     "devant_ballon": 7.0,
+     "n": 26
+    }
+   },
+   "ligne_milieu": 35.2,
+   "epaisseur_milieu": 24.5,
+   "largeur_milieu": 33.1,
+   "ligne_bas": 13.5,
+   "epaisseur_bas": 16.3,
+   "vitesse_recul_m_s": -2.2,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 16.5,
+   "relances_pressees_pct": 69,
+   "relances_gagnees_haut_pct": 14,
+   "pressions_par_possession": 1.56,
+   "pressions_zone_pct": {
+    "milieu": 41,
+    "haut": 44,
+    "bas": 15
+   },
+   "sequence_pressing_n_moy": 1.21,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 2.5,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 25,
+   "ligne_5s_apres_perte": 48.3,
+   "n_frames": 1810,
+   "n_possessions": 255
+  },
+  "Belgium (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.2,
+     "epaisseur": 15.6,
+     "largeur": 25.2,
+     "devant_ballon": 3,
+     "n": 115
+    },
+    "20": {
+     "ligne": 13.1,
+     "epaisseur": 18.2,
+     "largeur": 29.5,
+     "devant_ballon": 6.0,
+     "n": 224
+    },
+    "30": {
+     "ligne": 17.3,
+     "epaisseur": 21.7,
+     "largeur": 32.1,
+     "devant_ballon": 7,
+     "n": 209
+    },
+    "40": {
+     "ligne": 24.8,
+     "epaisseur": 24.4,
+     "largeur": 34.9,
+     "devant_ballon": 7.0,
+     "n": 252
+    },
+    "50": {
+     "ligne": 32.2,
+     "epaisseur": 25.8,
+     "largeur": 36.2,
+     "devant_ballon": 7,
+     "n": 229
+    },
+    "60": {
+     "ligne": 41.8,
+     "epaisseur": 26.9,
+     "largeur": 37.0,
+     "devant_ballon": 7.0,
+     "n": 292
+    },
+    "70": {
+     "ligne": 46.9,
+     "epaisseur": 27.0,
+     "largeur": 38.1,
+     "devant_ballon": 7,
+     "n": 255
+    },
+    "80": {
+     "ligne": 54.2,
+     "epaisseur": 29.3,
+     "largeur": 38.4,
+     "devant_ballon": 7.0,
+     "n": 154
+    },
+    "90": {
+     "ligne": 61.8,
+     "epaisseur": 28.3,
+     "largeur": 38.5,
+     "devant_ballon": 8.0,
+     "n": 96
+    }
+   },
+   "ligne_milieu": 37.2,
+   "epaisseur_milieu": 26.3,
+   "largeur_milieu": 36.8,
+   "ligne_bas": 12.8,
+   "epaisseur_bas": 18.1,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.4,
+   "ppda": 14.8,
+   "relances_pressees_pct": 70,
+   "relances_gagnees_haut_pct": 34,
+   "pressions_par_possession": 1.2,
+   "pressions_zone_pct": {
+    "bas": 15,
+    "milieu": 47,
+    "haut": 38
+   },
+   "sequence_pressing_n_moy": 1.15,
+   "sequences_3_et_plus_pct": 0,
+   "sequence_longue_s": null,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 30,
+   "ligne_5s_apres_perte": 47.5,
+   "n_frames": 1826,
+   "n_possessions": 235
+  },
+  "Croatia (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.4,
+     "epaisseur": 12.2,
+     "largeur": 25.6,
+     "devant_ballon": 4,
+     "n": 175
+    },
+    "20": {
+     "ligne": 13.6,
+     "epaisseur": 15.9,
+     "largeur": 29.5,
+     "devant_ballon": 6,
+     "n": 401
+    },
+    "30": {
+     "ligne": 18.5,
+     "epaisseur": 19.9,
+     "largeur": 32.0,
+     "devant_ballon": 7,
+     "n": 637
+    },
+    "40": {
+     "ligne": 23.6,
+     "epaisseur": 22.2,
+     "largeur": 34.4,
+     "devant_ballon": 7,
+     "n": 727
+    },
+    "50": {
+     "ligne": 32.6,
+     "epaisseur": 23.3,
+     "largeur": 35.3,
+     "devant_ballon": 7,
+     "n": 553
+    },
+    "60": {
+     "ligne": 40.2,
+     "epaisseur": 24.2,
+     "largeur": 36.6,
+     "devant_ballon": 7,
+     "n": 555
+    },
+    "70": {
+     "ligne": 51.4,
+     "epaisseur": 23.7,
+     "largeur": 36.1,
+     "devant_ballon": 7,
+     "n": 421
+    },
+    "80": {
+     "ligne": 63.5,
+     "epaisseur": 22.7,
+     "largeur": 36.7,
+     "devant_ballon": 6.0,
+     "n": 170
+    },
+    "90": {
+     "ligne": 75.6,
+     "epaisseur": 21.3,
+     "largeur": 32.7,
+     "devant_ballon": 6.0,
+     "n": 118
+    }
+   },
+   "ligne_milieu": 35.8,
+   "epaisseur_milieu": 23.7,
+   "largeur_milieu": 35.7,
+   "ligne_bas": 14.0,
+   "epaisseur_bas": 16.0,
+   "vitesse_recul_m_s": -2.1,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 17.5,
+   "relances_pressees_pct": 71,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.33,
+   "pressions_zone_pct": {
+    "bas": 20,
+    "milieu": 43,
+    "haut": 36
+   },
+   "sequence_pressing_n_moy": 1.21,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 3.5,
+   "sequence_longue_p90_s": 4.9,
+   "contre_pressing_pct": 27,
+   "ligne_5s_apres_perte": 45.7,
+   "n_frames": 3757,
+   "n_possessions": 622
+  },
+  "Netherlands (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.7,
+     "epaisseur": 13.6,
+     "largeur": 26.5,
+     "devant_ballon": 3.0,
+     "n": 192
+    },
+    "20": {
+     "ligne": 13.4,
+     "epaisseur": 17.5,
+     "largeur": 30.3,
+     "devant_ballon": 6,
+     "n": 309
+    },
+    "30": {
+     "ligne": 17.6,
+     "epaisseur": 20.7,
+     "largeur": 31.9,
+     "devant_ballon": 7,
+     "n": 429
+    },
+    "40": {
+     "ligne": 25.1,
+     "epaisseur": 23.9,
+     "largeur": 34.6,
+     "devant_ballon": 7.0,
+     "n": 470
+    },
+    "50": {
+     "ligne": 32.5,
+     "epaisseur": 24.7,
+     "largeur": 37.1,
+     "devant_ballon": 7,
+     "n": 493
+    },
+    "60": {
+     "ligne": 38.9,
+     "epaisseur": 25.1,
+     "largeur": 38.1,
+     "devant_ballon": 7,
+     "n": 503
+    },
+    "70": {
+     "ligne": 49.1,
+     "epaisseur": 25.2,
+     "largeur": 38.2,
+     "devant_ballon": 7.0,
+     "n": 330
+    },
+    "80": {
+     "ligne": 61.8,
+     "epaisseur": 24.7,
+     "largeur": 37.1,
+     "devant_ballon": 7.0,
+     "n": 172
+    },
+    "90": {
+     "ligne": 61.2,
+     "epaisseur": 27.2,
+     "largeur": 36.8,
+     "devant_ballon": 7,
+     "n": 97
+    }
+   },
+   "ligne_milieu": 35.0,
+   "epaisseur_milieu": 24.8,
+   "largeur_milieu": 37.2,
+   "ligne_bas": 12.9,
+   "epaisseur_bas": 17.4,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.4,
+   "ppda": 13.1,
+   "relances_pressees_pct": 63,
+   "relances_gagnees_haut_pct": 31,
+   "pressions_par_possession": 1.46,
+   "pressions_zone_pct": {
+    "haut": 37,
+    "milieu": 48,
+    "bas": 16
+   },
+   "sequence_pressing_n_moy": 1.27,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 3.8,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 29,
+   "ligne_5s_apres_perte": 48.3,
+   "n_frames": 2995,
+   "n_possessions": 433
+  },
+  "Ecuador (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.8,
+     "epaisseur": 16.5,
+     "largeur": 28.7,
+     "devant_ballon": 2.5,
+     "n": 44
+    },
+    "20": {
+     "ligne": 14.5,
+     "epaisseur": 16.3,
+     "largeur": 31.4,
+     "devant_ballon": 5,
+     "n": 83
+    },
+    "30": {
+     "ligne": 20.9,
+     "epaisseur": 19.7,
+     "largeur": 35.1,
+     "devant_ballon": 6.0,
+     "n": 182
+    },
+    "40": {
+     "ligne": 26.3,
+     "epaisseur": 23.1,
+     "largeur": 35.4,
+     "devant_ballon": 6.0,
+     "n": 238
+    },
+    "50": {
+     "ligne": 34.1,
+     "epaisseur": 24.3,
+     "largeur": 36.0,
+     "devant_ballon": 6,
+     "n": 203
+    },
+    "60": {
+     "ligne": 43.6,
+     "epaisseur": 24.4,
+     "largeur": 35.4,
+     "devant_ballon": 6.0,
+     "n": 162
+    },
+    "70": {
+     "ligne": 56.0,
+     "epaisseur": 22.9,
+     "largeur": 33.0,
+     "devant_ballon": 6.0,
+     "n": 90
+    },
+    "80": {
+     "ligne": 65.4,
+     "epaisseur": 20.9,
+     "largeur": 32.9,
+     "devant_ballon": 5,
+     "n": 43
+    },
+    "90": {
+     "ligne": 79.7,
+     "epaisseur": 18.5,
+     "largeur": 32.3,
+     "devant_ballon": 4.0,
+     "n": 20
+    }
+   },
+   "ligne_milieu": 36.8,
+   "epaisseur_milieu": 24.1,
+   "largeur_milieu": 35.5,
+   "ligne_bas": 15.1,
+   "epaisseur_bas": 17.4,
+   "vitesse_recul_m_s": -2.9,
+   "vitesse_montee_m_s": 1.8,
+   "ppda": 12.4,
+   "relances_pressees_pct": 71,
+   "relances_gagnees_haut_pct": 32,
+   "pressions_par_possession": 1.46,
+   "pressions_zone_pct": {
+    "milieu": 49,
+    "haut": 34,
+    "bas": 17
+   },
+   "sequence_pressing_n_moy": 1.22,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 4.3,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 24,
+   "ligne_5s_apres_perte": 50.1,
+   "n_frames": 1065,
+   "n_possessions": 231
+  },
+  "Japan (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.0,
+     "epaisseur": 13.2,
+     "largeur": 27.8,
+     "devant_ballon": 4.0,
+     "n": 180
+    },
+    "20": {
+     "ligne": 14.0,
+     "epaisseur": 16.2,
+     "largeur": 31.8,
+     "devant_ballon": 6,
+     "n": 359
+    },
+    "30": {
+     "ligne": 18.1,
+     "epaisseur": 17.8,
+     "largeur": 33.6,
+     "devant_ballon": 8.0,
+     "n": 602
+    },
+    "40": {
+     "ligne": 23.7,
+     "epaisseur": 18.8,
+     "largeur": 35.5,
+     "devant_ballon": 8.0,
+     "n": 752
+    },
+    "50": {
+     "ligne": 31.1,
+     "epaisseur": 19.9,
+     "largeur": 37.5,
+     "devant_ballon": 8,
+     "n": 659
+    },
+    "60": {
+     "ligne": 39.0,
+     "epaisseur": 20.7,
+     "largeur": 38.7,
+     "devant_ballon": 8.0,
+     "n": 502
+    },
+    "70": {
+     "ligne": 47.9,
+     "epaisseur": 23.0,
+     "largeur": 38.6,
+     "devant_ballon": 7.0,
+     "n": 304
+    },
+    "80": {
+     "ligne": 64.2,
+     "epaisseur": 22.9,
+     "largeur": 37.8,
+     "devant_ballon": 6,
+     "n": 97
+    },
+    "90": {
+     "ligne": 73.4,
+     "epaisseur": 21.7,
+     "largeur": 37.5,
+     "devant_ballon": 7.0,
+     "n": 48
+    }
+   },
+   "ligne_milieu": 33.2,
+   "epaisseur_milieu": 20.3,
+   "largeur_milieu": 37.6,
+   "ligne_bas": 14.1,
+   "epaisseur_bas": 16.0,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 17.5,
+   "relances_pressees_pct": 71,
+   "relances_gagnees_haut_pct": 26,
+   "pressions_par_possession": 1.82,
+   "pressions_zone_pct": {
+    "bas": 20,
+    "milieu": 48,
+    "haut": 32
+   },
+   "sequence_pressing_n_moy": 1.28,
+   "sequences_3_et_plus_pct": 6,
+   "sequence_longue_s": 3.7,
+   "sequence_longue_p90_s": 4.5,
+   "contre_pressing_pct": 19,
+   "ligne_5s_apres_perte": 41.5,
+   "n_frames": 3503,
+   "n_possessions": 353
+  },
+  "Spain (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.7,
+     "epaisseur": 14.5,
+     "largeur": 26.6,
+     "devant_ballon": 2,
+     "n": 69
+    },
+    "20": {
+     "ligne": 15.6,
+     "epaisseur": 16.1,
+     "largeur": 31.4,
+     "devant_ballon": 5,
+     "n": 81
+    },
+    "30": {
+     "ligne": 21.7,
+     "epaisseur": 18.9,
+     "largeur": 32.3,
+     "devant_ballon": 6.0,
+     "n": 126
+    },
+    "40": {
+     "ligne": 29.5,
+     "epaisseur": 20.4,
+     "largeur": 34.2,
+     "devant_ballon": 6.0,
+     "n": 146
+    },
+    "50": {
+     "ligne": 38.0,
+     "epaisseur": 22.2,
+     "largeur": 35.0,
+     "devant_ballon": 6.0,
+     "n": 168
+    },
+    "60": {
+     "ligne": 46.8,
+     "epaisseur": 23.3,
+     "largeur": 35.2,
+     "devant_ballon": 6.0,
+     "n": 214
+    },
+    "70": {
+     "ligne": 55.6,
+     "epaisseur": 23.3,
+     "largeur": 35.8,
+     "devant_ballon": 6,
+     "n": 173
+    },
+    "80": {
+     "ligne": 66.5,
+     "epaisseur": 20.8,
+     "largeur": 36.0,
+     "devant_ballon": 5,
+     "n": 137
+    },
+    "90": {
+     "ligne": 76.6,
+     "epaisseur": 19.6,
+     "largeur": 34.1,
+     "devant_ballon": 6,
+     "n": 83
+    }
+   },
+   "ligne_milieu": 42.8,
+   "epaisseur_milieu": 22.8,
+   "largeur_milieu": 34.9,
+   "ligne_bas": 14.7,
+   "epaisseur_bas": 16.2,
+   "vitesse_recul_m_s": -2.8,
+   "vitesse_montee_m_s": 1.8,
+   "ppda": 9.0,
+   "relances_pressees_pct": 58,
+   "relances_gagnees_haut_pct": 36,
+   "pressions_par_possession": 1.19,
+   "pressions_zone_pct": {
+    "milieu": 42,
+    "bas": 31,
+    "haut": 28
+   },
+   "sequence_pressing_n_moy": 1.27,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.5,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 29,
+   "ligne_5s_apres_perte": 40.9,
+   "n_frames": 1197,
+   "n_possessions": 291
+  },
+  "United States (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.5,
+     "epaisseur": 13.5,
+     "largeur": 25.2,
+     "devant_ballon": 2,
+     "n": 105
+    },
+    "20": {
+     "ligne": 14.6,
+     "epaisseur": 17.6,
+     "largeur": 29.8,
+     "devant_ballon": 5,
+     "n": 159
+    },
+    "30": {
+     "ligne": 19.3,
+     "epaisseur": 20.4,
+     "largeur": 29.8,
+     "devant_ballon": 6.0,
+     "n": 242
+    },
+    "40": {
+     "ligne": 27.2,
+     "epaisseur": 22.4,
+     "largeur": 32.3,
+     "devant_ballon": 6,
+     "n": 295
+    },
+    "50": {
+     "ligne": 35.6,
+     "epaisseur": 23.2,
+     "largeur": 33.7,
+     "devant_ballon": 6,
+     "n": 287
+    },
+    "60": {
+     "ligne": 44.8,
+     "epaisseur": 23.6,
+     "largeur": 35.0,
+     "devant_ballon": 7,
+     "n": 281
+    },
+    "70": {
+     "ligne": 54.2,
+     "epaisseur": 23.7,
+     "largeur": 34.5,
+     "devant_ballon": 6,
+     "n": 217
+    },
+    "80": {
+     "ligne": 64.6,
+     "epaisseur": 22.2,
+     "largeur": 36.2,
+     "devant_ballon": 6.0,
+     "n": 124
+    },
+    "90": {
+     "ligne": 79.3,
+     "epaisseur": 18.1,
+     "largeur": 32.8,
+     "devant_ballon": 6,
+     "n": 51
+    }
+   },
+   "ligne_milieu": 39.1,
+   "epaisseur_milieu": 23.5,
+   "largeur_milieu": 34.2,
+   "ligne_bas": 13.6,
+   "epaisseur_bas": 16.6,
+   "vitesse_recul_m_s": -2.8,
+   "vitesse_montee_m_s": 1.5,
+   "ppda": 13.3,
+   "relances_pressees_pct": 64,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.5,
+   "pressions_zone_pct": {
+    "haut": 32,
+    "bas": 18,
+    "milieu": 50
+   },
+   "sequence_pressing_n_moy": 1.33,
+   "sequences_3_et_plus_pct": 6,
+   "sequence_longue_s": 4.4,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 29,
+   "ligne_5s_apres_perte": 47.5,
+   "n_frames": 1761,
+   "n_possessions": 302
+  },
+  "Wales (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.1,
+     "epaisseur": 14.1,
+     "largeur": 25.8,
+     "devant_ballon": 4.0,
+     "n": 124
+    },
+    "20": {
+     "ligne": 12.8,
+     "epaisseur": 18.1,
+     "largeur": 30.3,
+     "devant_ballon": 7.0,
+     "n": 174
+    },
+    "30": {
+     "ligne": 18.0,
+     "epaisseur": 21.9,
+     "largeur": 33.7,
+     "devant_ballon": 7.0,
+     "n": 268
+    },
+    "40": {
+     "ligne": 24.5,
+     "epaisseur": 24.9,
+     "largeur": 35.8,
+     "devant_ballon": 7.0,
+     "n": 292
+    },
+    "50": {
+     "ligne": 30.1,
+     "epaisseur": 24.7,
+     "largeur": 36.0,
+     "devant_ballon": 7,
+     "n": 331
+    },
+    "60": {
+     "ligne": 36.8,
+     "epaisseur": 25.5,
+     "largeur": 36.3,
+     "devant_ballon": 8.0,
+     "n": 376
+    },
+    "70": {
+     "ligne": 43.5,
+     "epaisseur": 26.0,
+     "largeur": 37.3,
+     "devant_ballon": 8.0,
+     "n": 310
+    },
+    "80": {
+     "ligne": 53.9,
+     "epaisseur": 25.7,
+     "largeur": 37.9,
+     "devant_ballon": 7,
+     "n": 153
+    },
+    "90": {
+     "ligne": 66.9,
+     "epaisseur": 23.4,
+     "largeur": 37.1,
+     "devant_ballon": 7.0,
+     "n": 62
+    }
+   },
+   "ligne_milieu": 34.2,
+   "epaisseur_milieu": 25.2,
+   "largeur_milieu": 36.3,
+   "ligne_bas": 12.0,
+   "epaisseur_bas": 17.3,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.4,
+   "ppda": 16.5,
+   "relances_pressees_pct": 60,
+   "relances_gagnees_haut_pct": 30,
+   "pressions_par_possession": 1.26,
+   "pressions_zone_pct": {
+    "bas": 17,
+    "haut": 34,
+    "milieu": 48
+   },
+   "sequence_pressing_n_moy": 1.21,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 4.3,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 26,
+   "ligne_5s_apres_perte": 45.6,
+   "n_frames": 2090,
+   "n_possessions": 234
+  },
+  "France (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.6,
+     "epaisseur": 15.6,
+     "largeur": 28.0,
+     "devant_ballon": 3.0,
+     "n": 236
+    },
+    "20": {
+     "ligne": 14.0,
+     "epaisseur": 16.1,
+     "largeur": 30.5,
+     "devant_ballon": 6,
+     "n": 349
+    },
+    "30": {
+     "ligne": 19.4,
+     "epaisseur": 20.4,
+     "largeur": 32.0,
+     "devant_ballon": 7.0,
+     "n": 522
+    },
+    "40": {
+     "ligne": 25.7,
+     "epaisseur": 22.5,
+     "largeur": 34.2,
+     "devant_ballon": 7.0,
+     "n": 634
+    },
+    "50": {
+     "ligne": 33.2,
+     "epaisseur": 23.6,
+     "largeur": 34.7,
+     "devant_ballon": 7.0,
+     "n": 676
+    },
+    "60": {
+     "ligne": 40.4,
+     "epaisseur": 24.4,
+     "largeur": 34.9,
+     "devant_ballon": 7.0,
+     "n": 714
+    },
+    "70": {
+     "ligne": 48.9,
+     "epaisseur": 24.2,
+     "largeur": 35.3,
+     "devant_ballon": 7.0,
+     "n": 492
+    },
+    "80": {
+     "ligne": 59.0,
+     "epaisseur": 24.2,
+     "largeur": 34.3,
+     "devant_ballon": 7.0,
+     "n": 194
+    },
+    "90": {
+     "ligne": 69.8,
+     "epaisseur": 25.1,
+     "largeur": 34.3,
+     "devant_ballon": 7.0,
+     "n": 84
+    }
+   },
+   "ligne_milieu": 36.4,
+   "epaisseur_milieu": 23.7,
+   "largeur_milieu": 34.9,
+   "ligne_bas": 13.4,
+   "epaisseur_bas": 16.7,
+   "vitesse_recul_m_s": -2.4,
+   "vitesse_montee_m_s": 1.3,
+   "ppda": 20.4,
+   "relances_pressees_pct": 66,
+   "relances_gagnees_haut_pct": 26,
+   "pressions_par_possession": 1.43,
+   "pressions_zone_pct": {
+    "bas": 16,
+    "milieu": 44,
+    "haut": 40
+   },
+   "sequence_pressing_n_moy": 1.19,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 4.1,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 25,
+   "ligne_5s_apres_perte": 48.2,
+   "n_frames": 3901,
+   "n_possessions": 562
+  },
+  "Tunisia (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.2,
+     "epaisseur": 13.6,
+     "largeur": 27.3,
+     "devant_ballon": 3.0,
+     "n": 110
+    },
+    "20": {
+     "ligne": 15.1,
+     "epaisseur": 15.7,
+     "largeur": 29.5,
+     "devant_ballon": 5,
+     "n": 181
+    },
+    "30": {
+     "ligne": 19.7,
+     "epaisseur": 18.2,
+     "largeur": 32.8,
+     "devant_ballon": 6.0,
+     "n": 306
+    },
+    "40": {
+     "ligne": 25.5,
+     "epaisseur": 20.4,
+     "largeur": 33.9,
+     "devant_ballon": 7.0,
+     "n": 318
+    },
+    "50": {
+     "ligne": 32.7,
+     "epaisseur": 22.0,
+     "largeur": 34.8,
+     "devant_ballon": 7,
+     "n": 225
+    },
+    "60": {
+     "ligne": 45.2,
+     "epaisseur": 22.2,
+     "largeur": 36.8,
+     "devant_ballon": 6,
+     "n": 125
+    },
+    "70": {
+     "ligne": 57.4,
+     "epaisseur": 23.9,
+     "largeur": 36.3,
+     "devant_ballon": 5,
+     "n": 63
+    },
+    "80": {
+     "ligne": 71.4,
+     "epaisseur": 21.2,
+     "largeur": 35.0,
+     "devant_ballon": 5,
+     "n": 37
+    },
+    "90": {
+     "ligne": 82.3,
+     "epaisseur": 20.6,
+     "largeur": 34.2,
+     "devant_ballon": 7.0,
+     "n": 24
+    }
+   },
+   "ligne_milieu": 34.0,
+   "epaisseur_milieu": 22.0,
+   "largeur_milieu": 35.2,
+   "ligne_bas": 14.9,
+   "epaisseur_bas": 15.5,
+   "vitesse_recul_m_s": -2.6,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 16.1,
+   "relances_pressees_pct": 68,
+   "relances_gagnees_haut_pct": 31,
+   "pressions_par_possession": 1.17,
+   "pressions_zone_pct": {
+    "bas": 14,
+    "milieu": 42,
+    "haut": 44
+   },
+   "sequence_pressing_n_moy": 1.21,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 2.7,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 33,
+   "ligne_5s_apres_perte": 44.0,
+   "n_frames": 1389,
+   "n_possessions": 270
+  },
+  "Cameroon (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.5,
+     "epaisseur": 15.8,
+     "largeur": 28.8,
+     "devant_ballon": 3,
+     "n": 117
+    },
+    "20": {
+     "ligne": 14.2,
+     "epaisseur": 18.8,
+     "largeur": 30.2,
+     "devant_ballon": 5.0,
+     "n": 212
+    },
+    "30": {
+     "ligne": 19.4,
+     "epaisseur": 20.7,
+     "largeur": 32.8,
+     "devant_ballon": 6.0,
+     "n": 228
+    },
+    "40": {
+     "ligne": 25.5,
+     "epaisseur": 23.5,
+     "largeur": 34.5,
+     "devant_ballon": 7,
+     "n": 301
+    },
+    "50": {
+     "ligne": 32.8,
+     "epaisseur": 24.4,
+     "largeur": 34.8,
+     "devant_ballon": 7.0,
+     "n": 292
+    },
+    "60": {
+     "ligne": 43.0,
+     "epaisseur": 24.9,
+     "largeur": 36.3,
+     "devant_ballon": 6.0,
+     "n": 250
+    },
+    "70": {
+     "ligne": 49.5,
+     "epaisseur": 25.5,
+     "largeur": 35.6,
+     "devant_ballon": 7,
+     "n": 197
+    },
+    "80": {
+     "ligne": 57.0,
+     "epaisseur": 26.1,
+     "largeur": 36.1,
+     "devant_ballon": 7.0,
+     "n": 126
+    },
+    "90": {
+     "ligne": 69.4,
+     "epaisseur": 25.8,
+     "largeur": 33.1,
+     "devant_ballon": 7.0,
+     "n": 50
+    }
+   },
+   "ligne_milieu": 35.5,
+   "epaisseur_milieu": 24.5,
+   "largeur_milieu": 35.2,
+   "ligne_bas": 13.1,
+   "epaisseur_bas": 17.7,
+   "vitesse_recul_m_s": -2.1,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 17.4,
+   "relances_pressees_pct": 74,
+   "relances_gagnees_haut_pct": 23,
+   "pressions_par_possession": 1.38,
+   "pressions_zone_pct": {
+    "milieu": 43,
+    "haut": 38,
+    "bas": 19
+   },
+   "sequence_pressing_n_moy": 1.27,
+   "sequences_3_et_plus_pct": 6,
+   "sequence_longue_s": 2.9,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 29,
+   "ligne_5s_apres_perte": 44.7,
+   "n_frames": 1773,
+   "n_possessions": 248
+  },
+  "Switzerland (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.4,
+     "epaisseur": 13.6,
+     "largeur": 27.9,
+     "devant_ballon": 3,
+     "n": 139
+    },
+    "20": {
+     "ligne": 13.3,
+     "epaisseur": 16.2,
+     "largeur": 31.0,
+     "devant_ballon": 6.0,
+     "n": 216
+    },
+    "30": {
+     "ligne": 18.4,
+     "epaisseur": 19.8,
+     "largeur": 32.0,
+     "devant_ballon": 7,
+     "n": 381
+    },
+    "40": {
+     "ligne": 24.7,
+     "epaisseur": 24.3,
+     "largeur": 34.3,
+     "devant_ballon": 8.0,
+     "n": 434
+    },
+    "50": {
+     "ligne": 30.6,
+     "epaisseur": 25.5,
+     "largeur": 35.4,
+     "devant_ballon": 8,
+     "n": 361
+    },
+    "60": {
+     "ligne": 37.9,
+     "epaisseur": 25.3,
+     "largeur": 35.8,
+     "devant_ballon": 8.0,
+     "n": 408
+    },
+    "70": {
+     "ligne": 45.9,
+     "epaisseur": 26.0,
+     "largeur": 36.6,
+     "devant_ballon": 7.0,
+     "n": 342
+    },
+    "80": {
+     "ligne": 58.0,
+     "epaisseur": 27.1,
+     "largeur": 35.8,
+     "devant_ballon": 7,
+     "n": 171
+    },
+    "90": {
+     "ligne": 61.8,
+     "epaisseur": 26.4,
+     "largeur": 38.6,
+     "devant_ballon": 7.0,
+     "n": 90
+    }
+   },
+   "ligne_milieu": 35.0,
+   "epaisseur_milieu": 25.2,
+   "largeur_milieu": 35.6,
+   "ligne_bas": 12.8,
+   "epaisseur_bas": 16.0,
+   "vitesse_recul_m_s": -1.8,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 15.6,
+   "relances_pressees_pct": 62,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.17,
+   "pressions_zone_pct": {
+    "bas": 21,
+    "milieu": 44,
+    "haut": 34
+   },
+   "sequence_pressing_n_moy": 1.27,
+   "sequences_3_et_plus_pct": 6,
+   "sequence_longue_s": 3.3,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 26,
+   "ligne_5s_apres_perte": 46.8,
+   "n_frames": 2542,
+   "n_possessions": 333
+  },
+  "Ghana (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.4,
+     "epaisseur": 14.7,
+     "largeur": 24.5,
+     "devant_ballon": 3,
+     "n": 135
+    },
+    "20": {
+     "ligne": 12.8,
+     "epaisseur": 15.5,
+     "largeur": 28.1,
+     "devant_ballon": 6,
+     "n": 211
+    },
+    "30": {
+     "ligne": 19.3,
+     "epaisseur": 19.7,
+     "largeur": 31.4,
+     "devant_ballon": 6,
+     "n": 271
+    },
+    "40": {
+     "ligne": 24.2,
+     "epaisseur": 23.8,
+     "largeur": 32.9,
+     "devant_ballon": 7,
+     "n": 287
+    },
+    "50": {
+     "ligne": 30.9,
+     "epaisseur": 23.8,
+     "largeur": 32.9,
+     "devant_ballon": 7.0,
+     "n": 222
+    },
+    "60": {
+     "ligne": 41.1,
+     "epaisseur": 24.5,
+     "largeur": 33.5,
+     "devant_ballon": 7.0,
+     "n": 244
+    },
+    "70": {
+     "ligne": 47.9,
+     "epaisseur": 24.6,
+     "largeur": 34.6,
+     "devant_ballon": 7.0,
+     "n": 150
+    },
+    "80": {
+     "ligne": 63.4,
+     "epaisseur": 23.1,
+     "largeur": 37.4,
+     "devant_ballon": 6.0,
+     "n": 100
+    },
+    "90": {
+     "ligne": 73.9,
+     "epaisseur": 22.3,
+     "largeur": 26.7,
+     "devant_ballon": 6.0,
+     "n": 16
+    }
+   },
+   "ligne_milieu": 35.8,
+   "epaisseur_milieu": 24.3,
+   "largeur_milieu": 33.1,
+   "ligne_bas": 12.4,
+   "epaisseur_bas": 16.4,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 14.6,
+   "relances_pressees_pct": 68,
+   "relances_gagnees_haut_pct": 29,
+   "pressions_par_possession": 1.45,
+   "pressions_zone_pct": {
+    "bas": 15,
+    "milieu": 39,
+    "haut": 45
+   },
+   "sequence_pressing_n_moy": 1.25,
+   "sequences_3_et_plus_pct": 6,
+   "sequence_longue_s": 3.7,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 30,
+   "ligne_5s_apres_perte": 43.7,
+   "n_frames": 1636,
+   "n_possessions": 256
+  },
+  "Portugal (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.0,
+     "epaisseur": 13.0,
+     "largeur": 27.9,
+     "devant_ballon": 2,
+     "n": 93
+    },
+    "20": {
+     "ligne": 13.9,
+     "epaisseur": 16.8,
+     "largeur": 30.0,
+     "devant_ballon": 5.0,
+     "n": 170
+    },
+    "30": {
+     "ligne": 18.4,
+     "epaisseur": 21.1,
+     "largeur": 31.0,
+     "devant_ballon": 6,
+     "n": 241
+    },
+    "40": {
+     "ligne": 25.6,
+     "epaisseur": 24.0,
+     "largeur": 33.3,
+     "devant_ballon": 6,
+     "n": 295
+    },
+    "50": {
+     "ligne": 33.2,
+     "epaisseur": 25.8,
+     "largeur": 34.7,
+     "devant_ballon": 7.0,
+     "n": 284
+    },
+    "60": {
+     "ligne": 41.4,
+     "epaisseur": 26.9,
+     "largeur": 35.5,
+     "devant_ballon": 7.0,
+     "n": 380
+    },
+    "70": {
+     "ligne": 47.9,
+     "epaisseur": 26.6,
+     "largeur": 35.6,
+     "devant_ballon": 7,
+     "n": 343
+    },
+    "80": {
+     "ligne": 58.8,
+     "epaisseur": 26.2,
+     "largeur": 35.6,
+     "devant_ballon": 7.0,
+     "n": 224
+    },
+    "90": {
+     "ligne": 65.0,
+     "epaisseur": 27.1,
+     "largeur": 37.1,
+     "devant_ballon": 7.0,
+     "n": 158
+    }
+   },
+   "ligne_milieu": 38.0,
+   "epaisseur_milieu": 26.3,
+   "largeur_milieu": 35.1,
+   "ligne_bas": 13.5,
+   "epaisseur_bas": 17.4,
+   "vitesse_recul_m_s": -2.0,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 14.8,
+   "relances_pressees_pct": 60,
+   "relances_gagnees_haut_pct": 35,
+   "pressions_par_possession": 1.15,
+   "pressions_zone_pct": {
+    "milieu": 47,
+    "bas": 28,
+    "haut": 25
+   },
+   "sequence_pressing_n_moy": 1.19,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 3.7,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 21,
+   "ligne_5s_apres_perte": 46.5,
+   "n_frames": 2188,
+   "n_possessions": 378
+  },
+  "Senegal (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.3,
+     "epaisseur": 14.0,
+     "largeur": 27.7,
+     "devant_ballon": 2,
+     "n": 105
+    },
+    "20": {
+     "ligne": 14.5,
+     "epaisseur": 18.9,
+     "largeur": 29.6,
+     "devant_ballon": 5.0,
+     "n": 178
+    },
+    "30": {
+     "ligne": 18.4,
+     "epaisseur": 21.1,
+     "largeur": 32.3,
+     "devant_ballon": 6,
+     "n": 253
+    },
+    "40": {
+     "ligne": 25.7,
+     "epaisseur": 23.2,
+     "largeur": 34.4,
+     "devant_ballon": 7.0,
+     "n": 314
+    },
+    "50": {
+     "ligne": 33.3,
+     "epaisseur": 24.2,
+     "largeur": 34.5,
+     "devant_ballon": 7.0,
+     "n": 378
+    },
+    "60": {
+     "ligne": 40.7,
+     "epaisseur": 24.3,
+     "largeur": 35.0,
+     "devant_ballon": 7,
+     "n": 413
+    },
+    "70": {
+     "ligne": 46.6,
+     "epaisseur": 25.2,
+     "largeur": 34.0,
+     "devant_ballon": 7.0,
+     "n": 282
+    },
+    "80": {
+     "ligne": 53.7,
+     "epaisseur": 24.7,
+     "largeur": 34.2,
+     "devant_ballon": 7.0,
+     "n": 112
+    },
+    "90": {
+     "ligne": 63.3,
+     "epaisseur": 25.5,
+     "largeur": 36.7,
+     "devant_ballon": 7.0,
+     "n": 64
+    }
+   },
+   "ligne_milieu": 36.7,
+   "epaisseur_milieu": 24.2,
+   "largeur_milieu": 34.6,
+   "ligne_bas": 13.8,
+   "epaisseur_bas": 18.5,
+   "vitesse_recul_m_s": -2.6,
+   "vitesse_montee_m_s": 1.4,
+   "ppda": 19.2,
+   "relances_pressees_pct": 67,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.36,
+   "pressions_zone_pct": {
+    "milieu": 49,
+    "bas": 17,
+    "haut": 34
+   },
+   "sequence_pressing_n_moy": 1.2,
+   "sequences_3_et_plus_pct": 2,
+   "sequence_longue_s": 4.4,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 27,
+   "ligne_5s_apres_perte": 43.4,
+   "n_frames": 2099,
+   "n_possessions": 329
+  },
+  "Saudi Arabia (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.6,
+     "epaisseur": 14.8,
+     "largeur": 28.0,
+     "devant_ballon": 2.0,
+     "n": 98
+    },
+    "20": {
+     "ligne": 14.8,
+     "epaisseur": 14.0,
+     "largeur": 28.7,
+     "devant_ballon": 5.0,
+     "n": 142
+    },
+    "30": {
+     "ligne": 18.5,
+     "epaisseur": 16.8,
+     "largeur": 30.3,
+     "devant_ballon": 7.0,
+     "n": 174
+    },
+    "40": {
+     "ligne": 26.6,
+     "epaisseur": 20.2,
+     "largeur": 34.5,
+     "devant_ballon": 7,
+     "n": 225
+    },
+    "50": {
+     "ligne": 35.7,
+     "epaisseur": 20.4,
+     "largeur": 35.3,
+     "devant_ballon": 8,
+     "n": 213
+    },
+    "60": {
+     "ligne": 41.2,
+     "epaisseur": 20.2,
+     "largeur": 36.6,
+     "devant_ballon": 8,
+     "n": 273
+    },
+    "70": {
+     "ligne": 45.7,
+     "epaisseur": 20.7,
+     "largeur": 37.4,
+     "devant_ballon": 10,
+     "n": 313
+    },
+    "80": {
+     "ligne": 50.8,
+     "epaisseur": 20.8,
+     "largeur": 36.0,
+     "devant_ballon": 9,
+     "n": 159
+    },
+    "90": {
+     "ligne": 61.1,
+     "epaisseur": 24.4,
+     "largeur": 34.8,
+     "devant_ballon": 7,
+     "n": 57
+    }
+   },
+   "ligne_milieu": 39.8,
+   "epaisseur_milieu": 20.5,
+   "largeur_milieu": 36.2,
+   "ligne_bas": 13.1,
+   "epaisseur_bas": 14.7,
+   "vitesse_recul_m_s": -1.4,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 13.9,
+   "relances_pressees_pct": 70,
+   "relances_gagnees_haut_pct": 27,
+   "pressions_par_possession": 1.29,
+   "pressions_zone_pct": {
+    "bas": 13,
+    "milieu": 49,
+    "haut": 38
+   },
+   "sequence_pressing_n_moy": 1.14,
+   "sequences_3_et_plus_pct": 2,
+   "sequence_longue_s": 2.4,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 28,
+   "ligne_5s_apres_perte": 39.7,
+   "n_frames": 1654,
+   "n_possessions": 260
+  },
+  "Poland (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.1,
+     "epaisseur": 12.1,
+     "largeur": 26.2,
+     "devant_ballon": 3,
+     "n": 221
+    },
+    "20": {
+     "ligne": 13.7,
+     "epaisseur": 13.6,
+     "largeur": 28.8,
+     "devant_ballon": 7.0,
+     "n": 400
+    },
+    "30": {
+     "ligne": 17.9,
+     "epaisseur": 17.3,
+     "largeur": 30.6,
+     "devant_ballon": 8.0,
+     "n": 600
+    },
+    "40": {
+     "ligne": 23.6,
+     "epaisseur": 21.5,
+     "largeur": 32.4,
+     "devant_ballon": 8.0,
+     "n": 636
+    },
+    "50": {
+     "ligne": 30.4,
+     "epaisseur": 22.7,
+     "largeur": 33.9,
+     "devant_ballon": 8.0,
+     "n": 538
+    },
+    "60": {
+     "ligne": 37.9,
+     "epaisseur": 23.4,
+     "largeur": 34.4,
+     "devant_ballon": 8,
+     "n": 505
+    },
+    "70": {
+     "ligne": 46.3,
+     "epaisseur": 23.9,
+     "largeur": 34.6,
+     "devant_ballon": 8,
+     "n": 273
+    },
+    "80": {
+     "ligne": 56.3,
+     "epaisseur": 24.0,
+     "largeur": 33.8,
+     "devant_ballon": 7.0,
+     "n": 102
+    },
+    "90": {
+     "ligne": 72.5,
+     "epaisseur": 20.9,
+     "largeur": 29.2,
+     "devant_ballon": 7.0,
+     "n": 30
+    }
+   },
+   "ligne_milieu": 33.4,
+   "epaisseur_milieu": 23.0,
+   "largeur_milieu": 34.0,
+   "ligne_bas": 13.3,
+   "epaisseur_bas": 13.6,
+   "vitesse_recul_m_s": -1.7,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 20.7,
+   "relances_pressees_pct": 64,
+   "relances_gagnees_haut_pct": 25,
+   "pressions_par_possession": 1.35,
+   "pressions_zone_pct": {
+    "bas": 16,
+    "milieu": 39,
+    "haut": 44
+   },
+   "sequence_pressing_n_moy": 1.25,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.5,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 27,
+   "ligne_5s_apres_perte": 50.4,
+   "n_frames": 3305,
+   "n_possessions": 302
+  },
+  "Qatar (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.4,
+     "epaisseur": 14.2,
+     "largeur": 28.8,
+     "devant_ballon": 2.0,
+     "n": 78
+    },
+    "20": {
+     "ligne": 14.9,
+     "epaisseur": 16.2,
+     "largeur": 32.2,
+     "devant_ballon": 6,
+     "n": 191
+    },
+    "30": {
+     "ligne": 19.0,
+     "epaisseur": 18.8,
+     "largeur": 33.6,
+     "devant_ballon": 8.0,
+     "n": 448
+    },
+    "40": {
+     "ligne": 23.8,
+     "epaisseur": 19.8,
+     "largeur": 34.3,
+     "devant_ballon": 8,
+     "n": 495
+    },
+    "50": {
+     "ligne": 29.2,
+     "epaisseur": 20.4,
+     "largeur": 33.8,
+     "devant_ballon": 8.0,
+     "n": 466
+    },
+    "60": {
+     "ligne": 37.8,
+     "epaisseur": 21.4,
+     "largeur": 36.1,
+     "devant_ballon": 8.0,
+     "n": 316
+    },
+    "70": {
+     "ligne": 47.8,
+     "epaisseur": 22.8,
+     "largeur": 35.7,
+     "devant_ballon": 7,
+     "n": 147
+    },
+    "80": {
+     "ligne": 58.9,
+     "epaisseur": 24.1,
+     "largeur": 38.7,
+     "devant_ballon": 6,
+     "n": 35
+    },
+    "90": {
+     "ligne": 63.1,
+     "epaisseur": 21.0,
+     "largeur": 39.0,
+     "devant_ballon": 7.0,
+     "n": 16
+    }
+   },
+   "ligne_milieu": 31.6,
+   "epaisseur_milieu": 20.7,
+   "largeur_milieu": 34.8,
+   "ligne_bas": 15.4,
+   "epaisseur_bas": 16.6,
+   "vitesse_recul_m_s": -1.7,
+   "vitesse_montee_m_s": 1.3,
+   "ppda": 33.5,
+   "relances_pressees_pct": 68,
+   "relances_gagnees_haut_pct": 23,
+   "pressions_par_possession": 1.45,
+   "pressions_zone_pct": {
+    "milieu": 38,
+    "haut": 50,
+    "bas": 13
+   },
+   "sequence_pressing_n_moy": 1.23,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 4.2,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 19,
+   "ligne_5s_apres_perte": 40.0,
+   "n_frames": 2192,
+   "n_possessions": 229
+  },
+  "Denmark (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.6,
+     "epaisseur": 13.4,
+     "largeur": 25.3,
+     "devant_ballon": 2.0,
+     "n": 72
+    },
+    "20": {
+     "ligne": 14.5,
+     "epaisseur": 16.8,
+     "largeur": 32.4,
+     "devant_ballon": 6,
+     "n": 103
+    },
+    "30": {
+     "ligne": 19.2,
+     "epaisseur": 19.3,
+     "largeur": 32.7,
+     "devant_ballon": 7,
+     "n": 183
+    },
+    "40": {
+     "ligne": 26.4,
+     "epaisseur": 20.2,
+     "largeur": 34.8,
+     "devant_ballon": 7.0,
+     "n": 220
+    },
+    "50": {
+     "ligne": 34.1,
+     "epaisseur": 20.8,
+     "largeur": 36.5,
+     "devant_ballon": 7.0,
+     "n": 182
+    },
+    "60": {
+     "ligne": 42.5,
+     "epaisseur": 21.6,
+     "largeur": 36.7,
+     "devant_ballon": 7,
+     "n": 195
+    },
+    "70": {
+     "ligne": 47.5,
+     "epaisseur": 23.8,
+     "largeur": 37.0,
+     "devant_ballon": 8,
+     "n": 147
+    },
+    "80": {
+     "ligne": 63.0,
+     "epaisseur": 23.8,
+     "largeur": 36.3,
+     "devant_ballon": 6,
+     "n": 71
+    },
+    "90": {
+     "ligne": 78.1,
+     "epaisseur": 21.0,
+     "largeur": 34.3,
+     "devant_ballon": 5.0,
+     "n": 32
+    }
+   },
+   "ligne_milieu": 38.4,
+   "epaisseur_milieu": 21.4,
+   "largeur_milieu": 36.5,
+   "ligne_bas": 13.6,
+   "epaisseur_bas": 16.3,
+   "vitesse_recul_m_s": -2.1,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 12.5,
+   "relances_pressees_pct": 58,
+   "relances_gagnees_haut_pct": 29,
+   "pressions_par_possession": 1.13,
+   "pressions_zone_pct": {
+    "haut": 31,
+    "bas": 26,
+    "milieu": 43
+   },
+   "sequence_pressing_n_moy": 1.2,
+   "sequences_3_et_plus_pct": 2,
+   "sequence_longue_s": 4.1,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 24,
+   "ligne_5s_apres_perte": 45.8,
+   "n_frames": 1205,
+   "n_possessions": 248
+  },
+  "Germany (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.2,
+     "epaisseur": 12.5,
+     "largeur": 28.7,
+     "devant_ballon": 2,
+     "n": 67
+    },
+    "20": {
+     "ligne": 12.5,
+     "epaisseur": 14.2,
+     "largeur": 29.5,
+     "devant_ballon": 6,
+     "n": 81
+    },
+    "30": {
+     "ligne": 20.9,
+     "epaisseur": 18.8,
+     "largeur": 31.1,
+     "devant_ballon": 6.0,
+     "n": 110
+    },
+    "40": {
+     "ligne": 27.3,
+     "epaisseur": 21.0,
+     "largeur": 33.9,
+     "devant_ballon": 6,
+     "n": 185
+    },
+    "50": {
+     "ligne": 36.6,
+     "epaisseur": 22.7,
+     "largeur": 35.3,
+     "devant_ballon": 6.0,
+     "n": 216
+    },
+    "60": {
+     "ligne": 47.6,
+     "epaisseur": 23.6,
+     "largeur": 35.1,
+     "devant_ballon": 6.0,
+     "n": 252
+    },
+    "70": {
+     "ligne": 53.9,
+     "epaisseur": 23.3,
+     "largeur": 34.9,
+     "devant_ballon": 6,
+     "n": 221
+    },
+    "80": {
+     "ligne": 66.6,
+     "epaisseur": 22.6,
+     "largeur": 34.2,
+     "devant_ballon": 5,
+     "n": 115
+    },
+    "90": {
+     "ligne": 80.3,
+     "epaisseur": 19.3,
+     "largeur": 33.7,
+     "devant_ballon": 6,
+     "n": 67
+    }
+   },
+   "ligne_milieu": 43.2,
+   "epaisseur_milieu": 23.1,
+   "largeur_milieu": 35.2,
+   "ligne_bas": 11.9,
+   "epaisseur_bas": 14.1,
+   "vitesse_recul_m_s": -2.3,
+   "vitesse_montee_m_s": 1.5,
+   "ppda": 10.7,
+   "relances_pressees_pct": 66,
+   "relances_gagnees_haut_pct": 36,
+   "pressions_par_possession": 1.33,
+   "pressions_zone_pct": {
+    "bas": 38,
+    "milieu": 43,
+    "haut": 19
+   },
+   "sequence_pressing_n_moy": 1.27,
+   "sequences_3_et_plus_pct": 6,
+   "sequence_longue_s": 3.7,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 30,
+   "ligne_5s_apres_perte": 48.3,
+   "n_frames": 1314,
+   "n_possessions": 242
+  },
+  "Mexico (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.4,
+     "epaisseur": 15.8,
+     "largeur": 28.0,
+     "devant_ballon": 3.0,
+     "n": 64
+    },
+    "20": {
+     "ligne": 14.9,
+     "epaisseur": 16.7,
+     "largeur": 29.6,
+     "devant_ballon": 6.0,
+     "n": 112
+    },
+    "30": {
+     "ligne": 19.4,
+     "epaisseur": 20.3,
+     "largeur": 32.0,
+     "devant_ballon": 7.0,
+     "n": 220
+    },
+    "40": {
+     "ligne": 24.9,
+     "epaisseur": 24.2,
+     "largeur": 35.2,
+     "devant_ballon": 7.0,
+     "n": 274
+    },
+    "50": {
+     "ligne": 31.3,
+     "epaisseur": 25.1,
+     "largeur": 36.6,
+     "devant_ballon": 7,
+     "n": 189
+    },
+    "60": {
+     "ligne": 38.5,
+     "epaisseur": 26.0,
+     "largeur": 36.8,
+     "devant_ballon": 8,
+     "n": 225
+    },
+    "70": {
+     "ligne": 45.4,
+     "epaisseur": 26.5,
+     "largeur": 38.4,
+     "devant_ballon": 8.0,
+     "n": 202
+    },
+    "80": {
+     "ligne": 51.3,
+     "epaisseur": 28.3,
+     "largeur": 37.9,
+     "devant_ballon": 7,
+     "n": 101
+    },
+    "90": {
+     "ligne": 60.7,
+     "epaisseur": 26.2,
+     "largeur": 38.5,
+     "devant_ballon": 7.0,
+     "n": 74
+    }
+   },
+   "ligne_milieu": 34.9,
+   "epaisseur_milieu": 25.4,
+   "largeur_milieu": 36.5,
+   "ligne_bas": 15.0,
+   "epaisseur_bas": 18.1,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.4,
+   "ppda": 10.7,
+   "relances_pressees_pct": 60,
+   "relances_gagnees_haut_pct": 26,
+   "pressions_par_possession": 1.29,
+   "pressions_zone_pct": {
+    "haut": 35,
+    "milieu": 51,
+    "bas": 13
+   },
+   "sequence_pressing_n_moy": 1.27,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 3.8,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 24,
+   "ligne_5s_apres_perte": 43.5,
+   "n_frames": 1461,
+   "n_possessions": 247
+  },
+  "Brazil (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.3,
+     "epaisseur": 14.1,
+     "largeur": 28.3,
+     "devant_ballon": 3.0,
+     "n": 124
+    },
+    "20": {
+     "ligne": 14.3,
+     "epaisseur": 18.3,
+     "largeur": 32.0,
+     "devant_ballon": 6,
+     "n": 229
+    },
+    "30": {
+     "ligne": 18.1,
+     "epaisseur": 20.9,
+     "largeur": 34.4,
+     "devant_ballon": 7,
+     "n": 361
+    },
+    "40": {
+     "ligne": 23.8,
+     "epaisseur": 22.9,
+     "largeur": 34.6,
+     "devant_ballon": 7,
+     "n": 467
+    },
+    "50": {
+     "ligne": 31.7,
+     "epaisseur": 23.9,
+     "largeur": 37.0,
+     "devant_ballon": 7,
+     "n": 377
+    },
+    "60": {
+     "ligne": 40.3,
+     "epaisseur": 25.2,
+     "largeur": 36.0,
+     "devant_ballon": 8,
+     "n": 425
+    },
+    "70": {
+     "ligne": 48.9,
+     "epaisseur": 26.4,
+     "largeur": 36.9,
+     "devant_ballon": 7,
+     "n": 371
+    },
+    "80": {
+     "ligne": 57.5,
+     "epaisseur": 26.4,
+     "largeur": 36.8,
+     "devant_ballon": 7,
+     "n": 239
+    },
+    "90": {
+     "ligne": 65.3,
+     "epaisseur": 27.1,
+     "largeur": 35.9,
+     "devant_ballon": 7,
+     "n": 169
+    }
+   },
+   "ligne_milieu": 35.3,
+   "epaisseur_milieu": 24.3,
+   "largeur_milieu": 36.2,
+   "ligne_bas": 14.2,
+   "epaisseur_bas": 18.2,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 13.3,
+   "relances_pressees_pct": 55,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.2,
+   "pressions_zone_pct": {
+    "milieu": 48,
+    "haut": 28,
+    "bas": 23
+   },
+   "sequence_pressing_n_moy": 1.28,
+   "sequences_3_et_plus_pct": 6,
+   "sequence_longue_s": 3.0,
+   "sequence_longue_p90_s": 4.7,
+   "contre_pressing_pct": 23,
+   "ligne_5s_apres_perte": 46.7,
+   "n_frames": 2762,
+   "n_possessions": 411
+  },
+  "Argentina (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.0,
+     "epaisseur": 15.2,
+     "largeur": 27.6,
+     "devant_ballon": 3.0,
+     "n": 144
+    },
+    "20": {
+     "ligne": 14.3,
+     "epaisseur": 17.8,
+     "largeur": 30.2,
+     "devant_ballon": 6,
+     "n": 269
+    },
+    "30": {
+     "ligne": 18.4,
+     "epaisseur": 20.7,
+     "largeur": 33.2,
+     "devant_ballon": 7.0,
+     "n": 456
+    },
+    "40": {
+     "ligne": 24.6,
+     "epaisseur": 24.2,
+     "largeur": 35.3,
+     "devant_ballon": 7.0,
+     "n": 624
+    },
+    "50": {
+     "ligne": 30.4,
+     "epaisseur": 24.9,
+     "largeur": 35.6,
+     "devant_ballon": 8.0,
+     "n": 612
+    },
+    "60": {
+     "ligne": 36.1,
+     "epaisseur": 25.7,
+     "largeur": 36.6,
+     "devant_ballon": 8.0,
+     "n": 760
+    },
+    "70": {
+     "ligne": 41.2,
+     "epaisseur": 26.5,
+     "largeur": 37.4,
+     "devant_ballon": 8.0,
+     "n": 692
+    },
+    "80": {
+     "ligne": 51.6,
+     "epaisseur": 27.3,
+     "largeur": 37.7,
+     "devant_ballon": 8.0,
+     "n": 342
+    },
+    "90": {
+     "ligne": 57.7,
+     "epaisseur": 29.0,
+     "largeur": 37.8,
+     "devant_ballon": 7.0,
+     "n": 214
+    }
+   },
+   "ligne_milieu": 33.9,
+   "epaisseur_milieu": 25.5,
+   "largeur_milieu": 36.3,
+   "ligne_bas": 13.9,
+   "epaisseur_bas": 17.9,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 15.8,
+   "relances_pressees_pct": 67,
+   "relances_gagnees_haut_pct": 26,
+   "pressions_par_possession": 1.41,
+   "pressions_zone_pct": {
+    "milieu": 46,
+    "bas": 17,
+    "haut": 37
+   },
+   "sequence_pressing_n_moy": 1.33,
+   "sequences_3_et_plus_pct": 8,
+   "sequence_longue_s": 4.2,
+   "sequence_longue_p90_s": 6.5,
+   "contre_pressing_pct": 28,
+   "ligne_5s_apres_perte": 44.3,
+   "n_frames": 4113,
+   "n_possessions": 570
+  },
+  "Costa Rica (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.3,
+     "epaisseur": 13.7,
+     "largeur": 26.8,
+     "devant_ballon": 3,
+     "n": 155
+    },
+    "20": {
+     "ligne": 14.9,
+     "epaisseur": 14.8,
+     "largeur": 30.6,
+     "devant_ballon": 5.0,
+     "n": 344
+    },
+    "30": {
+     "ligne": 18.3,
+     "epaisseur": 20.2,
+     "largeur": 33.7,
+     "devant_ballon": 7.0,
+     "n": 576
+    },
+    "40": {
+     "ligne": 23.4,
+     "epaisseur": 21.5,
+     "largeur": 35.5,
+     "devant_ballon": 8,
+     "n": 709
+    },
+    "50": {
+     "ligne": 30.1,
+     "epaisseur": 21.7,
+     "largeur": 36.1,
+     "devant_ballon": 8,
+     "n": 647
+    },
+    "60": {
+     "ligne": 37.1,
+     "epaisseur": 22.5,
+     "largeur": 37.1,
+     "devant_ballon": 8.0,
+     "n": 506
+    },
+    "70": {
+     "ligne": 44.0,
+     "epaisseur": 22.4,
+     "largeur": 37.5,
+     "devant_ballon": 8.0,
+     "n": 272
+    },
+    "80": {
+     "ligne": 57.2,
+     "epaisseur": 24.2,
+     "largeur": 36.0,
+     "devant_ballon": 7.0,
+     "n": 74
+    },
+    "90": {
+     "ligne": 67.8,
+     "epaisseur": 22.1,
+     "largeur": 35.3,
+     "devant_ballon": 7,
+     "n": 27
+    }
+   },
+   "ligne_milieu": 32.0,
+   "epaisseur_milieu": 22.0,
+   "largeur_milieu": 36.7,
+   "ligne_bas": 14.9,
+   "epaisseur_bas": 16.1,
+   "vitesse_recul_m_s": -1.8,
+   "vitesse_montee_m_s": 1.3,
+   "ppda": 32.3,
+   "relances_pressees_pct": 80,
+   "relances_gagnees_haut_pct": 31,
+   "pressions_par_possession": 1.61,
+   "pressions_zone_pct": {
+    "milieu": 42,
+    "haut": 51,
+    "bas": 7
+   },
+   "sequence_pressing_n_moy": 1.17,
+   "sequences_3_et_plus_pct": 2,
+   "sequence_longue_s": 3.3,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 23,
+   "ligne_5s_apres_perte": 40.2,
+   "n_frames": 3310,
+   "n_possessions": 242
+  },
+  "Serbia (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.0,
+     "epaisseur": 16.2,
+     "largeur": 26.4,
+     "devant_ballon": 3,
+     "n": 95
+    },
+    "20": {
+     "ligne": 13.2,
+     "epaisseur": 16.4,
+     "largeur": 32.7,
+     "devant_ballon": 6,
+     "n": 167
+    },
+    "30": {
+     "ligne": 19.2,
+     "epaisseur": 21.6,
+     "largeur": 34.6,
+     "devant_ballon": 7.0,
+     "n": 252
+    },
+    "40": {
+     "ligne": 23.4,
+     "epaisseur": 24.4,
+     "largeur": 36.1,
+     "devant_ballon": 7.5,
+     "n": 276
+    },
+    "50": {
+     "ligne": 29.6,
+     "epaisseur": 25.6,
+     "largeur": 37.5,
+     "devant_ballon": 8,
+     "n": 275
+    },
+    "60": {
+     "ligne": 37.8,
+     "epaisseur": 27.6,
+     "largeur": 37.5,
+     "devant_ballon": 7.5,
+     "n": 280
+    },
+    "70": {
+     "ligne": 47.4,
+     "epaisseur": 28.6,
+     "largeur": 38.5,
+     "devant_ballon": 8.0,
+     "n": 194
+    },
+    "80": {
+     "ligne": 60.4,
+     "epaisseur": 26.1,
+     "largeur": 36.7,
+     "devant_ballon": 7,
+     "n": 111
+    },
+    "90": {
+     "ligne": 66.9,
+     "epaisseur": 29.7,
+     "largeur": 36.7,
+     "devant_ballon": 7,
+     "n": 65
+    }
+   },
+   "ligne_milieu": 34.0,
+   "epaisseur_milieu": 26.7,
+   "largeur_milieu": 37.5,
+   "ligne_bas": 13.3,
+   "epaisseur_bas": 17.8,
+   "vitesse_recul_m_s": -2.0,
+   "vitesse_montee_m_s": 1.4,
+   "ppda": 11.4,
+   "relances_pressees_pct": 55,
+   "relances_gagnees_haut_pct": 29,
+   "pressions_par_possession": 1.16,
+   "pressions_zone_pct": {
+    "haut": 40,
+    "bas": 18,
+    "milieu": 42
+   },
+   "sequence_pressing_n_moy": 1.22,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 2.0,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 21,
+   "ligne_5s_apres_perte": 46.1,
+   "n_frames": 1715,
+   "n_possessions": 259
+  },
+  "Australia (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.5,
+     "epaisseur": 14.0,
+     "largeur": 26.3,
+     "devant_ballon": 2.0,
+     "n": 172
+    },
+    "20": {
+     "ligne": 14.2,
+     "epaisseur": 16.7,
+     "largeur": 30.0,
+     "devant_ballon": 6,
+     "n": 275
+    },
+    "30": {
+     "ligne": 18.9,
+     "epaisseur": 18.8,
+     "largeur": 32.6,
+     "devant_ballon": 7,
+     "n": 475
+    },
+    "40": {
+     "ligne": 23.4,
+     "epaisseur": 20.0,
+     "largeur": 34.2,
+     "devant_ballon": 8.0,
+     "n": 618
+    },
+    "50": {
+     "ligne": 30.8,
+     "epaisseur": 20.8,
+     "largeur": 35.0,
+     "devant_ballon": 8,
+     "n": 585
+    },
+    "60": {
+     "ligne": 37.3,
+     "epaisseur": 21.6,
+     "largeur": 35.5,
+     "devant_ballon": 8.0,
+     "n": 530
+    },
+    "70": {
+     "ligne": 47.6,
+     "epaisseur": 24.0,
+     "largeur": 36.5,
+     "devant_ballon": 7,
+     "n": 313
+    },
+    "80": {
+     "ligne": 57.6,
+     "epaisseur": 24.6,
+     "largeur": 37.7,
+     "devant_ballon": 7,
+     "n": 143
+    },
+    "90": {
+     "ligne": 62.3,
+     "epaisseur": 28.0,
+     "largeur": 35.1,
+     "devant_ballon": 7.0,
+     "n": 84
+    }
+   },
+   "ligne_milieu": 33.9,
+   "epaisseur_milieu": 21.4,
+   "largeur_milieu": 35.2,
+   "ligne_bas": 14.2,
+   "epaisseur_bas": 16.8,
+   "vitesse_recul_m_s": -1.8,
+   "vitesse_montee_m_s": 1.4,
+   "ppda": 15.5,
+   "relances_pressees_pct": 59,
+   "relances_gagnees_haut_pct": 29,
+   "pressions_par_possession": 1.4,
+   "pressions_zone_pct": {
+    "bas": 18,
+    "milieu": 47,
+    "haut": 34
+   },
+   "sequence_pressing_n_moy": 1.25,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.6,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 29,
+   "ligne_5s_apres_perte": 47.4,
+   "n_frames": 3195,
+   "n_possessions": 342
+  },
+  "Uruguay (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.7,
+     "epaisseur": 15.0,
+     "largeur": 27.3,
+     "devant_ballon": 3,
+     "n": 77
+    },
+    "20": {
+     "ligne": 13.6,
+     "epaisseur": 16.0,
+     "largeur": 28.8,
+     "devant_ballon": 6,
+     "n": 215
+    },
+    "30": {
+     "ligne": 16.7,
+     "epaisseur": 21.3,
+     "largeur": 31.5,
+     "devant_ballon": 7,
+     "n": 311
+    },
+    "40": {
+     "ligne": 23.1,
+     "epaisseur": 22.6,
+     "largeur": 32.7,
+     "devant_ballon": 7.0,
+     "n": 284
+    },
+    "50": {
+     "ligne": 33.3,
+     "epaisseur": 23.8,
+     "largeur": 33.9,
+     "devant_ballon": 7,
+     "n": 253
+    },
+    "60": {
+     "ligne": 42.5,
+     "epaisseur": 25.7,
+     "largeur": 35.0,
+     "devant_ballon": 6.0,
+     "n": 194
+    },
+    "70": {
+     "ligne": 50.9,
+     "epaisseur": 23.7,
+     "largeur": 34.6,
+     "devant_ballon": 7,
+     "n": 135
+    },
+    "80": {
+     "ligne": 63.7,
+     "epaisseur": 22.3,
+     "largeur": 31.4,
+     "devant_ballon": 5.0,
+     "n": 54
+    },
+    "90": {
+     "ligne": 68.8,
+     "epaisseur": 22.8,
+     "largeur": 33.3,
+     "devant_ballon": 7,
+     "n": 33
+    }
+   },
+   "ligne_milieu": 36.0,
+   "epaisseur_milieu": 24.3,
+   "largeur_milieu": 34.2,
+   "ligne_bas": 13.6,
+   "epaisseur_bas": 17.2,
+   "vitesse_recul_m_s": -2.4,
+   "vitesse_montee_m_s": 1.3,
+   "ppda": 15.0,
+   "relances_pressees_pct": 65,
+   "relances_gagnees_haut_pct": 30,
+   "pressions_par_possession": 1.29,
+   "pressions_zone_pct": {
+    "haut": 42,
+    "bas": 15,
+    "milieu": 42
+   },
+   "sequence_pressing_n_moy": 1.15,
+   "sequences_3_et_plus_pct": 2,
+   "sequence_longue_s": 2.7,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 14,
+   "ligne_5s_apres_perte": 43.2,
+   "n_frames": 1556,
+   "n_possessions": 252
+  },
+  "South Korea (FIFA World Cup 2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.5,
+     "epaisseur": 13.7,
+     "largeur": 26.9,
+     "devant_ballon": 3,
+     "n": 109
+    },
+    "20": {
+     "ligne": 13.6,
+     "epaisseur": 16.7,
+     "largeur": 28.9,
+     "devant_ballon": 6,
+     "n": 243
+    },
+    "30": {
+     "ligne": 17.1,
+     "epaisseur": 19.2,
+     "largeur": 29.4,
+     "devant_ballon": 7.0,
+     "n": 370
+    },
+    "40": {
+     "ligne": 22.9,
+     "epaisseur": 21.1,
+     "largeur": 31.9,
+     "devant_ballon": 7,
+     "n": 363
+    },
+    "50": {
+     "ligne": 31.1,
+     "epaisseur": 21.9,
+     "largeur": 32.7,
+     "devant_ballon": 7.0,
+     "n": 280
+    },
+    "60": {
+     "ligne": 39.9,
+     "epaisseur": 23.1,
+     "largeur": 35.7,
+     "devant_ballon": 8.0,
+     "n": 272
+    },
+    "70": {
+     "ligne": 44.9,
+     "epaisseur": 24.2,
+     "largeur": 35.5,
+     "devant_ballon": 8.0,
+     "n": 194
+    },
+    "80": {
+     "ligne": 64.3,
+     "epaisseur": 22.9,
+     "largeur": 33.1,
+     "devant_ballon": 6,
+     "n": 83
+    },
+    "90": {
+     "ligne": 75.3,
+     "epaisseur": 23.4,
+     "largeur": 35.9,
+     "devant_ballon": 7.0,
+     "n": 46
+    }
+   },
+   "ligne_milieu": 35.0,
+   "epaisseur_milieu": 22.4,
+   "largeur_milieu": 34.0,
+   "ligne_bas": 13.5,
+   "epaisseur_bas": 16.9,
+   "vitesse_recul_m_s": -2.0,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 16.8,
+   "relances_pressees_pct": 67,
+   "relances_gagnees_haut_pct": 33,
+   "pressions_par_possession": 1.49,
+   "pressions_zone_pct": {
+    "bas": 24,
+    "milieu": 41,
+    "haut": 35
+   },
+   "sequence_pressing_n_moy": 1.27,
+   "sequences_3_et_plus_pct": 7,
+   "sequence_longue_s": 3.0,
+   "sequence_longue_p90_s": 4.8,
+   "contre_pressing_pct": 32,
+   "ligne_5s_apres_perte": 46.7,
+   "n_frames": 1960,
+   "n_possessions": 296
+  },
+  "Barcelona (La Liga 2020/2021)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.9,
+     "epaisseur": 15.0,
+     "largeur": 28.2,
+     "devant_ballon": 2.0,
+     "n": 1064
+    },
+    "20": {
+     "ligne": 14.9,
+     "epaisseur": 17.0,
+     "largeur": 31.5,
+     "devant_ballon": 5,
+     "n": 1327
+    },
+    "30": {
+     "ligne": 19.8,
+     "epaisseur": 19.8,
+     "largeur": 33.4,
+     "devant_ballon": 6.0,
+     "n": 1870
+    },
+    "40": {
+     "ligne": 26.7,
+     "epaisseur": 22.5,
+     "largeur": 35.3,
+     "devant_ballon": 7.0,
+     "n": 2770
+    },
+    "50": {
+     "ligne": 33.4,
+     "epaisseur": 24.2,
+     "largeur": 36.9,
+     "devant_ballon": 7.0,
+     "n": 2868
+    },
+    "60": {
+     "ligne": 40.4,
+     "epaisseur": 25.2,
+     "largeur": 37.4,
+     "devant_ballon": 8,
+     "n": 3541
+    },
+    "70": {
+     "ligne": 49.1,
+     "epaisseur": 26.0,
+     "largeur": 38.1,
+     "devant_ballon": 7,
+     "n": 2873
+    },
+    "80": {
+     "ligne": 62.1,
+     "epaisseur": 24.5,
+     "largeur": 37.6,
+     "devant_ballon": 7.0,
+     "n": 1752
+    },
+    "90": {
+     "ligne": 71.1,
+     "epaisseur": 23.9,
+     "largeur": 36.5,
+     "devant_ballon": 7.0,
+     "n": 1314
+    }
+   },
+   "ligne_milieu": 37.6,
+   "epaisseur_milieu": 24.6,
+   "largeur_milieu": 37.2,
+   "ligne_bas": 13.8,
+   "epaisseur_bas": 16.9,
+   "vitesse_recul_m_s": -2.0,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 13.7,
+   "relances_pressees_pct": 65,
+   "relances_gagnees_haut_pct": 29,
+   "pressions_par_possession": 1.46,
+   "pressions_zone_pct": {
+    "milieu": 49,
+    "bas": 20,
+    "haut": 31
+   },
+   "sequence_pressing_n_moy": 1.29,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.8,
+   "sequence_longue_p90_s": 5.7,
+   "contre_pressing_pct": 36,
+   "ligne_5s_apres_perte": 48.5,
+   "n_frames": 19379,
+   "n_possessions": 2658
+  },
+  "Paris Saint-Germain (Ligue 1 2022/2023)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.2,
+     "epaisseur": 13.9,
+     "largeur": 25.7,
+     "devant_ballon": 3,
+     "n": 809
+    },
+    "20": {
+     "ligne": 14.7,
+     "epaisseur": 16.0,
+     "largeur": 29.7,
+     "devant_ballon": 6,
+     "n": 1593
+    },
+    "30": {
+     "ligne": 18.6,
+     "epaisseur": 20.5,
+     "largeur": 31.9,
+     "devant_ballon": 7.0,
+     "n": 2294
+    },
+    "40": {
+     "ligne": 25.1,
+     "epaisseur": 23.6,
+     "largeur": 34.2,
+     "devant_ballon": 7,
+     "n": 2913
+    },
+    "50": {
+     "ligne": 32.9,
+     "epaisseur": 25.3,
+     "largeur": 35.5,
+     "devant_ballon": 8.0,
+     "n": 2756
+    },
+    "60": {
+     "ligne": 40.3,
+     "epaisseur": 26.1,
+     "largeur": 36.4,
+     "devant_ballon": 8.0,
+     "n": 3302
+    },
+    "70": {
+     "ligne": 48.6,
+     "epaisseur": 27.2,
+     "largeur": 37.0,
+     "devant_ballon": 8.0,
+     "n": 2764
+    },
+    "80": {
+     "ligne": 58.3,
+     "epaisseur": 26.4,
+     "largeur": 37.2,
+     "devant_ballon": 7.0,
+     "n": 1874
+    },
+    "90": {
+     "ligne": 65.0,
+     "epaisseur": 27.5,
+     "largeur": 36.9,
+     "devant_ballon": 7,
+     "n": 1477
+    }
+   },
+   "ligne_milieu": 36.9,
+   "epaisseur_milieu": 25.8,
+   "largeur_milieu": 35.9,
+   "ligne_bas": 14.6,
+   "epaisseur_bas": 16.7,
+   "vitesse_recul_m_s": -1.8,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 16.6,
+   "relances_pressees_pct": 70,
+   "relances_gagnees_haut_pct": 29,
+   "pressions_par_possession": 1.58,
+   "pressions_zone_pct": {
+    "bas": 21,
+    "haut": 33,
+    "milieu": 46
+   },
+   "sequence_pressing_n_moy": 1.29,
+   "sequences_3_et_plus_pct": 6,
+   "sequence_longue_s": 3.7,
+   "sequence_longue_p90_s": 6.6,
+   "contre_pressing_pct": 33,
+   "ligne_5s_apres_perte": 50.6,
+   "n_frames": 19782,
+   "n_possessions": 2301
+  },
+  "Paris Saint-Germain (Ligue 1 2021/2022)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.2,
+     "epaisseur": 13.7,
+     "largeur": 26.4,
+     "devant_ballon": 3,
+     "n": 649
+    },
+    "20": {
+     "ligne": 14.8,
+     "epaisseur": 16.1,
+     "largeur": 29.3,
+     "devant_ballon": 5,
+     "n": 1167
+    },
+    "30": {
+     "ligne": 19.4,
+     "epaisseur": 19.6,
+     "largeur": 31.4,
+     "devant_ballon": 6,
+     "n": 1771
+    },
+    "40": {
+     "ligne": 25.8,
+     "epaisseur": 22.7,
+     "largeur": 33.5,
+     "devant_ballon": 7.0,
+     "n": 2018
+    },
+    "50": {
+     "ligne": 34.1,
+     "epaisseur": 24.5,
+     "largeur": 35.2,
+     "devant_ballon": 7.0,
+     "n": 1986
+    },
+    "60": {
+     "ligne": 42.2,
+     "epaisseur": 26.0,
+     "largeur": 35.6,
+     "devant_ballon": 7,
+     "n": 2399
+    },
+    "70": {
+     "ligne": 49.6,
+     "epaisseur": 26.9,
+     "largeur": 35.8,
+     "devant_ballon": 7.0,
+     "n": 2038
+    },
+    "80": {
+     "ligne": 59.7,
+     "epaisseur": 26.4,
+     "largeur": 36.2,
+     "devant_ballon": 7.0,
+     "n": 1422
+    },
+    "90": {
+     "ligne": 68.2,
+     "epaisseur": 26.8,
+     "largeur": 35.5,
+     "devant_ballon": 7,
+     "n": 1045
+    }
+   },
+   "ligne_milieu": 38.4,
+   "epaisseur_milieu": 25.3,
+   "largeur_milieu": 35.3,
+   "ligne_bas": 14.7,
+   "epaisseur_bas": 16.2,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 15.0,
+   "relances_pressees_pct": 67,
+   "relances_gagnees_haut_pct": 31,
+   "pressions_par_possession": 1.5,
+   "pressions_zone_pct": {
+    "bas": 24,
+    "haut": 33,
+    "milieu": 43
+   },
+   "sequence_pressing_n_moy": 1.35,
+   "sequences_3_et_plus_pct": 7,
+   "sequence_longue_s": 3.9,
+   "sequence_longue_p90_s": 6.3,
+   "contre_pressing_pct": 33,
+   "ligne_5s_apres_perte": 49.2,
+   "n_frames": 14495,
+   "n_possessions": 1953
+  },
+  "Inter Miami (Major League Soccer 2023)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 6.9,
+     "epaisseur": 12.0,
+     "largeur": 23.1,
+     "devant_ballon": 1.0,
+     "n": 92
+    },
+    "20": {
+     "ligne": 13.6,
+     "epaisseur": 13.6,
+     "largeur": 28.6,
+     "devant_ballon": 6.0,
+     "n": 108
+    },
+    "30": {
+     "ligne": 20.2,
+     "epaisseur": 16.1,
+     "largeur": 30.7,
+     "devant_ballon": 6,
+     "n": 229
+    },
+    "40": {
+     "ligne": 25.1,
+     "epaisseur": 19.8,
+     "largeur": 32.1,
+     "devant_ballon": 7.0,
+     "n": 272
+    },
+    "50": {
+     "ligne": 32.8,
+     "epaisseur": 23.2,
+     "largeur": 33.5,
+     "devant_ballon": 7,
+     "n": 243
+    },
+    "60": {
+     "ligne": 42.7,
+     "epaisseur": 24.5,
+     "largeur": 34.2,
+     "devant_ballon": 6.0,
+     "n": 172
+    },
+    "70": {
+     "ligne": 58.8,
+     "epaisseur": 23.1,
+     "largeur": 34.5,
+     "devant_ballon": 5.0,
+     "n": 114
+    },
+    "80": {
+     "ligne": 69.1,
+     "epaisseur": 21.6,
+     "largeur": 33.9,
+     "devant_ballon": 5.0,
+     "n": 48
+    },
+    "90": {
+     "ligne": 78.0,
+     "epaisseur": 20.1,
+     "largeur": 36.5,
+     "devant_ballon": 4,
+     "n": 15
+    }
+   },
+   "ligne_milieu": 36.0,
+   "epaisseur_milieu": 23.3,
+   "largeur_milieu": 33.7,
+   "ligne_bas": 13.1,
+   "epaisseur_bas": 14.3,
+   "vitesse_recul_m_s": -2.1,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 10.5,
+   "relances_pressees_pct": 76,
+   "relances_gagnees_haut_pct": 34,
+   "pressions_par_possession": 1.62,
+   "pressions_zone_pct": {
+    "milieu": 47,
+    "bas": 21,
+    "haut": 32
+   },
+   "sequence_pressing_n_moy": 1.33,
+   "sequences_3_et_plus_pct": 8,
+   "sequence_longue_s": 3.4,
+   "sequence_longue_p90_s": 4.8,
+   "contre_pressing_pct": 31,
+   "ligne_5s_apres_perte": 45.3,
+   "n_frames": 1293,
+   "n_possessions": 460
+  },
+  "Czech Republic (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 6.9,
+     "epaisseur": 14.4,
+     "largeur": 26.5,
+     "devant_ballon": 2.5,
+     "n": 128
+    },
+    "20": {
+     "ligne": 14.0,
+     "epaisseur": 14.7,
+     "largeur": 32.7,
+     "devant_ballon": 6,
+     "n": 239
+    },
+    "30": {
+     "ligne": 17.7,
+     "epaisseur": 15.6,
+     "largeur": 34.4,
+     "devant_ballon": 8,
+     "n": 343
+    },
+    "40": {
+     "ligne": 24.0,
+     "epaisseur": 19.0,
+     "largeur": 37.1,
+     "devant_ballon": 9,
+     "n": 429
+    },
+    "50": {
+     "ligne": 30.1,
+     "epaisseur": 21.0,
+     "largeur": 38.1,
+     "devant_ballon": 9,
+     "n": 351
+    },
+    "60": {
+     "ligne": 37.4,
+     "epaisseur": 23.3,
+     "largeur": 39.7,
+     "devant_ballon": 9,
+     "n": 313
+    },
+    "70": {
+     "ligne": 46.5,
+     "epaisseur": 24.4,
+     "largeur": 40.6,
+     "devant_ballon": 8,
+     "n": 285
+    },
+    "80": {
+     "ligne": 51.1,
+     "epaisseur": 26.3,
+     "largeur": 40.4,
+     "devant_ballon": 8.0,
+     "n": 132
+    },
+    "90": {
+     "ligne": 63.1,
+     "epaisseur": 26.7,
+     "largeur": 37.8,
+     "devant_ballon": 7,
+     "n": 135
+    }
+   },
+   "ligne_milieu": 33.7,
+   "epaisseur_milieu": 22.0,
+   "largeur_milieu": 38.8,
+   "ligne_bas": 13.4,
+   "epaisseur_bas": 14.6,
+   "vitesse_recul_m_s": -1.5,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 19.5,
+   "relances_pressees_pct": 62,
+   "relances_gagnees_haut_pct": 23,
+   "pressions_par_possession": 1.53,
+   "pressions_zone_pct": {
+    "milieu": 41,
+    "haut": 42,
+    "bas": 17
+   },
+   "sequence_pressing_n_moy": 1.23,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 2.9,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 33,
+   "ligne_5s_apres_perte": 45.1,
+   "n_frames": 2355,
+   "n_possessions": 237
+  },
+  "Portugal (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.5,
+     "epaisseur": 14.6,
+     "largeur": 26.3,
+     "devant_ballon": 2.0,
+     "n": 140
+    },
+    "20": {
+     "ligne": 14.0,
+     "epaisseur": 15.9,
+     "largeur": 27.7,
+     "devant_ballon": 6.0,
+     "n": 238
+    },
+    "30": {
+     "ligne": 18.0,
+     "epaisseur": 19.5,
+     "largeur": 30.8,
+     "devant_ballon": 7.0,
+     "n": 336
+    },
+    "40": {
+     "ligne": 25.2,
+     "epaisseur": 23.2,
+     "largeur": 33.7,
+     "devant_ballon": 7,
+     "n": 365
+    },
+    "50": {
+     "ligne": 32.2,
+     "epaisseur": 25.3,
+     "largeur": 35.1,
+     "devant_ballon": 8.0,
+     "n": 312
+    },
+    "60": {
+     "ligne": 39.8,
+     "epaisseur": 27.0,
+     "largeur": 35.9,
+     "devant_ballon": 8,
+     "n": 399
+    },
+    "70": {
+     "ligne": 49.7,
+     "epaisseur": 28.0,
+     "largeur": 35.9,
+     "devant_ballon": 7.0,
+     "n": 360
+    },
+    "80": {
+     "ligne": 64.2,
+     "epaisseur": 25.4,
+     "largeur": 37.2,
+     "devant_ballon": 6,
+     "n": 269
+    },
+    "90": {
+     "ligne": 70.1,
+     "epaisseur": 25.0,
+     "largeur": 36.6,
+     "devant_ballon": 7.0,
+     "n": 218
+    }
+   },
+   "ligne_milieu": 37.1,
+   "epaisseur_milieu": 26.5,
+   "largeur_milieu": 35.4,
+   "ligne_bas": 13.6,
+   "epaisseur_bas": 16.5,
+   "vitesse_recul_m_s": -2.1,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 12.2,
+   "relances_pressees_pct": 64,
+   "relances_gagnees_haut_pct": 33,
+   "pressions_par_possession": 1.5,
+   "pressions_zone_pct": {
+    "haut": 34,
+    "milieu": 40,
+    "bas": 26
+   },
+   "sequence_pressing_n_moy": 1.35,
+   "sequences_3_et_plus_pct": 9,
+   "sequence_longue_s": 3.2,
+   "sequence_longue_p90_s": 4.8,
+   "contre_pressing_pct": 26,
+   "ligne_5s_apres_perte": 49.5,
+   "n_frames": 2637,
+   "n_possessions": 369
+  },
+  "Switzerland (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.3,
+     "epaisseur": 13.9,
+     "largeur": 25.3,
+     "devant_ballon": 3,
+     "n": 215
+    },
+    "20": {
+     "ligne": 13.5,
+     "epaisseur": 15.8,
+     "largeur": 30.0,
+     "devant_ballon": 7.0,
+     "n": 356
+    },
+    "30": {
+     "ligne": 17.5,
+     "epaisseur": 19.0,
+     "largeur": 31.7,
+     "devant_ballon": 9,
+     "n": 577
+    },
+    "40": {
+     "ligne": 22.6,
+     "epaisseur": 20.7,
+     "largeur": 33.3,
+     "devant_ballon": 9,
+     "n": 773
+    },
+    "50": {
+     "ligne": 29.6,
+     "epaisseur": 22.1,
+     "largeur": 34.9,
+     "devant_ballon": 9,
+     "n": 617
+    },
+    "60": {
+     "ligne": 38.3,
+     "epaisseur": 23.5,
+     "largeur": 35.7,
+     "devant_ballon": 8,
+     "n": 611
+    },
+    "70": {
+     "ligne": 47.2,
+     "epaisseur": 25.9,
+     "largeur": 36.8,
+     "devant_ballon": 8.0,
+     "n": 394
+    },
+    "80": {
+     "ligne": 56.8,
+     "epaisseur": 26.0,
+     "largeur": 37.0,
+     "devant_ballon": 7,
+     "n": 201
+    },
+    "90": {
+     "ligne": 67.4,
+     "epaisseur": 25.6,
+     "largeur": 36.3,
+     "devant_ballon": 7,
+     "n": 223
+    }
+   },
+   "ligne_milieu": 33.1,
+   "epaisseur_milieu": 22.7,
+   "largeur_milieu": 35.0,
+   "ligne_bas": 13.1,
+   "epaisseur_bas": 16.0,
+   "vitesse_recul_m_s": -1.6,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 17.2,
+   "relances_pressees_pct": 74,
+   "relances_gagnees_haut_pct": 36,
+   "pressions_par_possession": 1.87,
+   "pressions_zone_pct": {
+    "milieu": 41,
+    "bas": 23,
+    "haut": 36
+   },
+   "sequence_pressing_n_moy": 1.31,
+   "sequences_3_et_plus_pct": 7,
+   "sequence_longue_s": 4.1,
+   "sequence_longue_p90_s": 6.9,
+   "contre_pressing_pct": 32,
+   "ligne_5s_apres_perte": 41.7,
+   "n_frames": 3967,
+   "n_possessions": 379
+  },
+  "Hungary (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.8,
+     "epaisseur": 16.3,
+     "largeur": 28.9,
+     "devant_ballon": 2.0,
+     "n": 138
+    },
+    "20": {
+     "ligne": 14.2,
+     "epaisseur": 17.0,
+     "largeur": 31.1,
+     "devant_ballon": 6,
+     "n": 241
+    },
+    "30": {
+     "ligne": 18.4,
+     "epaisseur": 18.2,
+     "largeur": 31.9,
+     "devant_ballon": 7.0,
+     "n": 340
+    },
+    "40": {
+     "ligne": 24.9,
+     "epaisseur": 18.8,
+     "largeur": 34.9,
+     "devant_ballon": 8,
+     "n": 511
+    },
+    "50": {
+     "ligne": 30.7,
+     "epaisseur": 20.0,
+     "largeur": 34.5,
+     "devant_ballon": 8.0,
+     "n": 468
+    },
+    "60": {
+     "ligne": 39.2,
+     "epaisseur": 21.6,
+     "largeur": 36.6,
+     "devant_ballon": 7,
+     "n": 327
+    },
+    "70": {
+     "ligne": 51.5,
+     "epaisseur": 21.8,
+     "largeur": 37.4,
+     "devant_ballon": 7,
+     "n": 153
+    },
+    "80": {
+     "ligne": 62.5,
+     "epaisseur": 22.0,
+     "largeur": 33.4,
+     "devant_ballon": 7,
+     "n": 75
+    },
+    "90": {
+     "ligne": 77.7,
+     "epaisseur": 21.5,
+     "largeur": 32.9,
+     "devant_ballon": 6,
+     "n": 53
+    }
+   },
+   "ligne_milieu": 32.5,
+   "epaisseur_milieu": 20.3,
+   "largeur_milieu": 35.5,
+   "ligne_bas": 13.5,
+   "epaisseur_bas": 17.1,
+   "vitesse_recul_m_s": -1.7,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 18.4,
+   "relances_pressees_pct": 79,
+   "relances_gagnees_haut_pct": 27,
+   "pressions_par_possession": 2.18,
+   "pressions_zone_pct": {
+    "bas": 15,
+    "milieu": 47,
+    "haut": 38
+   },
+   "sequence_pressing_n_moy": 1.23,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 2.9,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 21,
+   "ligne_5s_apres_perte": 50.2,
+   "n_frames": 2306,
+   "n_possessions": 219
+  },
+  "Serbia (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.8,
+     "epaisseur": 12.2,
+     "largeur": 24.9,
+     "devant_ballon": 4,
+     "n": 81
+    },
+    "20": {
+     "ligne": 14.8,
+     "epaisseur": 16.5,
+     "largeur": 29.2,
+     "devant_ballon": 6.0,
+     "n": 168
+    },
+    "30": {
+     "ligne": 18.0,
+     "epaisseur": 18.4,
+     "largeur": 30.8,
+     "devant_ballon": 7.0,
+     "n": 258
+    },
+    "40": {
+     "ligne": 24.8,
+     "epaisseur": 21.4,
+     "largeur": 33.2,
+     "devant_ballon": 7.0,
+     "n": 362
+    },
+    "50": {
+     "ligne": 32.1,
+     "epaisseur": 23.0,
+     "largeur": 34.4,
+     "devant_ballon": 7,
+     "n": 333
+    },
+    "60": {
+     "ligne": 41.3,
+     "epaisseur": 23.5,
+     "largeur": 36.5,
+     "devant_ballon": 7,
+     "n": 253
+    },
+    "70": {
+     "ligne": 54.9,
+     "epaisseur": 23.8,
+     "largeur": 38.7,
+     "devant_ballon": 6.0,
+     "n": 104
+    },
+    "80": {
+     "ligne": 63.2,
+     "epaisseur": 22.5,
+     "largeur": 37.7,
+     "devant_ballon": 6.5,
+     "n": 74
+    },
+    "90": {
+     "ligne": 69.3,
+     "epaisseur": 23.7,
+     "largeur": 39.7,
+     "devant_ballon": 7.0,
+     "n": 74
+    }
+   },
+   "ligne_milieu": 34.5,
+   "epaisseur_milieu": 23.0,
+   "largeur_milieu": 35.1,
+   "ligne_bas": 14.8,
+   "epaisseur_bas": 16.1,
+   "vitesse_recul_m_s": -1.7,
+   "vitesse_montee_m_s": 1.3,
+   "ppda": 19.1,
+   "relances_pressees_pct": 64,
+   "relances_gagnees_haut_pct": 19,
+   "pressions_par_possession": 1.6,
+   "pressions_zone_pct": {
+    "bas": 24,
+    "haut": 28,
+    "milieu": 48
+   },
+   "sequence_pressing_n_moy": 1.26,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.7,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 37,
+   "ligne_5s_apres_perte": 48.9,
+   "n_frames": 1707,
+   "n_possessions": 205
+  },
+  "England (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.2,
+     "epaisseur": 15.3,
+     "largeur": 27.8,
+     "devant_ballon": 4.0,
+     "n": 194
+    },
+    "20": {
+     "ligne": 13.7,
+     "epaisseur": 17.1,
+     "largeur": 31.9,
+     "devant_ballon": 6.0,
+     "n": 394
+    },
+    "30": {
+     "ligne": 17.8,
+     "epaisseur": 18.6,
+     "largeur": 32.8,
+     "devant_ballon": 8.0,
+     "n": 664
+    },
+    "40": {
+     "ligne": 22.7,
+     "epaisseur": 19.7,
+     "largeur": 34.4,
+     "devant_ballon": 8.0,
+     "n": 948
+    },
+    "50": {
+     "ligne": 29.7,
+     "epaisseur": 22.0,
+     "largeur": 35.7,
+     "devant_ballon": 9.0,
+     "n": 780
+    },
+    "60": {
+     "ligne": 38.1,
+     "epaisseur": 23.5,
+     "largeur": 36.4,
+     "devant_ballon": 8,
+     "n": 809
+    },
+    "70": {
+     "ligne": 47.2,
+     "epaisseur": 24.6,
+     "largeur": 37.2,
+     "devant_ballon": 8.0,
+     "n": 658
+    },
+    "80": {
+     "ligne": 54.2,
+     "epaisseur": 25.6,
+     "largeur": 37.0,
+     "devant_ballon": 7.0,
+     "n": 330
+    },
+    "90": {
+     "ligne": 64.5,
+     "epaisseur": 28.0,
+     "largeur": 36.4,
+     "devant_ballon": 7.0,
+     "n": 272
+    }
+   },
+   "ligne_milieu": 33.8,
+   "epaisseur_milieu": 22.6,
+   "largeur_milieu": 36.1,
+   "ligne_bas": 13.6,
+   "epaisseur_bas": 17.3,
+   "vitesse_recul_m_s": -1.7,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 21.5,
+   "relances_pressees_pct": 65,
+   "relances_gagnees_haut_pct": 27,
+   "pressions_par_possession": 1.73,
+   "pressions_zone_pct": {
+    "haut": 31,
+    "bas": 21,
+    "milieu": 48
+   },
+   "sequence_pressing_n_moy": 1.26,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.4,
+   "sequence_longue_p90_s": 7.0,
+   "contre_pressing_pct": 29,
+   "ligne_5s_apres_perte": 46.3,
+   "n_frames": 5049,
+   "n_possessions": 453
+  },
+  "Slovenia (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.4,
+     "epaisseur": 12.7,
+     "largeur": 28.2,
+     "devant_ballon": 2.0,
+     "n": 232
+    },
+    "20": {
+     "ligne": 14.2,
+     "epaisseur": 18.4,
+     "largeur": 30.2,
+     "devant_ballon": 6,
+     "n": 347
+    },
+    "30": {
+     "ligne": 18.5,
+     "epaisseur": 21.3,
+     "largeur": 30.8,
+     "devant_ballon": 7.0,
+     "n": 478
+    },
+    "40": {
+     "ligne": 24.3,
+     "epaisseur": 22.5,
+     "largeur": 34.0,
+     "devant_ballon": 8,
+     "n": 761
+    },
+    "50": {
+     "ligne": 29.7,
+     "epaisseur": 22.9,
+     "largeur": 35.2,
+     "devant_ballon": 8.0,
+     "n": 778
+    },
+    "60": {
+     "ligne": 36.2,
+     "epaisseur": 23.2,
+     "largeur": 35.5,
+     "devant_ballon": 8,
+     "n": 697
+    },
+    "70": {
+     "ligne": 44.5,
+     "epaisseur": 24.5,
+     "largeur": 35.3,
+     "devant_ballon": 8.0,
+     "n": 316
+    },
+    "80": {
+     "ligne": 55.7,
+     "epaisseur": 25.4,
+     "largeur": 35.6,
+     "devant_ballon": 7,
+     "n": 107
+    },
+    "90": {
+     "ligne": 69.8,
+     "epaisseur": 25.0,
+     "largeur": 35.2,
+     "devant_ballon": 7.5,
+     "n": 40
+    }
+   },
+   "ligne_milieu": 31.9,
+   "epaisseur_milieu": 22.9,
+   "largeur_milieu": 35.1,
+   "ligne_bas": 13.5,
+   "epaisseur_bas": 18.4,
+   "vitesse_recul_m_s": -1.7,
+   "vitesse_montee_m_s": 0.8,
+   "ppda": 23.9,
+   "relances_pressees_pct": 78,
+   "relances_gagnees_haut_pct": 14,
+   "pressions_par_possession": 2.05,
+   "pressions_zone_pct": {
+    "milieu": 46,
+    "bas": 9,
+    "haut": 45
+   },
+   "sequence_pressing_n_moy": 1.27,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 3.6,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 31,
+   "ligne_5s_apres_perte": 46.4,
+   "n_frames": 3756,
+   "n_possessions": 320
+  },
+  "Italy (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.7,
+     "epaisseur": 13.2,
+     "largeur": 26.5,
+     "devant_ballon": 3,
+     "n": 143
+    },
+    "20": {
+     "ligne": 13.3,
+     "epaisseur": 16.0,
+     "largeur": 30.5,
+     "devant_ballon": 6.0,
+     "n": 286
+    },
+    "30": {
+     "ligne": 17.2,
+     "epaisseur": 19.2,
+     "largeur": 33.0,
+     "devant_ballon": 7,
+     "n": 379
+    },
+    "40": {
+     "ligne": 23.1,
+     "epaisseur": 22.6,
+     "largeur": 35.7,
+     "devant_ballon": 8,
+     "n": 523
+    },
+    "50": {
+     "ligne": 29.5,
+     "epaisseur": 23.1,
+     "largeur": 37.5,
+     "devant_ballon": 9,
+     "n": 437
+    },
+    "60": {
+     "ligne": 36.3,
+     "epaisseur": 24.4,
+     "largeur": 38.1,
+     "devant_ballon": 9.0,
+     "n": 466
+    },
+    "70": {
+     "ligne": 43.5,
+     "epaisseur": 25.7,
+     "largeur": 39.2,
+     "devant_ballon": 9,
+     "n": 415
+    },
+    "80": {
+     "ligne": 55.1,
+     "epaisseur": 25.3,
+     "largeur": 38.7,
+     "devant_ballon": 7.0,
+     "n": 196
+    },
+    "90": {
+     "ligne": 63.2,
+     "epaisseur": 29.6,
+     "largeur": 39.6,
+     "devant_ballon": 7.0,
+     "n": 214
+    }
+   },
+   "ligne_milieu": 33.2,
+   "epaisseur_milieu": 23.7,
+   "largeur_milieu": 37.7,
+   "ligne_bas": 13.0,
+   "epaisseur_bas": 16.1,
+   "vitesse_recul_m_s": -1.2,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 21.9,
+   "relances_pressees_pct": 70,
+   "relances_gagnees_haut_pct": 32,
+   "pressions_par_possession": 2.01,
+   "pressions_zone_pct": {
+    "milieu": 41,
+    "bas": 20,
+    "haut": 39
+   },
+   "sequence_pressing_n_moy": 1.29,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 2.7,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 37,
+   "ligne_5s_apres_perte": 47.3,
+   "n_frames": 3059,
+   "n_possessions": 262
+  },
+  "Croatia (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.4,
+     "epaisseur": 13.4,
+     "largeur": 25.0,
+     "devant_ballon": 3,
+     "n": 75
+    },
+    "20": {
+     "ligne": 14.1,
+     "epaisseur": 15.6,
+     "largeur": 29.9,
+     "devant_ballon": 6,
+     "n": 121
+    },
+    "30": {
+     "ligne": 17.5,
+     "epaisseur": 19.1,
+     "largeur": 30.7,
+     "devant_ballon": 8,
+     "n": 189
+    },
+    "40": {
+     "ligne": 25.6,
+     "epaisseur": 21.8,
+     "largeur": 34.0,
+     "devant_ballon": 7.5,
+     "n": 256
+    },
+    "50": {
+     "ligne": 30.7,
+     "epaisseur": 22.9,
+     "largeur": 35.1,
+     "devant_ballon": 9,
+     "n": 343
+    },
+    "60": {
+     "ligne": 37.6,
+     "epaisseur": 24.1,
+     "largeur": 35.9,
+     "devant_ballon": 9,
+     "n": 393
+    },
+    "70": {
+     "ligne": 49.6,
+     "epaisseur": 27.2,
+     "largeur": 37.3,
+     "devant_ballon": 8.0,
+     "n": 274
+    },
+    "80": {
+     "ligne": 57.5,
+     "epaisseur": 26.9,
+     "largeur": 36.2,
+     "devant_ballon": 7,
+     "n": 185
+    },
+    "90": {
+     "ligne": 57.6,
+     "epaisseur": 29.8,
+     "largeur": 37.1,
+     "devant_ballon": 8,
+     "n": 173
+    }
+   },
+   "ligne_milieu": 35.1,
+   "epaisseur_milieu": 23.9,
+   "largeur_milieu": 35.5,
+   "ligne_bas": 12.8,
+   "epaisseur_bas": 15.1,
+   "vitesse_recul_m_s": -1.1,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 12.7,
+   "relances_pressees_pct": 69,
+   "relances_gagnees_haut_pct": 26,
+   "pressions_par_possession": 2.02,
+   "pressions_zone_pct": {
+    "bas": 22,
+    "milieu": 52,
+    "haut": 26
+   },
+   "sequence_pressing_n_moy": 1.38,
+   "sequences_3_et_plus_pct": 8,
+   "sequence_longue_s": 4.1,
+   "sequence_longue_p90_s": 6.8,
+   "contre_pressing_pct": 38,
+   "ligne_5s_apres_perte": 52.6,
+   "n_frames": 2009,
+   "n_possessions": 232
+  },
+  "Spain (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.9,
+     "epaisseur": 15.4,
+     "largeur": 25.7,
+     "devant_ballon": 2,
+     "n": 181
+    },
+    "20": {
+     "ligne": 14.3,
+     "epaisseur": 16.0,
+     "largeur": 29.7,
+     "devant_ballon": 6.0,
+     "n": 294
+    },
+    "30": {
+     "ligne": 19.6,
+     "epaisseur": 18.8,
+     "largeur": 31.4,
+     "devant_ballon": 6.5,
+     "n": 380
+    },
+    "40": {
+     "ligne": 25.8,
+     "epaisseur": 20.4,
+     "largeur": 33.3,
+     "devant_ballon": 7,
+     "n": 549
+    },
+    "50": {
+     "ligne": 32.7,
+     "epaisseur": 22.7,
+     "largeur": 34.7,
+     "devant_ballon": 7,
+     "n": 577
+    },
+    "60": {
+     "ligne": 40.6,
+     "epaisseur": 23.8,
+     "largeur": 35.4,
+     "devant_ballon": 8,
+     "n": 651
+    },
+    "70": {
+     "ligne": 49.8,
+     "epaisseur": 25.2,
+     "largeur": 35.0,
+     "devant_ballon": 8.0,
+     "n": 522
+    },
+    "80": {
+     "ligne": 62.0,
+     "epaisseur": 25.7,
+     "largeur": 35.8,
+     "devant_ballon": 7,
+     "n": 321
+    },
+    "90": {
+     "ligne": 69.4,
+     "epaisseur": 25.2,
+     "largeur": 35.0,
+     "devant_ballon": 7,
+     "n": 307
+    }
+   },
+   "ligne_milieu": 37.2,
+   "epaisseur_milieu": 23.1,
+   "largeur_milieu": 35.0,
+   "ligne_bas": 13.5,
+   "epaisseur_bas": 16.4,
+   "vitesse_recul_m_s": -2.0,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 13.6,
+   "relances_pressees_pct": 78,
+   "relances_gagnees_haut_pct": 34,
+   "pressions_par_possession": 1.82,
+   "pressions_zone_pct": {
+    "bas": 31,
+    "milieu": 43,
+    "haut": 26
+   },
+   "sequence_pressing_n_moy": 1.32,
+   "sequences_3_et_plus_pct": 7,
+   "sequence_longue_s": 3.7,
+   "sequence_longue_p90_s": 4.4,
+   "contre_pressing_pct": 38,
+   "ligne_5s_apres_perte": 49.0,
+   "n_frames": 3782,
+   "n_possessions": 540
+  },
+  "France (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.6,
+     "epaisseur": 17.0,
+     "largeur": 27.5,
+     "devant_ballon": 3.0,
+     "n": 154
+    },
+    "20": {
+     "ligne": 14.7,
+     "epaisseur": 17.5,
+     "largeur": 31.0,
+     "devant_ballon": 5.0,
+     "n": 292
+    },
+    "30": {
+     "ligne": 17.8,
+     "epaisseur": 20.5,
+     "largeur": 32.3,
+     "devant_ballon": 7,
+     "n": 459
+    },
+    "40": {
+     "ligne": 23.3,
+     "epaisseur": 21.3,
+     "largeur": 33.9,
+     "devant_ballon": 7,
+     "n": 737
+    },
+    "50": {
+     "ligne": 30.4,
+     "epaisseur": 22.8,
+     "largeur": 34.7,
+     "devant_ballon": 8,
+     "n": 673
+    },
+    "60": {
+     "ligne": 38.7,
+     "epaisseur": 24.3,
+     "largeur": 35.2,
+     "devant_ballon": 8,
+     "n": 757
+    },
+    "70": {
+     "ligne": 46.2,
+     "epaisseur": 25.5,
+     "largeur": 36.1,
+     "devant_ballon": 8.0,
+     "n": 618
+    },
+    "80": {
+     "ligne": 55.4,
+     "epaisseur": 25.9,
+     "largeur": 35.9,
+     "devant_ballon": 7,
+     "n": 343
+    },
+    "90": {
+     "ligne": 65.4,
+     "epaisseur": 26.1,
+     "largeur": 35.7,
+     "devant_ballon": 7.0,
+     "n": 248
+    }
+   },
+   "ligne_milieu": 34.8,
+   "epaisseur_milieu": 23.5,
+   "largeur_milieu": 35.0,
+   "ligne_bas": 14.0,
+   "epaisseur_bas": 18.0,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 23.3,
+   "relances_pressees_pct": 77,
+   "relances_gagnees_haut_pct": 25,
+   "pressions_par_possession": 1.69,
+   "pressions_zone_pct": {
+    "milieu": 49,
+    "bas": 21,
+    "haut": 30
+   },
+   "sequence_pressing_n_moy": 1.27,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.4,
+   "sequence_longue_p90_s": 5.5,
+   "contre_pressing_pct": 26,
+   "ligne_5s_apres_perte": 51.1,
+   "n_frames": 4281,
+   "n_possessions": 418
+  },
+  "Poland (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.8,
+     "epaisseur": 14.5,
+     "largeur": 25.4,
+     "devant_ballon": 3.0,
+     "n": 194
+    },
+    "20": {
+     "ligne": 13.4,
+     "epaisseur": 16.4,
+     "largeur": 28.3,
+     "devant_ballon": 7,
+     "n": 343
+    },
+    "30": {
+     "ligne": 17.6,
+     "epaisseur": 20.9,
+     "largeur": 32.1,
+     "devant_ballon": 8.0,
+     "n": 408
+    },
+    "40": {
+     "ligne": 23.5,
+     "epaisseur": 24.4,
+     "largeur": 35.4,
+     "devant_ballon": 8.0,
+     "n": 364
+    },
+    "50": {
+     "ligne": 30.4,
+     "epaisseur": 24.4,
+     "largeur": 37.0,
+     "devant_ballon": 8.0,
+     "n": 330
+    },
+    "60": {
+     "ligne": 36.4,
+     "epaisseur": 25.6,
+     "largeur": 38.5,
+     "devant_ballon": 8,
+     "n": 355
+    },
+    "70": {
+     "ligne": 44.6,
+     "epaisseur": 26.8,
+     "largeur": 38.9,
+     "devant_ballon": 8.0,
+     "n": 248
+    },
+    "80": {
+     "ligne": 54.3,
+     "epaisseur": 25.5,
+     "largeur": 40.1,
+     "devant_ballon": 7.0,
+     "n": 134
+    },
+    "90": {
+     "ligne": 64.0,
+     "epaisseur": 26.9,
+     "largeur": 38.6,
+     "devant_ballon": 7,
+     "n": 91
+    }
+   },
+   "ligne_milieu": 33.2,
+   "epaisseur_milieu": 25.2,
+   "largeur_milieu": 37.5,
+   "ligne_bas": 12.7,
+   "epaisseur_bas": 16.2,
+   "vitesse_recul_m_s": -1.4,
+   "vitesse_montee_m_s": 0.8,
+   "ppda": 17.6,
+   "relances_pressees_pct": 74,
+   "relances_gagnees_haut_pct": 24,
+   "pressions_par_possession": 1.72,
+   "pressions_zone_pct": {
+    "haut": 50,
+    "milieu": 36,
+    "bas": 13
+   },
+   "sequence_pressing_n_moy": 1.21,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 2.8,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 35,
+   "ligne_5s_apres_perte": 46.2,
+   "n_frames": 2467,
+   "n_possessions": 247
+  },
+  "Austria (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.7,
+     "epaisseur": 14.7,
+     "largeur": 26.7,
+     "devant_ballon": 3,
+     "n": 113
+    },
+    "20": {
+     "ligne": 14.7,
+     "epaisseur": 18.5,
+     "largeur": 30.6,
+     "devant_ballon": 5,
+     "n": 161
+    },
+    "30": {
+     "ligne": 17.8,
+     "epaisseur": 18.6,
+     "largeur": 31.3,
+     "devant_ballon": 7,
+     "n": 257
+    },
+    "40": {
+     "ligne": 25.0,
+     "epaisseur": 23.6,
+     "largeur": 31.7,
+     "devant_ballon": 7,
+     "n": 285
+    },
+    "50": {
+     "ligne": 33.6,
+     "epaisseur": 25.7,
+     "largeur": 34.6,
+     "devant_ballon": 7.0,
+     "n": 308
+    },
+    "60": {
+     "ligne": 40.3,
+     "epaisseur": 25.8,
+     "largeur": 35.4,
+     "devant_ballon": 7,
+     "n": 367
+    },
+    "70": {
+     "ligne": 45.8,
+     "epaisseur": 26.3,
+     "largeur": 34.7,
+     "devant_ballon": 7.0,
+     "n": 360
+    },
+    "80": {
+     "ligne": 58.6,
+     "epaisseur": 25.0,
+     "largeur": 35.0,
+     "devant_ballon": 7.0,
+     "n": 184
+    },
+    "90": {
+     "ligne": 66.0,
+     "epaisseur": 24.2,
+     "largeur": 33.3,
+     "devant_ballon": 7,
+     "n": 111
+    }
+   },
+   "ligne_milieu": 36.9,
+   "epaisseur_milieu": 25.7,
+   "largeur_milieu": 34.5,
+   "ligne_bas": 13.4,
+   "epaisseur_bas": 17.2,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 8.9,
+   "relances_pressees_pct": 76,
+   "relances_gagnees_haut_pct": 24,
+   "pressions_par_possession": 1.92,
+   "pressions_zone_pct": {
+    "bas": 25,
+    "milieu": 44,
+    "haut": 31
+   },
+   "sequence_pressing_n_moy": 1.36,
+   "sequences_3_et_plus_pct": 8,
+   "sequence_longue_s": 3.9,
+   "sequence_longue_p90_s": 5.3,
+   "contre_pressing_pct": 28,
+   "ligne_5s_apres_perte": 41.7,
+   "n_frames": 2146,
+   "n_possessions": 339
+  },
+  "Georgia (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.4,
+     "epaisseur": 14.7,
+     "largeur": 28.1,
+     "devant_ballon": 4,
+     "n": 265
+    },
+    "20": {
+     "ligne": 13.3,
+     "epaisseur": 17.6,
+     "largeur": 31.3,
+     "devant_ballon": 7.0,
+     "n": 666
+    },
+    "30": {
+     "ligne": 16.9,
+     "epaisseur": 17.9,
+     "largeur": 32.7,
+     "devant_ballon": 8.0,
+     "n": 906
+    },
+    "40": {
+     "ligne": 21.6,
+     "epaisseur": 19.4,
+     "largeur": 33.6,
+     "devant_ballon": 9,
+     "n": 1035
+    },
+    "50": {
+     "ligne": 27.1,
+     "epaisseur": 21.2,
+     "largeur": 34.6,
+     "devant_ballon": 9.0,
+     "n": 572
+    },
+    "60": {
+     "ligne": 34.3,
+     "epaisseur": 23.3,
+     "largeur": 35.6,
+     "devant_ballon": 8,
+     "n": 449
+    },
+    "70": {
+     "ligne": 46.2,
+     "epaisseur": 24.1,
+     "largeur": 37.3,
+     "devant_ballon": 8.0,
+     "n": 182
+    },
+    "80": {
+     "ligne": 57.1,
+     "epaisseur": 24.5,
+     "largeur": 37.7,
+     "devant_ballon": 7.0,
+     "n": 72
+    },
+    "90": {
+     "ligne": 75.6,
+     "epaisseur": 22.7,
+     "largeur": 38.0,
+     "devant_ballon": 7.0,
+     "n": 44
+    }
+   },
+   "ligne_milieu": 28.5,
+   "epaisseur_milieu": 21.6,
+   "largeur_milieu": 34.6,
+   "ligne_bas": 13.2,
+   "epaisseur_bas": 17.2,
+   "vitesse_recul_m_s": -1.7,
+   "vitesse_montee_m_s": 0.8,
+   "ppda": 27.9,
+   "relances_pressees_pct": 70,
+   "relances_gagnees_haut_pct": 19,
+   "pressions_par_possession": 1.59,
+   "pressions_zone_pct": {
+    "milieu": 30,
+    "bas": 9,
+    "haut": 60
+   },
+   "sequence_pressing_n_moy": 1.25,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 3.8,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 34,
+   "ligne_5s_apres_perte": 40.5,
+   "n_frames": 4191,
+   "n_possessions": 302
+  },
+  "Turkey (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.9,
+     "epaisseur": 14.3,
+     "largeur": 26.4,
+     "devant_ballon": 3.0,
+     "n": 174
+    },
+    "20": {
+     "ligne": 15.0,
+     "epaisseur": 15.8,
+     "largeur": 31.2,
+     "devant_ballon": 6.0,
+     "n": 282
+    },
+    "30": {
+     "ligne": 18.0,
+     "epaisseur": 16.9,
+     "largeur": 32.0,
+     "devant_ballon": 8.0,
+     "n": 430
+    },
+    "40": {
+     "ligne": 23.9,
+     "epaisseur": 19.6,
+     "largeur": 33.4,
+     "devant_ballon": 9,
+     "n": 613
+    },
+    "50": {
+     "ligne": 29.4,
+     "epaisseur": 21.4,
+     "largeur": 34.2,
+     "devant_ballon": 9.0,
+     "n": 494
+    },
+    "60": {
+     "ligne": 36.8,
+     "epaisseur": 23.7,
+     "largeur": 35.4,
+     "devant_ballon": 9.0,
+     "n": 528
+    },
+    "70": {
+     "ligne": 45.5,
+     "epaisseur": 24.8,
+     "largeur": 37.0,
+     "devant_ballon": 8.0,
+     "n": 392
+    },
+    "80": {
+     "ligne": 55.5,
+     "epaisseur": 25.5,
+     "largeur": 38.1,
+     "devant_ballon": 7,
+     "n": 231
+    },
+    "90": {
+     "ligne": 62.5,
+     "epaisseur": 26.7,
+     "largeur": 37.0,
+     "devant_ballon": 7.0,
+     "n": 202
+    }
+   },
+   "ligne_milieu": 33.3,
+   "epaisseur_milieu": 22.4,
+   "largeur_milieu": 34.8,
+   "ligne_bas": 14.0,
+   "epaisseur_bas": 15.8,
+   "vitesse_recul_m_s": -1.6,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 15.5,
+   "relances_pressees_pct": 63,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.46,
+   "pressions_zone_pct": {
+    "bas": 16,
+    "milieu": 40,
+    "haut": 44
+   },
+   "sequence_pressing_n_moy": 1.29,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.9,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 24,
+   "ligne_5s_apres_perte": 40.7,
+   "n_frames": 3346,
+   "n_possessions": 367
+  },
+  "Romania (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.8,
+     "epaisseur": 14.2,
+     "largeur": 27.2,
+     "devant_ballon": 2,
+     "n": 189
+    },
+    "20": {
+     "ligne": 14.3,
+     "epaisseur": 16.5,
+     "largeur": 30.2,
+     "devant_ballon": 6,
+     "n": 221
+    },
+    "30": {
+     "ligne": 18.4,
+     "epaisseur": 17.8,
+     "largeur": 32.5,
+     "devant_ballon": 7.0,
+     "n": 326
+    },
+    "40": {
+     "ligne": 24.5,
+     "epaisseur": 20.3,
+     "largeur": 33.4,
+     "devant_ballon": 8.0,
+     "n": 538
+    },
+    "50": {
+     "ligne": 29.8,
+     "epaisseur": 21.5,
+     "largeur": 34.4,
+     "devant_ballon": 8,
+     "n": 435
+    },
+    "60": {
+     "ligne": 38.5,
+     "epaisseur": 23.3,
+     "largeur": 36.5,
+     "devant_ballon": 8.0,
+     "n": 462
+    },
+    "70": {
+     "ligne": 46.7,
+     "epaisseur": 25.0,
+     "largeur": 37.2,
+     "devant_ballon": 8,
+     "n": 257
+    },
+    "80": {
+     "ligne": 54.9,
+     "epaisseur": 25.4,
+     "largeur": 36.1,
+     "devant_ballon": 7,
+     "n": 119
+    },
+    "90": {
+     "ligne": 58.0,
+     "epaisseur": 25.5,
+     "largeur": 36.9,
+     "devant_ballon": 8.0,
+     "n": 96
+    }
+   },
+   "ligne_milieu": 33.3,
+   "epaisseur_milieu": 22.4,
+   "largeur_milieu": 35.2,
+   "ligne_bas": 13.2,
+   "epaisseur_bas": 15.9,
+   "vitesse_recul_m_s": -2.3,
+   "vitesse_montee_m_s": 1.4,
+   "ppda": 25.3,
+   "relances_pressees_pct": 68,
+   "relances_gagnees_haut_pct": 34,
+   "pressions_par_possession": 1.59,
+   "pressions_zone_pct": {
+    "bas": 16,
+    "milieu": 37,
+    "haut": 47
+   },
+   "sequence_pressing_n_moy": 1.25,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.1,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 31,
+   "ligne_5s_apres_perte": 48.2,
+   "n_frames": 2643,
+   "n_possessions": 308
+  },
+  "Ukraine (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.7,
+     "epaisseur": 14.2,
+     "largeur": 28.5,
+     "devant_ballon": 2,
+     "n": 119
+    },
+    "20": {
+     "ligne": 14.6,
+     "epaisseur": 15.8,
+     "largeur": 29.6,
+     "devant_ballon": 6,
+     "n": 189
+    },
+    "30": {
+     "ligne": 17.5,
+     "epaisseur": 19.7,
+     "largeur": 31.2,
+     "devant_ballon": 7,
+     "n": 257
+    },
+    "40": {
+     "ligne": 24.8,
+     "epaisseur": 23.5,
+     "largeur": 33.3,
+     "devant_ballon": 7.0,
+     "n": 344
+    },
+    "50": {
+     "ligne": 33.0,
+     "epaisseur": 24.1,
+     "largeur": 32.3,
+     "devant_ballon": 7,
+     "n": 233
+    },
+    "60": {
+     "ligne": 39.5,
+     "epaisseur": 25.1,
+     "largeur": 33.1,
+     "devant_ballon": 7,
+     "n": 275
+    },
+    "70": {
+     "ligne": 51.2,
+     "epaisseur": 25.0,
+     "largeur": 33.5,
+     "devant_ballon": 7.0,
+     "n": 192
+    },
+    "80": {
+     "ligne": 64.2,
+     "epaisseur": 23.1,
+     "largeur": 33.0,
+     "devant_ballon": 6,
+     "n": 89
+    },
+    "90": {
+     "ligne": 75.8,
+     "epaisseur": 25.1,
+     "largeur": 31.0,
+     "devant_ballon": 6,
+     "n": 61
+    }
+   },
+   "ligne_milieu": 36.5,
+   "epaisseur_milieu": 24.6,
+   "largeur_milieu": 33.3,
+   "ligne_bas": 13.4,
+   "epaisseur_bas": 15.6,
+   "vitesse_recul_m_s": -2.1,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 14.8,
+   "relances_pressees_pct": 59,
+   "relances_gagnees_haut_pct": 31,
+   "pressions_par_possession": 1.64,
+   "pressions_zone_pct": {
+    "milieu": 45,
+    "haut": 36,
+    "bas": 19
+   },
+   "sequence_pressing_n_moy": 1.25,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 3.3,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 29,
+   "ligne_5s_apres_perte": 48.3,
+   "n_frames": 1759,
+   "n_possessions": 238
+  },
+  "Slovakia (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.0,
+     "epaisseur": 11.2,
+     "largeur": 24.4,
+     "devant_ballon": 3,
+     "n": 159
+    },
+    "20": {
+     "ligne": 13.1,
+     "epaisseur": 14.0,
+     "largeur": 28.7,
+     "devant_ballon": 6.0,
+     "n": 246
+    },
+    "30": {
+     "ligne": 17.4,
+     "epaisseur": 18.3,
+     "largeur": 31.4,
+     "devant_ballon": 8,
+     "n": 313
+    },
+    "40": {
+     "ligne": 24.8,
+     "epaisseur": 22.1,
+     "largeur": 33.7,
+     "devant_ballon": 8,
+     "n": 385
+    },
+    "50": {
+     "ligne": 31.3,
+     "epaisseur": 22.8,
+     "largeur": 35.1,
+     "devant_ballon": 8,
+     "n": 423
+    },
+    "60": {
+     "ligne": 37.1,
+     "epaisseur": 23.6,
+     "largeur": 35.5,
+     "devant_ballon": 9.0,
+     "n": 506
+    },
+    "70": {
+     "ligne": 45.4,
+     "epaisseur": 24.2,
+     "largeur": 36.2,
+     "devant_ballon": 9,
+     "n": 503
+    },
+    "80": {
+     "ligne": 51.7,
+     "epaisseur": 24.9,
+     "largeur": 35.9,
+     "devant_ballon": 8.0,
+     "n": 288
+    },
+    "90": {
+     "ligne": 64.0,
+     "epaisseur": 24.5,
+     "largeur": 34.9,
+     "devant_ballon": 7.0,
+     "n": 176
+    }
+   },
+   "ligne_milieu": 35.3,
+   "epaisseur_milieu": 23.2,
+   "largeur_milieu": 35.3,
+   "ligne_bas": 12.2,
+   "epaisseur_bas": 14.0,
+   "vitesse_recul_m_s": -1.7,
+   "vitesse_montee_m_s": 1.3,
+   "ppda": 22.7,
+   "relances_pressees_pct": 64,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.46,
+   "pressions_zone_pct": {
+    "bas": 21,
+    "milieu": 44,
+    "haut": 35
+   },
+   "sequence_pressing_n_moy": 1.22,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 4.5,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 28,
+   "ligne_5s_apres_perte": 50.1,
+   "n_frames": 2999,
+   "n_possessions": 323
+  },
+  "Netherlands (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.4,
+     "epaisseur": 14.7,
+     "largeur": 25.2,
+     "devant_ballon": 2.0,
+     "n": 168
+    },
+    "20": {
+     "ligne": 14.4,
+     "epaisseur": 16.2,
+     "largeur": 30.5,
+     "devant_ballon": 6.0,
+     "n": 250
+    },
+    "30": {
+     "ligne": 18.5,
+     "epaisseur": 19.5,
+     "largeur": 32.7,
+     "devant_ballon": 7.0,
+     "n": 474
+    },
+    "40": {
+     "ligne": 24.7,
+     "epaisseur": 21.2,
+     "largeur": 35.1,
+     "devant_ballon": 8,
+     "n": 629
+    },
+    "50": {
+     "ligne": 30.4,
+     "epaisseur": 22.0,
+     "largeur": 36.5,
+     "devant_ballon": 9,
+     "n": 597
+    },
+    "60": {
+     "ligne": 37.1,
+     "epaisseur": 23.1,
+     "largeur": 37.5,
+     "devant_ballon": 9.0,
+     "n": 658
+    },
+    "70": {
+     "ligne": 43.6,
+     "epaisseur": 24.0,
+     "largeur": 37.7,
+     "devant_ballon": 9.0,
+     "n": 500
+    },
+    "80": {
+     "ligne": 50.9,
+     "epaisseur": 24.7,
+     "largeur": 37.5,
+     "devant_ballon": 7.0,
+     "n": 226
+    },
+    "90": {
+     "ligne": 60.1,
+     "epaisseur": 27.3,
+     "largeur": 38.6,
+     "devant_ballon": 7.0,
+     "n": 216
+    }
+   },
+   "ligne_milieu": 34.3,
+   "epaisseur_milieu": 22.6,
+   "largeur_milieu": 37.0,
+   "ligne_bas": 14.0,
+   "epaisseur_bas": 16.5,
+   "vitesse_recul_m_s": -1.4,
+   "vitesse_montee_m_s": 0.9,
+   "ppda": 19.2,
+   "relances_pressees_pct": 68,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.45,
+   "pressions_zone_pct": {
+    "milieu": 47,
+    "bas": 18,
+    "haut": 35
+   },
+   "sequence_pressing_n_moy": 1.2,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 3.3,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 25,
+   "ligne_5s_apres_perte": 47.6,
+   "n_frames": 3718,
+   "n_possessions": 386
+  },
+  "Belgium (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.3,
+     "epaisseur": 14.7,
+     "largeur": 26.5,
+     "devant_ballon": 4,
+     "n": 159
+    },
+    "20": {
+     "ligne": 13.6,
+     "epaisseur": 18.2,
+     "largeur": 29.3,
+     "devant_ballon": 6,
+     "n": 235
+    },
+    "30": {
+     "ligne": 17.0,
+     "epaisseur": 20.4,
+     "largeur": 31.9,
+     "devant_ballon": 7,
+     "n": 339
+    },
+    "40": {
+     "ligne": 23.5,
+     "epaisseur": 23.4,
+     "largeur": 33.8,
+     "devant_ballon": 7,
+     "n": 421
+    },
+    "50": {
+     "ligne": 30.9,
+     "epaisseur": 23.8,
+     "largeur": 34.8,
+     "devant_ballon": 8,
+     "n": 375
+    },
+    "60": {
+     "ligne": 38.8,
+     "epaisseur": 24.9,
+     "largeur": 36.3,
+     "devant_ballon": 7,
+     "n": 387
+    },
+    "70": {
+     "ligne": 50.5,
+     "epaisseur": 24.9,
+     "largeur": 35.7,
+     "devant_ballon": 6,
+     "n": 185
+    },
+    "80": {
+     "ligne": 62.8,
+     "epaisseur": 24.4,
+     "largeur": 37.6,
+     "devant_ballon": 6.0,
+     "n": 106
+    },
+    "90": {
+     "ligne": 66.6,
+     "epaisseur": 26.8,
+     "largeur": 37.3,
+     "devant_ballon": 7,
+     "n": 135
+    }
+   },
+   "ligne_milieu": 34.0,
+   "epaisseur_milieu": 24.3,
+   "largeur_milieu": 35.2,
+   "ligne_bas": 12.7,
+   "epaisseur_bas": 18.2,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 15.2,
+   "relances_pressees_pct": 64,
+   "relances_gagnees_haut_pct": 30,
+   "pressions_par_possession": 1.26,
+   "pressions_zone_pct": {
+    "milieu": 46,
+    "haut": 34,
+    "bas": 20
+   },
+   "sequence_pressing_n_moy": 1.28,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 2.5,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 22,
+   "ligne_5s_apres_perte": 43.9,
+   "n_frames": 2342,
+   "n_possessions": 296
+  },
+  "Denmark (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 6.5,
+     "epaisseur": 12.6,
+     "largeur": 27.0,
+     "devant_ballon": 1.0,
+     "n": 86
+    },
+    "20": {
+     "ligne": 14.7,
+     "epaisseur": 15.2,
+     "largeur": 29.5,
+     "devant_ballon": 6,
+     "n": 153
+    },
+    "30": {
+     "ligne": 18.3,
+     "epaisseur": 18.6,
+     "largeur": 32.1,
+     "devant_ballon": 7.0,
+     "n": 300
+    },
+    "40": {
+     "ligne": 24.5,
+     "epaisseur": 19.8,
+     "largeur": 33.4,
+     "devant_ballon": 8.0,
+     "n": 468
+    },
+    "50": {
+     "ligne": 31.3,
+     "epaisseur": 21.4,
+     "largeur": 35.0,
+     "devant_ballon": 8.0,
+     "n": 394
+    },
+    "60": {
+     "ligne": 41.8,
+     "epaisseur": 22.9,
+     "largeur": 36.3,
+     "devant_ballon": 7,
+     "n": 411
+    },
+    "70": {
+     "ligne": 49.1,
+     "epaisseur": 23.9,
+     "largeur": 37.7,
+     "devant_ballon": 7.0,
+     "n": 260
+    },
+    "80": {
+     "ligne": 57.1,
+     "epaisseur": 24.4,
+     "largeur": 38.0,
+     "devant_ballon": 7,
+     "n": 131
+    },
+    "90": {
+     "ligne": 71.5,
+     "epaisseur": 22.6,
+     "largeur": 34.0,
+     "devant_ballon": 7.0,
+     "n": 80
+    }
+   },
+   "ligne_milieu": 36.3,
+   "epaisseur_milieu": 22.1,
+   "largeur_milieu": 35.5,
+   "ligne_bas": 13.6,
+   "epaisseur_bas": 15.9,
+   "vitesse_recul_m_s": -1.7,
+   "vitesse_montee_m_s": 0.9,
+   "ppda": 14.0,
+   "relances_pressees_pct": 79,
+   "relances_gagnees_haut_pct": 29,
+   "pressions_par_possession": 1.63,
+   "pressions_zone_pct": {
+    "bas": 25,
+    "milieu": 47,
+    "haut": 28
+   },
+   "sequence_pressing_n_moy": 1.23,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 3.4,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 33,
+   "ligne_5s_apres_perte": 46.3,
+   "n_frames": 2283,
+   "n_possessions": 293
+  },
+  "Germany (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.8,
+     "epaisseur": 15.2,
+     "largeur": 26.3,
+     "devant_ballon": 2.0,
+     "n": 98
+    },
+    "20": {
+     "ligne": 14.5,
+     "epaisseur": 16.2,
+     "largeur": 29.3,
+     "devant_ballon": 6,
+     "n": 203
+    },
+    "30": {
+     "ligne": 19.2,
+     "epaisseur": 21.0,
+     "largeur": 30.7,
+     "devant_ballon": 6.0,
+     "n": 304
+    },
+    "40": {
+     "ligne": 25.6,
+     "epaisseur": 22.7,
+     "largeur": 32.0,
+     "devant_ballon": 6,
+     "n": 379
+    },
+    "50": {
+     "ligne": 34.5,
+     "epaisseur": 24.8,
+     "largeur": 34.7,
+     "devant_ballon": 6,
+     "n": 309
+    },
+    "60": {
+     "ligne": 42.5,
+     "epaisseur": 25.4,
+     "largeur": 35.4,
+     "devant_ballon": 7.0,
+     "n": 424
+    },
+    "70": {
+     "ligne": 50.8,
+     "epaisseur": 24.2,
+     "largeur": 35.3,
+     "devant_ballon": 7,
+     "n": 235
+    },
+    "80": {
+     "ligne": 65.0,
+     "epaisseur": 23.4,
+     "largeur": 32.9,
+     "devant_ballon": 6,
+     "n": 159
+    },
+    "90": {
+     "ligne": 71.9,
+     "epaisseur": 22.5,
+     "largeur": 33.9,
+     "devant_ballon": 7,
+     "n": 165
+    }
+   },
+   "ligne_milieu": 37.4,
+   "epaisseur_milieu": 24.8,
+   "largeur_milieu": 34.7,
+   "ligne_bas": 14.3,
+   "epaisseur_bas": 17.5,
+   "vitesse_recul_m_s": -2.2,
+   "vitesse_montee_m_s": 0.9,
+   "ppda": 13.6,
+   "relances_pressees_pct": 68,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.56,
+   "pressions_zone_pct": {
+    "milieu": 47,
+    "haut": 28,
+    "bas": 25
+   },
+   "sequence_pressing_n_moy": 1.34,
+   "sequences_3_et_plus_pct": 8,
+   "sequence_longue_s": 3.8,
+   "sequence_longue_p90_s": 6.5,
+   "contre_pressing_pct": 33,
+   "ligne_5s_apres_perte": 48.7,
+   "n_frames": 2276,
+   "n_possessions": 380
+  },
+  "Scotland (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.1,
+     "epaisseur": 10.8,
+     "largeur": 25.0,
+     "devant_ballon": 5.0,
+     "n": 118
+    },
+    "20": {
+     "ligne": 13.9,
+     "epaisseur": 13.2,
+     "largeur": 27.2,
+     "devant_ballon": 7.0,
+     "n": 220
+    },
+    "30": {
+     "ligne": 18.7,
+     "epaisseur": 16.3,
+     "largeur": 29.7,
+     "devant_ballon": 7,
+     "n": 291
+    },
+    "40": {
+     "ligne": 24.6,
+     "epaisseur": 18.3,
+     "largeur": 28.9,
+     "devant_ballon": 7.0,
+     "n": 386
+    },
+    "50": {
+     "ligne": 33.4,
+     "epaisseur": 20.4,
+     "largeur": 32.3,
+     "devant_ballon": 7,
+     "n": 241
+    },
+    "60": {
+     "ligne": 41.7,
+     "epaisseur": 23.2,
+     "largeur": 33.4,
+     "devant_ballon": 7,
+     "n": 291
+    },
+    "70": {
+     "ligne": 50.1,
+     "epaisseur": 25.6,
+     "largeur": 34.6,
+     "devant_ballon": 7,
+     "n": 179
+    },
+    "80": {
+     "ligne": 58.0,
+     "epaisseur": 25.7,
+     "largeur": 34.9,
+     "devant_ballon": 7.0,
+     "n": 68
+    },
+    "90": {
+     "ligne": 69.0,
+     "epaisseur": 24.3,
+     "largeur": 32.7,
+     "devant_ballon": 7.0,
+     "n": 56
+    }
+   },
+   "ligne_milieu": 37.0,
+   "epaisseur_milieu": 21.6,
+   "largeur_milieu": 32.6,
+   "ligne_bas": 14.0,
+   "epaisseur_bas": 13.1,
+   "vitesse_recul_m_s": -2.2,
+   "vitesse_montee_m_s": 1.4,
+   "ppda": 17.3,
+   "relances_pressees_pct": 70,
+   "relances_gagnees_haut_pct": 35,
+   "pressions_par_possession": 1.61,
+   "pressions_zone_pct": {
+    "milieu": 46,
+    "bas": 21,
+    "haut": 33
+   },
+   "sequence_pressing_n_moy": 1.24,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 4.0,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 35,
+   "ligne_5s_apres_perte": 45.5,
+   "n_frames": 1850,
+   "n_possessions": 224
+  },
+  "Albania (UEFA Euro 2024)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.9,
+     "epaisseur": 14.7,
+     "largeur": 27.5,
+     "devant_ballon": 3,
+     "n": 167
+    },
+    "20": {
+     "ligne": 14.2,
+     "epaisseur": 15.9,
+     "largeur": 31.5,
+     "devant_ballon": 7.0,
+     "n": 304
+    },
+    "30": {
+     "ligne": 16.9,
+     "epaisseur": 17.4,
+     "largeur": 31.6,
+     "devant_ballon": 9.0,
+     "n": 566
+    },
+    "40": {
+     "ligne": 21.5,
+     "epaisseur": 19.9,
+     "largeur": 32.8,
+     "devant_ballon": 9,
+     "n": 809
+    },
+    "50": {
+     "ligne": 27.4,
+     "epaisseur": 21.5,
+     "largeur": 33.8,
+     "devant_ballon": 9.0,
+     "n": 526
+    },
+    "60": {
+     "ligne": 35.3,
+     "epaisseur": 23.5,
+     "largeur": 33.7,
+     "devant_ballon": 9.0,
+     "n": 450
+    },
+    "70": {
+     "ligne": 45.8,
+     "epaisseur": 25.7,
+     "largeur": 33.4,
+     "devant_ballon": 8.0,
+     "n": 210
+    },
+    "80": {
+     "ligne": 58.5,
+     "epaisseur": 25.9,
+     "largeur": 33.0,
+     "devant_ballon": 7.0,
+     "n": 116
+    },
+    "90": {
+     "ligne": 64.3,
+     "epaisseur": 25.1,
+     "largeur": 33.8,
+     "devant_ballon": 7,
+     "n": 67
+    }
+   },
+   "ligne_milieu": 29.3,
+   "epaisseur_milieu": 22.3,
+   "largeur_milieu": 33.7,
+   "ligne_bas": 14.1,
+   "epaisseur_bas": 16.0,
+   "vitesse_recul_m_s": -1.6,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 32.2,
+   "relances_pressees_pct": 75,
+   "relances_gagnees_haut_pct": 25,
+   "pressions_par_possession": 1.87,
+   "pressions_zone_pct": {
+    "bas": 12,
+    "haut": 51,
+    "milieu": 37
+   },
+   "sequence_pressing_n_moy": 1.37,
+   "sequences_3_et_plus_pct": 9,
+   "sequence_longue_s": 3.5,
+   "sequence_longue_p90_s": 6.1,
+   "contre_pressing_pct": 27,
+   "ligne_5s_apres_perte": 44.0,
+   "n_frames": 3215,
+   "n_possessions": 211
+  },
+  "Ukraine (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.7,
+     "epaisseur": 12.2,
+     "largeur": 24.7,
+     "devant_ballon": 3,
+     "n": 171
+    },
+    "20": {
+     "ligne": 15.2,
+     "epaisseur": 15.4,
+     "largeur": 29.8,
+     "devant_ballon": 5,
+     "n": 349
+    },
+    "30": {
+     "ligne": 19.2,
+     "epaisseur": 17.8,
+     "largeur": 31.1,
+     "devant_ballon": 7,
+     "n": 589
+    },
+    "40": {
+     "ligne": 25.2,
+     "epaisseur": 20.5,
+     "largeur": 32.8,
+     "devant_ballon": 8.0,
+     "n": 782
+    },
+    "50": {
+     "ligne": 31.2,
+     "epaisseur": 21.2,
+     "largeur": 32.3,
+     "devant_ballon": 8,
+     "n": 683
+    },
+    "60": {
+     "ligne": 38.8,
+     "epaisseur": 21.4,
+     "largeur": 32.9,
+     "devant_ballon": 8.0,
+     "n": 598
+    },
+    "70": {
+     "ligne": 50.2,
+     "epaisseur": 21.9,
+     "largeur": 33.9,
+     "devant_ballon": 7,
+     "n": 243
+    },
+    "80": {
+     "ligne": 66.1,
+     "epaisseur": 20.3,
+     "largeur": 35.0,
+     "devant_ballon": 6,
+     "n": 79
+    },
+    "90": {
+     "ligne": 77.9,
+     "epaisseur": 21.8,
+     "largeur": 35.5,
+     "devant_ballon": 6,
+     "n": 39
+    }
+   },
+   "ligne_milieu": 33.8,
+   "epaisseur_milieu": 21.3,
+   "largeur_milieu": 32.8,
+   "ligne_bas": 15.1,
+   "epaisseur_bas": 15.4,
+   "vitesse_recul_m_s": -2.1,
+   "vitesse_montee_m_s": 1.4,
+   "ppda": 20.2,
+   "relances_pressees_pct": 70,
+   "relances_gagnees_haut_pct": 27,
+   "pressions_par_possession": 1.74,
+   "pressions_zone_pct": {
+    "bas": 10,
+    "milieu": 46,
+    "haut": 44
+   },
+   "sequence_pressing_n_moy": 1.29,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 3.8,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 30,
+   "ligne_5s_apres_perte": 43.3,
+   "n_frames": 3533,
+   "n_possessions": 392
+  },
+  "North Macedonia (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.5,
+     "epaisseur": 14.5,
+     "largeur": 25.3,
+     "devant_ballon": 3.0,
+     "n": 118
+    },
+    "20": {
+     "ligne": 14.8,
+     "epaisseur": 16.8,
+     "largeur": 29.5,
+     "devant_ballon": 5.0,
+     "n": 202
+    },
+    "30": {
+     "ligne": 20.1,
+     "epaisseur": 19.5,
+     "largeur": 31.1,
+     "devant_ballon": 7,
+     "n": 329
+    },
+    "40": {
+     "ligne": 24.8,
+     "epaisseur": 21.5,
+     "largeur": 32.3,
+     "devant_ballon": 7,
+     "n": 363
+    },
+    "50": {
+     "ligne": 31.9,
+     "epaisseur": 22.0,
+     "largeur": 33.6,
+     "devant_ballon": 7.0,
+     "n": 366
+    },
+    "60": {
+     "ligne": 40.9,
+     "epaisseur": 22.3,
+     "largeur": 35.3,
+     "devant_ballon": 7.0,
+     "n": 344
+    },
+    "70": {
+     "ligne": 47.9,
+     "epaisseur": 23.0,
+     "largeur": 35.8,
+     "devant_ballon": 7.0,
+     "n": 216
+    },
+    "80": {
+     "ligne": 60.3,
+     "epaisseur": 21.8,
+     "largeur": 34.3,
+     "devant_ballon": 7,
+     "n": 63
+    },
+    "90": {
+     "ligne": 71.8,
+     "epaisseur": 18.7,
+     "largeur": 32.4,
+     "devant_ballon": 7.0,
+     "n": 36
+    }
+   },
+   "ligne_milieu": 35.8,
+   "epaisseur_milieu": 22.3,
+   "largeur_milieu": 34.5,
+   "ligne_bas": 14.5,
+   "epaisseur_bas": 17.0,
+   "vitesse_recul_m_s": -2.1,
+   "vitesse_montee_m_s": 0.9,
+   "ppda": 15.2,
+   "relances_pressees_pct": 73,
+   "relances_gagnees_haut_pct": 20,
+   "pressions_par_possession": 1.42,
+   "pressions_zone_pct": {
+    "milieu": 44,
+    "bas": 11,
+    "haut": 45
+   },
+   "sequence_pressing_n_moy": 1.25,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 2.7,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 24,
+   "ligne_5s_apres_perte": 47.2,
+   "n_frames": 2037,
+   "n_possessions": 243
+  },
+  "Portugal (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 9.0,
+     "epaisseur": 14.0,
+     "largeur": 26.7,
+     "devant_ballon": 2,
+     "n": 69
+    },
+    "20": {
+     "ligne": 15.5,
+     "epaisseur": 14.1,
+     "largeur": 32.4,
+     "devant_ballon": 5,
+     "n": 129
+    },
+    "30": {
+     "ligne": 19.9,
+     "epaisseur": 17.3,
+     "largeur": 32.7,
+     "devant_ballon": 6.0,
+     "n": 268
+    },
+    "40": {
+     "ligne": 25.3,
+     "epaisseur": 20.5,
+     "largeur": 34.5,
+     "devant_ballon": 7,
+     "n": 489
+    },
+    "50": {
+     "ligne": 32.1,
+     "epaisseur": 21.7,
+     "largeur": 34.8,
+     "devant_ballon": 8.0,
+     "n": 472
+    },
+    "60": {
+     "ligne": 40.3,
+     "epaisseur": 22.8,
+     "largeur": 36.7,
+     "devant_ballon": 8,
+     "n": 451
+    },
+    "70": {
+     "ligne": 49.3,
+     "epaisseur": 23.3,
+     "largeur": 36.5,
+     "devant_ballon": 7.0,
+     "n": 234
+    },
+    "80": {
+     "ligne": 58.2,
+     "epaisseur": 24.6,
+     "largeur": 37.1,
+     "devant_ballon": 7,
+     "n": 105
+    },
+    "90": {
+     "ligne": 69.9,
+     "epaisseur": 25.7,
+     "largeur": 35.8,
+     "devant_ballon": 6.5,
+     "n": 56
+    }
+   },
+   "ligne_milieu": 35.9,
+   "epaisseur_milieu": 22.2,
+   "largeur_milieu": 35.6,
+   "ligne_bas": 15.8,
+   "epaisseur_bas": 15.0,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 18.2,
+   "relances_pressees_pct": 69,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.62,
+   "pressions_zone_pct": {
+    "haut": 32,
+    "milieu": 52,
+    "bas": 16
+   },
+   "sequence_pressing_n_moy": 1.25,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 5.5,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 21,
+   "ligne_5s_apres_perte": 55.1,
+   "n_frames": 2273,
+   "n_possessions": 259
+  },
+  "France (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.2,
+     "epaisseur": 13.0,
+     "largeur": 26.8,
+     "devant_ballon": 2.0,
+     "n": 76
+    },
+    "20": {
+     "ligne": 15.4,
+     "epaisseur": 16.4,
+     "largeur": 30.8,
+     "devant_ballon": 5.0,
+     "n": 168
+    },
+    "30": {
+     "ligne": 19.3,
+     "epaisseur": 18.9,
+     "largeur": 32.6,
+     "devant_ballon": 6.0,
+     "n": 306
+    },
+    "40": {
+     "ligne": 24.7,
+     "epaisseur": 21.8,
+     "largeur": 33.2,
+     "devant_ballon": 7,
+     "n": 455
+    },
+    "50": {
+     "ligne": 32.8,
+     "epaisseur": 23.1,
+     "largeur": 34.1,
+     "devant_ballon": 7.0,
+     "n": 414
+    },
+    "60": {
+     "ligne": 41.1,
+     "epaisseur": 24.0,
+     "largeur": 35.1,
+     "devant_ballon": 7,
+     "n": 425
+    },
+    "70": {
+     "ligne": 50.2,
+     "epaisseur": 23.9,
+     "largeur": 35.5,
+     "devant_ballon": 7.0,
+     "n": 198
+    },
+    "80": {
+     "ligne": 67.8,
+     "epaisseur": 21.3,
+     "largeur": 35.3,
+     "devant_ballon": 5,
+     "n": 75
+    },
+    "90": {
+     "ligne": 74.4,
+     "epaisseur": 20.9,
+     "largeur": 37.4,
+     "devant_ballon": 6,
+     "n": 37
+    }
+   },
+   "ligne_milieu": 36.5,
+   "epaisseur_milieu": 23.5,
+   "largeur_milieu": 34.6,
+   "ligne_bas": 15.3,
+   "epaisseur_bas": 15.6,
+   "vitesse_recul_m_s": -2.4,
+   "vitesse_montee_m_s": 1.3,
+   "ppda": 17.0,
+   "relances_pressees_pct": 68,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.74,
+   "pressions_zone_pct": {
+    "bas": 14,
+    "milieu": 49,
+    "haut": 37
+   },
+   "sequence_pressing_n_moy": 1.28,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.7,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 28,
+   "ligne_5s_apres_perte": 49.1,
+   "n_frames": 2154,
+   "n_possessions": 305
+  },
+  "Turkey (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 6.9,
+     "epaisseur": 14.4,
+     "largeur": 26.4,
+     "devant_ballon": 2,
+     "n": 131
+    },
+    "20": {
+     "ligne": 13.5,
+     "epaisseur": 14.6,
+     "largeur": 28.6,
+     "devant_ballon": 6,
+     "n": 189
+    },
+    "30": {
+     "ligne": 18.8,
+     "epaisseur": 17.9,
+     "largeur": 30.4,
+     "devant_ballon": 6,
+     "n": 313
+    },
+    "40": {
+     "ligne": 24.8,
+     "epaisseur": 22.3,
+     "largeur": 30.9,
+     "devant_ballon": 7,
+     "n": 325
+    },
+    "50": {
+     "ligne": 33.7,
+     "epaisseur": 23.4,
+     "largeur": 31.8,
+     "devant_ballon": 6.0,
+     "n": 210
+    },
+    "60": {
+     "ligne": 47.4,
+     "epaisseur": 23.4,
+     "largeur": 34.6,
+     "devant_ballon": 6.0,
+     "n": 158
+    },
+    "70": {
+     "ligne": 60.7,
+     "epaisseur": 21.4,
+     "largeur": 33.0,
+     "devant_ballon": 5.0,
+     "n": 94
+    },
+    "80": {
+     "ligne": 67.9,
+     "epaisseur": 20.0,
+     "largeur": 33.5,
+     "devant_ballon": 5.0,
+     "n": 44
+    },
+    "90": {
+     "ligne": 77.2,
+     "epaisseur": 20.1,
+     "largeur": 31.9,
+     "devant_ballon": 6,
+     "n": 13
+    }
+   },
+   "ligne_milieu": 35.6,
+   "epaisseur_milieu": 23.2,
+   "largeur_milieu": 32.5,
+   "ligne_bas": 13.3,
+   "epaisseur_bas": 15.2,
+   "vitesse_recul_m_s": -2.0,
+   "vitesse_montee_m_s": 1.3,
+   "ppda": 13.7,
+   "relances_pressees_pct": 73,
+   "relances_gagnees_haut_pct": 31,
+   "pressions_par_possession": 1.93,
+   "pressions_zone_pct": {
+    "milieu": 42,
+    "bas": 13,
+    "haut": 45
+   },
+   "sequence_pressing_n_moy": 1.44,
+   "sequences_3_et_plus_pct": 10,
+   "sequence_longue_s": 4.1,
+   "sequence_longue_p90_s": 6.3,
+   "contre_pressing_pct": 31,
+   "ligne_5s_apres_perte": 43.7,
+   "n_frames": 1477,
+   "n_possessions": 259
+  },
+  "Switzerland (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.0,
+     "epaisseur": 14.4,
+     "largeur": 26.1,
+     "devant_ballon": 2,
+     "n": 221
+    },
+    "20": {
+     "ligne": 14.0,
+     "epaisseur": 15.8,
+     "largeur": 29.8,
+     "devant_ballon": 6,
+     "n": 359
+    },
+    "30": {
+     "ligne": 18.5,
+     "epaisseur": 18.4,
+     "largeur": 31.6,
+     "devant_ballon": 7,
+     "n": 603
+    },
+    "40": {
+     "ligne": 24.2,
+     "epaisseur": 20.5,
+     "largeur": 33.4,
+     "devant_ballon": 8.0,
+     "n": 772
+    },
+    "50": {
+     "ligne": 32.5,
+     "epaisseur": 22.1,
+     "largeur": 34.4,
+     "devant_ballon": 7,
+     "n": 647
+    },
+    "60": {
+     "ligne": 40.3,
+     "epaisseur": 22.9,
+     "largeur": 36.1,
+     "devant_ballon": 7.0,
+     "n": 570
+    },
+    "70": {
+     "ligne": 49.8,
+     "epaisseur": 23.1,
+     "largeur": 36.8,
+     "devant_ballon": 7.0,
+     "n": 310
+    },
+    "80": {
+     "ligne": 57.7,
+     "epaisseur": 24.6,
+     "largeur": 36.3,
+     "devant_ballon": 7,
+     "n": 201
+    },
+    "90": {
+     "ligne": 56.9,
+     "epaisseur": 28.1,
+     "largeur": 37.4,
+     "devant_ballon": 8.0,
+     "n": 158
+    }
+   },
+   "ligne_milieu": 35.0,
+   "epaisseur_milieu": 22.3,
+   "largeur_milieu": 35.1,
+   "ligne_bas": 13.6,
+   "epaisseur_bas": 16.1,
+   "vitesse_recul_m_s": -2.0,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 19.6,
+   "relances_pressees_pct": 70,
+   "relances_gagnees_haut_pct": 32,
+   "pressions_par_possession": 1.74,
+   "pressions_zone_pct": {
+    "milieu": 43,
+    "haut": 43,
+    "bas": 14
+   },
+   "sequence_pressing_n_moy": 1.29,
+   "sequences_3_et_plus_pct": 7,
+   "sequence_longue_s": 3.8,
+   "sequence_longue_p90_s": 6.0,
+   "contre_pressing_pct": 35,
+   "ligne_5s_apres_perte": 47.9,
+   "n_frames": 3841,
+   "n_possessions": 431
+  },
+  "Sweden (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.7,
+     "epaisseur": 14.8,
+     "largeur": 26.1,
+     "devant_ballon": 4.0,
+     "n": 242
+    },
+    "20": {
+     "ligne": 13.8,
+     "epaisseur": 16.0,
+     "largeur": 29.5,
+     "devant_ballon": 6.0,
+     "n": 360
+    },
+    "30": {
+     "ligne": 18.5,
+     "epaisseur": 18.1,
+     "largeur": 30.7,
+     "devant_ballon": 7.0,
+     "n": 554
+    },
+    "40": {
+     "ligne": 24.2,
+     "epaisseur": 20.3,
+     "largeur": 32.2,
+     "devant_ballon": 8,
+     "n": 695
+    },
+    "50": {
+     "ligne": 29.7,
+     "epaisseur": 21.4,
+     "largeur": 33.6,
+     "devant_ballon": 8,
+     "n": 565
+    },
+    "60": {
+     "ligne": 36.7,
+     "epaisseur": 22.3,
+     "largeur": 34.5,
+     "devant_ballon": 9,
+     "n": 613
+    },
+    "70": {
+     "ligne": 43.1,
+     "epaisseur": 24.0,
+     "largeur": 35.1,
+     "devant_ballon": 9.0,
+     "n": 426
+    },
+    "80": {
+     "ligne": 47.0,
+     "epaisseur": 24.5,
+     "largeur": 35.8,
+     "devant_ballon": 10,
+     "n": 229
+    },
+    "90": {
+     "ligne": 58.6,
+     "epaisseur": 26.9,
+     "largeur": 34.2,
+     "devant_ballon": 8,
+     "n": 119
+    }
+   },
+   "ligne_milieu": 32.8,
+   "epaisseur_milieu": 21.8,
+   "largeur_milieu": 33.8,
+   "ligne_bas": 13.4,
+   "epaisseur_bas": 16.0,
+   "vitesse_recul_m_s": -1.7,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 21.1,
+   "relances_pressees_pct": 74,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.46,
+   "pressions_zone_pct": {
+    "milieu": 48,
+    "bas": 17,
+    "haut": 35
+   },
+   "sequence_pressing_n_moy": 1.27,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.9,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 34,
+   "ligne_5s_apres_perte": 47.3,
+   "n_frames": 3803,
+   "n_possessions": 317
+  },
+  "Slovakia (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.6,
+     "epaisseur": 15.0,
+     "largeur": 29.5,
+     "devant_ballon": 3.0,
+     "n": 132
+    },
+    "20": {
+     "ligne": 13.4,
+     "epaisseur": 18.1,
+     "largeur": 32.0,
+     "devant_ballon": 6.0,
+     "n": 244
+    },
+    "30": {
+     "ligne": 18.6,
+     "epaisseur": 20.9,
+     "largeur": 34.6,
+     "devant_ballon": 7.0,
+     "n": 344
+    },
+    "40": {
+     "ligne": 23.3,
+     "epaisseur": 21.6,
+     "largeur": 37.5,
+     "devant_ballon": 8,
+     "n": 471
+    },
+    "50": {
+     "ligne": 28.3,
+     "epaisseur": 22.7,
+     "largeur": 38.3,
+     "devant_ballon": 9,
+     "n": 401
+    },
+    "60": {
+     "ligne": 33.8,
+     "epaisseur": 22.7,
+     "largeur": 38.3,
+     "devant_ballon": 9,
+     "n": 479
+    },
+    "70": {
+     "ligne": 41.1,
+     "epaisseur": 23.3,
+     "largeur": 37.3,
+     "devant_ballon": 9,
+     "n": 225
+    },
+    "80": {
+     "ligne": 50.7,
+     "epaisseur": 23.7,
+     "largeur": 37.5,
+     "devant_ballon": 9,
+     "n": 89
+    },
+    "90": {
+     "ligne": 61.6,
+     "epaisseur": 24.9,
+     "largeur": 35.2,
+     "devant_ballon": 7,
+     "n": 55
+    }
+   },
+   "ligne_milieu": 31.2,
+   "epaisseur_milieu": 22.7,
+   "largeur_milieu": 38.0,
+   "ligne_bas": 13.2,
+   "epaisseur_bas": 18.3,
+   "vitesse_recul_m_s": -1.6,
+   "vitesse_montee_m_s": 0.9,
+   "ppda": 27.2,
+   "relances_pressees_pct": 76,
+   "relances_gagnees_haut_pct": 21,
+   "pressions_par_possession": 2.36,
+   "pressions_zone_pct": {
+    "milieu": 38,
+    "haut": 52,
+    "bas": 10
+   },
+   "sequence_pressing_n_moy": 1.37,
+   "sequences_3_et_plus_pct": 6,
+   "sequence_longue_s": 3.5,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 35,
+   "ligne_5s_apres_perte": 40.4,
+   "n_frames": 2440,
+   "n_possessions": 224
+  },
+  "Croatia (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.3,
+     "epaisseur": 13.3,
+     "largeur": 25.8,
+     "devant_ballon": 3.0,
+     "n": 136
+    },
+    "20": {
+     "ligne": 14.6,
+     "epaisseur": 16.2,
+     "largeur": 29.5,
+     "devant_ballon": 5,
+     "n": 205
+    },
+    "30": {
+     "ligne": 19.5,
+     "epaisseur": 18.8,
+     "largeur": 32.6,
+     "devant_ballon": 6,
+     "n": 307
+    },
+    "40": {
+     "ligne": 25.4,
+     "epaisseur": 21.6,
+     "largeur": 35.9,
+     "devant_ballon": 7.0,
+     "n": 512
+    },
+    "50": {
+     "ligne": 32.2,
+     "epaisseur": 22.5,
+     "largeur": 36.7,
+     "devant_ballon": 7.0,
+     "n": 402
+    },
+    "60": {
+     "ligne": 40.1,
+     "epaisseur": 23.1,
+     "largeur": 36.8,
+     "devant_ballon": 8,
+     "n": 335
+    },
+    "70": {
+     "ligne": 49.5,
+     "epaisseur": 24.2,
+     "largeur": 36.6,
+     "devant_ballon": 7.0,
+     "n": 154
+    },
+    "80": {
+     "ligne": 60.8,
+     "epaisseur": 25.5,
+     "largeur": 36.6,
+     "devant_ballon": 6,
+     "n": 61
+    },
+    "90": {
+     "ligne": 62.2,
+     "epaisseur": 27.9,
+     "largeur": 37.0,
+     "devant_ballon": 7,
+     "n": 57
+    }
+   },
+   "ligne_milieu": 33.6,
+   "epaisseur_milieu": 22.6,
+   "largeur_milieu": 36.5,
+   "ligne_bas": 13.0,
+   "epaisseur_bas": 15.7,
+   "vitesse_recul_m_s": -2.1,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 20.2,
+   "relances_pressees_pct": 67,
+   "relances_gagnees_haut_pct": 24,
+   "pressions_par_possession": 1.89,
+   "pressions_zone_pct": {
+    "milieu": 46,
+    "haut": 38,
+    "bas": 16
+   },
+   "sequence_pressing_n_moy": 1.47,
+   "sequences_3_et_plus_pct": 10,
+   "sequence_longue_s": 3.5,
+   "sequence_longue_p90_s": 6.2,
+   "contre_pressing_pct": 27,
+   "ligne_5s_apres_perte": 37.2,
+   "n_frames": 2169,
+   "n_possessions": 348
+  },
+  "Czech Republic (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.9,
+     "epaisseur": 13.7,
+     "largeur": 26.1,
+     "devant_ballon": 3,
+     "n": 183
+    },
+    "20": {
+     "ligne": 14.5,
+     "epaisseur": 15.7,
+     "largeur": 27.1,
+     "devant_ballon": 6,
+     "n": 225
+    },
+    "30": {
+     "ligne": 18.7,
+     "epaisseur": 18.5,
+     "largeur": 29.3,
+     "devant_ballon": 6,
+     "n": 295
+    },
+    "40": {
+     "ligne": 26.5,
+     "epaisseur": 22.2,
+     "largeur": 31.3,
+     "devant_ballon": 7,
+     "n": 471
+    },
+    "50": {
+     "ligne": 35.3,
+     "epaisseur": 23.2,
+     "largeur": 32.8,
+     "devant_ballon": 7,
+     "n": 365
+    },
+    "60": {
+     "ligne": 43.3,
+     "epaisseur": 22.8,
+     "largeur": 33.0,
+     "devant_ballon": 7,
+     "n": 283
+    },
+    "70": {
+     "ligne": 57.0,
+     "epaisseur": 21.6,
+     "largeur": 35.3,
+     "devant_ballon": 6,
+     "n": 167
+    },
+    "80": {
+     "ligne": 66.8,
+     "epaisseur": 18.9,
+     "largeur": 36.2,
+     "devant_ballon": 5.0,
+     "n": 64
+    },
+    "90": {
+     "ligne": 80.4,
+     "epaisseur": 19.9,
+     "largeur": 32.8,
+     "devant_ballon": 6.0,
+     "n": 52
+    }
+   },
+   "ligne_milieu": 36.7,
+   "epaisseur_milieu": 22.9,
+   "largeur_milieu": 32.8,
+   "ligne_bas": 13.0,
+   "epaisseur_bas": 15.4,
+   "vitesse_recul_m_s": -2.2,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 12.2,
+   "relances_pressees_pct": 59,
+   "relances_gagnees_haut_pct": 25,
+   "pressions_par_possession": 1.48,
+   "pressions_zone_pct": {
+    "haut": 35,
+    "milieu": 50,
+    "bas": 15
+   },
+   "sequence_pressing_n_moy": 1.16,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 3.4,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 20,
+   "ligne_5s_apres_perte": 44.1,
+   "n_frames": 2105,
+   "n_possessions": 415
+  },
+  "Spain (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.8,
+     "epaisseur": 17.0,
+     "largeur": 28.7,
+     "devant_ballon": 2,
+     "n": 131
+    },
+    "20": {
+     "ligne": 15.6,
+     "epaisseur": 17.4,
+     "largeur": 29.9,
+     "devant_ballon": 5,
+     "n": 117
+    },
+    "30": {
+     "ligne": 21.6,
+     "epaisseur": 19.7,
+     "largeur": 31.6,
+     "devant_ballon": 6,
+     "n": 173
+    },
+    "40": {
+     "ligne": 28.9,
+     "epaisseur": 21.9,
+     "largeur": 33.1,
+     "devant_ballon": 6.0,
+     "n": 328
+    },
+    "50": {
+     "ligne": 36.3,
+     "epaisseur": 21.8,
+     "largeur": 33.7,
+     "devant_ballon": 7,
+     "n": 303
+    },
+    "60": {
+     "ligne": 43.6,
+     "epaisseur": 23.6,
+     "largeur": 34.5,
+     "devant_ballon": 7.0,
+     "n": 458
+    },
+    "70": {
+     "ligne": 50.7,
+     "epaisseur": 24.0,
+     "largeur": 35.0,
+     "devant_ballon": 7,
+     "n": 389
+    },
+    "80": {
+     "ligne": 60.5,
+     "epaisseur": 23.7,
+     "largeur": 34.6,
+     "devant_ballon": 7.0,
+     "n": 246
+    },
+    "90": {
+     "ligne": 63.3,
+     "epaisseur": 27.9,
+     "largeur": 33.7,
+     "devant_ballon": 7.0,
+     "n": 248
+    }
+   },
+   "ligne_milieu": 40.9,
+   "epaisseur_milieu": 22.9,
+   "largeur_milieu": 34.3,
+   "ligne_bas": 13.5,
+   "epaisseur_bas": 17.1,
+   "vitesse_recul_m_s": -1.7,
+   "vitesse_montee_m_s": 1.4,
+   "ppda": 10.1,
+   "relances_pressees_pct": 59,
+   "relances_gagnees_haut_pct": 30,
+   "pressions_par_possession": 1.41,
+   "pressions_zone_pct": {
+    "bas": 20,
+    "milieu": 54,
+    "haut": 26
+   },
+   "sequence_pressing_n_moy": 1.31,
+   "sequences_3_et_plus_pct": 7,
+   "sequence_longue_s": 3.2,
+   "sequence_longue_p90_s": 5.4,
+   "contre_pressing_pct": 31,
+   "ligne_5s_apres_perte": 50.8,
+   "n_frames": 2393,
+   "n_possessions": 494
+  },
+  "Belgium (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.4,
+     "epaisseur": 13.8,
+     "largeur": 26.4,
+     "devant_ballon": 3.0,
+     "n": 160
+    },
+    "20": {
+     "ligne": 14.2,
+     "epaisseur": 15.6,
+     "largeur": 28.7,
+     "devant_ballon": 6.0,
+     "n": 368
+    },
+    "30": {
+     "ligne": 18.3,
+     "epaisseur": 19.1,
+     "largeur": 31.0,
+     "devant_ballon": 7,
+     "n": 493
+    },
+    "40": {
+     "ligne": 25.2,
+     "epaisseur": 22.2,
+     "largeur": 35.2,
+     "devant_ballon": 7.0,
+     "n": 528
+    },
+    "50": {
+     "ligne": 31.0,
+     "epaisseur": 22.1,
+     "largeur": 37.2,
+     "devant_ballon": 8,
+     "n": 521
+    },
+    "60": {
+     "ligne": 37.5,
+     "epaisseur": 22.7,
+     "largeur": 38.3,
+     "devant_ballon": 9,
+     "n": 637
+    },
+    "70": {
+     "ligne": 45.6,
+     "epaisseur": 24.9,
+     "largeur": 38.8,
+     "devant_ballon": 9,
+     "n": 453
+    },
+    "80": {
+     "ligne": 53.1,
+     "epaisseur": 25.4,
+     "largeur": 38.6,
+     "devant_ballon": 8.0,
+     "n": 232
+    },
+    "90": {
+     "ligne": 52.9,
+     "epaisseur": 29.5,
+     "largeur": 39.5,
+     "devant_ballon": 9.0,
+     "n": 168
+    }
+   },
+   "ligne_milieu": 34.9,
+   "epaisseur_milieu": 22.5,
+   "largeur_milieu": 37.8,
+   "ligne_bas": 14.1,
+   "epaisseur_bas": 15.7,
+   "vitesse_recul_m_s": -1.6,
+   "vitesse_montee_m_s": 1.0,
+   "ppda": 18.4,
+   "relances_pressees_pct": 62,
+   "relances_gagnees_haut_pct": 26,
+   "pressions_par_possession": 1.28,
+   "pressions_zone_pct": {
+    "bas": 15,
+    "haut": 42,
+    "milieu": 44
+   },
+   "sequence_pressing_n_moy": 1.26,
+   "sequences_3_et_plus_pct": 6,
+   "sequence_longue_s": 3.9,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 30,
+   "ligne_5s_apres_perte": 48.4,
+   "n_frames": 3560,
+   "n_possessions": 382
+  },
+  "Netherlands (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.5,
+     "epaisseur": 13.5,
+     "largeur": 25.9,
+     "devant_ballon": 4.0,
+     "n": 98
+    },
+    "20": {
+     "ligne": 14.5,
+     "epaisseur": 15.6,
+     "largeur": 27.4,
+     "devant_ballon": 6.0,
+     "n": 202
+    },
+    "30": {
+     "ligne": 18.7,
+     "epaisseur": 18.8,
+     "largeur": 29.5,
+     "devant_ballon": 7,
+     "n": 255
+    },
+    "40": {
+     "ligne": 26.8,
+     "epaisseur": 21.1,
+     "largeur": 32.1,
+     "devant_ballon": 6.0,
+     "n": 322
+    },
+    "50": {
+     "ligne": 34.4,
+     "epaisseur": 24.5,
+     "largeur": 34.4,
+     "devant_ballon": 7,
+     "n": 301
+    },
+    "60": {
+     "ligne": 41.9,
+     "epaisseur": 24.8,
+     "largeur": 35.2,
+     "devant_ballon": 7.0,
+     "n": 418
+    },
+    "70": {
+     "ligne": 49.9,
+     "epaisseur": 23.7,
+     "largeur": 35.6,
+     "devant_ballon": 7,
+     "n": 281
+    },
+    "80": {
+     "ligne": 64.5,
+     "epaisseur": 22.4,
+     "largeur": 35.4,
+     "devant_ballon": 6.0,
+     "n": 126
+    },
+    "90": {
+     "ligne": 73.9,
+     "epaisseur": 23.2,
+     "largeur": 33.5,
+     "devant_ballon": 7,
+     "n": 95
+    }
+   },
+   "ligne_milieu": 38.5,
+   "epaisseur_milieu": 24.2,
+   "largeur_milieu": 34.8,
+   "ligne_bas": 14.2,
+   "epaisseur_bas": 15.9,
+   "vitesse_recul_m_s": -2.2,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 14.2,
+   "relances_pressees_pct": 65,
+   "relances_gagnees_haut_pct": 32,
+   "pressions_par_possession": 1.79,
+   "pressions_zone_pct": {
+    "milieu": 47,
+    "bas": 19,
+    "haut": 35
+   },
+   "sequence_pressing_n_moy": 1.32,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 4.2,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 28,
+   "ligne_5s_apres_perte": 49.8,
+   "n_frames": 2098,
+   "n_possessions": 313
+  },
+  "Italy (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.1,
+     "epaisseur": 13.3,
+     "largeur": 27.1,
+     "devant_ballon": 3.0,
+     "n": 182
+    },
+    "20": {
+     "ligne": 13.8,
+     "epaisseur": 14.4,
+     "largeur": 30.6,
+     "devant_ballon": 6.0,
+     "n": 348
+    },
+    "30": {
+     "ligne": 18.9,
+     "epaisseur": 18.5,
+     "largeur": 32.2,
+     "devant_ballon": 6.0,
+     "n": 518
+    },
+    "40": {
+     "ligne": 24.8,
+     "epaisseur": 21.4,
+     "largeur": 33.2,
+     "devant_ballon": 7.0,
+     "n": 724
+    },
+    "50": {
+     "ligne": 33.1,
+     "epaisseur": 22.7,
+     "largeur": 34.0,
+     "devant_ballon": 7,
+     "n": 607
+    },
+    "60": {
+     "ligne": 42.7,
+     "epaisseur": 22.2,
+     "largeur": 34.4,
+     "devant_ballon": 7,
+     "n": 447
+    },
+    "70": {
+     "ligne": 57.7,
+     "epaisseur": 21.3,
+     "largeur": 34.7,
+     "devant_ballon": 6.0,
+     "n": 234
+    },
+    "80": {
+     "ligne": 68.4,
+     "epaisseur": 20.4,
+     "largeur": 33.8,
+     "devant_ballon": 5.0,
+     "n": 122
+    },
+    "90": {
+     "ligne": 71.9,
+     "epaisseur": 20.8,
+     "largeur": 34.3,
+     "devant_ballon": 7,
+     "n": 79
+    }
+   },
+   "ligne_milieu": 35.3,
+   "epaisseur_milieu": 22.3,
+   "largeur_milieu": 34.2,
+   "ligne_bas": 13.6,
+   "epaisseur_bas": 15.0,
+   "vitesse_recul_m_s": -2.6,
+   "vitesse_montee_m_s": 1.6,
+   "ppda": 15.0,
+   "relances_pressees_pct": 62,
+   "relances_gagnees_haut_pct": 29,
+   "pressions_par_possession": 1.42,
+   "pressions_zone_pct": {
+    "bas": 22,
+    "milieu": 48,
+    "haut": 30
+   },
+   "sequence_pressing_n_moy": 1.32,
+   "sequences_3_et_plus_pct": 6,
+   "sequence_longue_s": 3.3,
+   "sequence_longue_p90_s": 5.6,
+   "contre_pressing_pct": 28,
+   "ligne_5s_apres_perte": 50.5,
+   "n_frames": 3261,
+   "n_possessions": 644
+  },
+  "Austria (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 9.0,
+     "epaisseur": 13.9,
+     "largeur": 26.5,
+     "devant_ballon": 3,
+     "n": 79
+    },
+    "20": {
+     "ligne": 14.7,
+     "epaisseur": 14.8,
+     "largeur": 27.7,
+     "devant_ballon": 5.0,
+     "n": 174
+    },
+    "30": {
+     "ligne": 20.5,
+     "epaisseur": 18.2,
+     "largeur": 31.0,
+     "devant_ballon": 6,
+     "n": 339
+    },
+    "40": {
+     "ligne": 26.4,
+     "epaisseur": 21.2,
+     "largeur": 32.1,
+     "devant_ballon": 7,
+     "n": 447
+    },
+    "50": {
+     "ligne": 34.0,
+     "epaisseur": 22.2,
+     "largeur": 33.1,
+     "devant_ballon": 7.0,
+     "n": 354
+    },
+    "60": {
+     "ligne": 44.2,
+     "epaisseur": 23.4,
+     "largeur": 34.6,
+     "devant_ballon": 7,
+     "n": 291
+    },
+    "70": {
+     "ligne": 55.2,
+     "epaisseur": 22.9,
+     "largeur": 34.8,
+     "devant_ballon": 6,
+     "n": 189
+    },
+    "80": {
+     "ligne": 68.2,
+     "epaisseur": 22.4,
+     "largeur": 35.2,
+     "devant_ballon": 5.0,
+     "n": 72
+    },
+    "90": {
+     "ligne": 78.6,
+     "epaisseur": 18.9,
+     "largeur": 29.7,
+     "devant_ballon": 6,
+     "n": 45
+    }
+   },
+   "ligne_milieu": 37.1,
+   "epaisseur_milieu": 22.5,
+   "largeur_milieu": 33.3,
+   "ligne_bas": 15.4,
+   "epaisseur_bas": 15.9,
+   "vitesse_recul_m_s": -2.2,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 13.9,
+   "relances_pressees_pct": 71,
+   "relances_gagnees_haut_pct": 22,
+   "pressions_par_possession": 1.68,
+   "pressions_zone_pct": {
+    "milieu": 46,
+    "bas": 18,
+    "haut": 36
+   },
+   "sequence_pressing_n_moy": 1.37,
+   "sequences_3_et_plus_pct": 6,
+   "sequence_longue_s": 4.0,
+   "sequence_longue_p90_s": 4.5,
+   "contre_pressing_pct": 37,
+   "ligne_5s_apres_perte": 50.7,
+   "n_frames": 1990,
+   "n_possessions": 369
+  },
+  "Denmark (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.1,
+     "epaisseur": 12.8,
+     "largeur": 26.3,
+     "devant_ballon": 3.0,
+     "n": 188
+    },
+    "20": {
+     "ligne": 12.9,
+     "epaisseur": 15.8,
+     "largeur": 30.4,
+     "devant_ballon": 6.0,
+     "n": 304
+    },
+    "30": {
+     "ligne": 17.9,
+     "epaisseur": 19.1,
+     "largeur": 31.7,
+     "devant_ballon": 7,
+     "n": 431
+    },
+    "40": {
+     "ligne": 24.8,
+     "epaisseur": 22.2,
+     "largeur": 33.9,
+     "devant_ballon": 7,
+     "n": 543
+    },
+    "50": {
+     "ligne": 31.9,
+     "epaisseur": 23.9,
+     "largeur": 36.1,
+     "devant_ballon": 7.0,
+     "n": 466
+    },
+    "60": {
+     "ligne": 38.1,
+     "epaisseur": 25.8,
+     "largeur": 37.5,
+     "devant_ballon": 7.0,
+     "n": 530
+    },
+    "70": {
+     "ligne": 47.8,
+     "epaisseur": 26.2,
+     "largeur": 36.8,
+     "devant_ballon": 7,
+     "n": 357
+    },
+    "80": {
+     "ligne": 59.4,
+     "epaisseur": 25.5,
+     "largeur": 37.5,
+     "devant_ballon": 7,
+     "n": 189
+    },
+    "90": {
+     "ligne": 59.3,
+     "epaisseur": 27.4,
+     "largeur": 37.1,
+     "devant_ballon": 7.0,
+     "n": 128
+    }
+   },
+   "ligne_milieu": 34.6,
+   "epaisseur_milieu": 24.5,
+   "largeur_milieu": 36.4,
+   "ligne_bas": 12.8,
+   "epaisseur_bas": 16.0,
+   "vitesse_recul_m_s": -1.9,
+   "vitesse_montee_m_s": 0.9,
+   "ppda": 13.9,
+   "relances_pressees_pct": 64,
+   "relances_gagnees_haut_pct": 30,
+   "pressions_par_possession": 1.31,
+   "pressions_zone_pct": {
+    "bas": 15,
+    "milieu": 47,
+    "haut": 38
+   },
+   "sequence_pressing_n_moy": 1.26,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.2,
+   "sequence_longue_p90_s": 5.3,
+   "contre_pressing_pct": 30,
+   "ligne_5s_apres_perte": 43.5,
+   "n_frames": 3136,
+   "n_possessions": 484
+  },
+  "Wales (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 6.6,
+     "epaisseur": 13.7,
+     "largeur": 25.1,
+     "devant_ballon": 3,
+     "n": 177
+    },
+    "20": {
+     "ligne": 13.2,
+     "epaisseur": 15.5,
+     "largeur": 29.0,
+     "devant_ballon": 6.0,
+     "n": 266
+    },
+    "30": {
+     "ligne": 17.8,
+     "epaisseur": 17.7,
+     "largeur": 30.7,
+     "devant_ballon": 7,
+     "n": 337
+    },
+    "40": {
+     "ligne": 25.5,
+     "epaisseur": 20.1,
+     "largeur": 31.8,
+     "devant_ballon": 7.0,
+     "n": 494
+    },
+    "50": {
+     "ligne": 31.1,
+     "epaisseur": 20.6,
+     "largeur": 33.7,
+     "devant_ballon": 7.0,
+     "n": 370
+    },
+    "60": {
+     "ligne": 40.5,
+     "epaisseur": 21.3,
+     "largeur": 34.5,
+     "devant_ballon": 7,
+     "n": 263
+    },
+    "70": {
+     "ligne": 49.3,
+     "epaisseur": 23.5,
+     "largeur": 34.9,
+     "devant_ballon": 7,
+     "n": 153
+    },
+    "80": {
+     "ligne": 64.1,
+     "epaisseur": 21.3,
+     "largeur": 33.1,
+     "devant_ballon": 6,
+     "n": 55
+    },
+    "90": {
+     "ligne": 77.1,
+     "epaisseur": 19.5,
+     "largeur": 33.7,
+     "devant_ballon": 7,
+     "n": 23
+    }
+   },
+   "ligne_milieu": 33.4,
+   "epaisseur_milieu": 21.0,
+   "largeur_milieu": 33.9,
+   "ligne_bas": 12.5,
+   "epaisseur_bas": 15.4,
+   "vitesse_recul_m_s": -2.1,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 21.2,
+   "relances_pressees_pct": 75,
+   "relances_gagnees_haut_pct": 22,
+   "pressions_par_possession": 1.69,
+   "pressions_zone_pct": {
+    "milieu": 43,
+    "haut": 42,
+    "bas": 15
+   },
+   "sequence_pressing_n_moy": 1.29,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 3.7,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 30,
+   "ligne_5s_apres_perte": 50.9,
+   "n_frames": 2138,
+   "n_possessions": 303
+  },
+  "England (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.1,
+     "epaisseur": 14.2,
+     "largeur": 27.2,
+     "devant_ballon": 3.0,
+     "n": 190
+    },
+    "20": {
+     "ligne": 14.2,
+     "epaisseur": 15.7,
+     "largeur": 29.8,
+     "devant_ballon": 6.0,
+     "n": 344
+    },
+    "30": {
+     "ligne": 19.1,
+     "epaisseur": 17.6,
+     "largeur": 30.9,
+     "devant_ballon": 6,
+     "n": 517
+    },
+    "40": {
+     "ligne": 24.3,
+     "epaisseur": 20.5,
+     "largeur": 32.1,
+     "devant_ballon": 7,
+     "n": 805
+    },
+    "50": {
+     "ligne": 33.0,
+     "epaisseur": 21.5,
+     "largeur": 33.4,
+     "devant_ballon": 7.0,
+     "n": 716
+    },
+    "60": {
+     "ligne": 43.5,
+     "epaisseur": 21.1,
+     "largeur": 33.9,
+     "devant_ballon": 7.0,
+     "n": 518
+    },
+    "70": {
+     "ligne": 54.4,
+     "epaisseur": 20.8,
+     "largeur": 32.8,
+     "devant_ballon": 6.0,
+     "n": 224
+    },
+    "80": {
+     "ligne": 66.7,
+     "epaisseur": 19.7,
+     "largeur": 33.5,
+     "devant_ballon": 5.0,
+     "n": 106
+    },
+    "90": {
+     "ligne": 75.3,
+     "epaisseur": 18.6,
+     "largeur": 31.2,
+     "devant_ballon": 6,
+     "n": 53
+    }
+   },
+   "ligne_milieu": 35.3,
+   "epaisseur_milieu": 21.2,
+   "largeur_milieu": 33.3,
+   "ligne_bas": 13.8,
+   "epaisseur_bas": 15.6,
+   "vitesse_recul_m_s": -2.3,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 15.2,
+   "relances_pressees_pct": 75,
+   "relances_gagnees_haut_pct": 28,
+   "pressions_par_possession": 1.96,
+   "pressions_zone_pct": {
+    "bas": 17,
+    "milieu": 52,
+    "haut": 30
+   },
+   "sequence_pressing_n_moy": 1.33,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 4.1,
+   "sequence_longue_p90_s": 6.3,
+   "contre_pressing_pct": 37,
+   "ligne_5s_apres_perte": 47.2,
+   "n_frames": 3473,
+   "n_possessions": 519
+  },
+  "Hungary (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.7,
+     "epaisseur": 14.1,
+     "largeur": 26.5,
+     "devant_ballon": 3.0,
+     "n": 132
+    },
+    "20": {
+     "ligne": 14.2,
+     "epaisseur": 16.7,
+     "largeur": 30.3,
+     "devant_ballon": 6,
+     "n": 297
+    },
+    "30": {
+     "ligne": 18.6,
+     "epaisseur": 17.7,
+     "largeur": 30.5,
+     "devant_ballon": 7.0,
+     "n": 558
+    },
+    "40": {
+     "ligne": 22.2,
+     "epaisseur": 18.9,
+     "largeur": 30.9,
+     "devant_ballon": 8,
+     "n": 683
+    },
+    "50": {
+     "ligne": 27.4,
+     "epaisseur": 19.9,
+     "largeur": 31.6,
+     "devant_ballon": 8,
+     "n": 501
+    },
+    "60": {
+     "ligne": 35.3,
+     "epaisseur": 20.5,
+     "largeur": 33.6,
+     "devant_ballon": 8,
+     "n": 327
+    },
+    "70": {
+     "ligne": 46.4,
+     "epaisseur": 21.4,
+     "largeur": 35.7,
+     "devant_ballon": 7,
+     "n": 91
+    },
+    "80": {
+     "ligne": 61.3,
+     "epaisseur": 24.1,
+     "largeur": 35.9,
+     "devant_ballon": 7,
+     "n": 43
+    },
+    "90": {
+     "ligne": 66.1,
+     "epaisseur": 25.0,
+     "largeur": 32.1,
+     "devant_ballon": 7,
+     "n": 19
+    }
+   },
+   "ligne_milieu": 29.3,
+   "epaisseur_milieu": 19.8,
+   "largeur_milieu": 32.4,
+   "ligne_bas": 14.4,
+   "epaisseur_bas": 16.5,
+   "vitesse_recul_m_s": -1.7,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 36.6,
+   "relances_pressees_pct": 72,
+   "relances_gagnees_haut_pct": 22,
+   "pressions_par_possession": 1.4,
+   "pressions_zone_pct": {
+    "milieu": 32,
+    "haut": 63,
+    "bas": 5
+   },
+   "sequence_pressing_n_moy": 1.32,
+   "sequences_3_et_plus_pct": 5,
+   "sequence_longue_s": 4.1,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 27,
+   "ligne_5s_apres_perte": 38.2,
+   "n_frames": 2651,
+   "n_possessions": 268
+  },
+  "Russia (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.2,
+     "epaisseur": 16.9,
+     "largeur": 29.0,
+     "devant_ballon": 4,
+     "n": 137
+    },
+    "20": {
+     "ligne": 13.9,
+     "epaisseur": 19.3,
+     "largeur": 30.4,
+     "devant_ballon": 6.0,
+     "n": 170
+    },
+    "30": {
+     "ligne": 18.5,
+     "epaisseur": 22.2,
+     "largeur": 33.5,
+     "devant_ballon": 7,
+     "n": 217
+    },
+    "40": {
+     "ligne": 23.0,
+     "epaisseur": 25.2,
+     "largeur": 36.2,
+     "devant_ballon": 8,
+     "n": 333
+    },
+    "50": {
+     "ligne": 28.9,
+     "epaisseur": 25.0,
+     "largeur": 37.3,
+     "devant_ballon": 9.0,
+     "n": 364
+    },
+    "60": {
+     "ligne": 36.2,
+     "epaisseur": 26.9,
+     "largeur": 37.9,
+     "devant_ballon": 9.0,
+     "n": 482
+    },
+    "70": {
+     "ligne": 41.2,
+     "epaisseur": 28.8,
+     "largeur": 39.0,
+     "devant_ballon": 9.0,
+     "n": 340
+    },
+    "80": {
+     "ligne": 47.4,
+     "epaisseur": 30.6,
+     "largeur": 38.7,
+     "devant_ballon": 9.0,
+     "n": 220
+    },
+    "90": {
+     "ligne": 50.5,
+     "epaisseur": 36.0,
+     "largeur": 38.7,
+     "devant_ballon": 9.0,
+     "n": 188
+    }
+   },
+   "ligne_milieu": 33.5,
+   "epaisseur_milieu": 26.4,
+   "largeur_milieu": 37.6,
+   "ligne_bas": 12.7,
+   "epaisseur_bas": 18.5,
+   "vitesse_recul_m_s": -1.3,
+   "vitesse_montee_m_s": 0.9,
+   "ppda": 12.3,
+   "relances_pressees_pct": 73,
+   "relances_gagnees_haut_pct": 29,
+   "pressions_par_possession": 1.53,
+   "pressions_zone_pct": {
+    "milieu": 47,
+    "bas": 13,
+    "haut": 40
+   },
+   "sequence_pressing_n_moy": 1.27,
+   "sequences_3_et_plus_pct": 3,
+   "sequence_longue_s": 3.4,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 30,
+   "ligne_5s_apres_perte": 46.9,
+   "n_frames": 2451,
+   "n_possessions": 257
+  },
+  "Germany (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.5,
+     "epaisseur": 12.1,
+     "largeur": 26.7,
+     "devant_ballon": 2.0,
+     "n": 90
+    },
+    "20": {
+     "ligne": 14.0,
+     "epaisseur": 15.2,
+     "largeur": 31.5,
+     "devant_ballon": 6.0,
+     "n": 112
+    },
+    "30": {
+     "ligne": 21.3,
+     "epaisseur": 17.8,
+     "largeur": 32.0,
+     "devant_ballon": 6,
+     "n": 177
+    },
+    "40": {
+     "ligne": 26.3,
+     "epaisseur": 21.0,
+     "largeur": 33.5,
+     "devant_ballon": 7,
+     "n": 277
+    },
+    "50": {
+     "ligne": 33.0,
+     "epaisseur": 22.8,
+     "largeur": 35.5,
+     "devant_ballon": 7.0,
+     "n": 310
+    },
+    "60": {
+     "ligne": 41.6,
+     "epaisseur": 23.3,
+     "largeur": 37.0,
+     "devant_ballon": 7.0,
+     "n": 302
+    },
+    "70": {
+     "ligne": 50.5,
+     "epaisseur": 24.2,
+     "largeur": 37.5,
+     "devant_ballon": 7.0,
+     "n": 198
+    },
+    "80": {
+     "ligne": 65.2,
+     "epaisseur": 23.9,
+     "largeur": 35.0,
+     "devant_ballon": 5.5,
+     "n": 100
+    },
+    "90": {
+     "ligne": 68.6,
+     "epaisseur": 22.7,
+     "largeur": 36.2,
+     "devant_ballon": 7.0,
+     "n": 80
+    }
+   },
+   "ligne_milieu": 37.0,
+   "epaisseur_milieu": 22.9,
+   "largeur_milieu": 36.0,
+   "ligne_bas": 11.8,
+   "epaisseur_bas": 14.3,
+   "vitesse_recul_m_s": -2.4,
+   "vitesse_montee_m_s": 1.3,
+   "ppda": 13.4,
+   "relances_pressees_pct": 56,
+   "relances_gagnees_haut_pct": 30,
+   "pressions_par_possession": 1.22,
+   "pressions_zone_pct": {
+    "haut": 29,
+    "milieu": 53,
+    "bas": 18
+   },
+   "sequence_pressing_n_moy": 1.27,
+   "sequences_3_et_plus_pct": 4,
+   "sequence_longue_s": 2.8,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 34,
+   "ligne_5s_apres_perte": 45.7,
+   "n_frames": 1646,
+   "n_possessions": 345
+  },
+  "Poland (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.3,
+     "epaisseur": 13.5,
+     "largeur": 28.8,
+     "devant_ballon": 2.0,
+     "n": 136
+    },
+    "20": {
+     "ligne": 14.2,
+     "epaisseur": 14.7,
+     "largeur": 31.3,
+     "devant_ballon": 6.0,
+     "n": 190
+    },
+    "30": {
+     "ligne": 18.2,
+     "epaisseur": 18.4,
+     "largeur": 33.1,
+     "devant_ballon": 7,
+     "n": 283
+    },
+    "40": {
+     "ligne": 24.1,
+     "epaisseur": 23.2,
+     "largeur": 33.5,
+     "devant_ballon": 8.0,
+     "n": 388
+    },
+    "50": {
+     "ligne": 31.2,
+     "epaisseur": 23.9,
+     "largeur": 34.4,
+     "devant_ballon": 8,
+     "n": 279
+    },
+    "60": {
+     "ligne": 37.5,
+     "epaisseur": 25.6,
+     "largeur": 35.3,
+     "devant_ballon": 8.0,
+     "n": 264
+    },
+    "70": {
+     "ligne": 45.7,
+     "epaisseur": 27.5,
+     "largeur": 35.7,
+     "devant_ballon": 8,
+     "n": 183
+    },
+    "80": {
+     "ligne": 52.7,
+     "epaisseur": 29.0,
+     "largeur": 37.3,
+     "devant_ballon": 8.0,
+     "n": 120
+    },
+    "90": {
+     "ligne": 56.1,
+     "epaisseur": 29.8,
+     "largeur": 36.7,
+     "devant_ballon": 9,
+     "n": 145
+    }
+   },
+   "ligne_milieu": 33.2,
+   "epaisseur_milieu": 24.8,
+   "largeur_milieu": 34.8,
+   "ligne_bas": 13.4,
+   "epaisseur_bas": 15.2,
+   "vitesse_recul_m_s": -1.8,
+   "vitesse_montee_m_s": 1.2,
+   "ppda": 10.6,
+   "relances_pressees_pct": 71,
+   "relances_gagnees_haut_pct": 27,
+   "pressions_par_possession": 1.88,
+   "pressions_zone_pct": {
+    "bas": 20,
+    "milieu": 45,
+    "haut": 36
+   },
+   "sequence_pressing_n_moy": 1.41,
+   "sequences_3_et_plus_pct": 11,
+   "sequence_longue_s": 4.0,
+   "sequence_longue_p90_s": 5.2,
+   "contre_pressing_pct": 34,
+   "ligne_5s_apres_perte": 41.7,
+   "n_frames": 1988,
+   "n_possessions": 237
+  },
+  "Scotland (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 8.5,
+     "epaisseur": 11.6,
+     "largeur": 26.0,
+     "devant_ballon": 3,
+     "n": 117
+    },
+    "20": {
+     "ligne": 13.4,
+     "epaisseur": 13.6,
+     "largeur": 29.4,
+     "devant_ballon": 6,
+     "n": 205
+    },
+    "30": {
+     "ligne": 18.0,
+     "epaisseur": 18.4,
+     "largeur": 30.4,
+     "devant_ballon": 7.0,
+     "n": 280
+    },
+    "40": {
+     "ligne": 25.5,
+     "epaisseur": 23.0,
+     "largeur": 32.3,
+     "devant_ballon": 7,
+     "n": 357
+    },
+    "50": {
+     "ligne": 32.8,
+     "epaisseur": 24.0,
+     "largeur": 32.8,
+     "devant_ballon": 6.0,
+     "n": 288
+    },
+    "60": {
+     "ligne": 43.5,
+     "epaisseur": 23.7,
+     "largeur": 34.2,
+     "devant_ballon": 6.0,
+     "n": 182
+    },
+    "70": {
+     "ligne": 58.8,
+     "epaisseur": 22.9,
+     "largeur": 35.6,
+     "devant_ballon": 5,
+     "n": 117
+    },
+    "80": {
+     "ligne": 66.6,
+     "epaisseur": 21.9,
+     "largeur": 33.6,
+     "devant_ballon": 5,
+     "n": 41
+    },
+    "90": {
+     "ligne": 76.9,
+     "epaisseur": 19.3,
+     "largeur": 34.9,
+     "devant_ballon": 7,
+     "n": 35
+    }
+   },
+   "ligne_milieu": 35.2,
+   "epaisseur_milieu": 23.8,
+   "largeur_milieu": 33.3,
+   "ligne_bas": 13.0,
+   "epaisseur_bas": 14.0,
+   "vitesse_recul_m_s": -2.4,
+   "vitesse_montee_m_s": 1.1,
+   "ppda": 16.2,
+   "relances_pressees_pct": 73,
+   "relances_gagnees_haut_pct": 33,
+   "pressions_par_possession": 1.84,
+   "pressions_zone_pct": {
+    "milieu": 48,
+    "haut": 39,
+    "bas": 14
+   },
+   "sequence_pressing_n_moy": 1.39,
+   "sequences_3_et_plus_pct": 8,
+   "sequence_longue_s": 4.3,
+   "sequence_longue_p90_s": 6.8,
+   "contre_pressing_pct": 36,
+   "ligne_5s_apres_perte": 41.0,
+   "n_frames": 1622,
+   "n_possessions": 256
+  },
+  "Finland (UEFA Euro 2020)": {
+   "ligne_par_ballon": {
+    "10": {
+     "ligne": 7.3,
+     "epaisseur": 15.9,
+     "largeur": 26.7,
+     "devant_ballon": 4.0,
+     "n": 228
+    },
+    "20": {
+     "ligne": 13.0,
+     "epaisseur": 19.8,
+     "largeur": 30.1,
+     "devant_ballon": 6.0,
+     "n": 344
+    },
+    "30": {
+     "ligne": 16.9,
+     "epaisseur": 21.8,
+     "largeur": 34.2,
+     "devant_ballon": 8,
+     "n": 451
+    },
+    "40": {
+     "ligne": 21.4,
+     "epaisseur": 23.6,
+     "largeur": 37.4,
+     "devant_ballon": 8.0,
+     "n": 666
+    },
+    "50": {
+     "ligne": 27.3,
+     "epaisseur": 24.6,
+     "largeur": 38.2,
+     "devant_ballon": 9.0,
+     "n": 456
+    },
+    "60": {
+     "ligne": 32.7,
+     "epaisseur": 26.3,
+     "largeur": 39.1,
+     "devant_ballon": 9,
+     "n": 491
+    },
+    "70": {
+     "ligne": 39.6,
+     "epaisseur": 27.2,
+     "largeur": 40.0,
+     "devant_ballon": 9.0,
+     "n": 200
+    },
+    "80": {
+     "ligne": 51.3,
+     "epaisseur": 27.8,
+     "largeur": 38.5,
+     "devant_ballon": 7.0,
+     "n": 68
+    },
+    "90": {
+     "ligne": 65.3,
+     "epaisseur": 28.4,
+     "largeur": 37.2,
+     "devant_ballon": 7.0,
+     "n": 94
+    }
+   },
+   "ligne_milieu": 28.7,
+   "epaisseur_milieu": 25.3,
+   "largeur_milieu": 38.7,
+   "ligne_bas": 12.1,
+   "epaisseur_bas": 19.2,
+   "vitesse_recul_m_s": -1.6,
+   "vitesse_montee_m_s": 0.8,
+   "ppda": 25.6,
+   "relances_pressees_pct": 85,
+   "relances_gagnees_haut_pct": 36,
+   "pressions_par_possession": 2.02,
+   "pressions_zone_pct": {
+    "milieu": 39,
+    "haut": 54,
+    "bas": 8
+   },
+   "sequence_pressing_n_moy": 1.31,
+   "sequences_3_et_plus_pct": 8,
+   "sequence_longue_s": 3.3,
+   "sequence_longue_p90_s": null,
+   "contre_pressing_pct": 29,
+   "ligne_5s_apres_perte": 37.2,
+   "n_frames": 2998,
+   "n_possessions": 253
+  }
+ }
+}
