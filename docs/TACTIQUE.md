@@ -175,6 +175,21 @@ Tout est dans `jeu/emergent.py`, en constantes de tête de module :
    temps » : c'est une ligne trois mètres plus haute, des vagues plus
    probables et un contre-pressing plus fréquent — ce que le réel montre.
 
+### La sortie de but, après coup
+
+La première version faisait expirer la vague (trois à six secondes)
+avant même le coup, puisqu'une sortie de but dure neuf secondes d'arrêt :
+l'homme à homme disparaissait et la forme envoyait le buteur dans la
+surface. Une vague partie sur une relance tient maintenant tant que la
+relance dure, plus quatre secondes après le coup ; et sur une sortie de
+but, personne du camp adverse n'entre dans la surface, quelle que soit
+la phase. Mesuré : le pressing est en place sur 73 % des sorties de but
+(réel : deux sur trois), 0,05 joueur adverse dans la surface par sortie.
+Au passage, la zone d'un latéral se borne à son côté, hors du couloir
+central de sept mètres, et les centraux choisissent leur homme avant les
+latéraux : Hakimi ne marque plus Kane en bloc bas (un latéral marque un
+avant-centre dans 5 % de ses marquages, un homme dans l'axe dans 9 %).
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

@@ -405,6 +405,7 @@ class Match:
         self.ligne_gel = [None, None]                # (profondeur, jusqu'à) : la ligne tenue haute pendant le contre-pressing
         self.relance_num = [0, 0]                    # le numéro de la relance en cours de chaque camp : une vague se tire une fois par relance
         self.relance_tiree = [-1, -1]                # la dernière relance adverse sur laquelle chaque camp a tiré sa vague (ou pas)
+        self.vague_relance = [-1, -1]                # la relance adverse sur laquelle la vague en cours est partie : elle dure tant que la relance dure
         self.t_perte_haute = [-99.0, -99.0]          # la dernière perte haute de chaque camp : sans contre-pressing, on se replie sans aller au contact
         self.presseur_en_titre = [(-1, -99.0), (-1, -99.0)]   # (pid, depuis) : celui qui presse garde le ballon deux secondes, on ne se croise pas
         self.coupe_en_titre = [(-1, -99.0), (-1, -99.0)]      # (pid, depuis) : celui qui coupe la ligne de passe garde le rôle trois secondes
@@ -756,6 +757,13 @@ class Match:
                     self._gardiens(a["camp"])
                     self._espacer()
                     self._forme_arret(a)
+                    if a["k"] == "sortie_but":
+                        # sur une sortie de but, personne de l'autre camp ne reste dans la surface
+                        gx, gy = self.but_de(1 - a["camp"])      # le but d'où part la sortie
+                        for j in self.actifs(1 - a["camp"]):
+                            cx, cy = j.cible
+                            if abs(cx - gx) < SURFACE_X + 1.0 and abs(cy - gy) < SURFACE_Y + 1.0:
+                                j.cible = (gx + (SURFACE_X + 1.5) * (1 if gx < LONG / 2 else -1), cy)
                 if a["k"] == "engagement" and self.t >= a.get("au_centre", 0.0) and (b.x, b.y) != (a["x"], a["y"]):
                     b.x, b.y, b.z = a["x"], a["y"], 0.0              # l'arbitre ramène le ballon au centre
                 if tireur is not None and tireur.pid not in self.exclus:
@@ -858,7 +866,12 @@ class Match:
             self.vague[df] = (-99.0, -99.0)
         if self.phase[att] == "relance" and self.relance_choix[att] == "courte" and self.relance_tiree[df] != self.relance_num[att]:
             self.relance_tiree[df] = self.relance_num[att]     # une relance, un tirage
-            self._declencheur(df, "relance")
+            if self._declencheur(df, "relance"):
+                self.vague_relance[df] = self.relance_num[att]
+        if self.phase[att] == "relance" and self.vague_relance[df] == self.relance_num[att]:
+            # une vague partie sur la relance tient tant que le gardien n'a pas joué (l'arrêt dure neuf
+            # secondes), puis quatre secondes après le coup : l'homme à homme se place et attend
+            self.vague[df] = (self.vague[df][0], max(self.vague[df][1], self.t + 4.0))
         deb, fin = self.vague[df]
         if self.t < fin and (bxd < 50.0 or (b.porteur is not None and b.porteur.camp == df)):
             fin = self.t                                   # la vague est passée : le ballon nous a dépassés, ou on l'a
@@ -878,18 +891,20 @@ class Match:
         js = [j for j in self.actifs(df) if j.fam in ("FWD", "MID")]
         return sum(j.pressing for j in js) / max(1, len(js))
 
-    def _declencheur(self, df: int, genre: str):
+    def _declencheur(self, df: int, genre: str) -> bool:
         """Un déclencheur de pressing (relance courte, passe au latéral, passe en
         retrait dans leur moitié) : selon le profil et l'envie, on lance une
         vague de trois à six secondes — pas un état permanent."""
         if self.t < self.vague[df][1] or self.t < self.vague_repos[df]:
-            return
+            return False
         p = VAGUE_DECLENCHEUR[self.tac[df]["bloc"]] * (0.7 + 0.6 * self._envie(df))
         if genre != "relance":
             p *= 0.6                                       # une passe au latéral déclenche moins souvent qu'une relance
         if self.rs.random() < p:
             self.vague[df] = (self.t, self.t + self.rs.uniform(*VAGUE_DUREE))
             self.evt("vague", camp=df, genre=genre)
+            return True
+        return False
 
     def _doit_reculer(self, df: int, bxd: float) -> bool:
         """Même une équipe haute dans ses principes recule quand il le faut :
@@ -1100,6 +1115,9 @@ class Match:
                     # tassé : le côté opposé rentre jusqu'à l'axe
                     if not cote_ballon and r in ("lateral", "ailier"):
                         y = LARG / 2 + signe * 10.0 + (by - LARG / 2) * 0.2
+            if not sien and self.arret is not None and self.arret["k"] == "sortie_but" and self.arret["camp"] == att \
+                    and x > LONG - SURFACE_X - 1.0 and abs(y - LARG / 2) < SURFACE_Y + 1.0:
+                x = LONG - SURFACE_X - 1.0                    # sur une sortie de but, on attend au bord de la surface
             nx, ny = j.absolu(max(2.0, min(LONG - 2.0, x)), max(2.0, min(LARG - 2.0, y)))
             # la forme se lit lissée : une cible qui saute à chaque tic fait des zigzags,
             # et sans ballon une place ne fuit jamais plus vite qu'un homme ne court (6,5 m/s)
@@ -1505,8 +1523,12 @@ class Match:
                 ecart = abs(o.y - j.cible[1])
                 if j.role_tac == "lateral":
                     # vers l'intérieur, un latéral suit son ailier jusqu'à vingt-deux mètres (le central le
-                    # prend ensuite) ; vers la touche, quinze
+                    # prend ensuite) ; vers la touche, quinze ; mais jamais un homme dans le couloir central
+                    # ni de l'autre côté de l'axe : l'avant-centre est l'affaire des centraux
+                    cote = 1.0 if j.home[1] >= LARG / 2 else -1.0
                     dedans = abs(o.y - LARG / 2) < abs(j.cible[1] - LARG / 2)
+                    if (o.y - LARG / 2) * cote < 7.0 - marge:
+                        return False
                     if ecart > (LATERAL_ZONE_DEDANS if dedans else 15.0) + marge:
                         return False
                 elif ecart > (12.0 if j.role_tac == "central" else 15.0) + marge:
@@ -1524,7 +1546,7 @@ class Match:
                         j.homme = -1                    # il sort de ma zone : je le lâche, un autre le prend
             # les attaquants déjà dans les vingt-cinq mètres se prennent d'abord, par les défenseurs libres
             proches = [o for o in adverses if o.pid not in pris and math.hypot(o.x - mx, o.y - my) < 25.0]
-            for j in [x for x in marqueurs if x.pid not in attribs and x.fam == "DEF"]:
+            for j in sorted([x for x in marqueurs if x.pid not in attribs and x.fam == "DEF"], key=lambda x: x.role_tac != "central"):
                 adv = min((o for o in proches if o.pid not in pris and zone(j, o)), key=lambda o: math.hypot(o.x - j.x, o.y - j.y), default=None)
                 if adv is None or math.hypot(adv.x - j.x, adv.y - j.y) > 22.0:
                     continue
