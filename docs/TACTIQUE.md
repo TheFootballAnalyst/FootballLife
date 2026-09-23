@@ -190,6 +190,66 @@ central de sept mètres, et les centraux choisissent leur homme avant les
 latéraux : Hakimi ne marque plus Kane en bloc bas (un latéral marque un
 avant-centre dans 5 % de ses marquages, un homme dans l'axe dans 9 %).
 
+## 10. Le jeu avec ballon : les principes, et le moteur à la même règle
+
+`outils/tactique_ballon.py` lit les mêmes 300 matchs (85 équipes-saisons)
+et écrit `jeu/tactique_ballon.json` ; `outils/tactique_moteur_ballon.py`
+mesure le moteur B à la même règle. Trois profils, par le tiers des
+passes par possession : possession, équilibré, direct.
+
+| | réel (tous) | possession | direct | moteur avant | moteur après |
+|---|---|---|---|---|---|
+| durée d'une possession | 14,8 s | 18,2 s | 11,6 s | 19,4 s | 15,9 s |
+| passes par possession | 6,5 | 7,9 | 4,7 | 3,6 | 3,7 |
+| secondes par passe | 3,1 | 3,0 | 3,4 | 6,8 | 6,0 |
+| progression en conduite | 24 % | 26 % | 19 % | 50 % | 38 % |
+| passes par match et par équipe | 527 | 664 | 370 | 428 | 489 |
+| réussite | 87 % | 90 % | 80 % | 86 % | 85 % |
+| part de longues (≥ 30 m) | 11 % | 8 % | 16 % | 14 % | 15 % |
+| réussite des longues | 61 % | 68 % | 51 % | 78 % | 76 % |
+| passes vers l'avant / en arrière | 42 % / 25 % | 40 / 25 | 47 / 23 | 34 % / 32 % | 40 % / 28 % |
+| entrées dans le dernier tiers | 32 par match | 38 | 24 | 41 | 40 |
+| … dont en passe par le couloir | 53 % | | | 7 % | 10 % |
+| passes en profondeur | 2,8 par match | 4,2 | 1,2 | 14,2 | 3,8 |
+| dribbles tentés / réussis | 13,7 / 57 % | | | 15,6 / 30 % | 10,7 / 27 % |
+| tirs par équipe | 11,7 | 14,1 | 8,9 | 11,5 | 11,6 |
+| tirs dans la surface | 64 % | 66 % | 61 % | 79 % | 90 % |
+| xG par tir | 0,102 | 0,111 | 0,087 | 0,089 | 0,103 |
+| tirs après un centre / après un dribble | 16 % / 1 % | | | 2 % / 35 % | 3 % / 26 % |
+| tirs en contre (moins de 15 s) | 10 % | 9 % | 13 % | 18 % | 19 % |
+| sorties de but courtes | 56 % | 71 % | 38 % | 100 % | 60 % |
+| relance courte qui atteint la moitié adverse | 68 % | | | 21 % | 25 % |
+
+Ce qui a été fait dans le moteur, en constantes de tête de module :
+la garde du porteur passe de 3,6 + 3 × (1 − pression) secondes à 2,6 +
+2,6 (`GARDE` ; à 2 + 2,2 le tempo colle au réel mais les tirs montent à
+36 et les buts à six, la défense ne suit pas encore un jeu si rapide) ;
+on ne conduit pendant la garde que dans dix mètres de champ et en
+progression ; la passe en profondeur vaut 0,45 de moins (14 par match →
+4, réel 3) ; la progression pèse plus dans le choix d'une passe
+(`GAIN_POIDS`) et la passe qui entre dans le dernier tiers par le couloir
+gagne 0,35 (`ENTREE_COULOIR`) ; une passe longue rate un peu plus ; la
+sortie de but est longue une fois sur deux selon le profil (29 % pour une
+équipe de possession, 62 % pour une équipe directe, plus si on est
+pressé ou peu technique) ; un adversaire dans les pieds enlève 0,6 à
+l'envie de frapper au lieu de 0,15 (`TIR_PRESSION`) et la frappe de loin
+s'ouvre dès que l'axe est libre ; le crochet réussit à 0,55 de base
+(`CROCHET_BASE`) et la provocation vaut un peu moins (`PROVOQUE_BASE`).
+
+Ce qui reste loin du réel, et pourquoi on s'arrête là pour l'instant :
+le tempo (6 s par passe contre 3 : la moitié du temps d'une possession
+est du ballon en l'air ou qui roule, l'autre moitié de la garde ; la
+garde plus courte est la bonne piste, mais elle demande que la défense
+suive), l'entrée dans le dernier tiers par le couloir (10 % contre 53 %),
+les tirs après centre (3 % contre 16 %) et hors de la surface (10 %
+contre 36 %), la relance courte qui n'atteint la moitié adverse qu'une
+fois sur quatre (le pressing homme à homme la mange ; réel deux sur
+trois), et les dribbles qui réussissent une fois sur quatre au lieu
+d'une sur deux — leur compte dans le moteur mélange les crochets et les
+tacles subis, il faudra une mesure plus fine. Les écarts sur la « passe
+sous pression » ne se comparent pas : StatsBomb note une pression
+active, le moteur un adversaire à moins de 4,5 m.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

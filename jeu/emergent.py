@@ -89,6 +89,12 @@ ESPACE_PRESSE = 4.0                          # autour du ballon, quatre mètres 
 LATERAL_ZONE_DEDANS = 22.0                   # un latéral suit son ailier vers l'intérieur jusqu'à vingt-deux mètres
 LATERAL_MARGE = 6.0                          # ... au plus six mètres plus large que l'attaquant le plus large de son côté
 LATERAL_TOUCHE = True                        # un latéral de forme ne défend pas la ligne de touche vide
+GARDE = (2.6, 2.6)                           # le temps de contrôle du porteur : base + part sans pression (réel : 3 s par passe)
+GAIN_POIDS = 1.5                             # le poids de la progression dans le choix d'une passe (réel : 42 % de passes vers l'avant)
+ENTREE_COULOIR = 0.35                        # le bonus de la passe qui entre dans le dernier tiers par le couloir (réel : une entrée sur deux)
+TIR_PRESSION = 0.6                           # ce qu'un adversaire dans les pieds enlève à l'envie de frapper (réel : 23 % de tirs sous pression)
+CROCHET_BASE = 0.55                          # la base du crochet réussi (réel : 57 % de dribbles réussis)
+PROVOQUE_BASE = 1.05                         # l'envie d'un ailier de provoquer son vis-à-vis
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
 BALLON_ROULE, BALLON_AIR = 1.2, 0.012        # décélération au sol : 1,2 m/s² + 0,012·v² (un ballon lent roule loin, un ballon fort est freiné)
 
@@ -932,7 +938,10 @@ class Match:
         defs = [j for j in self.actifs(att) if j.fam == "DEF"]
         technique = sum(j.attr("PRO") for j in defs) / max(1, len(defs))
         presse = self.tac[1 - att]["bloc"] == "haut" or self.phase[1 - att] in ("pressing", "contre_pressing")
-        return "longue" if (presse and technique < 68.0) else "courte"
+        # réel : 44 % de sorties de but longues (29 % pour une équipe de possession, 62 % pour une équipe directe)
+        p_longue = {"possession": 0.29, "equilibre": 0.44, "direct": 0.62}[self.tac[att]["tempo"]]
+        p_longue += (0.25 if presse else -0.1) + (0.2 if technique < 68.0 else -0.1)
+        return "longue" if self.rs.random() < max(0.1, min(0.9, p_longue)) else "courte"
 
     def _role_tac(self, j: Joueur) -> str:
         base = S.poste_base(j.poste)
@@ -1787,7 +1796,8 @@ class Match:
         # un temps de contrôle, plus court sous pression, plus court dans les
         # trente derniers mètres, plus court quand on joue direct — et plus court
         # pour un joueur peu technique sous pression : la passe précipitée
-        garde = (3.6 + 3.0 * (1 - pression)) * (1.0 - 0.3 * j.attr("CON") / 99) * tempo * (1.0 - 2.0 * maladresse * pression)
+        # (réel : 3 secondes par passe, 6,5 passes par possession — le porteur ne garde pas le ballon trois secondes)
+        garde = (GARDE[0] + GARDE[1] * (1 - pression)) * (1.0 - 0.3 * j.attr("CON") / 99) * tempo * (1.0 - 2.0 * maladresse * pression)
         if dbut < 32:
             garde *= 0.7
         if pression > 0.6:
@@ -1797,8 +1807,8 @@ class Match:
             garde *= 1.0 - 0.4 * min(dev, 20.0) / 20.0   # du champ devant : on ne s'arrête pas pour réfléchir
         if not force and tenu < garde:
             if not (dbut < 24 and tenu > 0.3):        # dans la zone de frappe, on ne réfléchit pas trois secondes
-                if dev > 7.0 and pression < 0.6:
-                    self._conduire(j)                 # et on réfléchit en avançant
+                if dev > 10.0 and pression < 0.6 and phase in ("progression", "contre", "finition"):
+                    self._conduire(j)                 # et on réfléchit en avançant (réel : un quart de la progression en conduite)
                 elif pression < 0.7 and tenu > 0.5:
                     self._conduire(j, derive=True)    # fermé devant : on dérive vers le côté ouvert
                 return
@@ -1812,12 +1822,12 @@ class Match:
             ang = self._angle_but(j.x, j.y, camp)
             xg = self._xg(dbut, ang, pression)
             axe = self._axe_libre(j)
-            val = 0.35 + 7.5 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (0.3 if dbut < 18 else 0.0) - 0.15 * pression + 0.35 * axe * (1.0 if dbut < 22 else 0.2)
+            val = 0.35 + 7.5 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (0.3 if dbut < 18 else 0.0) - TIR_PRESSION * pression + 0.35 * axe * (1.0 if dbut < 22 else 0.2)
             if ang < 0.25 and dbut > 9:
                 val -= 0.6                                # un angle fermé : on cherche mieux
             if xg < 0.05 and not seul:
                 val -= 0.55                               # une frappe pour rien : on cherche mieux
-            if 20 < dbut < 36 and self.phase[1 - camp] == "bloc_bas" and axe > 0.6 and pression < 0.5 and abs(j.y - gy) < 14:
+            if 20 < dbut < 32 and axe > 0.5 and pression < 0.35 and abs(j.y - gy) < 14:   # réel : un tir sur trois hors de la surface
                 val += 0.3 + 0.5 * j.attr("FIN") / 99     # le bloc est bas et l'axe s'ouvre : la frappe de loin
             if seul and dbut < 20:
                 val += 1.5                                # le duel avec le gardien se finit
@@ -1841,7 +1851,7 @@ class Match:
             # une équipe menée en fin de match, ou qui joue direct, accepte l'homme tenu
             audace = (0.4 if (self.score[camp] < self.score[1 - camp] and self.t > 55 * 60) else 0.0) + (0.3 if tac["tempo"] == "direct" else 0.0)
             # l'homme libre près du but vaut de l'or ; le tempo direct aime les longues
-            val = (0.25 + 1.4 * gain + 0.6 * danger + 0.1 * min(libre, 8.0) + 1.0 * couloir - 0.012 * d
+            val = (0.25 + GAIN_POIDS * gain + 0.6 * danger + 0.1 * min(libre, 8.0) + 1.0 * couloir - 0.012 * d
                    - 0.025 * max(0.0, d - 22.0) * tempo - ((0.5 - audace * 0.5) if libre < 3.0 else 0.0)
                    + 0.5 * danger * min(libre, 10.0) / 10.0 * (0.6 + 0.4 * coh))
             # un porteur peu technique pressé n'a pas le temps de la courte : il allonge devant
@@ -1869,6 +1879,9 @@ class Match:
             # le une-deux : on ne remet pas au passeur pour rien — sauf dans sa course
             if c.pid == j.recu_de and self.t - j.t_recu < 2.5 and gain < 0.15:
                 val -= 0.6
+            # l'entrée dans le dernier tiers se fait par le couloir, en passe (réel : une entrée sur deux)
+            if dbut > 38.0 and math.hypot(gx - c.x, gy - c.y) < 36.0 and self._zone(c.y) != "A" and gain > 0.2:
+                val += ENTREE_COULOIR
             # un côté bouché se quitte : après deux passes sur le même côté sans
             # progresser, on n'insiste pas — on repasse par l'axe, ou on renverse
             zj, zc = self._zone(j.y), self._zone(c.y)
@@ -1908,7 +1921,7 @@ class Match:
                     vc = math.hypot(c.vx, c.vy)
                     avantage = max(-1.0, min(1.0, (libre_p - d_c * 0.6) / 8.0))     # lancé, il a un temps d'avance
                     danger_p = 1.0 - math.hypot(gx - px, gy - py) / 105.0
-                    val = (0.35 + 1.2 * danger_p + 0.8 * couloir_p + 0.7 * avantage + 0.3 * min(vc, 8.0) / 8.0
+                    val = (-0.5 + 1.2 * danger_p + 0.8 * couloir_p + 0.7 * avantage + 0.3 * min(vc, 8.0) / 8.0
                            - 0.02 * max(0.0, dp - 32.0) + 0.35 * (j.attr("CRE") / 99) - 0.2 * pression)
                     if avantage < 0.0:
                         val -= 0.8                      # le défenseur y sera avant : ce n'est pas une passe
@@ -1942,7 +1955,7 @@ class Match:
         # rentre sur son bon pied (ailier inversé) ou déborde
         _, d_vis = self.plus_proche(1 - camp, j.x, j.y, gk=False)
         if j.role_tac == "ailier" and dbut < 42 and abs(j.y - LARG / 2) > 11.0 and 2.0 < d_vis < 9.0 and not seul:
-            val = 1.3 + 0.9 * j.attr("DRI") / 99 + (0.3 if self._rentre(j) else 0.0) - 0.5 * pression + 0.15 * (1.0 - coh)
+            val = PROVOQUE_BASE + 0.9 * j.attr("DRI") / 99 + (0.3 if self._rentre(j) else 0.0) - 0.5 * pression + 0.15 * (1.0 - coh)
             options.append((val + self.rs.gauss(0, bruit), "provoque", None))
         # -- percer : un boulevard devant, un dribbleur qui le prend à pleine vitesse
         # (un central qui a vingt mètres devant lui en construction ne perce pas : il relance)
@@ -1950,7 +1963,7 @@ class Match:
         if (dev > seuil_dev and dbut > 14 and phase in ("progression", "finition", "contre")
                 and (j.fam != "DEF" or j.attr("DRI") > 72)):
             val = (0.15 + 0.05 * min(dev, 24.0) + 0.7 * j.attr("DRI") / 99 - 0.9 * pression + 0.3 * (1.0 - coh)
-                   + (0.4 if phase == "contre" else 0.0) + 0.15 * j.travail_att + (0.2 if dbut < 36 else 0.0))
+                   + (0.4 if phase == "contre" else 0.0) + 0.15 * j.travail_att)
             options.append((val + self.rs.gauss(0, bruit), "percee", None))
         # -- dégager sous pression dans son camp (un joueur peu technique dégage plus tôt et de plus haut)
         if pression > 0.5 and (j.x - LONG / 2) * j.sens() < -20 + 60.0 * maladresse:
@@ -2158,7 +2171,7 @@ class Match:
         # manque de technique, une passe sur dix part de travers ou mal dosée
         # (la technique pèse fort : un passeur à 0,85 de précision rate une passe sur seize, un à 0,55 une sur sept —
         # c'est ce qui fait 90 % de réussite à Paris et 78 % à Lorient)
-        p_rate = (0.04 + 0.09 * pression + 0.07 * min(d, 40.0) / 40.0 + (0.05 if serre > 1.0 else 0.0)) * (2.6 - 2.3 * precision)
+        p_rate = (0.04 + 0.09 * pression + 0.07 * min(d, 40.0) / 40.0 + (0.05 if serre > 1.0 else 0.0) + (0.12 if d > 30.0 else 0.0)) * (2.6 - 2.3 * precision)
         if self.rs.random() < p_rate:
             ang += self.rs.gauss(0, sigma * 4.0 + math.radians(12.0))
             v *= self.rs.uniform(0.6, 1.3)
@@ -2729,7 +2742,7 @@ class Match:
             if self.t < p.provoque_jusqua:
                 # le crochet : dribble contre défense, en un coup de rein
                 o.dernier_contact = self.t
-                p_passe = 0.44 + 0.5 * (p.attr("DRI") - o.attr("DEF")) / 99 + (0.08 if self._rentre(p) else 0.0)
+                p_passe = CROCHET_BASE + 0.5 * (p.attr("DRI") - o.attr("DEF")) / 99 + (0.08 if self._rentre(p) else 0.0)    # réel : 57 % de dribbles réussis
                 if self.rs.random() < max(0.15, min(0.85, p_passe)):
                     o.battu_jusqua = self.t + 0.8
                     o.vx *= 0.3
