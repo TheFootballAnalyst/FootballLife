@@ -101,6 +101,17 @@ CONTROLE_POITRINE = False                    # un receveur seul contrôle un bal
 SERRAGE_SURFACE = 3.4                        # à quelle distance le marqueur d'un receveur souffle la passe dans les vingt-cinq derniers mètres
 CONTRE_TIR = (0.5, 1.3)                      # un défenseur sur la trajectoire d'une frappe la contre : probabilité, portée
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
+CONTIENT_SURFACE = 1.2                       # aux abords de la surface, le presseur ferme à cette distance (réel : 2,8 m du passeur dans le dernier tiers)
+PORTEUR_COUVERT = 4.0                        # le marqueur du porteur se tient à quatre mètres côté but : le presseur est déjà dessus, lui couvre (1,5 : deux hommes sur le ballon et personne derrière)
+CENTRE_BASE = 0.45                           # l'envie de centrer : 0,8 faisait quarante centres par match (réel : 19, dont 35 % arrivent ; ici 23, 45 %)
+AERIEN_SURFACE = 0.15                        # ce que le défenseur gagne dans le duel de la tête dans sa surface (il attaque le ballon de face)
+PORTEE_SURFACE = 0.9                         # jusqu'où un défenseur posé dans sa surface tend la jambe sur une passe qui file (0,5 ailleurs)
+TIR_LOIN = 0.9                               # l'envie de frapper de loin quand le bloc est bas et l'axe s'ouvre (réel : un tir sur trois hors de la surface ; 0,3 n'en donnait qu'un sur huit)
+TIR_LOIN_PRESSION = 0.6                      # ... tant que le vis-à-vis est à plus de deux mètres et demi (réel : à 2,8 m du passeur dans le dernier tiers)
+TIR_LOIN_AXE = 0.3                           # ... et que l'axe s'entrouvre (le bonus grandit avec l'ouverture)
+BALLON_AERIEN = True                         # sur un ballon en l'air, le défenseur le plus proche du point de chute va l'attaquer (l'attaquant, lui, l'attend)
+MARQUAGE_SURFACE_BALLON = 28.0               # ... quand le ballon est à moins de vingt-huit mètres du but (avant, la ligne tient : la profondeur d'abord)
+MARQUAGE_SURFACE = True                      # dans les vingt-deux mètres, un défenseur marque son homme où qu'il soit devant la ligne (le point de penalty n'est pas « hors zone »)
 BALLON_ROULE, BALLON_AIR = 1.2, 0.012        # décélération au sol : 1,2 m/s² + 0,012·v² (un ballon lent roule loin, un ballon fort est freiné)
 
 
@@ -1317,7 +1328,10 @@ class Match:
         if b.porteur is not None:
             return
         v = b.vitesse()
-        if v > 0.5:
+        aerien = BALLON_AERIEN and (b.z > 0.3 or b.vz > 0.5)
+        if aerien:
+            px, py = self._point_aerien()
+        elif v > 0.5:
             s_ = distance_arret(v)
             px, py = b.x + b.vx / v * s_, b.y + b.vy / v * s_
         else:
@@ -1327,7 +1341,8 @@ class Match:
             if b.passe_vers is not None and b.passe_vers.camp == camp:
                 continue                          # le receveur y va déjà
             j, d = self.plus_proche(camp, px, py, gk=False)
-            if j is not None and j.fam == "DEF":
+            mx_, my_ = self.but_de(1 - camp)
+            if j is not None and j.fam == "DEF" and not (aerien and math.hypot(px - mx_, py - my_) < 25.0):
                 pxp = px if camp == 0 else LONG - px
                 if pxp - self.ligne_def[camp] > 12.0:
                     # un défenseur ne sort pas chasser un ballon à plus de douze mètres devant sa ligne :
@@ -1339,6 +1354,18 @@ class Match:
             if j is not None:
                 j.cible = (px, py)
                 j.role = "chasse"
+
+    def _point_aerien(self) -> tuple[float, float]:
+        """Où un ballon en l'air redescend à hauteur de tête (un mètre
+        soixante-dix) — c'est là qu'on l'attaque."""
+        b = self.ballon
+        h = 1.7
+        if b.z > h or (b.vz > 0 and b.z + b.vz * b.vz / (2 * GRAVITE) > h):
+            # il passe au-dessus : le point où il retombe à cette hauteur
+            t = (b.vz + math.sqrt(max(0.0, b.vz * b.vz + 2 * GRAVITE * (b.z - h)))) / GRAVITE
+        else:
+            t = (b.vz + math.sqrt(max(0.0, b.vz * b.vz + 2 * GRAVITE * b.z))) / GRAVITE
+        return (b.x + b.vx * t, b.y + b.vy * t)
 
     def _roles_defense(self, df: int):
         b = self.ballon
@@ -1491,7 +1518,7 @@ class Match:
         elif self.t - self.t_perte_haute[df] < CONTRE_PRESSING_DUREE and not self.contre_choix[df] and bxd > 40.0:
             contient = 7.0                                  # le repli : on ferme à sept mètres en reculant, on ne saute pas
         elif bxd < 25.0:
-            contient = 1.2
+            contient = CONTIENT_SURFACE
         elif phase == "bloc_bas":
             contient = 3.5 if bxd > 40 else 2.2
         else:
@@ -1549,7 +1576,9 @@ class Match:
                 elif ecart > (12.0 if j.role_tac == "central" else 15.0) + marge:
                     return False
                 if j.fam == "DEF" and j.propre(o.x, o.y)[0] - ligne > (8.0 if j.role_tac == "central" else 14.0) + marge:
-                    return False
+                    # (sauf quand le ballon est déjà aux abords de la surface : le centre arrive, on prend son homme au point de penalty)
+                    if not (MARQUAGE_SURFACE and math.hypot(o.x - mx, o.y - my) < 22.0 and math.hypot(bx - mx, by - my) < MARQUAGE_SURFACE_BALLON):
+                        return False
                 return True
             for j in marqueurs:
                 if j.homme >= 0 and self.t - j.t_homme < 8.0:
@@ -1582,6 +1611,8 @@ class Match:
                     continue
                 dm = math.hypot(mx - adv.x, my - adv.y) or 1.0
                 recul = 1.5 if dm < 22 else 4.0
+                if adv is porteur and p is not j:
+                    recul = max(recul, PORTEUR_COUVERT)     # le porteur a déjà son presseur : son marqueur couvre derrière
                 # côté but de son homme, et un peu devant sa course : on ne suit pas, on accompagne
                 ax, ay = adv.x + adv.vx * 0.6, adv.y + adv.vy * 0.6      # on anticipe la course de son homme
                 cx, cy = ax + (mx - ax) / dm * recul, ay + (my - ay) / dm * recul
@@ -1831,10 +1862,11 @@ class Match:
             val = 0.35 + 7.5 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (0.3 if dbut < 18 else 0.0) - TIR_PRESSION * pression + 0.35 * axe * (1.0 if dbut < 22 else 0.2)
             if ang < 0.25 and dbut > 9:
                 val -= 0.6                                # un angle fermé : on cherche mieux
-            if xg < 0.05 and not seul:
+            loin = 20 < dbut < 32 and axe > TIR_LOIN_AXE and pression < TIR_LOIN_PRESSION and abs(j.y - gy) < 14
+            if xg < 0.05 and not seul and not loin:
                 val -= 0.55                               # une frappe pour rien : on cherche mieux
-            if 20 < dbut < 32 and axe > 0.5 and pression < 0.35 and abs(j.y - gy) < 14:   # réel : un tir sur trois hors de la surface
-                val += 0.3 + 0.5 * j.attr("FIN") / 99     # le bloc est bas et l'axe s'ouvre : la frappe de loin
+            if loin:                                      # réel : un tir sur trois hors de la surface
+                val += (TIR_LOIN + 0.5 * j.attr("FIN") / 99) * min(1.0, axe / 0.5)     # le bloc est bas et l'axe s'ouvre : la frappe de loin
             if seul and dbut < 20:
                 val += 1.5                                # le duel avec le gardien se finit
             options.append((val + self.rs.gauss(0, bruit), "tir", None))
@@ -1949,7 +1981,7 @@ class Match:
         if abs(j.y - LARG / 2) > 18.0 and (gx - j.x) * j.sens() < 32 and not j.gk:
             dans = [c for c in self.actifs(camp) if c is not j and math.hypot(gx - c.x, gy - c.y) < 22]
             if dans:
-                val = 0.8 + 0.25 * len(dans) + 0.4 * j.attr("CRE") / 99 - 0.4 * pression
+                val = CENTRE_BASE + 0.25 * len(dans) + 0.4 * j.attr("CRE") / 99 - 0.4 * pression
                 options.append((val + self.rs.gauss(0, bruit), "centre", None))
         # -- conduire
         # une somme d'individualités conduit plus qu'elle ne combine
@@ -2481,6 +2513,10 @@ class Match:
                 # un ballon qui file se prend moins facilement qu'un ballon qui roule ;
                 # celui à qui la passe est adressée sait où la prendre
                 portee = RAYON_CONTROLE if v_b < 8.0 else (0.5 if j is not b.passe_vers else 1.5)
+                if v_b >= 8.0 and j is not b.passe_vers and not j.gk and b.dernier is not None and j.camp != b.dernier.camp and b.z < 1.0:
+                    mx_, my_ = self.but_de(1 - j.camp)
+                    if abs(mx_ - j.x) <= SURFACE_X and abs(my_ - j.y) <= SURFACE_Y:
+                        portee = PORTEE_SURFACE           # posé dans sa surface, face au ballon, il tend la jambe
                 if (b.passe_vers is not None and j.camp != b.passe_vers.camp and not j.gk
                         and math.hypot(j.x - b.passe_vers.x, j.y - b.passe_vers.y) < self._serrage(b.passe_vers) and b.z < 1.0):
                     portee = 0.9 + 0.6 * j.recup      # le marqueur d'un homme tenu anticipe : il souffle le ballon
@@ -2521,6 +2557,13 @@ class Match:
                     f_a = (autre.physique.get("for", 68) or 68) if autre.physique else 68
                     p_j = 0.5 + 0.3 * (f_j - f_a) / 99 + (0.12 if b.passe_vers is j else 0.0) - (0.12 if b.passe_vers is autre else 0.0) \
                         + 0.1 * (j.attr("DEF") - autre.attr("DEF")) / 99
+                    # dans sa surface, le défenseur attaque le ballon de face : il gagne plus souvent la tête
+                    mx_, my_ = self.but_de(1 - j.camp)
+                    if abs(mx_ - b.x) <= SURFACE_X and abs(my_ - b.y) <= SURFACE_Y:
+                        p_j += AERIEN_SURFACE
+                    mx_, my_ = self.but_de(1 - autre.camp)
+                    if abs(mx_ - b.x) <= SURFACE_X and abs(my_ - b.y) <= SURFACE_Y:
+                        p_j -= AERIEN_SURFACE
                     if self.rs.random() > p_j:
                         j = autre
                 self._tete(j)

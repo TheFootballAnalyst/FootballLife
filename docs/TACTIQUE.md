@@ -332,6 +332,89 @@ nos 10 %, sur des possessions deux fois plus courtes).
 Banc retenu, 36 matchs : 3,2 buts, 24 tirs (le moteur d'avant ce
 chantier : 3,3 et 24 sur les mêmes graines).
 
+## 13. Défendre une possession longue : la surface d'abord
+
+Comment une possession devient un tir, sur 150 matchs réels de club
+(événements et positions 360) et dans le moteur — `outils/surface_ref.py`
+et `outils/surface_moteur.py`, la même règle des deux côtés :
+
+| | réel | moteur avant | moteur après |
+|---|---|---|---|
+| possessions de 10 passes et plus qui finissent par un tir | 20 % | 29 % | 21 % |
+| ... par un tir dans la surface | 13 % | 27 % | 16 % |
+| tirs dans la surface | 66 % | 87 % | 66 % |
+| centres par match | 18,5 | 41 | 21,5 |
+| centres qui arrivent | 35 % | 56 % | 40 % |
+| têtes sur centre : attaquant / défenseur | — | 22 / 4 | 8 / 12 |
+| passes dans la surface tentées, réussies | 35, 48 % | 10, 81 % | 14,5, 76 % |
+| conduites qui entrent dans la surface | 12 | 15 | 15,5 |
+| défenseur le plus proche du passeur, dernier tiers | 2,8 m | 2,0 m | 2,0 m |
+| défenseur le plus proche du tireur | 1,9 m | 2,2 m | 2,8 m |
+
+Le bloc réel ne va pas au ballon dans les trente derniers mètres : il
+protège la surface. Le passeur a son vis-à-vis à 2,8 m (à moins de trois
+mètres une fois sur deux), mais six défenseurs sont dans la surface au
+moment du tir, un dans le cône ballon-but, et deux tirs sur trois
+viennent de dedans seulement : le bloc **donne la frappe de loin et
+refuse l'entrée**. Deux centres sur trois ne trouvent personne, une
+passe dans la surface sur deux est coupée.
+
+Le moteur faisait l'inverse : il pressait tout le monde à deux mètres
+(83 % des passes du dernier tiers avec un homme à moins de trois mètres)
+et laissait la surface ouverte. Quarante centres par match, gagnés de la
+tête par l'attaquant vingt-deux fois contre quatre — parce que sur un
+centre, les attaquants attendent au point de penalty, huit mètres devant
+une ligne restée sur les six mètres, et qu'un central refusait de
+marquer un homme « hors zone » à plus de huit mètres de sa ligne. Le
+défenseur le plus proche du point de chute ne s'y rendait pas non plus :
+la chasse du ballon libre calculait où un ballon *au sol* s'arrête, pas
+où un ballon en l'air retombe.
+
+Ce qui est fait :
+
+- **Le défenseur attaque le ballon en l'air** (`BALLON_AERIEN`) : le
+  plus proche du point où le ballon redescend à hauteur de tête y va,
+  y compris un défenseur dans sa surface ; l'attaquant, lui, l'attend.
+  Et dans sa surface il gagne la tête un peu plus souvent
+  (`AERIEN_SURFACE`) : il l'attaque de face.
+- **Dans la surface, on marque son homme où qu'il soit**
+  (`MARQUAGE_SURFACE`) : quand le ballon est à moins de vingt-huit
+  mètres, un central prend l'attaquant au point de penalty même à dix
+  mètres devant la ligne. Plus loin, la ligne tient (la profondeur
+  d'abord) — seul, ce marquage ouvrait la profondeur et coûtait un quart
+  de but ; avec le reste, il en enlève un tiers.
+- **Un homme sur le ballon, pas deux** (`PORTEUR_COUVERT`) : le marqueur
+  du porteur ne double plus le presseur, il couvre à quatre mètres
+  derrière. Avant, deux hommes sur le ballon et personne dans l'axe
+  (zéro défenseur dans le cône ballon-but au tir ; réel : un).
+- **Un défenseur posé dans sa surface tend la jambe** (`PORTEE_SURFACE`) :
+  une passe qui file à moins de quatre-vingt-dix centimètres de lui est
+  coupée (cinquante ailleurs).
+- **On centre moins** (`CENTRE_BASE`) : quarante centres par match, c'est
+  le double du réel ; vingt et un maintenant.
+- **La frappe de loin** (`TIR_LOIN`, `TIR_LOIN_PRESSION`,
+  `TIR_LOIN_AXE`) : entre vingt et trente-deux mètres, l'axe entrouvert
+  et le vis-à-vis à plus de deux mètres et demi, on tente — et la
+  pénalité « frappe pour rien » ne s'applique pas. Avant, la frappe de
+  loin ne gagnait jamais contre une passe (un tir sur huit hors de la
+  surface) ; un sur trois maintenant, comme en vrai.
+
+Ce qui reste : le tireur est plus libre qu'en vrai (2,8 m contre 1,9 ;
+un défenseur dans le cône ballon-but au tir en vrai, zéro ici) — le bloc
+réel donne la frappe de loin mais un homme sort dessus au moment où elle
+part. Et l'attaque ne passe presque plus dans la surface par une passe
+(14 tentées, réel 35) : elle y entre en conduite ou frappe de loin.
+
+Ce qui est essayé et rendu : le presseur qui ferme à deux mètres au
+lieu de un mètre vingt aux abords de la surface (`CONTIENT_SURFACE`) —
+plus près du réel sur le papier, mais le porteur entre alors dans la
+surface en marchant (21 conduites par match au lieu de 12).
+
+Banc retenu, 36 matchs : 2,6 buts, 25,5 tirs (le moteur d'avant ce
+chantier : 3,2 et 24 sur les mêmes graines ; cible 2,8 et 25). Le tempo (§ 11) et les trois règles parquées
+des ballons perdus (§ 12) peuvent maintenant se réessayer sur cette
+défense.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

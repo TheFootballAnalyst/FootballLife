@@ -598,8 +598,26 @@ dans les pieds, il dérive au pas vers le côté le plus ouvert pendant
 qu'il réfléchit. **Le crochet en zone de danger** : dans le dernier
 tiers, huit mètres libres sont déjà un boulevard (quatorze ailleurs) et
 la percée y vaut plus. **La frappe de loin** : entre vingt et
-trente-six mètres, face à un bloc bas, l'axe ouvert et sans pression,
-on tente sa chance.
+trente-deux mètres, l'axe entrouvert et le vis-à-vis à plus de deux
+mètres et demi, on tente sa chance — un tir sur trois hors de la surface,
+comme en vrai (`TIR_LOIN`).
+
+**La surface d'abord** (docs/TACTIQUE.md § 13). Dans les trente
+derniers mètres, le bloc protège la surface plutôt que d'aller au
+ballon : sur un ballon en l'air, le défenseur le plus proche du point où
+il redescend à hauteur de tête va l'attaquer (`BALLON_AERIEN`), et dans
+sa surface il gagne la tête un peu plus souvent (`AERIEN_SURFACE`) ;
+quand le ballon est à moins de vingt-huit mètres, un central marque son
+homme au point de penalty même loin devant la ligne
+(`MARQUAGE_SURFACE`) ; le marqueur du porteur couvre à quatre mètres
+derrière le presseur au lieu de doubler sur le ballon
+(`PORTEUR_COUVERT`) ; un défenseur posé dans sa surface coupe une passe
+qui file à moins de quatre-vingt-dix centimètres (`PORTEE_SURFACE`) ; on
+centre deux fois moins (`CENTRE_BASE`). Mesuré : les centres passent de
+41 à 21 par match et les têtes sur centre de 22-4 pour l'attaque à
+8-12 ; les possessions de dix passes et plus finissent par un tir 21 %
+du temps, comme en vrai (29 % avant), et deux tirs sur trois viennent de
+la surface (87 % avant).
 
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
