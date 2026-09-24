@@ -77,7 +77,7 @@ PASSE_ARRIVEE = 7.0                          # m/s dans les pieds du receveur : 
 CENTRAL_GLISSE_MAX = 6.0                     # un central glisse vers le ballon de six mètres au plus
 LIGNE_TOLERANCE = (1.0, 2.5)                 # la forme à un mètre de la ligne, un marqueur à deux mètres et demi devant au plus
 LIGNE_MONTEE = 0.5                           # la ligne remonte de 0,5 m par tic au plus (2,5 m/s ; réel : 1,1 à 1,2 m/s en moyenne)
-LIGNE_RECUL = 0.7                            # et recule de 0,7 m par tic au plus (3,5 m/s ; réel : 1,8 à 2 m/s en moyenne, avec des sprints)
+LIGNE_RECUL = 1.0                            # et recule de 0,7 m par tic au plus (3,5 m/s ; réel : 1,8 à 2 m/s en moyenne, avec des sprints)
 LIGNE_PENTE, LIGNE_BASE = 0.75, -6.0         # la ligne suit le ballon : ligne = 0,75 × distance du ballon − 6 (StatsBomb, 300 matchs)
 LIGNE_PROFIL = {"haut": 3.0, "median": 0.0, "bas": -3.0}   # ... plus ou moins trois mètres selon le bloc demandé
 VAGUE_DECLENCHEUR = {"haut": 0.8, "median": 0.62, "bas": 0.5}   # une relance ou un déclencheur lance une vague de pressing (réel : deux relances sur trois pressées)
@@ -89,7 +89,7 @@ ESPACE_PRESSE = 4.0                          # autour du ballon, quatre mètres 
 LATERAL_ZONE_DEDANS = 22.0                   # un latéral suit son ailier vers l'intérieur jusqu'à vingt-deux mètres
 LATERAL_MARGE = 6.0                          # ... au plus six mètres plus large que l'attaquant le plus large de son côté
 LATERAL_TOUCHE = True                        # un latéral de forme ne défend pas la ligne de touche vide
-GARDE = (2.6, 2.6)                           # le temps de contrôle du porteur : base + part sans pression (réel : 3 s par passe)
+GARDE = (2.3, 2.3)                           # le temps de contrôle du porteur : base + part sans pression (réel : 3 s par passe)
 GAIN_POIDS = 1.5                             # le poids de la progression dans le choix d'une passe (réel : 42 % de passes vers l'avant)
 ENTREE_COULOIR = 0.35                        # le bonus de la passe qui entre dans le dernier tiers par le couloir (réel : une entrée sur deux)
 TIR_PRESSION = 0.6                           # ce qu'un adversaire dans les pieds enlève à l'envie de frapper (réel : 23 % de tirs sous pression)
@@ -1135,8 +1135,9 @@ class Match:
                 if not sien:
                     dx, dy = nx - j.cible[0], ny - j.cible[1]
                     dd = math.hypot(dx, dy)
-                    if dd > 0.7:
-                        nx, ny = j.cible[0] + dx / dd * 0.7, j.cible[1] + dy / dd * 0.7
+                    pas_max = 1.1 if math.hypot(j.x - nx, j.y - ny) > 6.0 else 0.7    # loin de sa place, on court (5,5 m/s)
+                    if dd > pas_max:
+                        nx, ny = j.cible[0] + dx / dd * pas_max, j.cible[1] + dy / dd * pas_max
             j.cible = (nx, ny)
             j.role = "forme"
 
@@ -1577,7 +1578,7 @@ class Match:
                 dm = math.hypot(mx - adv.x, my - adv.y) or 1.0
                 recul = 1.5 if dm < 22 else 4.0
                 # côté but de son homme, et un peu devant sa course : on ne suit pas, on accompagne
-                ax, ay = adv.x + adv.vx * 0.4, adv.y + adv.vy * 0.4
+                ax, ay = adv.x + adv.vx * 0.6, adv.y + adv.vy * 0.6      # on anticipe la course de son homme
                 cx, cy = ax + (mx - ax) / dm * recul, ay + (my - ay) / dm * recul
                 j.cible = self._tenir_ligne(j, cx, cy)
                 j.role = "marque"
@@ -2173,7 +2174,7 @@ class Match:
         # c'est ce qui fait 90 % de réussite à Paris et 78 % à Lorient)
         p_rate = (0.04 + 0.09 * pression + 0.07 * min(d, 40.0) / 40.0 + (0.05 if serre > 1.0 else 0.0) + (0.12 if d > 30.0 else 0.0)) * (2.6 - 2.3 * precision)
         if self.rs.random() < p_rate:
-            ang += self.rs.gauss(0, sigma * 4.0 + math.radians(12.0))
+            ang += self.rs.gauss(0, sigma * 4.0 + math.radians(8.0))
             v *= self.rs.uniform(0.6, 1.3)
         vz = 0.0
         haut = longue or d > 30 or (self._couloir_vers(j, vise_x, vise_y) < 0.2 and d > 15)
@@ -2353,7 +2354,7 @@ class Match:
                 if j.role == "presse":
                     fuit = (b.porteur is not None and math.hypot(b.porteur.vx, b.porteur.vy) > 4.5) or (b.porteur is None and b.vitesse() > 6.0)
                     if not fuit:
-                        plafond = 6.6            # on arrive vite ; on ne sprinte que sur un porteur qui s'échappe
+                        plafond = 7.0            # on arrive vite ; on ne sprinte que sur un porteur qui s'échappe
                 if plafond is not None:
                     plafond *= j.vmax / 8.83     # un rapide trotte plus vite aussi
                 if j.role == "porteur":
@@ -2645,7 +2646,7 @@ class Match:
         deux mètres vingt en général, trois dans les vingt-cinq derniers
         mètres, où l'on colle."""
         gx, gy = self.but_de(c.camp)
-        return 3.0 if math.hypot(gx - c.x, gy - c.y) < 25.0 else 2.2
+        return 3.4 if math.hypot(gx - c.x, gy - c.y) < 25.0 else 2.6
 
     def _tir_en_cours(self) -> dict | None:
         tir = getattr(self, "dernier_tir", None)

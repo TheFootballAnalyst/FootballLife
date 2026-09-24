@@ -250,6 +250,40 @@ tacles subis, il faudra une mesure plus fine. Les écarts sur la « passe
 sous pression » ne se comparent pas : StatsBomb note une pression
 active, le moteur un adversaire à moins de 4,5 m.
 
+## 11. Le tempo et la réaction de la défense
+
+Décomposé sur un PSG–Bayern : les six secondes entre deux passes du
+moteur, c'était 2,3 s de garde du porteur et 2,8 s de ballon libre (le
+vol, mais surtout les ballons qui roulent après une passe ratée, un
+dégagement, un duel, et qu'on court chercher). Le réel est à trois
+secondes en tout. Et une possession finissait après 3,3 passes (réel
+6,5) : 277 possessions par match au lieu de 160, parce que les pertes
+hors passe (têtes perdues sur les longs ballons, duels, contrôles,
+ballons libres) sont deux fois plus nombreuses.
+
+Réglé ensemble, parce qu'une garde plus courte sans défense plus
+réactive donne six buts par match (à 1,5 + 1,6 s : 4,8 buts, 29 tirs) :
+
+- la garde passe à 2,3 + 2,3 × (1 − pression) secondes (`GARDE`) : 1,8 s
+  en médiane avant une passe ; 5,5 s par passe au lieu de 6,8, 4 passes
+  par possession au lieu de 3,6 ;
+- une passe ratée part moins de travers (8° au lieu de 12°) : elle
+  trouve encore souvent un coéquipier ;
+- la défense suit un jeu plus rapide : un joueur loin de sa place (plus
+  de six mètres) y court à 5,5 m/s au lieu de 3,5 ; la ligne recule à
+  5 m/s au plus (`LIGNE_RECUL`) ; un marqueur anticipe la course de son
+  homme de six dixièmes au lieu de quatre, et souffle une passe à 2,6 m
+  (3,4 m dans les vingt-cinq derniers mètres) au lieu de 2,2 ; le
+  presseur arrive à 7 m/s.
+
+Mesuré : banc 3,1 buts et 25 tirs sur trois graines (à 2 + 2 s : 3,3 et
+27 ; à l'ancienne garde : 3,5 et 22), la ligne à 34 m ballon au milieu,
+recul de la ligne 1,5 m/s (réel 1,8). Ce qui reste : les trois secondes
+de ballon libre par passe, qui sont un problème de ballons perdus, pas
+de garde — le prochain levier est là (moins de têtes perdues sur les
+longs ballons, des contrôles qui gardent le ballon, des ballons qui
+roulent vers un coéquipier plutôt que nulle part).
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :
