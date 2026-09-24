@@ -617,7 +617,10 @@ centre deux fois moins (`CENTRE_BASE`). Mesuré : les centres passent de
 41 à 21 par match et les têtes sur centre de 22-4 pour l'attaque à
 8-12 ; les possessions de dix passes et plus finissent par un tir 21 %
 du temps, comme en vrai (29 % avant), et deux tirs sur trois viennent de
-la surface (87 % avant).
+la surface (87 % avant). Sur cette défense, la tête comme une passe
+(`TETE_REMISE`) et le contrôle à la poitrine (`CONTROLE_POITRINE`) sont
+rallumés (2,9 buts, mais 32 tirs) ; le lob court (`LOB_BAS`) et une garde
+plus courte restent parqués (docs/TACTIQUE.md § 13).
 
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente

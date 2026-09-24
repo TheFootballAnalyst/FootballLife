@@ -411,7 +411,42 @@ plus près du réel sur le papier, mais le porteur entre alors dans la
 surface en marchant (21 conduites par match au lieu de 12).
 
 Banc retenu, 36 matchs : 2,6 buts, 25,5 tirs (le moteur d'avant ce
-chantier : 3,2 et 24 sur les mêmes graines ; cible 2,8 et 25). Le tempo (§ 11) et les trois règles parquées
+chantier : 3,2 et 24 sur les mêmes graines ; cible 2,8 et 25).
+
+### Ce que cette défense permet de rallumer
+
+Sur cette défense, les règles parquées au § 11 et au § 12 ont été
+réessayées une à une, sur 36 matchs chacune (le banc de référence est
+2,6 buts, 25,5 tirs) :
+
+| règle | seule | avant la défense de la surface |
+|---|---|---|
+| la tête comme une passe (`TETE_REMISE`) | 3,0 buts, 29 tirs | +1 but |
+| le contrôle à la poitrine (`CONTROLE_POITRINE`) | 3,05, 28 | +0,4 |
+| le lob court qui retombe bas (`LOB_BAS`) | 3,1, 28 | +1,5 |
+| la garde à 2 + 2 s (`GARDE`) | 2,75, 28 | — |
+| la garde réelle à 1,5 + 1,6 s | 3,25, 31 | 4,8 buts |
+| tête + poitrine | 2,86, 32 | |
+| tête + poitrine + lob | 3,2, 32,5 | |
+| tête + poitrine + garde 2 + 2 | 3,1, 34 | |
+
+**Rallumées** : la tête comme une passe et le contrôle à la poitrine.
+Les buts restent à la cible (2,9), les têtes perdues passent de 69 à 49
+par match, les passes par possession de 4,7 à 5,1 (réel 6,7). **Encore
+parqués** : le lob court (+0,35 but par-dessus les deux autres) et la
+garde plus courte — une garde à deux secondes fait 250 possessions par
+match au lieu de 228 (réel 165) : le porteur lâche plus vite, il perd
+plus, ce n'est pas le tempo réel, c'est de la précipitation. Le tempo
+réel viendra de possessions qui durent, pas d'une garde plus courte.
+
+Le prix, à dire : 32 tirs par match au lieu de 25 (réel 24), à la même
+conversion. Les possessions prolongées par la tête et le contrôle
+arrivent au tir plus souvent qu'en vrai (33 % des possessions de dix
+passes et plus, réel 20 %), parce qu'une passe dans la surface passe
+encore sept fois sur dix (réel une sur deux) — les leviers essayés dessus
+(le marqueur qui souffle la passe à 4,5 m, la jambe tendue à 1,2 m, moins
+de frappes de loin, un plancher d'xG) n'y changent rien sur 36 matchs.
+C'est le prochain trou défensif : la passe dans la surface. Le tempo (§ 11) et les trois règles parquées
 des ballons perdus (§ 12) peuvent maintenant se réessayer sur cette
 défense.
 

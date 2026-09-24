@@ -95,9 +95,9 @@ ENTREE_COULOIR = 0.35                        # le bonus de la passe qui entre da
 TIR_PRESSION = 0.6                           # ce qu'un adversaire dans les pieds enlève à l'envie de frapper (réel : 23 % de tirs sous pression)
 CROCHET_BASE = 0.55                          # la base du crochet réussi (réel : 57 % de dribbles réussis)
 PROVOQUE_BASE = 1.05                         # l'envie d'un ailier de provoquer son vis-à-vis
-TETE_REMISE = False                          # une tête est une passe vers un coéquipier : essayé, +1 but par match (les possessions relancées finissent dans la surface) — à reprendre avec la défense
-LOB_BAS = False                              # un lob court qui retombe bas devant le receveur et se contrôle à la poitrine : essayé, +1,5 but par match (le lob par-dessus la ligne devient imparable)
-CONTROLE_POITRINE = False                    # un receveur seul contrôle un ballon à hauteur de poitrine au lieu de le disputer de la tête : essayé, +0,4 but par match — à reprendre avec la défense
+TETE_REMISE = True                           # une tête est une passe vers un coéquipier (coûtait +1 but par match avant la défense de la surface, +0,25 depuis : rallumé)
+LOB_BAS = False                              # un lob court qui retombe bas devant le receveur : essayé, +1,5 but par match avant la défense de la surface, encore +0,35 depuis — toujours parqué
+CONTROLE_POITRINE = True                     # un receveur seul contrôle un ballon à hauteur de poitrine au lieu de le disputer de la tête (rallumé avec la défense de la surface)
 SERRAGE_SURFACE = 3.4                        # à quelle distance le marqueur d'un receveur souffle la passe dans les vingt-cinq derniers mètres
 CONTRE_TIR = (0.5, 1.3)                      # un défenseur sur la trajectoire d'une frappe la contre : probabilité, portée
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
@@ -106,6 +106,7 @@ PORTEUR_COUVERT = 4.0                        # le marqueur du porteur se tient �
 CENTRE_BASE = 0.45                           # l'envie de centrer : 0,8 faisait quarante centres par match (réel : 19, dont 35 % arrivent ; ici 23, 45 %)
 AERIEN_SURFACE = 0.15                        # ce que le défenseur gagne dans le duel de la tête dans sa surface (il attaque le ballon de face)
 PORTEE_SURFACE = 0.9                         # jusqu'où un défenseur posé dans sa surface tend la jambe sur une passe qui file (0,5 ailleurs)
+TIR_MINIMUM = 0.05                           # sous cet xG, une frappe est « pour rien » : on cherche mieux (sauf seul, sauf la frappe de loin)
 TIR_LOIN = 0.9                               # l'envie de frapper de loin quand le bloc est bas et l'axe s'ouvre (réel : un tir sur trois hors de la surface ; 0,3 n'en donnait qu'un sur huit)
 TIR_LOIN_PRESSION = 0.6                      # ... tant que le vis-à-vis est à plus de deux mètres et demi (réel : à 2,8 m du passeur dans le dernier tiers)
 TIR_LOIN_AXE = 0.3                           # ... et que l'axe s'entrouvre (le bonus grandit avec l'ouverture)
@@ -1863,7 +1864,7 @@ class Match:
             if ang < 0.25 and dbut > 9:
                 val -= 0.6                                # un angle fermé : on cherche mieux
             loin = 20 < dbut < 32 and axe > TIR_LOIN_AXE and pression < TIR_LOIN_PRESSION and abs(j.y - gy) < 14
-            if xg < 0.05 and not seul and not loin:
+            if xg < TIR_MINIMUM and not seul and not loin:
                 val -= 0.55                               # une frappe pour rien : on cherche mieux
             if loin:                                      # réel : un tir sur trois hors de la surface
                 val += (TIR_LOIN + 0.5 * j.attr("FIN") / 99) * min(1.0, axe / 0.5)     # le bloc est bas et l'axe s'ouvre : la frappe de loin
