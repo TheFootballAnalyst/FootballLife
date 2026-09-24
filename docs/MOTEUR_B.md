@@ -622,6 +622,13 @@ la surface (87 % avant). Sur cette défense, la tête comme une passe
 rallumés (2,9 buts, mais 32 tirs) ; le lob court (`LOB_BAS`) et une garde
 plus courte restent parqués (docs/TACTIQUE.md § 13).
 
+**Le temps de jeu effectif** (docs/TACTIQUE.md § 14). Un match réel
+n'a le ballon vivant que 55 à 58 minutes sur 97 ; le moteur en jouait 70
+sur 90, d'où vingt pour cent de passes, de possessions et de tirs en
+trop. Les délais de reprise sont des constantes (`DELAIS` : une touche
+16 s, une sortie de but 26, un corner 32, un coup franc 28) : 60 minutes
+de ballon vivant, 27 tirs et 2,8 buts sur 36 matchs.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

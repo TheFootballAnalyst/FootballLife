@@ -446,9 +446,43 @@ passes et plus, réel 20 %), parce qu'une passe dans la surface passe
 encore sept fois sur dix (réel une sur deux) — les leviers essayés dessus
 (le marqueur qui souffle la passe à 4,5 m, la jambe tendue à 1,2 m, moins
 de frappes de loin, un plancher d'xG) n'y changent rien sur 36 matchs.
-C'est le prochain trou défensif : la passe dans la surface. Le tempo (§ 11) et les trois règles parquées
+Mais la première cause des tirs en trop n'était pas défensive, c'était le
+temps de jeu effectif (§ 14). Le tempo (§ 11) et les trois règles parquées
 des ballons perdus (§ 12) peuvent maintenant se réessayer sur cette
 défense.
+
+## 14. Le temps de jeu effectif
+
+Le prix du § 13 (32 tirs par match) a d'abord une cause simple : le
+moteur jouait **70 minutes de ballon vivant** en 90. Un match réel dure
+97 minutes (temps additionnel compris, sur 40 matchs de club) et n'a le
+ballon vivant que 55 à 58 minutes : 32 touches, 22 coups francs, 14
+sorties de but, 10 corners, 9 remplacements et 3 arrêts pour blessure
+par match, et chacun prend son temps (une touche 15 à 20 s, une sortie
+de but 25 à 30, un corner 35, un coup franc 30). Le moteur reprenait une
+touche en 9 s, une sortie de but en 14, un corner en 22. Vingt pour cent
+de ballon vivant en trop, c'est vingt pour cent de passes, de
+possessions et de tirs en trop — à jeu égal.
+
+Ce qui est fait : les délais de reprise sont des constantes (`DELAIS` :
+touche 16 s, sortie de but 26, corner 32, coup franc 28, relance du
+gardien 9), mesurés par `effectif.py` dans le bac à sable :
+
+| par match | réel | moteur avant | moteur après |
+|---|---|---|---|
+| ballon vivant | 55 à 58 min | 69,6 min | 60,5 min |
+| passes | ~900 | 1156 | 1032 |
+| possessions | 165 | 228 | 205 |
+| tirs | 24 | 32 | 27,4 |
+| buts | 2,8 | 2,86 | 2,83 |
+
+Banc de 36 matchs, avec la tête comme une passe et le contrôle à la
+poitrine rallumés : 2,8 buts, 27 tirs (cible 2,8 et 25). Le moteur ne
+joue pas de temps additionnel (le compteur s'arrête à 90) : les délais
+sont donc un peu plus courts que les réels pour tenir dans les 90
+minutes. Il reste deux minutes de ballon vivant en trop, et le moteur a
+moins de touches (18 contre 32 : on vise moins la ligne depuis le § 12)
+et moins de corners (7 contre 10).
 
 ## 9. Pour les équipes fantasy
 

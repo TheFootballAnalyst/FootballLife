@@ -113,6 +113,11 @@ TIR_LOIN_AXE = 0.3                           # ... et que l'axe s'entrouvre (le 
 BALLON_AERIEN = True                         # sur un ballon en l'air, le défenseur le plus proche du point de chute va l'attaquer (l'attaquant, lui, l'attend)
 MARQUAGE_SURFACE_BALLON = 28.0               # ... quand le ballon est à moins de vingt-huit mètres du but (avant, la ligne tient : la profondeur d'abord)
 MARQUAGE_SURFACE = True                      # dans les vingt-deux mètres, un défenseur marque son homme où qu'il soit devant la ligne (le point de penalty n'est pas « hors zone »)
+# le temps mort : ce qu'un arrêt de jeu prend avant la reprise, en secondes.  Un match réel
+# dure 97 minutes et n'a le ballon vivant que 55 à 58 ; le moteur, à 9 s par touche et 14 par
+# sortie de but, jouait 70 minutes de ballon vivant en 90 — vingt pour cent de passes, de
+# possessions et de tirs en trop (docs/TACTIQUE.md § 14)
+DELAIS = {"touche": 16.0, "sortie_but": 26.0, "corner": 32.0, "coup_franc": 28.0, "relance": 9.0, "penalty": 40.0}
 BALLON_ROULE, BALLON_AIR = 1.2, 0.012        # décélération au sol : 1,2 m/s² + 0,012·v² (un ballon lent roule loin, un ballon fort est freiné)
 
 
@@ -582,6 +587,7 @@ class Match:
         Le tireur est choisi tout de suite et MARCHE au ballon ; personne
         n'est téléporté."""
         b = self.ballon
+        delai = DELAIS.get(k, delai)
         b.x, b.y, b.z = x, y, 0.0
         b.vx = b.vy = b.vz = 0.0
         b.porteur = None
