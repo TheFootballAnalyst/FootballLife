@@ -819,7 +819,7 @@ def cloturer_tour(jeu, saison: str, equipe_id: int) -> dict | None:
     r = match_en_cours(jeu, camp)
     if r is None:
         return None
-    if LB.minute_de(r) < SM.MINUTES:
+    if not LB.termine(jeu, saison, r):
         return None
     LB.cloturer(jeu, saison, r)
     onze, banc, tac = json.loads(r["onze_a"]), json.loads(r["banc_a"] or "[]"), json.loads(r["tactique_a"])
@@ -994,7 +994,7 @@ def etat(jeu, saison: str, equipe_id: int) -> dict:
     # for one more poll.
     from jeu import lobby as LB
     r = match_en_cours(jeu, camp)
-    if r is not None and LB.minute_de(r) >= SM.MINUTES:
+    if r is not None and LB.termine(jeu, saison, r):
         cloturer_tour(jeu, saison, equipe_id)
         return etat(jeu, saison, equipe_id)
     live = (LB.arbitrer(jeu, r, LB.feuille(jeu, saison, r))

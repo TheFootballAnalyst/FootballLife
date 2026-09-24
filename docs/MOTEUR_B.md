@@ -629,6 +629,15 @@ trop. Les délais de reprise sont des constantes (`DELAIS` : une touche
 16 s, une sortie de but 26, un corner 32, un coup franc 28) : 60 minutes
 de ballon vivant, 27 tirs et 2,8 buts sur 36 matchs.
 
+**Le temps additionnel** (docs/TACTIQUE.md § 15). À la 45e et à la
+90e, l'arbitre affiche ce que les faits de la période valent (buts,
+cartons, penaltys ici ; remplacements et blessures aussi dans le moteur
+A), avec la règle mesurée sur 200 matchs réels (`simulation.additionnel`).
+Le match dure 90 + n minutes, les événements portent `lib` (« 45+2 »,
+« 90+4 ») à côté de leur minute brute, et les délais de reprise sont à
+leur vraie valeur (`DELAIS`) : 94,5 minutes de match, 57,4 de ballon
+vivant.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

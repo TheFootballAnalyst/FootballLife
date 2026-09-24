@@ -117,7 +117,12 @@ MARQUAGE_SURFACE = True                      # dans les vingt-deux mètres, un d
 # dure 97 minutes et n'a le ballon vivant que 55 à 58 ; le moteur, à 9 s par touche et 14 par
 # sortie de but, jouait 70 minutes de ballon vivant en 90 — vingt pour cent de passes, de
 # possessions et de tirs en trop (docs/TACTIQUE.md § 14)
-DELAIS = {"touche": 16.0, "sortie_but": 26.0, "corner": 32.0, "coup_franc": 28.0, "relance": 9.0, "penalty": 40.0}
+DELAIS = {"touche": 24.0, "sortie_but": 36.0, "corner": 45.0, "coup_franc": 40.0, "relance": 12.0, "penalty": 40.0, "but": 60.0}
+# (plus longs que les vrais arrêts un par un, parce que le moteur en a moins : 19 touches contre 32, 17 coups
+#  francs contre 22 — ce qui compte, c'est le ballon vivant : 55 à 58 minutes sur 97)
+# ... et le temps additionnel de chaque période, sur les faits (simulation.additionnel : la même règle que le
+# moteur A, sans remplacements ni blessures ici) : le match dure 90 minutes plus ce que l'arbitre affiche
+ADDITIONNEL = True
 BALLON_ROULE, BALLON_AIR = 1.2, 0.012        # décélération au sol : 1,2 m/s² + 0,012·v² (un ballon lent roule loin, un ballon fort est freiné)
 
 
@@ -460,6 +465,8 @@ class Match:
         self.duree = minutes * 60.0
         self.mi_temps = min(MI_TEMPS, self.duree / 2)
         self.periode = 1
+        self.additionnel: list[int | None] = [None, None]     # ce que l'arbitre affiche à la 45e et à la 90e
+        self.plein = ADDITIONNEL and minutes >= 90.0
         self.score = [0, 0]
         self.evenements: list[dict] = []
         self.trace: list[list[int]] = [] if trace else None
@@ -483,8 +490,34 @@ class Match:
     def actifs(self, camp: int) -> list[Joueur]:
         return [j for j in self.camp[camp] if j.pid not in self.exclus]
 
+    def libelle(self) -> str:
+        """La minute affichée : 45+2, 90+4 (l'index brut reste dans `minute`)."""
+        m = int((self.t - 1e-6) // 60) + 1                  # à 45:00,0 pile, on est encore dans la 45e
+        if self.periode == 1:
+            return str(m) if m <= 45 else f"45+{m - 45}"
+        m2 = int((self.t - self.mi_temps - 1e-6) // 60) + 46
+        return str(m2) if m2 <= 90 else f"90+{m2 - 90}"
+
+    def _afficher_additionnel(self, periode: int):
+        """L'arbitre lève le panneau : les faits de la période (buts, cartons,
+        penaltys) décident, avec la même règle que le moteur A."""
+        from jeu import simulation as SM
+        debut = 0.0 if periode == 1 else self.mi_temps
+        ev = [e for e in self.evenements if e["t"] >= debut]
+        buts = sum(1 for e in ev if e["k"] == "but")
+        cartons = sum(1 for e in ev if e["k"] == "faute" and e.get("carton"))
+        n = SM.additionnel(periode, 0, buts, 0, cartons + sum(1 for e in ev if e["k"] == "penalty"),
+                           self.rs)
+        self.additionnel[periode - 1] = n
+        if periode == 1:
+            self.mi_temps += n * 60.0
+            self.duree += n * 60.0                 # la seconde période garde ses quarante-cinq minutes
+        else:
+            self.duree = self.mi_temps + (45 + n) * 60.0
+        self.evt("additionnel", periode=periode, minutes=n)["lib"] = "45" if periode == 1 else "90"    # le panneau se lève à la 45e, pas à 45+1
+
     def evt(self, k: str, **kw):
-        e = {"k": k, "t": round(self.t, 1), "minute": int(self.t // 60) + 1} | kw
+        e = {"k": k, "t": round(self.t, 1), "minute": int(self.t // 60) + 1, "lib": self.libelle()} | kw
         self.evenements.append(e)
         return e
 
@@ -580,7 +613,7 @@ class Match:
         if tireur and (immediat or self.t == 0.0):
             tireur.x, tireur.y = LONG / 2 - 0.6 * tireur.sens(), LARG / 2
         self.arret = {"k": "engagement", "t": self.t, "camp": camp, "x": LONG / 2, "y": LARG / 2, "tireur": tireur,
-                      "delai": 40.0 if apres_but else 3.0, "au_centre": self.t + 4.0 if apres_but else self.t}
+                      "delai": DELAIS["but"] if apres_but else 3.0, "au_centre": self.t + 4.0 if apres_but else self.t}
 
     def _arret(self, k: str, camp: int, x: float, y: float, delai: float):
         """Un arrêt de jeu : le ballon est posé, le camp reprend après `delai`.
@@ -758,6 +791,11 @@ class Match:
     def pas_de_temps(self):
         self.pas += 1
         self.t += DT
+        # le temps additionnel, affiché à la 45e et à la 90e sur les faits de la période
+        if self.plein and self.additionnel[0] is None and self.t >= MI_TEMPS:
+            self._afficher_additionnel(1)
+        elif self.plein and self.periode == 2 and self.additionnel[1] is None and self.t >= self.mi_temps + MI_TEMPS:
+            self._afficher_additionnel(2)
         # la mi-temps
         if self.periode == 1 and self.t >= self.mi_temps:
             self.periode = 2
@@ -2992,6 +3030,7 @@ class Match:
                             "fatigue": round(j.fatigue, 2), "exclu": j.pid in self.exclus, "capitaine": j.capitaine,
                             "travail": [round(j.volume, 2), round(j.pressing, 2), round(j.recup, 2)]})
         return {"score": list(self.score), "noms": list(self.noms), "minutes": round(self.duree / 60),
+                "additionnel": list(self.additionnel),
                 "collectif": list(self.collectif), "tactiques": [dict(t) for t in self.tac],
                 "possession": [round(self.possession[0] / tot, 3), round(self.possession[1] / tot, 3)],
                 "stats": {k: (v if not isinstance(v[0], float) else [round(v[0], 2), round(v[1], 2)]) for k, v in self.stats.items()},

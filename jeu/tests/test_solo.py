@@ -387,8 +387,8 @@ def test_a_campaign_match_is_played_live_and_closes_the_round():
     # adjust and substitute through the lobby's own machinery
     assert LB.ajuster(jeu, "2025/26", 1, {"tempo": "possession"}, r) >= 1
     assert LB.changer(jeu, "2025/26", 1, ONZE[10], 12, r) >= 1
-    # ninety minutes later the round closes: your live sheet is the result
-    _reculer(jeu, LB.DUREE_REELLE + 5)
+    # ninety minutes and the added time later, the round closes: your live sheet is the result
+    _reculer(jeu, LB.DUREE_REELLE * SO.SM.MINUTES_MAX // SO.SM.MINUTES + 5)
     e = SO.etat(jeu, "2025/26", 1)["campagne"]
     assert e["match"] is None and e["tour"] == 1
     mien = [f for f in json.loads(SO.en_cours(jeu, "2025/26", 1)["resultats"]) if f["mien"]]
@@ -429,7 +429,7 @@ def test_an_exempt_round_has_nothing_to_kick_off():
     for _ in range(exempts[0]):
         SO.lancer_tour(jeu, "2025/26", 1, ONZE, None)
         from jeu import lobby as LB
-        _reculer(jeu, LB.DUREE_REELLE + 5)
+        _reculer(jeu, LB.DUREE_REELLE * SO.SM.MINUTES_MAX // SO.SM.MINUTES + 5)
         SO.etat(jeu, "2025/26", 1)
     assert SO.lancer_tour(jeu, "2025/26", 1, ONZE, None) == 0
 

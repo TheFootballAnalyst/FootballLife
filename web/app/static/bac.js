@@ -92,7 +92,7 @@ function charger(res) {
   // le fil
   const fil = $("#fil"); fil.replaceChildren();
   const LIB = {but: "BUT", tir: "Frappe", arret: "Arrêt", rate: "À côté", contre: "Contré", faute: "Faute", corner: "Corner",
-    penalty: "Penalty", horsjeu: "Hors-jeu", mi_temps: "Mi-temps", fin: "Fin du match", carton: "Carton",
+    penalty: "Penalty", horsjeu: "Hors-jeu", mi_temps: "Mi-temps", fin: "Fin du match", additionnel: "Temps additionnel", carton: "Carton",
     percee: "Percée balle au pied", passe: "Passe en profondeur", provoque: "Provoque son vis-à-vis", crochet: "Crochet",
     seul: "Seul face au gardien", tacle: "Tacle"};
   for (const e of res.evenements) {
@@ -107,7 +107,7 @@ function charger(res) {
     if (e.k === "provoque") txt += e.rentre ? " · rentre sur son bon pied" : " · déborde";
     if (e.k === "faute" && e.carton) txt += " · carton " + e.carton;
     if (e.k === "passe") txt += " → " + (BAC.noms[e.camp + ":" + e.a] || "") + ` · ${e.d} m`;
-    d.innerHTML = `<small>${e.minute}'</small>` + txt;
+    d.innerHTML = `<small>${e.lib || e.minute}'</small>` + txt;
     fil.append(d);
   }
   // les stats

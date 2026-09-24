@@ -1109,7 +1109,7 @@ function selecteurConsignes(tac, onChange) {
 }
 const EVT_ICONE = {but: "⚽", arret: "🧤", occasion: "✗", tactique: "⇄", corner: "⛳", faute: "⚠",
   jaune: "🟨", rouge: "🟥", horsjeu: "🚩", changement: "🔁", blessure: "🚑", permutation: "⇅",
-  formation: "⇄", penalty_manque: "✗"};
+  formation: "⇄", penalty_manque: "✗", additionnel: "⏱"};
 let LOBBY = {timer: null, vus: 0,
   tac: {tempo: "equilibre", bloc: "median", risque: "equilibre",
         lateraux: "couloir", ailiers: "equilibre", milieux: "equilibre",
@@ -1381,7 +1381,7 @@ function carteTirs(m, moi) {
 
 function ligneEvt(e, moi) {
   const l = el("div", {class: "evt " + e.type + (e.cote === "AB"[moi] ? " mien" : "")},
-    el("span", {class: "min"}, e.minute + "'"), el("span", {class: "ico"}, EVT_ICONE[e.type] || "•"),
+    el("span", {class: "min"}, (e.lib || e.minute) + "'"), el("span", {class: "ico"}, EVT_ICONE[e.type] || "•"),
     el("span", {class: "txt"}, e.texte));
   // d'où venait le but : une action à une passe ne raconte pas la même
   // chose qu'une action à six
@@ -1711,7 +1711,7 @@ function montrerFeuilleSolo(f, bilan, place) {
   const fil = el("div", {class: "fil"});
   for (const e of f.evenements)
     fil.append(el("div", {class: "evt " + e.type},
-      el("span", {class: "min"}, e.minute + "'"), el("span", {class: "ico"}, EVT_ICONE[e.type] || "•"),
+      el("span", {class: "min"}, (e.lib || e.minute) + "'"), el("span", {class: "ico"}, EVT_ICONE[e.type] || "•"),
       el("span", {class: "txt"}, e.texte)));
   if (!f.evenements.length) fil.append(el("p", {class: "compteur"}, "Match sans fait marquant."));
   box.append(fil);
@@ -2361,6 +2361,16 @@ function scoreVu(m) {
   if (m.fini || !T2D.score || T2D.rid !== m.rencontre_id) return m.score;
   return T2D.score;
 }
+// La minute telle qu'on l'affiche : 45+2, 90+4.  `min` est l'index de la
+// minute dans le match ; le temps additionnel de la première période décale
+// tout ce qui suit (simulation.libelle).
+function libMin(min, m) {
+  const a1 = m && m.additionnel ? m.additionnel[0] : null;
+  if (min <= 45 || a1 === null || a1 === undefined) return String(min);
+  if (min <= 45 + a1) return `45+${min - 45}`;
+  const d = min - a1;
+  return d <= 90 ? String(d) : `90+${d - 90}`;
+}
 function minuteVue(m) {
   if (m.fini || T2D.rid !== m.rencontre_id) return m.minute;
   return Math.min(m.minute, Math.max(0, T2D.m));
@@ -2377,10 +2387,11 @@ function majTete() {
   const m = h.m, moi = T2D.moi === "b" ? 1 : 0, lui = 1 - moi;
   const s = scoreVu(m), min = minuteVue(m);
   h.score.textContent = `${s[moi]} – ${s[lui]}`;
+  const lib = libMin(min, m);
   h.min.textContent = m.fini ? "Terminé"
-    : m.pause ? `${min}' — ${{"mi-temps": "mi-temps", "blessure": "blessure"}[m.motif_pause] || "arrêté"}`
-    : `${min}'`;
-  h.horloge.style.width = Math.round(100 * min / (h.minutes || 90)) + "%";
+    : m.pause ? `${lib}' — ${{"mi-temps": "mi-temps", "blessure": "blessure"}[m.motif_pause] || "arrêté"}`
+    : `${lib}'`;
+  h.horloge.style.width = Math.round(100 * min / (m.total || (h.minutes || 90) + 7)) + "%";
 }
 
 // Le panneau est RÉUTILISÉ d'un sondage à l'autre, pas reconstruit :

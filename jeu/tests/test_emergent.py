@@ -42,10 +42,11 @@ def test_a_match_is_deterministic_for_a_seed():
 
 def test_a_full_match_stays_on_the_pitch_and_looks_like_football():
     r = EM.Match(onze(0), onze(1), graine=3, minutes=90).jouer()
-    assert r["minutes"] == 90 and r["evenements"][-1]["k"] == "fin"
+    assert r["minutes"] == 90 + sum(r["additionnel"]) and r["evenements"][-1]["k"] == "fin"
+    assert 1 <= r["additionnel"][0] <= 6 and 2 <= r["additionnel"][1] <= 8 and r["evenements"][-1]["lib"].startswith("90+")
     assert any(e["k"] == "mi_temps" for e in r["evenements"])
     # the trace: one image every 0.4 s, everybody on the pitch (a metre of tolerance for the lines)
-    assert len(r["trace"]) == 90 * 60 / 0.4
+    assert len(r["trace"]) == r["minutes"] * 60 / 0.4
     for f in r["trace"][::25]:
         for k in range(22):
             x, y = f[7 + k * 2] / 10, f[8 + k * 2] / 10

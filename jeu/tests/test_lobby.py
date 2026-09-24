@@ -83,7 +83,7 @@ def test_the_clock_belongs_to_the_server():
     assert LB.minute_courante(debut, t0) == 0
     assert LB.minute_courante(debut, t0 + timedelta(seconds=LB.DUREE_REELLE / 2)) == SM.MINUTES // 2
     assert LB.minute_courante(debut, t0 + timedelta(seconds=LB.DUREE_REELLE)) == SM.MINUTES
-    assert LB.minute_courante(debut, t0 + timedelta(hours=3)) == SM.MINUTES      # never past the end
+    assert LB.minute_courante(debut, t0 + timedelta(hours=3)) == SM.MINUTES_MAX  # never past the end, added time included
 
 
 def test_the_sheet_grows_and_never_rewrites_itself():
@@ -94,7 +94,9 @@ def test_the_sheet_grows_and_never_rewrites_itself():
     f30 = LB.feuille(jeu, "2025/26", r, 30)
     f90 = LB.feuille(jeu, "2025/26", r, 90)
     assert f30["evenements"] == [e for e in f90["evenements"] if e["minute"] <= 30]
-    assert f30["fini"] is False and f90["fini"] is True
+    assert f30["fini"] is False and f90["fini"] is False        # la 90e index n'est pas la fin : le temps additionnel
+    fin = LB.feuille(jeu, "2025/26", r, SM.MINUTES_MAX)
+    assert fin["fini"] is True and fin["total"] == 90 + sum(fin["additionnel"]) and fin["lib"].startswith("90+")
 
 
 def test_an_adjustment_is_stamped_by_the_clock_and_only_touches_the_future():
@@ -382,8 +384,9 @@ def test_a_manager_speaks_at_half_time_and_only_then():
     r20 = _reculer(jeu, r, LB.DUREE_REELLE * 0.2)
     with pytest.raises(LB.ErreurLobby):
         LB.causer(jeu, "2025/26", 1, "secouer", r20)
-    # une causerie inconnue est refusée
-    r46 = _reculer(jeu, r, LB.DUREE_REELLE * 0.52)
+    # une causerie inconnue est refusée — à la vraie mi-temps, 45 plus le temps additionnel
+    mt = LB.feuille(jeu, "2025/26", r, 45)["mi_temps"]
+    r46 = _reculer(jeu, r, LB.DUREE_REELLE * (mt + 0.5) / SM.MINUTES)
     with pytest.raises(LB.ErreurLobby):
         LB.causer(jeu, "2025/26", 1, "leur chanter une chanson", r46)
     assert LB.causer(jeu, "2025/26", 1, "secouer", r46) == "secouer"

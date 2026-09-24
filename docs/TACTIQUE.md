@@ -484,6 +484,39 @@ minutes. Il reste deux minutes de ballon vivant en trop, et le moteur a
 moins de touches (18 contre 32 : on vise moins la ligne depuis le § 12)
 et moins de corners (7 contre 10).
 
+## 15. Le temps additionnel
+
+Un match réel ne dure pas 90 minutes : 97 en moyenne (200 matchs de
+club), 2 minutes ajoutées en première période, 4 en seconde. Ce que
+l'arbitre affiche se lit sur les faits de la période :
+
+| | première période | seconde période |
+|---|---|---|
+| additionnel moyen | 2,1 min (p10 0, p90 4) | 4,2 min (p10 2, p90 6) |
+| régression sur les faits | 0,4 + 0,9 par remplacement + 0,2 par but + 0,3 par blessure + 0,4 par carton | 3,5 de base (les remplacements de tout le monde compris) + 0,25 par blessure + 0,2 par carton |
+
+Ce qui est fait, dans les deux moteurs (`simulation.additionnel`, la
+même règle reprise par `emergent`) : à la 45e et à la 90e, l'arbitre
+affiche base + remplacements + buts + blessures + cartons, en minutes
+entières (1 à 6 en première, 2 à 8 en seconde), avec une demi-minute
+d'humeur. Le match se joue jusqu'à 45 + n puis 90 + n, l'horloge affiche
+« 45+2 », « 90+4 », et l'écran de match annonce le panneau (« 3 minutes
+de temps additionnel »). La minute d'un joueur reste lue sur 90 (un match
+entier vaut 90, comme les stats par 90).
+
+Pour le joueur devant son écran, le rythme ne change pas : une minute de
+match vaut toujours `durée / 90` secondes réelles, et le match dure donc
+un peu plus longtemps — six minutes et demie au lieu de six pour un
+match classé, comme une vraie soirée déborde de l'heure prévue. La
+causerie se donne à la vraie mi-temps (45 + n), et le match n'est fini
+que quand la feuille le dit, pas quand l'horloge passe 90.
+
+Avec le temps additionnel, les délais de reprise du moteur B (§ 14) sont
+remontés à leur vraie valeur (touche 24 s, sortie de but 36, corner 45,
+coup franc 40, but 60 : plus longs que les vrais un par un, parce que le
+moteur a moins d'arrêts — 21 touches contre 32) : 94,5 minutes de match,
+57,4 de ballon vivant (réel 55 à 58 sur 97).
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

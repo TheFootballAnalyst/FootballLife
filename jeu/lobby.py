@@ -73,7 +73,23 @@ def minute_courante(debut: str | None, maintenant_: datetime | None = None,
         return 0
     fin = _t(pause) if pause else (maintenant_ or datetime.now(timezone.utc))
     ecoule = (fin - _t(debut)).total_seconds() - max(0, cumul)
-    return max(0, min(SM.MINUTES, int(ecoule / (duree or DUREE_REELLE) * SM.MINUTES)))
+    # l'horloge avance d'une minute toutes les duree/90 secondes, et continue dans le temps
+    # additionnel : c'est la feuille qui dit quand le match est fini (simulation.additionnel)
+    return max(0, min(SM.MINUTES_MAX, int(ecoule / (duree or DUREE_REELLE) * SM.MINUTES)))
+
+
+def termine(jeu, saison: str, r, f: dict | None = None) -> bool:
+    """Whether the clock has run past the match's last minute, added time
+    included — the sheet knows it, the clock alone does not."""
+    if not r["debut"]:
+        return False
+    m = minute_de(r)
+    if m < SM.MINUTES:
+        return False
+    if m >= SM.MINUTES_MAX:
+        return True
+    f = f if f is not None else feuille(jeu, saison, r, m)
+    return bool(f.get("fini"))
 
 
 def duree_de(r) -> int:
@@ -106,7 +122,7 @@ def suspendre(jeu, r, oui: bool) -> bool:
     Only a match with one human in it: two managers cannot each hold the
     other's clock.  Restarting adds the time spent stopped to `pause_cumul`
     so the minute picks up exactly where it was left."""
-    if not r["debut"] or minute_de(r) >= SM.MINUTES:
+    if not r["debut"] or minute_de(r) >= SM.MINUTES_MAX:
         return False
     if oui:
         if en_pause(r):
@@ -415,12 +431,12 @@ def ajuster(jeu, saison: str, equipe_id: int, tactique: dict, r=None) -> int:
     if not r or not r["debut"]:
         raise ErreurLobby("Aucun match en cours")
     m = minute_de(r)
-    if m >= SM.MINUTES:
+    if termine(jeu, saison, r):
         raise ErreurLobby("Le match est terminé")
     cote = 0 if r["equipe_a"] == equipe_id else 1
     aj = json.loads(r["ajustements"] or "{}")
     # the next minute, never the one already being played
-    cle = str(min(SM.MINUTES, m + 1))
+    cle = str(min(SM.MINUTES_MAX, m + 1))
     paire = aj.get(cle) or [None, None]
     paire[cote] = vars(SM.Tactique(**tactique).valide())
     aj[cle] = paire
@@ -441,7 +457,10 @@ def causer(jeu, saison: str, equipe_id: int, causerie: str, r=None) -> str:
     if causerie not in SM.CAUSERIES:
         raise ErreurLobby("Causerie inconnue")
     m = minute_de(r)
-    if m < MI_TEMPS or m >= MI_TEMPS + SM.DUREE_CAUSERIE:
+    mt = MI_TEMPS
+    if m >= MI_TEMPS:
+        mt = feuille(jeu, saison, r, m).get("mi_temps") or MI_TEMPS     # la pause est à 45 plus le temps additionnel
+    if m < mt or m >= mt + SM.DUREE_CAUSERIE:
         raise ErreurLobby("C'est à la mi-temps qu'on parle à son équipe")
     cote = "a" if r["equipe_a"] == equipe_id else "b"
     if _champ(r, f"causerie_{cote}"):
@@ -464,7 +483,7 @@ def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int, r=None
     if not r or not r["debut"]:
         raise ErreurLobby("Aucun match en cours")
     m = minute_de(r)
-    if m >= SM.MINUTES:
+    if termine(jeu, saison, r):
         raise ErreurLobby("Le match est terminé")
     cote = 0 if r["equipe_a"] == equipe_id else 1
     cle_cote = "ab"[cote]
@@ -482,7 +501,7 @@ def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int, r=None
         raise ErreurLobby("Ce joueur n'est pas sur ton banc")
     if f["changements"][cote] >= SM.MAX_CHANGEMENTS:
         raise ErreurLobby(f"{SM.MAX_CHANGEMENTS} changements, c'est le maximum")
-    cle = str(min(SM.MINUTES, m + 1))
+    cle = str(min(SM.MINUTES_MAX, m + 1))
     brut = json.loads(r["remplacements"] or "{}")
     paire = brut.get(cle) or [[], []]
     paire[cote] = list(paire[cote]) + [[sortant, entrant]]
@@ -507,7 +526,7 @@ def permuter(jeu, saison: str, equipe_id: int, un: int, deux: int, r=None) -> in
     if not r or not r["debut"]:
         raise ErreurLobby("Aucun match en cours")
     m = minute_de(r)
-    if m >= SM.MINUTES:
+    if termine(jeu, saison, r):
         raise ErreurLobby("Le match est terminé")
     if un == deux:
         raise ErreurLobby("Il faut deux joueurs différents")
@@ -517,7 +536,7 @@ def permuter(jeu, saison: str, equipe_id: int, un: int, deux: int, r=None) -> in
     dessus = set(f["sur_le_terrain"][cle_cote])
     if un not in dessus or deux not in dessus:
         raise ErreurLobby("Les deux joueurs doivent être sur le terrain")
-    cle = str(min(SM.MINUTES, m + 1))
+    cle = str(min(SM.MINUTES_MAX, m + 1))
     brut = json.loads(_champ(r, "permutations") or "{}")
     paire = brut.get(cle) or [[], []]
     paire[cote] = list(paire[cote]) + [[un, deux]]
@@ -535,7 +554,9 @@ def cloturer(jeu, saison: str, r) -> dict | None:
         return json.loads(r["feuille"]) if r["feuille"] else None
     if not r["debut"] or minute_de(r) < SM.MINUTES:
         return None
-    f = feuille(jeu, saison, r, SM.MINUTES)
+    f = feuille(jeu, saison, r, SM.MINUTES_MAX)
+    if not f.get("fini") and minute_de(r) < (f.get("total") or SM.MINUTES_MAX):
+        return None                          # le temps additionnel se joue encore
     ea, eb = None, None
     if not r["defi"] and r["equipe_b"]:
         ra = jeu.execute("SELECT elo_classe FROM equipe WHERE equipe_id=?", (r["equipe_a"],)).fetchone()[0]
@@ -577,7 +598,7 @@ def arbitrer(jeu, r, f: dict) -> dict:
     motif = None
     if neufs:
         motif, marque = "blessure", set(neufs)
-    elif f.get("minute", 0) >= MI_TEMPS and "mi-temps" not in vus:
+    elif f.get("minute", 0) >= (f.get("mi_temps") or MI_TEMPS) and "mi-temps" not in vus:
         # La mi-temps : le seul arrêt que le football prévoit, et le
         # moment où un manager corrige ce qu'il a vu.  Une fois, et
         # seulement pour un match à un seul humain.
@@ -597,7 +618,8 @@ def arbitrer(jeu, r, f: dict) -> dict:
 def etat(jeu, saison: str, equipe_id: int) -> dict:
     """What the lobby screen shows: waiting, running (with the sheet so
     far) or nothing, plus the manager's ranked standing."""
-    out = {"duree": DUREE_REELLE, "durees": list(DUREES), "minutes": SM.MINUTES, "etat": "libre", "match": None,
+    out = {"duree": DUREE_REELLE, "durees": list(DUREES), "minutes": SM.MINUTES, "minutes_max": SM.MINUTES_MAX,
+           "etat": "libre", "match": None,
            "tactiques": {"tempo": list(SM.TEMPO), "bloc": list(SM.BLOC), "risque": list(SM.RISQUE)}}
     r = en_cours(jeu, saison, equipe_id)
     if r and r["debut"]:

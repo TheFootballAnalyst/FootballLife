@@ -260,13 +260,15 @@ def test_the_timeline_says_where_the_ball_is_every_minute():
     """What the 2D pitch animates: one record a minute — the side with the
     ball, how far up, who carries it, and the event if there is one."""
     f = SM.jouer(SM.Equipe("A", onze(72)), SM.Equipe("B", onze(68, 20)), 17)
-    assert len(f["fil"]) == SM.MINUTES
-    assert [x["m"] for x in f["fil"]] == list(range(1, SM.MINUTES + 1))
+    assert len(f["fil"]) == f["total"] == SM.MINUTES + sum(f["additionnel"])
+    assert [x["m"] for x in f["fil"]] == list(range(1, f["total"] + 1))
+    # le temps additionnel se lit : 45+1 puis 46, 90+n à la fin
+    assert f["fil"][45]["l"] == "45+1" and f["fil"][45 + f["additionnel"][0]]["l"] == "46" and f["fil"][-1]["l"] == f"90+{f['additionnel'][1]}"
     for x in f["fil"]:
         assert x["c"] in (0, 1) and 1 <= x["z"] <= 3
         assert x["e"] is None or f["evenements"][x["e"]]["minute"] == x["m"]
     # the side with the ball holds it for its share of the minutes
-    part = sum(1 for x in f["fil"] if x["c"] == 0) / SM.MINUTES
+    part = sum(1 for x in f["fil"] if x["c"] == 0) / f["total"]
     assert abs(round(100 * part) - f["possession"][0]) <= 1
     # every shot minute is in the final third
     for e in f["evenements"]:
@@ -357,7 +359,7 @@ def test_a_formation_changed_during_the_match_moves_the_players():
 
 def test_every_minute_carries_the_phases_that_produced_it():
     f = SM.jouer(SM.Equipe("A", onze(74)), SM.Equipe("B", onze(74, 20)), 12)
-    assert len(f["fil"]) == SM.MINUTES
+    assert len(f["fil"]) == f["total"]
     for ligne in f["fil"]:
         assert ligne["s"], "une minute sans phase ne se dessine pas"
         assert all(p["k"] and p["c"] in (0, 1) for p in ligne["s"])

@@ -46,6 +46,31 @@ from dataclasses import dataclass, field
 
 MINUTES = 90
 MI_TEMPS = 45
+MINUTES_MAX = MINUTES + 16   # 90 minutes et jusqu'à 8 de temps additionnel par mi-temps : l'index d'une minute ne dépasse jamais ça
+# Le temps additionnel, sur les faits de la mi-temps — mesuré sur 200 matchs réels : 2,1 min en
+# première (0,4 + 0,9 par remplacement + 0,2 par but + 0,3 par blessure + 0,4 par carton), 4,2 en
+# seconde (3,5 de base, les remplacements de tout le monde compris).  Ici, par période :
+# (base, par remplacement, par but, par blessure, par carton, mini, maxi), en minutes.
+ADDITIONNEL = {1: (0.5, 0.5, 0.25, 0.5, 0.25, 1, 6), 2: (2.0, 0.15, 0.25, 0.5, 0.25, 2, 8)}
+
+
+def additionnel(periode: int, remplacements: int, buts: int, blessures: int, cartons: int, rs: random.Random) -> int:
+    """Ce que l'arbitre affiche à la fin d'une période, en minutes entières."""
+    base, kr, kb, kbl, kc, mini, maxi = ADDITIONNEL[periode]
+    x = base + kr * remplacements + kb * buts + kbl * blessures + kc * cartons + rs.uniform(-0.5, 0.5)
+    return int(max(mini, min(maxi, round(x))))
+
+
+def libelle(m: int, add1: int | None) -> str:
+    """La minute telle qu'on l'affiche : 45+2, 90+4.  `m` est l'index de la
+    minute dans le match (la 46e jouée est « 45+1 » si la première période
+    a eu du temps additionnel)."""
+    if m <= MI_TEMPS or add1 is None:
+        return str(m)
+    if m <= MI_TEMPS + add1:
+        return f"{MI_TEMPS}+{m - MI_TEMPS}"
+    d = m - add1
+    return str(d) if d <= MINUTES else f"{MINUTES}+{d - MINUTES}"
 
 # --------------------------------------------------------------------------
 # Calibration.  Targets: about 12 shots and 1.4 goals a side, 26 % of draws.
@@ -1312,7 +1337,7 @@ def _remplacer(sur: list[dict], banc: list[dict], sortant: int, entrant: int) ->
 
 
 def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique | None, Tactique | None]] | None = None,
-          jusqua: int = MINUTES, changements: dict[int, tuple[list, list]] | None = None,
+          jusqua: int = MINUTES_MAX, changements: dict[int, tuple[list, list]] | None = None,
           auto_remplacement: tuple[bool, bool] = (True, True),
           causeries: tuple[str, str] = ("rien", "rien"),
           permutations: dict[int, tuple[list, list]] | None = None) -> dict:
@@ -1385,10 +1410,22 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
     fil: list[dict] = []
     ou: dict | None = None                  # where the ball is between two minutes
 
+    add: list[int | None] = [None, None]    # le temps additionnel de chaque période, quand l'arbitre l'affiche
+    fin1: list[int | None] = [None]         # l'index de la dernière minute de la première période
+    total: list[int | None] = [None]        # ... et de la dernière du match
+
     def ajoute(minute, cote, type_, texte, **extra):
-        evenements.append({"minute": minute, "cote": "AB"[cote] if cote is not None else None,
+        evenements.append({"minute": minute, "lib": libelle(minute, add[0]),
+                           "cote": "AB"[cote] if cote is not None else None,
                            "type": type_, "texte": texte} | extra)
         return len(evenements) - 1
+
+    def faits(depuis: int, jusqu: int) -> tuple[int, int, int, int]:
+        ev = [e for e in evenements if depuis <= e["minute"] <= jusqu]
+        return (sum(1 for e in ev if e["type"] == "changement" or (e["type"] == "blessure" and e.get("entrant"))),
+                sum(1 for e in ev if e["type"] == "but"),
+                sum(1 for e in ev if e["type"] == "blessure"),
+                sum(1 for e in ev if e["type"] in ("jaune", "rouge")))
 
     def carton(minute, cote, joueur, rouge=False):
         """A booking, and a second one is a sending off.  A side down to ten
@@ -1402,7 +1439,9 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
         jaunes_n[cote] += 1
         return ajoute(minute, cote, "jaune", f"Carton jaune pour {joueur['nom']}", pid=joueur["pid"])
 
-    for m in range(1, min(jusqua, MINUTES) + 1):
+    m = 0
+    while m < jusqua and (total[0] is None or m < total[0]) and m < MINUTES_MAX:
+        m += 1
         if m in tactiques:
             for c, nouvelle in enumerate(tactiques[m]):
                 if nouvelle is not None:
@@ -1623,7 +1662,7 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
             # La causerie agit sur le début de la seconde période, et la
             # situation retenue est celle de la MI-TEMPS : ce que le
             # manager avait sous les yeux quand il a parlé.
-            if dit[c] != "rien" and MI_TEMPS < m <= MI_TEMPS + DUREE_CAUSERIE:
+            if dit[c] != "rien" and fin1[0] is not None and fin1[0] < m <= fin1[0] + DUREE_CAUSERIE:
                 if sit_causerie[c] is None:
                     sit_causerie[c] = situation(score, c)
                 t[c] = appliquer_causerie(t[c], dit[c], sit_causerie[c])
@@ -1642,15 +1681,27 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                 depart = next((j for j in sur[cote] if j["pid"] == amont[0]["p"]), None)
                 if depart:
                     evenements[evt]["depart"] = depart["nom"]
-        fil.append({"m": m, "c": cote, "z": zone,
+        fil.append({"m": m, "l": libelle(m, add[0]), "c": cote, "z": zone,
                     "p": porteur["pid"] if porteur else None, "e": evt,
                     "s": phases})
+        # Le temps additionnel : l'arbitre l'affiche à la 45e et à la 90e, sur
+        # les faits de la période (remplacements, buts, blessures, cartons).
+        if m == MI_TEMPS and add[0] is None:
+            add[0] = additionnel(1, *faits(1, MI_TEMPS), random.Random(graine * 1000 + 45_000_001))
+            fin1[0] = MI_TEMPS + add[0]
+            ajoute(m, None, "additionnel", f"{add[0]} minute{'s' if add[0] > 1 else ''} de temps additionnel", periode=1, minutes=add[0])
+        elif fin1[0] is not None and m == fin1[0] + MI_TEMPS and add[1] is None:
+            add[1] = additionnel(2, *faits(fin1[0] + 1, m), random.Random(graine * 1000 + 90_000_001))
+            total[0] = m + add[1]
+            ajoute(m, None, "additionnel", f"{add[1]} minute{'s' if add[1] > 1 else ''} de temps additionnel", periode=2, minutes=add[1])
 
-    fini = jusqua >= MINUTES
+    fini = total[0] is not None and jusqua >= total[0]
     poss = [round(100 * minutes_ballon[0] / max(1, sum(minutes_ballon))),
             round(100 * minutes_ballon[1] / max(1, sum(minutes_ballon)))]
     return {
-        "minute": min(jusqua, MINUTES), "fini": fini, "score": score,
+        "minute": min(jusqua, total[0] if total[0] is not None else MINUTES_MAX),
+        "lib": libelle(min(jusqua, total[0] if total[0] is not None else MINUTES_MAX), add[0]),
+        "additionnel": add, "mi_temps": fin1[0], "total": total[0], "fini": fini, "score": score,
         "resultat": ("A" if score[0] > score[1] else "B" if score[1] > score[0] else "N") if fini else None,
         "possession": poss, "tirs": tirs, "xg": [round(x, 2) for x in xg_tot],
         "fautes": fautes, "corners": corners, "jaunes": jaunes_n, "rouges": rouges_n,
@@ -1669,7 +1720,9 @@ def jouer(a: Equipe, b: Equipe, graine: int, tactiques: dict[int, tuple[Tactique
                                         "aise": round(j.get("aise", 1.0), 3)}
                              for j in sur[c]} for c in (0, 1)},
         # ce que chacun a fait, et la note qui va avec (notes_du_match)
-        "joueurs": notes_du_match(evenements, fil, minutes_jouees, score, familles),
+        "joueurs": notes_du_match(evenements, fil,
+                                  [{pid: round(n * MINUTES / max(MINUTES, total[0] or m)) for pid, n in d.items()} for d in minutes_jouees],
+                                  score, familles),
         "evenements": evenements, "fil": fil,
         "onze": {"a": [j["pid"] for j in sur[0]], "b": [j["pid"] for j in sur[1]]},
         "traits": {"a": {k: round(v, 3) for k, v in t[0].items()}, "b": {k: round(v, 3) for k, v in t[1].items()}},
