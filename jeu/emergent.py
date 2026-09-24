@@ -95,6 +95,11 @@ ENTREE_COULOIR = 0.35                        # le bonus de la passe qui entre da
 TIR_PRESSION = 0.6                           # ce qu'un adversaire dans les pieds enlève à l'envie de frapper (réel : 23 % de tirs sous pression)
 CROCHET_BASE = 0.55                          # la base du crochet réussi (réel : 57 % de dribbles réussis)
 PROVOQUE_BASE = 1.05                         # l'envie d'un ailier de provoquer son vis-à-vis
+TETE_REMISE = False                          # une tête est une passe vers un coéquipier : essayé, +1 but par match (les possessions relancées finissent dans la surface) — à reprendre avec la défense
+LOB_BAS = False                              # un lob court qui retombe bas devant le receveur et se contrôle à la poitrine : essayé, +1,5 but par match (le lob par-dessus la ligne devient imparable)
+CONTROLE_POITRINE = False                    # un receveur seul contrôle un ballon à hauteur de poitrine au lieu de le disputer de la tête : essayé, +0,4 but par match — à reprendre avec la défense
+SERRAGE_SURFACE = 3.4                        # à quelle distance le marqueur d'un receveur souffle la passe dans les vingt-cinq derniers mètres
+CONTRE_TIR = (0.5, 1.3)                      # un défenseur sur la trajectoire d'une frappe la contre : probabilité, portée
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
 BALLON_ROULE, BALLON_AIR = 1.2, 0.012        # décélération au sol : 1,2 m/s² + 0,012·v² (un ballon lent roule loin, un ballon fort est freiné)
 
@@ -1853,11 +1858,11 @@ class Match:
             audace = (0.4 if (self.score[camp] < self.score[1 - camp] and self.t > 55 * 60) else 0.0) + (0.3 if tac["tempo"] == "direct" else 0.0)
             # l'homme libre près du but vaut de l'or ; le tempo direct aime les longues
             val = (0.25 + GAIN_POIDS * gain + 0.6 * danger + 0.1 * min(libre, 8.0) + 1.0 * couloir - 0.012 * d
-                   - 0.025 * max(0.0, d - 22.0) * tempo - ((0.5 - audace * 0.5) if libre < 3.0 else 0.0)
+                   - 0.035 * max(0.0, d - 22.0) * tempo - ((0.5 - audace * 0.5) if libre < 3.0 else 0.0)
                    + 0.5 * danger * min(libre, 10.0) / 10.0 * (0.6 + 0.4 * coh))
             # un porteur peu technique pressé n'a pas le temps de la courte : il allonge devant
             if d > 25.0 and gain > 0.3:
-                val += 3.0 * maladresse * pression
+                val += 2.0 * maladresse * pression
             # dans les trente derniers mètres, on ne rend pas le ballon à un
             # central libre à trente mètres derrière — sauf sous pression
             if dbut < 35 and gain < -0.25 and pression < 0.6:
@@ -2155,6 +2160,8 @@ class Match:
         else:
             # on vise un peu devant un receveur qui court
             vise_x, vise_y = c.x + c.vx * min(1.2, d / 15.0), c.y + c.vy * min(1.2, d / 15.0)
+        # (réel : dix passes par match sortent du terrain ; ici quarante — on ne vise pas la ligne)
+        vise_x, vise_y = max(1.5, min(LONG - 1.5, vise_x)), max(1.5, min(LARG - 1.5, vise_y))
         dx, dy = vise_x - j.x, vise_y - j.y
         d = math.hypot(dx, dy) or 1.0
         # la vitesse : assez pour arriver encore vivante (cinq mètres et demi
@@ -2177,13 +2184,13 @@ class Match:
             ang += self.rs.gauss(0, sigma * 4.0 + math.radians(8.0))
             v *= self.rs.uniform(0.6, 1.3)
         vz = 0.0
-        haut = longue or d > 30 or (self._couloir_vers(j, vise_x, vise_y) < 0.2 and d > 15)
+        haut = longue or d > 30 or (self._couloir_vers(j, vise_x, vise_y) < 0.04 and d > 18)
         if point is not None and d < 30 and not longue:
             v += 1.5                                  # une passe en profondeur file, elle n'attend pas
             v = min(VITESSE_PASSE[1], v)
         if haut:
             # par-dessus : la portée en l'air vaut la distance (v = d·g / 2vz)
-            vz = 6.0 + d * 0.1
+            vz = 6.0 + d * 0.1 if (longue or d > 30 or not LOB_BAS) else 3.5 + d * 0.06     # un lob court retombe bas, devant le receveur
             v = max(10.0, min(28.0, d * GRAVITE / (2 * vz)))
         j.passes += 1
         self.stats["passes"][j.camp] += 1
@@ -2486,20 +2493,29 @@ class Match:
                 if d < portee and b.z < (2.4 if j.gk else 1.9):
                     cand.append((d, j))
                 # un défenseur sur la trajectoire d'une frappe la contre, une fois sur deux
-                elif tir and not j.gk and j.camp != tir["camp"] and d < 1.3 and b.z < 1.7 and self.t - tir["t"] < 1.2 \
+                elif tir and not j.gk and j.camp != tir["camp"] and d < CONTRE_TIR[1] and b.z < 1.7 and self.t - tir["t"] < 1.2 \
                         and self.t - j.dernier_contact > 0.5:
                     j.dernier_contact = self.t
-                    if self.rs.random() < 0.5:
+                    if self.rs.random() < CONTRE_TIR[0]:
                         self._contrer(j)
                         return
             if not cand:
                 return
             cand.sort(key=lambda c: c[0])
             _, j = cand[0]
-            if b.z > 1.0 and not j.gk:
+            # (un adversaire à moins de deux mètres et demi du ballon monte dessus lui aussi)
+            autre = None
+            if b.z > 1.0:
+                autre = next((c for _, c in cand[1:] if c.camp != j.camp and not c.gk), None)
+                if autre is None:
+                    o, do = self.plus_proche(1 - j.camp, b.x, b.y, gk=False)
+                    if o is not None and do < 2.5 and self.t - o.dernier_contact > 0.5:
+                        autre = o
+            if b.z > 1.0 and not j.gk and (autre is not None or b.z > 1.6 or not CONTROLE_POITRINE):
                 # le duel aérien : si les deux camps sont sous le ballon, ce n'est pas
                 # le plus près qui l'emporte mais le plus costaud — et celui qui l'attendait
-                autre = next((c for _, c in cand[1:] if c.camp != j.camp and not c.gk), None)
+                # (réel : une quarantaine de duels aériens par match ; un ballon à hauteur de poitrine
+                #  sur un receveur seul se contrôle, il ne se dispute pas de la tête)
                 if autre is not None:
                     f_j = (j.physique.get("for", 68) or 68) if j.physique else 68
                     f_a = (autre.physique.get("for", 68) or 68) if autre.physique else 68
@@ -2531,6 +2547,7 @@ class Match:
                 p_controle = min(p_controle, 1.0 - (0.015 + 0.05 * (1.0 - j.attr("CON") / 99) * (0.5 + self._pression(j))))
             if self.rs.random() > p_controle:
                 # contrôle raté : le ballon rebondit devant
+                self.evt("controle_rate", de=j.pid, camp=j.camp)
                 b.vx *= 0.35
                 b.vy *= 0.35
                 b.x += b.vx * DT * 3
@@ -2630,12 +2647,25 @@ class Match:
             self._lacher(j, 14.0 * math.cos(ang), 14.0 * math.sin(ang), 1.5)
             self.evt("tir", de=j.pid, camp=j.camp, xg=round(self.dernier_tir["xg"], 3), d=round(dbut, 1), tete=True)
             return
-        ang = math.atan2(j.y - my, j.x - mx) + self.rs.gauss(0, 0.9 if j.fam == "DEF" else 1.2)
+        # (réel : dix ballons par match sortent sur une passe ; ici trente sortaient sur des têtes
+        #  envoyées n'importe où — une tête est une passe : vers un coéquipier quand il y en a un)
         _, gene = self.plus_proche(1 - j.camp, j.x, j.y, gk=False)
-        if j.fam == "DEF" and math.hypot(j.x - mx, j.y - my) < 20.0 and self.rs.random() < (0.5 if gene < 2.5 else 0.3):
+        d_but = math.hypot(j.x - mx, j.y - my)
+        cand = [o for o in self.actifs(j.camp) if o is not j and not o.gk and 4.0 < math.hypot(o.x - j.x, o.y - j.y) < 22.0
+                and (o.x - j.x) * j.sens() > -6.0]
+        v = 9.0 + 7.0 * j.attr("DEF") / 99
+        if j.fam == "DEF" and d_but < 20.0 and self.rs.random() < (0.5 if gene < 2.5 else 0.3):
             # une tête en catastrophe, un attaquant dans le dos : vers la touche, en arrière — d'où les corners
             ang = math.atan2(1.0 if j.y >= my else -1.0, -1.1 * (1 if j.camp == 0 else -1)) + self.rs.gauss(0, 0.3)
-        v = 9.0 + 7.0 * j.attr("DEF") / 99
+        elif TETE_REMISE and cand and self.rs.random() < (0.5 + 0.4 * (1.0 - min(1.0, gene / 6.0))):
+            # la remise de la tête : vers le coéquipier le plus libre devant soi
+            o = max(cand, key=lambda o: self.plus_proche(1 - j.camp, o.x, o.y, gk=False)[1] - 0.15 * math.hypot(o.x - j.x, o.y - j.y))
+            ang = math.atan2(o.y - j.y, o.x - j.x) + self.rs.gauss(0, 0.3 + 0.2 * min(1.0, gene / 3.0))
+            v = min(v, vitesse_pour(math.hypot(o.x - j.x, o.y - j.y), 4.0) + 2.0)
+            b.passe_vers = o
+        else:
+            # le dégagement de la tête : loin de son but, sans grande précision
+            ang = math.atan2(j.y - my, j.x - mx) + self.rs.gauss(0, 0.9 if j.fam == "DEF" else 1.2)
         self.evt("tete", de=j.pid, camp=j.camp)
         self._lacher(j, v * math.cos(ang), v * math.sin(ang), 3.0)
         b.passe_vers = None
@@ -2646,7 +2676,7 @@ class Match:
         deux mètres vingt en général, trois dans les vingt-cinq derniers
         mètres, où l'on colle."""
         gx, gy = self.but_de(c.camp)
-        return 3.4 if math.hypot(gx - c.x, gy - c.y) < 25.0 else 2.6
+        return SERRAGE_SURFACE if math.hypot(gx - c.x, gy - c.y) < 25.0 else 2.6
 
     def _tir_en_cours(self) -> dict | None:
         tir = getattr(self, "dernier_tir", None)

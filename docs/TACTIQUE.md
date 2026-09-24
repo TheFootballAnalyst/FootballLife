@@ -284,6 +284,54 @@ de garde — le prochain levier est là (moins de têtes perdues sur les
 longs ballons, des contrôles qui gardent le ballon, des ballons qui
 roulent vers un coéquipier plutôt que nulle part).
 
+## 12. Les ballons perdus
+
+Comment finit une possession, sur 60 matchs réels de club (165
+possessions par match, 6,7 passes par possession) et dans le moteur
+(230 possessions, 4,4 passes) — `pertes_reel.py` et `pertes_moteur.py`
+dans le bac à sable, la même classification des deux côtés :
+
+| fin de possession, par match | réel | moteur |
+|---|---|---|
+| passe courte ou moyenne ratée | 37 | 50 |
+| tir | 19 | 12 |
+| faute subie | 17 | 3,5 |
+| passe longue ratée | 17 | 15 |
+| dribble perdu, dépossédé | 16,5 | 12 |
+| contrôle raté | 12,6 | 7,5 |
+| passe sortie du terrain | 10,5 | 21 (41 avant) |
+| passe haute ratée | 9,6 | 1 |
+| tête perdue | (dans les passes hautes et longues) | **100** |
+
+Le coupable est là : **163 têtes par match** dans le moteur (réel : une
+quarantaine de duels aériens), parce que toute passe un peu levée
+arrivait à hauteur de tête et devenait un duel de la tête, perdu cent
+fois par match. Et trente ballons par match sortaient du terrain sur des
+têtes dégagées avec cinquante degrés d'erreur.
+
+Ce qui est fait : une passe ne vise jamais à moins d'un mètre et demi
+d'une ligne (les sorties passent de 41 à 21) ; on ne lobe une passe
+courte par-dessus un défenseur que si la ligne est vraiment fermée ;
+une passe longue pèse un peu plus dans le choix ; le contrôle raté est
+un événement (le bac peut le montrer) ; un défenseur à moins de deux
+mètres et demi du ballon dispute la tête.
+
+Ce qui est essayé et parqué, parce que ça fait monter les buts (mesuré
+sur 36 matchs, la seule taille de banc qui tranche) : la tête comme une
+passe vers un coéquipier (`TETE_REMISE`, +1 but par match), le contrôle
+à la poitrine d'un receveur seul (`CONTROLE_POITRINE`, +0,4 but), un lob
+court qui retombe bas devant le receveur (`LOB_BAS`, +1,5 but). Les
+trois allongent les possessions, et les possessions allongées finissent
+dans la surface : ce n'est pas que ces règles sont fausses, c'est que la
+défense ne sait pas encore défendre une possession longue. C'est le
+même mur que le tempo (§ 11). Le prochain chantier est donc défensif :
+pourquoi une possession qui dure produit un tir, et comment un bloc réel
+l'empêche (les 13 % de possessions réelles qui finissent en tir, contre
+nos 10 %, sur des possessions deux fois plus courtes).
+
+Banc retenu, 36 matchs : 3,2 buts, 24 tirs (le moteur d'avant ce
+chantier : 3,3 et 24 sur les mêmes graines).
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :
