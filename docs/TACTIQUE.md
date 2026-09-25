@@ -855,14 +855,29 @@ par principe. Un levier direct à la frappe (`COLLECTIF_TIR` : un bloc
 rodé arrive sur le tireur un pas plus tôt) a été essayé : +0,2 au miroir
 mais −0,45 sur PSG–Real, dans le bruit ; parqué à 0.
 
-**Pourquoi le Real bat Paris dans la base de démo.** Ce n'est pas le
-moteur, ce sont les cartes : le onze du Real y vaut 87,6 (Mbappé 98,
-Valverde 96, Vinícius 90, Tchouaméni 87) et celui de Paris 80,5
-(Vitinha 89 au mieux, Dembélé 83, Marquinhos 69, Chevalier 62). Sept
-points d'OVR, trois joueurs à 90 et plus contre aucun : aucun collectif
-raisonnable ne renverse ça, et il ne le doit pas, sinon une équipe
-fantasy de onze clubs différents serait injouable. Si Paris doit être
-« bien au-dessus » du Real, c'est au barème des cartes de le dire.
+**Attention à la base sur laquelle on mesure.** Les tableaux ci-dessus
+ont été faits sur une base de démo amorcée sur les journées 1 à 25
+(Dembélé à 83, Paris à 80,5 d'OVR, le Real à 87,6). Amorcée sur la
+saison entière, comme le jeu le fait maintenant (`web/app/demo.py
+--amorce tout`), Paris vaut 87,4 (Dembélé 98, Kvaratskhelia 92, Mendes
+91), le Real 83,9 (Mbappé 96, Bellingham 90), l'Inter 78,9. Rejoué sur
+cette base, en xG (moins bruité que les buts : sur 48 matchs, ± 0,15
+contre ± 0,35) :
+
+| | xG | buts | V-N-D |
+|---|---|---|---|
+| PSG–Real, 0,95 / 0,35, collectif branché (48 matchs) | +0,61 | −0,11 | 18-12-18 |
+| PSG–Real, 0,95 / 0,35, collectif à 0, que les cartes (24) | +0,10 | +0,54 | 11-5-8 |
+| PSG–Real, 0,5 / 0,5 (24) | +0,49 | +0,16 | 12-4-8 |
+| Real–Inter, 0,35 / 0,85 (24) | −0,44 | −0,21 | 9-2-13 |
+
+Le collectif ajoute environ un demi-xG par match à Paris pour 0,6
+d'écart, et un Inter à 0,85 crée plus qu'un Real à 0,35 malgré cinq
+points d'OVR de moins. Les buts, eux, suivent l'xG au long cours mais
+pas sur 24 matchs : c'est le bruit du football, pas un réglage. Dans la
+base, l'Inter n'est pas un collectif haut (0,34 mesuré) : pour qu'il le
+soit, une ligne dans `jeu/collectif_manuel.json`.
+Le banc général sur cette base : 2,8 buts, 30 tirs, 7,6 cadrés.
 
 Pour une équipe fantasy, le collectif est la cohésion mesurée (les
 minutes jouées ensemble en vrai) : un onze de onze clubs différents part
