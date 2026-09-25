@@ -567,6 +567,82 @@ réglage retenu est entre les deux. Il reste un tir sur deux à côté
 frappes (`TIR_HAUTEUR`) est le prochain levier, à régler sur un banc de
 72 matchs au moins.
 
+## 17. Qui court : le travail sans ballon lu sur les cartes
+
+« Vinícius et Mbappé courent partout, alors qu'en vrai ils attendent
+devant ; c'est une grande différence avec Kvaratskhelia, Dembélé et
+Doué. » La donnée existe depuis longtemps dans le dépôt
+(`moteur/travail_sans_ballon.csv`, mesures FotMob de Ligue des champions
+pour 544 joueurs, estimation EA pour les autres) et l'importeur la range
+en rang parmi les joueurs du même poste :
+
+| | volume de course | pressing | récupération | distance réelle / 90 | sprints / 90 |
+|---|---|---|---|---|---|
+| Mbappé | 0,02 | 0,66 | 0,01 | 9,0 km | 10 |
+| Vinícius | 0,03 | 0,99 | 0,15 | 9,6 km | 17 |
+| Barcola | 0,04 | 0,98 | — | 9,8 km | 16 |
+| Kvaratskhelia | 0,22 | 0,92 | 0,45 | 10,3 km | 13 |
+| Doué | 0,96 | 0,91 | 0,84 | 11,5 km | 14 |
+
+**Le bug.** La fiche physique réduite pour le match
+(`simulation.physique_match`) ne gardait que vitesse, endurance et
+force : les trois leviers n'arrivaient jamais au moteur, tout le monde
+jouait à 0,5. Corrigé — et c'est le lien direct avec les équipes
+fantasy : la carte porte les leviers, le moteur les lit.
+
+**Où partaient les mètres.** Mesuré rôle par rôle (`roles_course.py`
+dans le bac à sable) : les 12,6 km de Barcola, c'était 2,4 km en
+presseur, 1,2 en doublage, 0,8 en coupe — il suivait le porteur, il
+redoublait, il coupait les lignes, comme Doué. Puis, ces rôles fermés,
+1,2 km de forme en bloc médian devenaient 2,1 : sa place suivait le
+ballon à la trace et il la suivait au pas.
+
+**Ce qui est fait**, tout au volume de course de la carte :
+
+- le repli en sprint (§ 16) se fait à la mesure du volume
+  (`REPLI_VOLUME`) : Doué rentre à 7 m/s, Mbappé à 4,5 et reste devant ;
+- un attaquant qui court peu attend plus haut (`AILIER_VOLUME`), et sa
+  place sans ballon est ancrée à quarante-deux mètres de son but
+  (`ANCRE_X`, `ANCRE_VOLUME`) : elle ne suit la ligne et ne coulisse avec
+  le ballon qu'à 40 % + 60 % × volume ;
+- le pressing se fait par à-coups : un presseur garde le ballon 2 s + 4 s
+  × volume puis souffle quatre secondes (`PRESSE_DUREE`, `PRESSE_REPOS`),
+  et un joueur qui court peu ne presse pas à plus de douze mètres
+  (`PRESSE_ZONE`) — Vinícius jaillit, il ne suit pas ;
+- sous 0,35 de volume, un attaquant ne double pas et ne coupe pas
+  (`DOUBLE_VOLUME`) ; le ballon libre va à celui qui court ;
+- la zone morte d'un joueur de forme grandit avec son manque de volume
+  (`INERTIE_VOLUME`) : il ne trottine pas pour un mètre de ballon.
+
+**La règle de mesure**, `outils/course_moteur.py` : la distance de
+chaque joueur dans le moteur contre sa mesure FotMob, et la part sans
+ballon (4 matchs PSG–Real) :
+
+| | réel | moteur avant | moteur après | dont sans ballon |
+|---|---|---|---|---|
+| Doué | 11,5 km | 12,9 | 13,3 | 6,8 |
+| Vinícius | 9,6 | 10,2 à 12,6 | 10,5 | 4,4 |
+| Barcola | 9,8 | 13,7 | 10,2 | 4,4 |
+| Mbappé | 9,0 | 8,2 à 10,6 | 9,3 | 4,2 |
+| Kvaratskhelia | 10,3 | 12,1 | 9,5 | 4,5 |
+| Nuno Mendes | 9,5 | 12,2 | 11,4 | 5,2 |
+| corrélation moteur–réel, les 22 | | 0,86 | 0,89 | |
+
+Le pressing par à-coups ne lâche que si un coéquipier peut prendre le
+relais à moins de quatorze mètres (`PRESSE_RELEVE`), et la zone morte
+d'un milieu est la moitié de celle d'un attaquant : sans ça, un milieu
+à faible volume devenait un passager. Banc de 72 matchs : 3,1 buts
+(± 0,1), 26 tirs, 7 cadrés — un demi-but de plus qu'avant ce chantier
+avec la même frappe (8/10/5/0,25), parce que beaucoup d'attaquants
+réels pressent et doublent moins que le 0,5 partout d'avant. C'est le
+vrai monde qui entre, pas un réglage ; la cible de 2,8 se rattrapera sur
+la frappe ou la surface, mesuré sur 72 matchs.
+
+Ce qui reste : les centraux courent trop peu (Hakimi 7,9 contre 10,8,
+Pacho 6,8 contre 9,5) et le gardien presque pas (0,8 km contre 5) —
+la ligne bouge d'un bloc, sans les allers-retours d'un vrai central ;
+c'est un autre chantier.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

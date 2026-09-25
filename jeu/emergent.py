@@ -101,7 +101,7 @@ CONTROLE_POITRINE = True                     # un receveur seul contrôle un bal
 SERRAGE_SURFACE = 3.4                        # à quelle distance le marqueur d'un receveur souffle la passe dans les vingt-cinq derniers mètres
 CONTRE_TIR = (0.65, 2.0)                     # un défenseur sur la trajectoire d'une frappe la contre : probabilité, portée (réel : un tir sur quatre contré ; à 0,5 et 1,3 m, un sur douze)
 TIR_HAUTEUR = (2.4, 2.5, 1.5)                # l'écart de hauteur d'une frappe, en m/s : base, + par manque de finition, + sous pression (trop haut, c'est par-dessus)
-TIR_SIGMA = (7.0, 9.0, 4.5, 0.22)            # l'erreur d'une frappe, en degrés : base, + par manque de finition, + sous pression, + par mètre (réel : un tir sur trois à côté ; à 13/14/7/0,35, sept sur dix)
+TIR_SIGMA = (8.0, 10.0, 5.0, 0.25)           # l'erreur d'une frappe, en degrés : base, + par manque de finition, + sous pression, + par mètre (réel : un tir sur trois à côté ; à 13/14/7/0,35, sept sur dix)
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
 CONTIENT_SURFACE = 1.2                       # aux abords de la surface, le presseur ferme à cette distance (réel : 2,8 m du passeur dans le dernier tiers)
 PORTEUR_COUVERT = 4.0                        # le marqueur du porteur se tient à quatre mètres côté but : le presseur est déjà dessus, lui couvre (1,5 : deux hommes sur le ballon et personne derrière)
@@ -115,6 +115,16 @@ TIR_LOIN_AXE = 0.3                           # ... et que l'axe s'entrouvre (le 
 BALLON_AERIEN = True                         # sur un ballon en l'air, le défenseur le plus proche du point de chute va l'attaquer (l'attaquant, lui, l'attend)
 MARQUAGE_SURFACE_BALLON = 28.0               # ... quand le ballon est à moins de vingt-huit mètres du but (avant, la ligne tient : la profondeur d'abord)
 REPLI_QUI = "DEF,MID,FWD"                    # qui revient en sprint (les attaquants aussi, ou seulement le bloc)
+REPLI_VOLUME = (0.3, 0.7)                    # ... à la mesure du volume de course : part fixe, part au volume (0,02 de volume : 4,5 m/s ; 0,96 : 7)
+AILIER_VOLUME = 8.0                          # un ailier sans ballon attend jusqu'à huit mètres plus haut quand il court peu (mesure FotMob : Vinícius 9,6 km, Doué 11,5)
+INERTIE_VOLUME = 6.0                         # la zone morte d'un joueur de forme grandit avec son manque de volume : 2,5 m + 6 × (1 − volume)
+ANCRE_VOLUME = (0.4, 0.6)                    # la place sans ballon d'un attaquant suit la forme à 40 % + 60 % × volume ; le reste est ancré...
+ANCRE_X = 42.0                               # ... à quarante-deux mètres de son but (un peu sous la médiane : là où on attend le contre)
+PRESSE_DUREE = (2.0, 4.0)                    # un presseur garde le ballon 2 s + 4 s × volume, puis il souffle
+PRESSE_RELEVE = 14.0                         # ... si un coéquipier peut prendre le relais à moins de quatorze mètres
+PRESSE_REPOS = 4.0                           # ... quatre secondes sans presser (un autre prend)
+DOUBLE_VOLUME = 0.35                         # sous ce volume, un attaquant ne double pas et ne coupe pas : il attend devant
+PRESSE_ZONE = 12.0                           # au-delà, un joueur qui court peu laisse presser un autre
 REPLI_SPRINT = 7.0                           # pris haut à la perte, un joueur de forme revient vers son but en sprint (3,3 m/s : il trottinait pendant que le ballon traversait le terrain)
 MARQUAGE_SURFACE = True                      # dans les vingt-deux mètres, un défenseur marque son homme où qu'il soit devant la ligne (le point de penalty n'est pas « hors zone »)
 # le temps mort : ce qu'un arrêt de jeu prend avant la reprise, en secondes.  Un match réel
@@ -193,6 +203,7 @@ class Joueur:
     dernier_contact: float = -10.0
     travail_def: float = 0.5
     travail_att: float = 0.5
+    en_marche: bool = False                  # parti vers sa place : il y va jusqu'au bout, pas de zone morte à mi-chemin
     role_tac: str = "relayeur"
     volume: float = 0.5                       # la course par 90 (rang dans sa ligne)
     pressing: float = 0.5                     # les sprints vers le porteur (rang dans sa ligne)
@@ -208,6 +219,8 @@ class Joueur:
     t_recu: float = -10.0
     homme: int = -1                           # l'homme qu'il marque, et depuis quand (le marquage colle)
     t_homme: float = -10.0
+    presse_t0: float = -10.0                  # depuis quand il presse, et jusqu'à quand il souffle après (le pressing par à-coups)
+    presse_repos: float = -10.0
     provoque_jusqua: float = -1.0             # il provoque son vis-à-vis balle au pied
     battu_jusqua: float = -1.0                # il vient de se faire passer : un temps pour se retourner
     dernier_duel: float = -10.0               # le dernier duel subi balle au pied
@@ -1180,10 +1193,20 @@ class Match:
                 if r == "central":
                     glisse = min(glisse, CENTRAL_GLISSE_MAX / max(1.0, abs(by - LARG / 2)))
                 if phase not in ("pressing", "contre_pressing"):
-                    x = min(x, bx - 6.0) if r not in ("buteur", "ailier") else min(x, bx + 6.0 if r == "buteur" else bx - 1.0)
+                    if r == "ailier":
+                        # un ailier qui court peu attend plus haut (Vinícius, Barcola) ; un qui court redescend (Doué)
+                        x += AILIER_VOLUME * (1.0 - j.volume)
+                    if r in ("ailier", "buteur"):
+                        # ... et sa place ne suit pas le ballon à la trace : elle est ancrée, et ne bouge
+                        # avec la ligne qu'à la mesure de son volume (réel : 9,6 km pour Vinícius, 11,5 pour Doué)
+                        k = ANCRE_VOLUME[0] + ANCRE_VOLUME[1] * j.volume
+                        x = x * k + ANCRE_X * (1.0 - k)
+                    x = min(x, bx - 6.0) if r not in ("buteur", "ailier") else min(x, bx + 6.0 if r == "buteur" else bx - 1.0 + AILIER_VOLUME * (1.0 - j.volume))
                     # un attaquant qui travaille revient dans le bloc
                     if r in ("ailier", "buteur") and j.travail_def > 0.6:
                         x = min(x, prof["relayeur"] + 6.0 + 8.0 * (1.0 - j.travail_def))
+                if r in ("ailier", "buteur"):
+                    glisse = glisse * (ANCRE_VOLUME[0] + ANCRE_VOLUME[1] * j.volume)     # il ne coulisse pas non plus avec le ballon
                 y += (by - LARG / 2) * glisse
                 if phase == "bloc_bas":
                     # tassé : le côté opposé rentre jusqu'à l'axe
@@ -1202,7 +1225,8 @@ class Match:
                     dd = math.hypot(dx, dy)
                     pas_max = 1.1 if math.hypot(j.x - nx, j.y - ny) > 6.0 else 0.7    # loin de sa place, on court (5,5 m/s)
                     if (nx - j.x) * j.sens() < -6.0 and math.hypot(j.x - nx, j.y - ny) > 12.0:
-                        pas_max = REPLI_SPRINT * 0.2 * 1.1                            # ... et en repli, la place file devant lui à la vitesse du sprint
+                        v_repli = 3.3 + (REPLI_SPRINT - 3.3) * (REPLI_VOLUME[0] + REPLI_VOLUME[1] * j.volume)
+                        pas_max = max(pas_max, v_repli * 0.2 * 1.1)                  # ... et en repli, la place file devant lui à la vitesse de son retour
                     if dd > pas_max:
                         nx, ny = j.cible[0] + dx / dd * pas_max, j.cible[1] + dy / dd * pas_max
             j.cible = (nx, ny)
@@ -1391,7 +1415,8 @@ class Match:
         for camp in (0, 1):
             if b.passe_vers is not None and b.passe_vers.camp == camp:
                 continue                          # le receveur y va déjà
-            j, d = self.plus_proche(camp, px, py, gk=False)
+            j, d = min(((o, math.hypot(o.x - px, o.y - py)) for o in self.actifs(camp) if not o.gk),
+                       key=lambda t: t[1] * (1.3 - 0.6 * t[0].volume), default=(None, 0.0))    # à distance égale, celui qui court y va
             mx_, my_ = self.but_de(1 - camp)
             if j is not None and j.fam == "DEF" and not (aerien and math.hypot(px - mx_, py - my_) < 25.0):
                 pxp = px if camp == 0 else LONG - px
@@ -1543,7 +1568,9 @@ class Match:
             # les autres tiennent la forme haute (déjà posée) ; les centraux montent à la ligne
             return
         # --- les blocs : le plus proche va au contact ou contient, la ligne tient
-        tri = sorted(siens, key=lambda j: math.hypot(j.x - bx, j.y - by) / (0.65 + 0.7 * j.pressing))
+        tri = sorted(siens, key=lambda j: math.hypot(j.x - bx, j.y - by) / (0.65 + 0.7 * j.pressing)
+                     + max(0.0, math.hypot(j.x - bx, j.y - by) - PRESSE_ZONE) * (1.0 - j.volume) * 0.8      # loin, celui qui court peu n'y va pas
+                     + (30.0 if self.t < j.presse_repos else 0.0))                                          # il souffle : il a pressé son compte
         p = tri[0]
         if p.fam == "DEF" and bxd - self.ligne_def[df] > 12.0:
             autre = next((j for j in tri[1:] if j.fam != "DEF" and math.hypot(j.x - bx, j.y - by) < 22.0), None)
@@ -1558,6 +1585,16 @@ class Match:
             p = titre
         if p.pid != pid_t:
             self.presseur_en_titre[df] = (p.pid, self.t)
+            p.presse_t0 = self.t
+        # le pressing par à-coups : celui qui court peu presse deux secondes et lâche (réel : Vinícius, 17 sprints
+        # par 90 et 9,6 km — il jaillit, il ne suit pas) ; celui qui court presse six secondes
+        if self.t - p.presse_t0 > PRESSE_DUREE[0] + PRESSE_DUREE[1] * p.volume and len(tri) > 1:
+            releve = next((j for j in tri[1:] if self.t >= j.presse_repos and math.hypot(j.x - bx, j.y - by) < PRESSE_RELEVE), None)
+            if releve is not None:                             # on ne lâche que si quelqu'un peut prendre
+                p.presse_repos = self.t + PRESSE_REPOS
+                p = releve
+                self.presseur_en_titre[df] = (p.pid, self.t)
+                p.presse_t0 = self.t
         dx, dy = mx - bx, my - by
         n = math.hypot(dx, dy) or 1.0
         # on contient à deux mètres et demi : on ferme, on ne saute pas dans les pieds
@@ -1583,7 +1620,8 @@ class Match:
         # (et pas un défenseur à plus de douze mètres devant sa ligne : là c'est un milieu qui coupe,
         #  sinon le latéral suit le ballon jusqu'à l'autre bout du terrain)
         def peut_couper(j: Joueur) -> bool:
-            return j.role == "forme" and not (j.fam == "DEF" and bxd - self.ligne_def[df] > 12.0)
+            return j.role == "forme" and not (j.fam == "DEF" and bxd - self.ligne_def[df] > 12.0) \
+                and not (j.fam == "FWD" and j.volume < DOUBLE_VOLUME)     # un attaquant qui court peu ne coupe pas, il attend devant
         second = next((j for j in tri[1:] if peut_couper(j)), None)
         # le coupeur garde son rôle trois secondes tant qu'il reste à moins de vingt mètres du ballon :
         # un coupeur qui change de titulaire à chaque tic, c'est deux hommes qui se croisent en courant
@@ -1774,8 +1812,8 @@ class Match:
             if j.role != "forme" or j.role_tac not in ("ailier", "buteur"):
                 continue
             seuil = 0.45 if j.role_tac == "ailier" else 0.75
-            if j.travail_def < seuil:
-                continue
+            if j.travail_def < seuil or j.volume < DOUBLE_VOLUME:
+                continue                                       # doubler, c'est du volume : Barcola ne redouble pas
             gauche = j.home[1] < LARG / 2
             # l'adversaire qui attaque son couloir : un latéral ou un ailier de ce côté, près du ballon
             cand = [o for o in adverses if o.role_tac in ("lateral", "ailier")
@@ -2448,7 +2486,8 @@ class Match:
                 # le repli : sans le ballon, loin de sa place et devant elle, on revient en sprint
                 if j.role == "forme" and j.fam in REPLI_QUI.split(",") and (b.porteur is None or b.porteur.camp != j.camp) \
                         and (tx - j.x) * j.sens() < -6.0 and math.hypot(tx - j.x, ty - j.y) > 8.0:
-                    plafond = REPLI_SPRINT
+                    # ... à la mesure de son volume de course : Doué sprinte, Mbappé rentre au trot et reste devant
+                    plafond = 3.3 + (REPLI_SPRINT - 3.3) * (REPLI_VOLUME[0] + REPLI_VOLUME[1] * j.volume)
                 if j.role == "presse":
                     fuit = (b.porteur is not None and math.hypot(b.porteur.vx, b.porteur.vy) > 4.5) or (b.porteur is None and b.vitesse() > 6.0)
                     if not fuit:
@@ -2499,6 +2538,16 @@ class Match:
             d = math.hypot(dx, dy)
             # une zone morte : personne ne fait deux pas pour un mètre
             tol = 0.3 if j.role in ("porteur", "presse", "receveur", "gardien", "chasse") else (2.5 if j.role == "forme" else 1.5)
+            if j.role == "forme" and j.fam in ("FWD", "MID"):
+                # (pas un défenseur : la ligne se tient à quatre, un central à zone morte de huit mètres ne la tient pas)
+                # ... plus large pour celui qui court peu : Vinícius ne trottine pas pour un mètre de
+                # ballon, il attend que sa place ait vraiment bougé (réel : 9,6 km contre 11,5 pour Doué)
+                tol += INERTIE_VOLUME * (1.0 - j.volume) * (1.0 if j.fam == "FWD" else 0.5)     # un milieu tient sa ligne de plus près
+                if j.en_marche:
+                    tol = 0.8                                   # parti, il finit son déplacement (jusqu'à sa place, pas à mi-chemin)
+                j.en_marche = d >= tol
+            else:
+                j.en_marche = False
             if d < tol:
                 vx_v = vy_v = 0.0
             else:

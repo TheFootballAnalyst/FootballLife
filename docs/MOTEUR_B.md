@@ -656,6 +656,18 @@ quatre) : l'erreur d'angle (`TIR_SIGMA`) est réglée sur l'issue réelle
 des tirs par distance, et un défenseur sur la trajectoire contre deux
 fois sur trois à deux mètres (`CONTRE_TIR`) — docs/TACTIQUE.md § 16.
 
+**Qui court** (docs/TACTIQUE.md § 17). Les trois leviers du travail
+sans ballon de la carte (volume, pressing, récupération : mesures FotMob
+rangées par poste) arrivent enfin au moteur — la fiche réduite pour le
+match les perdait, tout le monde jouait à 0,5. Le volume décide du repli
+(4,5 m/s à 7), de la place sans ballon d'un attaquant (ancrée à
+quarante-deux mètres, elle ne suit la ligne qu'à la mesure du volume),
+du pressing par à-coups (2 s + 4 s × volume, puis on souffle), de qui
+double, coupe et va au ballon libre, et de la zone morte d'un joueur de
+forme. Mesuré (`outils/course_moteur.py`) : Vinícius 10,0 km (réel 9,6),
+Doué 12,7 (11,5), Mbappé 8,5 (9,0) ; sans ballon, Vinícius court 4,1 km
+et Doué 6,4.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

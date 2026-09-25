@@ -410,6 +410,12 @@ def physique_match(brut: str | dict | None) -> dict | None:
         out["end"] = p["endurance"]
     if p.get("force") is not None:
         out["for"] = p["force"]
+    # le travail sans ballon (importer_travail : volume, pressing, recup, en rang parmi
+    # son poste) : c'est ce qui fait que Mbappé attend devant et que Doué redescend —
+    # sans ça, tout le monde jouait à 0,5
+    for cle in ("volume", "pressing", "recup", "travail_src"):
+        if p.get(cle) is not None:
+            out[cle] = p[cle]
     return out or None
 
 
