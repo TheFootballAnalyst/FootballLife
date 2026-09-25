@@ -638,6 +638,24 @@ Le match dure 90 + n minutes, les événements portent `lib` (« 45+2 »,
 leur vraie valeur (`DELAIS`) : 94,5 minutes de match, 57,4 de ballon
 vivant.
 
+**Le repli en sprint.** Un joueur de forme pris haut à la perte
+revenait vers sa place à 3,3 m/s, le trot de la forme : le latéral
+trottinait pendant que le ballon traversait le terrain, et on le voyait
+« suivre le ballon jusqu'à l'autre bout ». Sans le ballon, loin de sa
+place et devant elle, il revient à 7 m/s (`REPLI_SPRINT`), et sa place
+file devant lui à la même vitesse. Un défenseur ne coupe pas non plus
+une ligne de passe à plus de douze mètres devant sa ligne : c'est un
+milieu qui coupe, comme c'est un milieu qui presse là-haut. Mesuré sur un
+match : les latéraux sont hors de leur zone 3,7 % du temps sans ballon
+au lieu de 5,6, et les épisodes de trois secondes et plus passent de
+huit à trois.
+
+**La frappe part moins de travers.** Sept tirs sur dix partaient à
+côté (réel : un sur trois) et un sur douze était contré (réel : un sur
+quatre) : l'erreur d'angle (`TIR_SIGMA`) est réglée sur l'issue réelle
+des tirs par distance, et un défenseur sur la trajectoire contre deux
+fois sur trois à deux mètres (`CONTRE_TIR`) — docs/TACTIQUE.md § 16.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

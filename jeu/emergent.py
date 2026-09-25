@@ -99,7 +99,9 @@ TETE_REMISE = True                           # une tête est une passe vers un c
 LOB_BAS = False                              # un lob court qui retombe bas devant le receveur : essayé, +1,5 but par match avant la défense de la surface, encore +0,35 depuis — toujours parqué
 CONTROLE_POITRINE = True                     # un receveur seul contrôle un ballon à hauteur de poitrine au lieu de le disputer de la tête (rallumé avec la défense de la surface)
 SERRAGE_SURFACE = 3.4                        # à quelle distance le marqueur d'un receveur souffle la passe dans les vingt-cinq derniers mètres
-CONTRE_TIR = (0.5, 1.3)                      # un défenseur sur la trajectoire d'une frappe la contre : probabilité, portée
+CONTRE_TIR = (0.65, 2.0)                     # un défenseur sur la trajectoire d'une frappe la contre : probabilité, portée (réel : un tir sur quatre contré ; à 0,5 et 1,3 m, un sur douze)
+TIR_HAUTEUR = (2.4, 2.5, 1.5)                # l'écart de hauteur d'une frappe, en m/s : base, + par manque de finition, + sous pression (trop haut, c'est par-dessus)
+TIR_SIGMA = (7.0, 9.0, 4.5, 0.22)            # l'erreur d'une frappe, en degrés : base, + par manque de finition, + sous pression, + par mètre (réel : un tir sur trois à côté ; à 13/14/7/0,35, sept sur dix)
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
 CONTIENT_SURFACE = 1.2                       # aux abords de la surface, le presseur ferme à cette distance (réel : 2,8 m du passeur dans le dernier tiers)
 PORTEUR_COUVERT = 4.0                        # le marqueur du porteur se tient à quatre mètres côté but : le presseur est déjà dessus, lui couvre (1,5 : deux hommes sur le ballon et personne derrière)
@@ -112,6 +114,8 @@ TIR_LOIN_PRESSION = 0.6                      # ... tant que le vis-à-vis est à
 TIR_LOIN_AXE = 0.3                           # ... et que l'axe s'entrouvre (le bonus grandit avec l'ouverture)
 BALLON_AERIEN = True                         # sur un ballon en l'air, le défenseur le plus proche du point de chute va l'attaquer (l'attaquant, lui, l'attend)
 MARQUAGE_SURFACE_BALLON = 28.0               # ... quand le ballon est à moins de vingt-huit mètres du but (avant, la ligne tient : la profondeur d'abord)
+REPLI_QUI = "DEF,MID,FWD"                    # qui revient en sprint (les attaquants aussi, ou seulement le bloc)
+REPLI_SPRINT = 7.0                           # pris haut à la perte, un joueur de forme revient vers son but en sprint (3,3 m/s : il trottinait pendant que le ballon traversait le terrain)
 MARQUAGE_SURFACE = True                      # dans les vingt-deux mètres, un défenseur marque son homme où qu'il soit devant la ligne (le point de penalty n'est pas « hors zone »)
 # le temps mort : ce qu'un arrêt de jeu prend avant la reprise, en secondes.  Un match réel
 # dure 97 minutes et n'a le ballon vivant que 55 à 58 ; le moteur, à 9 s par touche et 14 par
@@ -1197,6 +1201,8 @@ class Match:
                     dx, dy = nx - j.cible[0], ny - j.cible[1]
                     dd = math.hypot(dx, dy)
                     pas_max = 1.1 if math.hypot(j.x - nx, j.y - ny) > 6.0 else 0.7    # loin de sa place, on court (5,5 m/s)
+                    if (nx - j.x) * j.sens() < -6.0 and math.hypot(j.x - nx, j.y - ny) > 12.0:
+                        pas_max = REPLI_SPRINT * 0.2 * 1.1                            # ... et en repli, la place file devant lui à la vitesse du sprint
                     if dd > pas_max:
                         nx, ny = j.cible[0] + dx / dd * pas_max, j.cible[1] + dy / dd * pas_max
             j.cible = (nx, ny)
@@ -1574,11 +1580,15 @@ class Match:
             p.cible = (bx + b.vx * 0.4 + dx / n * contient, by + b.vy * 0.4 + dy / n * contient)
             p.role = "presse"
         # le second coupe la ligne vers l'option la plus dangereuse
-        second = next((j for j in tri[1:] if j.role == "forme"), None)
+        # (et pas un défenseur à plus de douze mètres devant sa ligne : là c'est un milieu qui coupe,
+        #  sinon le latéral suit le ballon jusqu'à l'autre bout du terrain)
+        def peut_couper(j: Joueur) -> bool:
+            return j.role == "forme" and not (j.fam == "DEF" and bxd - self.ligne_def[df] > 12.0)
+        second = next((j for j in tri[1:] if peut_couper(j)), None)
         # le coupeur garde son rôle trois secondes tant qu'il reste à moins de vingt mètres du ballon :
         # un coupeur qui change de titulaire à chaque tic, c'est deux hommes qui se croisent en courant
         pid_c, depuis_c = self.coupe_en_titre[df]
-        titre_c = next((j for j in siens if j.pid == pid_c and j.role == "forme" and j is not p), None)
+        titre_c = next((j for j in siens if j.pid == pid_c and peut_couper(j) and j is not p), None)
         if titre_c is not None and self.t - depuis_c < 3.0 and math.hypot(titre_c.x - bx, titre_c.y - by) < 20.0:
             second = titre_c
         if second is not None and second.pid != pid_c:
@@ -2400,11 +2410,11 @@ class Match:
         # où il vise : un poteau, avec une erreur qui dépend de la finition et de la pression
         cote = self.rs.choice([-1, 1])
         vise_y = gy + cote * (BUT_LARG / 2 - 0.5) * self.rs.uniform(0.3, 1.0)
-        sigma = math.radians((13.0 + 14.0 * (1 - fin) + 7.0 * pression + 0.35 * d) * (1.0 + malus))
+        sigma = math.radians((TIR_SIGMA[0] + TIR_SIGMA[1] * (1 - fin) + TIR_SIGMA[2] * pression + TIR_SIGMA[3] * d) * (1.0 + malus))
         theta = math.atan2(vise_y - j.y, gx - j.x) + self.rs.gauss(0, sigma)
         v = VITESSE_TIR[0] + (VITESSE_TIR[1] - VITESSE_TIR[0]) * (0.4 + 0.6 * fin) * (1.0 - 0.3 * pression) * (1.0 - 0.25 * malus)
         # la hauteur : un tir tendu, parfois enlevé
-        vz = max(0.0, self.rs.gauss(2.0 + 0.08 * d, 2.4 + 2.5 * (1 - fin) + 1.5 * pression))
+        vz = max(0.0, self.rs.gauss(2.0 + 0.08 * d, TIR_HAUTEUR[0] + TIR_HAUTEUR[1] * (1 - fin) + TIR_HAUTEUR[2] * pression))
         j.tirs += 1
         self.stats["tirs"][camp] += 1
         self.stats["xg"][camp] += xg
@@ -2435,6 +2445,10 @@ class Match:
                            "chasse": 6.6, "double": 6.2}.get(j.role)
                 if j.role in ("receveur", "chasse") and self.d_ballon(j) > 8.0:
                     plafond = 7.8                    # loin du ballon, on y va à fond : c'est là que la pointe se voit
+                # le repli : sans le ballon, loin de sa place et devant elle, on revient en sprint
+                if j.role == "forme" and j.fam in REPLI_QUI.split(",") and (b.porteur is None or b.porteur.camp != j.camp) \
+                        and (tx - j.x) * j.sens() < -6.0 and math.hypot(tx - j.x, ty - j.y) > 8.0:
+                    plafond = REPLI_SPRINT
                 if j.role == "presse":
                     fuit = (b.porteur is not None and math.hypot(b.porteur.vx, b.porteur.vy) > 4.5) or (b.porteur is None and b.vitesse() > 6.0)
                     if not fuit:

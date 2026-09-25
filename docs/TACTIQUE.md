@@ -517,6 +517,56 @@ coup franc 40, but 60 : plus longs que les vrais un par un, parce que le
 moteur a moins d'arrêts — 21 touches contre 32) : 94,5 minutes de match,
 57,4 de ballon vivant (réel 55 à 58 sur 97).
 
+## 16. Le repli, et la frappe
+
+Deux réglages venus du bac à sable, mesurés à la même règle.
+
+**Le repli.** « Les latéraux suivent le ballon jusqu'à l'autre bout du
+terrain en phase défensive. » Mesuré (`outils/lateraux_moteur.py` :
+la position de chaque latéral sans ballon, toutes les demi-secondes) :
+5,6 % du temps un latéral est à plus de dix-huit mètres devant sa ligne
+ou de l'autre côté de l'axe, presque toujours en rôle de forme, en
+transit vers sa place — parce qu'un joueur de forme revenait à 3,3 m/s,
+le trot de la forme, pendant que le ballon traversait le terrain. Sans
+le ballon, loin de sa place et devant elle, on revient maintenant en
+sprint (`REPLI_SPRINT`, 7 m/s), et un défenseur ne coupe pas une ligne
+de passe à plus de douze mètres devant sa ligne (c'est un milieu qui
+coupe, comme c'est un milieu qui presse là-haut). Après : 3,7 % du
+temps, et les épisodes de trois secondes et plus passent de huit à trois
+par match ; ceux qui restent sont des retours d'un latéral pris haut à
+la perte, ce qui est du football.
+
+Le prix : une défense qui revient en sprint encaisse moins sur les
+transitions — 2,2 buts par match au lieu de 2,75 sur 36 matchs, et 22
+tirs. Ce qui a mis en lumière un autre écart.
+
+**La frappe.** L'issue des tirs, sur 150 matchs réels et 36 du moteur :
+
+| | réel | moteur avant | moteur après |
+|---|---|---|---|
+| but | 12 % | 4 à 7 % | 10 à 13 % |
+| arrêté par le gardien | 27 % | 18 % | 20 % |
+| contré par un défenseur | 25 % | 8 % | 28 % |
+| à côté ou par-dessus | 34 % | 70 % | 45 % |
+| tirs cadrés par match | 8,5 | 5 | 6,5 à 7 |
+
+Sept frappes sur dix partaient à côté (réel : une sur trois), et une sur
+douze était contrée (réel : une sur quatre). L'erreur d'angle d'une
+frappe (`TIR_SIGMA`, en degrés : base, manque de finition, pression,
+distance) passe de 13/14/7/0,35 à 7/9/4,5/0,22, et un défenseur sur la
+trajectoire la contre deux fois sur trois à deux mètres (`CONTRE_TIR`).
+L'erreur de hauteur (`TIR_HAUTEUR`) est une constante aussi, laissée en
+place.
+
+Ce réglage-là ne se tranche pas sur 36 matchs : le même code y donne
+de 2,3 à 3,5 buts selon la graine. Sur 72 matchs, les deux réglages
+voisins encadrent la cible : 8/10/5/0,25 donne 2,6 buts (± 0,2), 23
+tirs, 6,5 cadrés ; 6/8/4/0,2 donne 3,1 (± 0,3), 24 tirs, 7 cadrés. Le
+réglage retenu est entre les deux. Il reste un tir sur deux à côté
+(réel : un sur trois) et 7 cadrés par match (réel 8,5) : la hauteur des
+frappes (`TIR_HAUTEUR`) est le prochain levier, à régler sur un banc de
+72 matchs au moins.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :
