@@ -677,6 +677,16 @@ derrière le ballon et coulisse avec lui (`RESTANTE_RECUL`,
 `RESTANTE_FINITION`, `RESTANTE_GLISSE`). Les centraux passent de 7 à 8
 km et demi, le gardien de 0,8 à 3,7.
 
+**Le style d'un club, et l'affinité** (docs/TACTIQUE.md § 19). La
+tactique par défaut d'un club dans le bac vient de sa possession réelle
+(`possession_club`, `profil_tactique`) : Paris en possession, bloc haut,
+relance courte ; Albacete en direct, bloc bas, relance longue. Et chaque
+carte garde le style de son club : un onze qui joue en possession avec
+des joueurs de clubs de possession rate moins ses passes et se précipite
+moins ; un onze direct avec des joueurs de clubs directs voit ses longues
+partir plus droites et ses contres partir plus (`affinite_de`,
+`AFFINITE`). Le bac affiche l'affinité des deux onze.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

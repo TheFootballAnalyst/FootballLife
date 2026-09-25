@@ -384,6 +384,78 @@ def travail_de(j: dict, sens: str) -> float:
 
 
 COLLECTIF_MANUEL = RACINE / "jeu" / "collectif_manuel.json"
+STYLE_SEUILS = (0.55, 0.44)                  # part des touches de balle sur la saison (253 clubs : médiane 0,49, p90 0,55, p10 0,43) : au-dessus, un club de possession ; en dessous, un club direct
+AFFINITE = {"possession": 0.3, "direct": 0.3}   # ce que le style d'origine des joueurs apporte à la façon de jouer choisie (pas une science exacte)
+
+
+def possession_club(jeu, team_id: int) -> float | None:
+    """La part des touches de balle du club sur ses matchs de la saison (une
+    lecture de la possession : les touches suivent le ballon), ou None sans
+    match joué."""
+    rows = jeu.execute("""SELECT p.match_id, SUM(CASE WHEN p.team_id=? THEN 1 ELSE 0 END),
+                                 SUM(CASE WHEN p.team_id=? THEN COALESCE(json_extract(p.stats, '$.touches'), 0) ELSE 0 END),
+                                 SUM(CASE WHEN p.team_id<>? THEN COALESCE(json_extract(p.stats, '$.touches'), 0) ELSE 0 END)
+                          FROM prestation p JOIN match m ON m.match_id = p.match_id
+                          WHERE (m.home_team_id=? OR m.away_team_id=?) AND p.stats IS NOT NULL
+                          GROUP BY p.match_id""", (team_id, team_id, team_id, team_id, team_id)).fetchall()
+    parts = [t / (t + o) for _, n, t, o in rows if n and t and o]
+    if len(parts) < 3:
+        return None
+    return round(sum(parts) / len(parts), 3)
+
+
+def profil_tactique(possession: float | None) -> dict:
+    """La tactique par défaut d'un club, lue sur sa possession réelle : un club
+    qui a le ballon joue en possession, bloc haut, relance courte ; un club
+    qui ne l'a pas joue direct, bloc bas, relance longue."""
+    if possession is None:
+        return {"bloc": "median", "tempo": "equilibre", "risque": "equilibre", "relance": "mixte", "possession": None}
+    haut, bas = STYLE_SEUILS
+    if possession >= haut:
+        tempo, bloc, relance = "possession", "haut" if possession >= haut + 0.03 else "median", "courte"
+    elif possession <= bas:
+        tempo, bloc, relance = "direct", "bas" if possession <= bas - 0.02 else "median", "longue"
+    else:
+        tempo, bloc, relance = "equilibre", "median", "mixte"
+    return {"bloc": bloc, "tempo": tempo, "risque": "equilibre", "relance": relance, "possession": possession}
+
+
+def affinite_style(possessions: list[float | None], tempo: str) -> float:
+    """Ce que les joueurs d'un onze apportent à un tempo : la part de ceux qui
+    viennent d'un club typé comme lui (0 à 1 chacun, selon à quel point leur
+    club l'est), en moyenne.  Zéro pour le tempo équilibré."""
+    if tempo not in ("possession", "direct") or not possessions:
+        return 0.0
+    haut, bas = STYLE_SEUILS
+    tot = 0.0
+    for p in possessions:
+        if p is None:
+            continue
+        if tempo == "possession":
+            tot += max(0.0, min(1.0, (p - 0.5) / (haut - 0.5 + 0.08)))
+        else:
+            tot += max(0.0, min(1.0, (0.5 - p) / (0.5 - bas + 0.05)))
+    return round(tot / len(possessions), 3)
+
+
+def affinite_de(jeu, pids: list[int], tempo: str) -> float:
+    """L'affinité d'un onze (des cartes, de n'importe quel club) avec le tempo
+    demandé, lue sur la possession réelle du club de chaque joueur."""
+    if tempo not in ("possession", "direct") or not pids:
+        return 0.0
+    marks = ",".join("?" * len(pids))
+    clubs = {pid: tid for pid, tid in jeu.execute(f"SELECT player_id, team_id FROM joueur WHERE player_id IN ({marks})", pids)}
+    cache: dict[int, float | None] = {}
+    poss = []
+    for pid in pids:
+        tid = clubs.get(pid)
+        if tid is None:
+            poss.append(None)
+            continue
+        if tid not in cache:
+            cache[tid] = possession_club(jeu, tid)
+        poss.append(cache[tid])
+    return affinite_style(poss, tempo)
 
 
 def cohesion(jeu, pids: list[int], team_id: int | None = None) -> float:
@@ -440,10 +512,11 @@ class Match:
                  noms: tuple[str, str] = ("A", "B"), trace: bool = True,
                  tactiques: tuple[dict | None, dict | None] = (None, None),
                  collectif: tuple[float, float] = (0.6, 0.6),
-                 capitaines: tuple[int | None, int | None] = (None, None)):
+                 capitaines: tuple[int | None, int | None] = (None, None), affinite: tuple[float, float] = (0.0, 0.0)):
         self.rs = random.Random(graine)
         self.tac = [dict(TACTIQUE_DEFAUT) | (tactiques[0] or {}), dict(TACTIQUE_DEFAUT) | (tactiques[1] or {})]
         self.collectif = list(collectif)
+        self.affinite = list(affinite)                    # ce que le style d'origine des joueurs apporte au tempo choisi
         self.ligne_def = [FAMILLE_X["DEF"] * LONG, FAMILLE_X["DEF"] * LONG]   # la profondeur de chaque défense, dans son repère
         self.phase = ["construction", "bloc_median"]
         for t in self.tac:
@@ -1321,6 +1394,8 @@ class Match:
                                                        for o in self.actifs(att)):
                         continue                          # quand un latéral monte, l'autre reste
                     chance = 0.025 * risque * (0.7 + 0.6 * j.travail_att) * (1.8 if phase == "contre" else 1.0)
+                    if self.tac[att]["tempo"] == "direct" and phase == "contre":
+                        chance *= 1.0 + 2.0 * AFFINITE["direct"] * self.affinite[att]   # des joueurs de clubs directs : le contre part
                     if self.rs.random() >= chance or self.t - self.dernier_appel[att] < 1.5:
                         continue                          # une course par temps de jeu, pas une ruée à chaque seconde
                     j.appel_jusqua = self.t + 2.8
@@ -1936,6 +2011,8 @@ class Match:
         # pour un joueur peu technique sous pression : la passe précipitée
         # (réel : 3 secondes par passe, 6,5 passes par possession — le porteur ne garde pas le ballon trois secondes)
         garde = (GARDE[0] + GARDE[1] * (1 - pression)) * (1.0 - 0.3 * j.attr("CON") / 99) * tempo * (1.0 - 2.0 * maladresse * pression)
+        if tac["tempo"] == "possession":
+            maladresse *= 1.0 - AFFINITE["possession"] * self.affinite[camp]     # ... et la précipitation aussi
         if dbut < 32:
             garde *= 0.7
         if pression > 0.6:
@@ -2313,6 +2390,11 @@ class Match:
         # (la technique pèse fort : un passeur à 0,85 de précision rate une passe sur seize, un à 0,55 une sur sept —
         # c'est ce qui fait 90 % de réussite à Paris et 78 % à Lorient)
         p_rate = (0.04 + 0.09 * pression + 0.07 * min(d, 40.0) / 40.0 + (0.05 if serre > 1.0 else 0.0) + (0.12 if d > 30.0 else 0.0)) * (2.6 - 2.3 * precision)
+        aff = self.affinite[j.camp]
+        if self.tac[j.camp]["tempo"] == "possession":
+            p_rate *= 1.0 - AFFINITE["possession"] * aff       # des joueurs de clubs de possession : la passe courte se rate moins
+        elif self.tac[j.camp]["tempo"] == "direct" and (longue or d > 30):
+            sigma *= 1.0 - AFFINITE["direct"] * aff             # des joueurs de clubs directs : la longue part plus droite
         if self.rs.random() < p_rate:
             ang += self.rs.gauss(0, sigma * 4.0 + math.radians(8.0))
             v *= self.rs.uniform(0.6, 1.3)
@@ -3102,7 +3184,7 @@ class Match:
                             "travail": [round(j.volume, 2), round(j.pressing, 2), round(j.recup, 2)]})
         return {"score": list(self.score), "noms": list(self.noms), "minutes": round(self.duree / 60),
                 "additionnel": list(self.additionnel),
-                "collectif": list(self.collectif), "tactiques": [dict(t) for t in self.tac],
+                "collectif": list(self.collectif), "affinite": list(self.affinite), "tactiques": [dict(t) for t in self.tac],
                 "possession": [round(self.possession[0] / tot, 3), round(self.possession[1] / tot, 3)],
                 "stats": {k: (v if not isinstance(v[0], float) else [round(v[0], 2), round(v[1], 2)]) for k, v in self.stats.items()},
                 "joueurs": joueurs, "evenements": self.evenements, "trace": self.trace,

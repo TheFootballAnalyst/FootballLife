@@ -137,3 +137,19 @@ def test_the_build_up_instruction_changes_what_the_keeper_does():
     # la relance mixte suit le tempo : possession joue court, direct joue long
     m = EM.Match(onze(0), onze(1), graine=1, minutes=5, trace=False, tactiques=({"tempo": "possession"}, {"tempo": "direct"}))
     assert m.tac[0]["relance"] == "courte" and m.tac[1]["relance"] == "longue"
+
+
+def test_club_style_gives_a_default_tactic_and_an_affinity():
+    """La tactique par défaut d'un club se lit sur sa possession réelle, et un
+    onze fait de joueurs de clubs de possession a de l'affinité avec ce tempo."""
+    assert EM.profil_tactique(0.63) == {"bloc": "haut", "tempo": "possession", "risque": "equilibre", "relance": "courte", "possession": 0.63}
+    assert EM.profil_tactique(0.58)["tempo"] == "possession" and EM.profil_tactique(0.58)["bloc"] == "median"
+    assert EM.profil_tactique(0.50)["tempo"] == "equilibre"
+    assert EM.profil_tactique(0.42) == {"bloc": "bas", "tempo": "direct", "risque": "equilibre", "relance": "longue", "possession": 0.42}
+    assert EM.profil_tactique(None)["tempo"] == "equilibre"
+    assert EM.affinite_style([0.63] * 11, "possession") == 1.0
+    assert EM.affinite_style([0.63] * 11, "direct") == 0.0
+    assert EM.affinite_style([0.38] * 11, "direct") == 1.0
+    assert 0.0 < EM.affinite_style([0.63] * 5 + [0.50] * 6, "possession") < 0.5
+    assert EM.affinite_style([0.63] * 11, "equilibre") == 0.0
+    assert EM.affinite_style([None] * 11, "possession") == 0.0

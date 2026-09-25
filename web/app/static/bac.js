@@ -15,6 +15,22 @@ async function clubs() {
     for (const c of d.clubs) { const o = document.createElement("option"); o.value = c.team_id; o.textContent = `${c.nom} (${c.ovr})`; sel.append(o); }
   }
   if (d.clubs.length > 1) $("#club-b").selectedIndex = 1;
+  for (const id of ["club-a", "club-b"]) $("#" + id).addEventListener("change", profils);
+  await profils();
+}
+
+// La tactique par défaut de chaque club vient de sa possession réelle sur la
+// saison (un club qui a le ballon joue en possession, bloc haut, relance
+// courte) ; on peut toujours la changer à la main avant de jouer.
+async function profils() {
+  try {
+    const r = await fetch(`/api/bac/profil?a=${$("#club-a").value}&b=${$("#club-b").value}`); const d = await r.json();
+    for (const [c, p] of [["a", d.a], ["b", d.b]]) {
+      for (const k of ["bloc", "tempo", "risque", "relance"]) $(`#${k}-${c}`).value = p[k];
+      const e = $(`#profil-${c}`);
+      if (e) e.textContent = p.possession != null ? `possession réelle ${Math.round(p.possession * 100)} %` : "pas de match joué";
+    }
+  } catch (e) { /* le bac joue avec les réglages affichés */ }
 }
 
 async function jouer() {
@@ -114,6 +130,7 @@ function charger(res) {
   const st = res.stats, S = $("#stats"); S.replaceChildren();
   const tuile = (l, v) => { const d = document.createElement("div"); d.className = "stat"; d.innerHTML = `<b>${v}</b><span>${l}</span>`; S.append(d); };
   if (res.collectif) tuile("Collectif", `${Math.round(res.collectif[0] * 100)} – ${Math.round(res.collectif[1] * 100)} %`);
+  if (res.affinite) tuile("Affinité au style", `${Math.round(res.affinite[0] * 100)} – ${Math.round(res.affinite[1] * 100)} %`);
   tuile("Possession", `${Math.round(res.possession[0] * 100)} – ${Math.round(res.possession[1] * 100)} %`);
   tuile("Tirs (cadrés)", `${st.tirs[0]} (${st.cadres[0]}) – ${st.tirs[1]} (${st.cadres[1]})`);
   tuile("xG", `${st.xg[0]} – ${st.xg[1]}`);

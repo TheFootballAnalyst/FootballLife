@@ -686,6 +686,49 @@ et une défense restante plus haute ne coûtent pas de buts. Ce qui manque encor
 caméra ne montre pas et que le moteur ne fait pas : les pas de côté
 permanents d'un central en construction, qui ne sont pas des courses.
 
+## 19. Le style d'un club, et ce que ses joueurs en gardent
+
+« Quand je lance un PSG–Real, Madrid domine en possession. » Mesuré :
+44 % pour Paris avec les réglages par défaut, parce qu'ils étaient les
+mêmes des deux côtés (tempo équilibré, bloc médian) et que le onze du
+Real passe mieux carte par carte (passe 73 contre 67) — le style ne
+jouait pas.
+
+**La tactique par défaut vient de la possession réelle.** La part des
+touches de balle d'un club sur ses matchs de la saison suit sa
+possession (`possession_club`) : Barcelone 0,64, Paris 0,63, Bayern
+0,61, City 0,59, Real 0,56, Liverpool 0,56, Lorient 0,48, Albacete 0,34
+(253 clubs : médiane 0,49, p90 0,55, p10 0,43). Au-dessus de 0,55 un
+club joue en possession, relance courte, bloc haut à partir de 0,58 ;
+en dessous de 0,44 il joue direct, relance longue, bloc bas sous 0,42 ;
+entre les deux, équilibré (`profil_tactique`, `STYLE_SEUILS`). Le bac
+pose ce profil à l'ouverture et à chaque changement de club, on le
+change à la main si on veut.
+
+**L'affinité au style.** Le collectif d'un onze doit avantager sa façon
+de jouer, et pas une science exacte : chaque joueur garde le style de
+son club réel. Un onze qui joue en possession avec des joueurs de clubs
+de possession a de l'affinité (`affinite_style`, 0 à 1 : la part des
+joueurs venant d'un club typé comme le tempo demandé, chacun à la mesure
+de son club) ; un onze qui joue direct avec des joueurs de clubs directs
+aussi. Le onze du PSG a 0,85 d'affinité avec la possession, celui du
+Real 0,42 ; ni l'un ni l'autre n'en ont avec le jeu direct. Ce que ça
+donne dans le moteur (`AFFINITE`, 0,3 de chaque côté) : en possession,
+les passes se ratent moins et le porteur se précipite moins ; en direct,
+la longue part plus droite et les courses de contre partent plus. Rien
+en tempo équilibré. Pour une équipe fantasy, c'est la même règle : des
+cartes du PSG, de Barcelone et du Bayern dans un onze qui joue en
+possession se comprennent ; des cartes de Walsall et d'Albacete dans un
+onze direct aussi.
+
+Mesuré sur quatre PSG–Real, chacun avec son profil : possession de
+Paris 56 % (44 avant), 505 à 539 passes contre 418 à 475. Le banc de
+référence ne bouge pas (il joue tous les clubs en équilibré, sans
+affinité). Ce qui reste : la possession réelle ne dit pas le bloc — un
+club de possession ne presse pas forcément haut — ; la hauteur mesurée
+en 360 (§ 1) ne couvre que quelques clubs, on prend donc la possession
+comme lecture unique, à corriger à la main au besoin.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :
@@ -696,3 +739,5 @@ ces probabilités ; leur vitesse et leur endurance décident si la vague
 arrive à temps). Une équipe de presseurs avec un manager qui demande un
 bloc haut pressera comme Liverpool ; la même consigne avec des
 attaquants qui ne courent pas donnera un bloc haut qui ne mord pas.
+Et les cartes gardent le style de leur club (§ 19) : un onze de joueurs
+de clubs de possession qui joue en possession se comprend.

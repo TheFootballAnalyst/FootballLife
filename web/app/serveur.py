@@ -1248,6 +1248,13 @@ def bac_clubs(jeu=Depends(bd)):
     return {"clubs": [{"team_id": r["team_id"], "nom": r["nom"], "ovr": int(r["ovr"])} for r in rows]}
 
 
+@app.get("/api/bac/profil")
+def bac_profil(a: int, b: int, jeu=Depends(bd)):
+    """La tactique par défaut de chaque club, lue sur sa possession réelle de la saison."""
+    from jeu import emergent as EM
+    return {"a": EM.profil_tactique(EM.possession_club(jeu, a)), "b": EM.profil_tactique(EM.possession_club(jeu, b))}
+
+
 @app.get("/api/bac/match")
 def bac_match(a: int, b: int, graine: int = 1, minutes: int = 90, formation: str = "4-3-3",
               bloc_a: str = "median", tempo_a: str = "equilibre", risque_a: str = "equilibre", relance_a: str = "mixte",
@@ -1271,8 +1278,9 @@ def bac_match(a: int, b: int, graine: int = 1, minutes: int = 90, formation: str
     noms = tuple((jeu.execute("SELECT nom FROM club WHERE team_id=?", (t,)).fetchone() or ["?"])[0] for t in (a, b))
     coll = (collectif_a if collectif_a is not None else EM.collectif_de(jeu, a, [j["pid"] for j in sa]),
             collectif_b if collectif_b is not None else EM.collectif_de(jeu, b, [j["pid"] for j in sb]))
+    aff = (EM.affinite_de(jeu, [j["pid"] for j in sa], tacs[0]["tempo"]), EM.affinite_de(jeu, [j["pid"] for j in sb], tacs[1]["tempo"]))
     res = EM.Match(sa, sb, formation, formation, graine=graine, minutes=minutes, noms=noms,
-                   tactiques=tacs, collectif=(max(0.0, min(1.0, coll[0])), max(0.0, min(1.0, coll[1])))).jouer()
+                   tactiques=tacs, collectif=(max(0.0, min(1.0, coll[0])), max(0.0, min(1.0, coll[1]))), affinite=aff).jouer()
     from jeu import maillots as MJ
     res["maillots"] = MJ.tenues(noms[0], noms[1])
     if len(_BAC) >= 6:
