@@ -396,6 +396,7 @@ COLLECTIF_MANUEL = RACINE / "jeu" / "collectif_manuel.json"
 COLLECTIF_POIDS = 1.0                        # le poids du collectif dans le résultat : 0, que des individualités ; 1, un onze rodé vaut des points d'OVR
 COLLECTIF_OVR = 20.0                         # ... un collectif à 1 vaut dix points sur les attributs collectifs, à 0 il en retire dix (mesuré : à 12, Paris à 0,95 ne rattrape pas sept points d'OVR ; à 20, presque)
 COLLECTIF_ATTRIBUTS = ("PRO", "CON", "DEF")  # ... la passe, le contrôle et la lecture défensive ; pas la finition, le dribble, la vitesse ni le gardien
+COLLECTIF_TIR = 0.0                          # ... et au moment de la frappe : la pression sur le tireur monte (ou baisse) de l'écart des deux collectifs × ceci — essayé à 0,5, +0,2 but au miroir mais −0,45 sur PSG–Real, dans le bruit : parqué
 COLLECTIF_PASSE = 0.6                        # ... une passe se rate d'autant moins (ou plus) que le collectif dépasse (ou manque) 0,5
 COLLECTIF_APPEL = 0.6                        # ... et les appels partent au bon moment (l'écart du timing se resserre)
 COLLECTIF_BLOC = 0.5                         # ... et sans ballon, le marqueur anticipe de plus loin et le contre-pressing prend
@@ -2565,6 +2566,10 @@ class Match:
         gx, gy = self.but_de(camp)
         d = math.hypot(gx - j.x, gy - j.y)
         pression = 0.0 if penalty or coup_franc else self._pression(j)
+        if not (penalty or coup_franc):
+            # le collectif au moment qui compte : un bloc rodé arrive sur le tireur un pas plus tôt, une attaque
+            # rodée frappe un pas plus libre (le troisième homme, le ballon qui arrive au bon moment)
+            pression = max(0.0, min(1.0, pression + COLLECTIF_TIR * COLLECTIF_POIDS * (self.collectif[1 - camp] - self.collectif[camp])))
         ang = self._angle_but(j.x, j.y, camp)
         xg = 0.76 if penalty else self._xg(d, ang, pression)
         fin = j.attr("FIN") / 99

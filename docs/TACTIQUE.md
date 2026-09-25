@@ -844,6 +844,26 @@ décris. Dans ta base, où le onze du PSG vaut plus que 80,5, Paris sera
 au-dessus. Confirmé sur 48 PSG–Real à l'échelle 20 : −0,19 but, 17-12-19
 (sept points d'OVR de moins, jeu égal). Le banc général reste à 3,0 buts.
 
+**Ce que le collectif vaut, mesuré au miroir** (le Real contre
+lui-même, onze identique, 0,95 contre 0,35) : +0,45 but par match sur
+96 matchs, +0,34 sur 24 autres. Un écart de collectif de 0,6 vaut donc
+trois à quatre points d'OVR, pas plus, et pousser l'échelle à 30 ou 40
+n'y change rien (PSG–Real reste à −0,6 et −0,75) : les attributs
+collectifs saturent, et le moteur tranche les matchs par la finition,
+le dribble et la vitesse — ce que le modèle laisse aux individualités,
+par principe. Un levier direct à la frappe (`COLLECTIF_TIR` : un bloc
+rodé arrive sur le tireur un pas plus tôt) a été essayé : +0,2 au miroir
+mais −0,45 sur PSG–Real, dans le bruit ; parqué à 0.
+
+**Pourquoi le Real bat Paris dans la base de démo.** Ce n'est pas le
+moteur, ce sont les cartes : le onze du Real y vaut 87,6 (Mbappé 98,
+Valverde 96, Vinícius 90, Tchouaméni 87) et celui de Paris 80,5
+(Vitinha 89 au mieux, Dembélé 83, Marquinhos 69, Chevalier 62). Sept
+points d'OVR, trois joueurs à 90 et plus contre aucun : aucun collectif
+raisonnable ne renverse ça, et il ne le doit pas, sinon une équipe
+fantasy de onze clubs différents serait injouable. Si Paris doit être
+« bien au-dessus » du Real, c'est au barème des cartes de le dire.
+
 Pour une équipe fantasy, le collectif est la cohésion mesurée (les
 minutes jouées ensemble en vrai) : un onze de onze clubs différents part
 vers 0, soit −10 sur la passe, le contrôle et la défense ; un onze pris
