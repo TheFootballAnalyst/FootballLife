@@ -94,10 +94,10 @@ class Mesure(EM.Match):
         self._t_prec[j.camp] = self.t
         super()._passer(j, c, courte, point, longue)
 
-    def _centrer(self, j):
+    def _centrer(self, j, arrete=False):
         self.m[j.camp]["centres"] += 1
         self._precedent[j.camp] = "centre"; self._t_prec[j.camp] = self.t
-        super()._centrer(j)
+        super()._centrer(j, arrete)
 
     def _tete(self, j):
         avant = list(self.stats["passes_ok"])

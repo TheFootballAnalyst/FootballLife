@@ -79,6 +79,7 @@ LIGNE_TOLERANCE = (1.0, 2.5)                 # la forme à un mètre de la ligne
 LIGNE_MONTEE = 0.5                           # la ligne remonte de 0,5 m par tic au plus (2,5 m/s ; réel : 1,1 à 1,2 m/s en moyenne)
 LIGNE_RECUL = 1.0                            # et recule de 0,7 m par tic au plus (3,5 m/s ; réel : 1,8 à 2 m/s en moyenne, avec des sprints)
 LIGNE_PENTE, LIGNE_BASE = 0.75, -6.0         # la ligne suit le ballon : ligne = 0,75 × distance du ballon − 6 (StatsBomb, 300 matchs)
+LIGNE_PRES = (0.55, 2.5)                     # ... mais près du but elle ne descend pas avec lui : 0,55 × distance + 2,5 (réel : ballon à 10 m, ligne à 8 ; à 20, 14 ; à 30, 19 — la droite seule donnait 1,5 / 9 / 16,5 et laissait la zone 14 ouverte)
 LIGNE_PROFIL = {"haut": 3.0, "median": 0.0, "bas": -3.0}   # ... plus ou moins trois mètres selon le bloc demandé
 VAGUE_DECLENCHEUR = {"haut": 0.8, "median": 0.62, "bas": 0.5}   # une relance ou un déclencheur lance une vague de pressing (réel : deux relances sur trois pressées)
 VAGUE_DUREE = (3.0, 6.0)                     # une vague dure trois à six secondes si elle ne récupère rien (réel : 3,7 s, p90 5,7 s), puis on se replace
@@ -100,9 +101,11 @@ LATERAL_TOUCHE = True                        # un latéral de forme ne défend p
 GARDE = (2.3, 2.3)                           # le temps de contrôle du porteur : base + part sans pression (réel : 3 s par passe)
 GAIN_POIDS = 1.5                             # le poids de la progression dans le choix d'une passe (réel : 42 % de passes vers l'avant)
 ENTREE_COULOIR = 0.35                        # le bonus de la passe qui entre dans le dernier tiers par le couloir (réel : une entrée sur deux)
-TIR_PRESSION = 0.6                           # ce qu'un adversaire dans les pieds enlève à l'envie de frapper (réel : 23 % de tirs sous pression)
+TIR_PROCHE = (0.15, 18.0)                    # l'envie de frapper près du but : + 0,15 à moins de dix-huit mètres (0,3 avant ; réel : 9 tirs par match de 11-18 m, le moteur en prenait 20)
+TIR_PRESSION = 0.75                          # ce qu'un adversaire dans les pieds enlève à l'envie de frapper (réel : 23 % de tirs sous pression)
 CROCHET_BASE = 0.55                          # la base du crochet réussi (réel : 57 % de dribbles réussis)
 PROVOQUE_BASE = 1.05                         # l'envie d'un ailier de provoquer son vis-à-vis
+TETE_TIR = (16.0, 0.28)                      # la tête vers le but : vitesse et écart angulaire (réel : 1,4 tête par match sur centre, 10 % au fond)
 TETE_REMISE = True                           # une tête est une passe vers un coéquipier (coûtait +1 but par match avant la défense de la surface, +0,25 depuis : rallumé)
 LOB_BAS = False                              # un lob court qui retombe bas devant le receveur : essayé, +1,5 but par match avant la défense de la surface, encore +0,35 depuis — toujours parqué
 CONTROLE_POITRINE = True                     # un receveur seul contrôle un ballon à hauteur de poitrine au lieu de le disputer de la tête (rallumé avec la défense de la surface)
@@ -112,7 +115,14 @@ TIR_HAUTEUR = (2.4, 2.5, 1.5)                # l'écart de hauteur d'une frappe,
 TIR_SIGMA = (8.0, 10.0, 5.0, 0.25)           # l'erreur d'une frappe, en degrés : base, + par manque de finition, + sous pression, + par mètre (réel : un tir sur trois à côté ; à 13/14/7/0,35, sept sur dix)
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
 CONTIENT_SURFACE = 1.2                       # aux abords de la surface, le presseur ferme à cette distance (réel : 2,8 m du passeur dans le dernier tiers)
+PORTEUR_PRESSE = (2.5, 1.0)                  # le presseur « est dessus » à moins de 2,5 m et pas plus d'un mètre dans le dos du porteur ; sinon le marqueur sort (réel : 80 % des tirs de 11-18 m ont un défenseur à moins de 3 m, le moteur 58 %)
+PORTEUR_FERME = (22.0, 1.0)                  # ballon à moins de 22 m du but et presseur pas dessus : le marqueur du porteur ferme à un mètre
 PORTEUR_COUVERT = 4.0                        # le marqueur du porteur se tient à quatre mètres côté but : le presseur est déjà dessus, lui couvre (1,5 : deux hommes sur le ballon et personne derrière)
+CENTRE_FOND = 12.0                           # un centre part « du fond » à moins de douze mètres de la ligne de but (réel : 9,7 centres sur 17,7 par match)
+CENTRE_BAS_ZONE = (20.0, 14.0)               # ... vers un coéquipier à moins de vingt mètres du but et de quatorze de l'axe : le point de penalty, pas le poteau
+CENTRE_BAS_PORTEE = 26.0                     # un centre bas se joue à vingt-six mètres au plus (du poteau de corner au point de penalty : vingt-quatre)
+CENTRE_BAS_TIR = 0.8                         # le receveur d'un centre bas frappe dans la foulée : ce qu'il ajoute à l'envie de frapper
+CENTRE_BAS = (0.7, 0.25)                     # la part des centres au sol : depuis le fond, depuis le couloir (réel : 41 % au sol ou tendus, 22 % de conversion, contre 11 % en l'air)
 CENTRE_BASE = 0.45                           # l'envie de centrer : 0,8 faisait quarante centres par match (réel : 19, dont 35 % arrivent ; ici 23, 45 %)
 AERIEN_SURFACE = 0.15                        # ce que le défenseur gagne dans le duel de la tête dans sa surface (il attaque le ballon de face)
 PORTEE_SURFACE = 0.9                         # jusqu'où un défenseur posé dans sa surface tend la jambe sur une passe qui file (0,5 ailleurs)
@@ -230,6 +240,7 @@ class Joueur:
     pied: str = "droit"
     pied_faible: int = 3                      # 1..5, 5 = ambidextre
     recu_de: int = -1                         # de qui il vient de recevoir (le une-deux)
+    recu_centre_bas: bool = False              # il vient de recevoir un centre bas : la frappe dans la foulée
     t_recu: float = -10.0
     homme: int = -1                           # l'homme qu'il marque, et depuis quand (le marquage colle)
     t_homme: float = -10.0
@@ -350,6 +361,7 @@ class Ballon:
     dernier_camp: int | None = None
     t_kick: float = -10.0
     passe_vers: Joueur | None = None          # la passe en cours : à qui
+    centre_bas: bool = False                  # la passe en cours est un centre bas : le receveur frappe dans la foulée
     en_profondeur: bool = False               # la passe en cours est une passe en profondeur (dans l'espace)
     hors_jeu_au_kick: set = field(default_factory=set)   # les pids hors jeu à l'instant de la passe
 
@@ -880,7 +892,7 @@ class Match:
             return
         if k == "corner":
             tireur = tireur or max((x for x in self.actifs(camp) if not x.gk), key=lambda x: x.attr("CRE"))
-            self._centrer(tireur)
+            self._centrer(tireur, arrete=True)
             return
         # coup franc, sortie de but, touche : le tireur joue court, ou long si pressé
         j = tireur or self.plus_proche(camp, b.x, b.y)[0]
@@ -896,7 +908,7 @@ class Match:
                 self._frapper(j, coup_franc=True)
                 return
             if d < 38 and self.rs.random() < 0.7:
-                self._centrer(j)                    # dans la surface, où les grands attendent
+                self._centrer(j, arrete=True)       # dans la surface, où les grands attendent
                 return
         self.touche_en_cours = (k == "touche")
         self._decider_porteur(j, force=True)
@@ -1190,7 +1202,7 @@ class Match:
             ligne_hj = lh if camp == 0 else LONG - lh
         # --- les profondeurs de ligne
         # la ligne défensive suit le ballon : 0,75 × distance − 6, plus ou moins le profil (docs/TACTIQUE.md)
-        L0 = LIGNE_PENTE * bx + LIGNE_BASE + LIGNE_PROFIL[tac["bloc"]]
+        L0 = max(LIGNE_PENTE * bx + LIGNE_BASE, LIGNE_PRES[0] * bx + LIGNE_PRES[1]) + LIGNE_PROFIL[tac["bloc"]]
         if phase == "bloc_bas":
             # tassé : seize mètres d'épaisseur dans la surface, vingt-deux au milieu, vingt-huit à trente-deux de large
             L = max(7.0, min(30.0, L0 - 1.0))
@@ -1819,7 +1831,15 @@ class Match:
                 dm = math.hypot(mx - adv.x, my - adv.y) or 1.0
                 recul = 1.5 if dm < 22 else 4.0
                 if adv is porteur and p is not j:
-                    recul = max(recul, PORTEUR_COUVERT)     # le porteur a déjà son presseur : son marqueur couvre derrière
+                    # le porteur a déjà son presseur : son marqueur couvre derrière — mais seulement si
+                    # le presseur est vraiment dessus (à moins de PORTEUR_PRESSE[0] m et pas dans son dos) ;
+                    # un presseur battu ou en retard, et c'est le marqueur qui sort fermer la frappe
+                    dp = math.hypot(p.x - adv.x, p.y - adv.y)
+                    dessus = dp < PORTEUR_PRESSE[0] and (p.x - adv.x) * adv.sens() > -PORTEUR_PRESSE[1]
+                    if dessus:
+                        recul = max(recul, PORTEUR_COUVERT)
+                    elif dm < PORTEUR_FERME[0]:
+                        recul = PORTEUR_FERME[1]              # dans la zone de frappe, on ferme : un mètre
                 # côté but de son homme, et un peu devant sa course : on ne suit pas, on accompagne
                 ax, ay = adv.x + adv.vx * 0.6, adv.y + adv.vy * 0.6      # on anticipe la course de son homme
                 cx, cy = ax + (mx - ax) / dm * recul, ay + (my - ay) / dm * recul
@@ -2076,7 +2096,9 @@ class Match:
             ang = self._angle_but(j.x, j.y, camp)
             xg = self._xg(dbut, ang, pression)
             axe = self._axe_libre(j)
-            val = 0.35 + 7.5 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (0.3 if dbut < 18 else 0.0) - TIR_PRESSION * pression + 0.35 * axe * (1.0 if dbut < 22 else 0.2)
+            val = 0.35 + 7.5 * xg * (0.6 + 0.8 * j.attr("FIN") / 99) + (TIR_PROCHE[0] if dbut < TIR_PROCHE[1] else 0.0) - TIR_PRESSION * pression + 0.35 * axe * (1.0 if dbut < 22 else 0.2)
+            if b.dernier is not None and b.dernier.camp == camp and b.dernier is not j and self.t - j.t_recu < 0.8 and j.recu_centre_bas and dbut < 18:
+                val += CENTRE_BAS_TIR                     # un centre en retrait se frappe dans la foulée
             if ang < 0.25 and dbut > 9:
                 val -= 0.6                                # un angle fermé : on cherche mieux
             loin = 20 < dbut < 32 and axe > TIR_LOIN_AXE and pression < TIR_LOIN_PRESSION and abs(j.y - gy) < 14
@@ -2387,6 +2409,7 @@ class Match:
         b.dernier = j
         b.dernier_camp = j.camp
         b.t_kick = self.t
+        b.centre_bas = False
         b.vx, b.vy, b.vz = vx, vy, vz
         b.z = max(b.z, 0.0)
         j.touches += 1
@@ -2470,7 +2493,7 @@ class Match:
         self.evt("passe", de=j.pid, a=c.pid, camp=j.camp, x=round(j.x, 1), y=round(j.y, 1), d=round(d, 1), haut=vz > 0, role=c.role,
                  prof=point is not None, longue=longue)
 
-    def _centrer(self, j: Joueur):
+    def _centrer(self, j: Joueur, arrete: bool = False):
         """Un centre : vers le coéquipier le mieux placé dans la surface (le
         plus libre, le plus près du but), un peu devant lui, et en l'air à
         hauteur de tête quand il arrive — c'est là que ça se dispute."""
@@ -2486,19 +2509,42 @@ class Match:
             cx, cy = c.x + c.vx * 0.5 + self.rs.gauss(0, 1.5), c.y + c.vy * 0.5 + self.rs.gauss(0, 1.5)
         else:
             cx, cy = gx - 9.0 * j.sens(), gy + self.rs.uniform(-6.0, 6.0)
+        # le centre bas : depuis le fond (à moins de CENTRE_FOND m de la ligne de but) on le met en retrait,
+        # au sol, vers le coéquipier qui arrive ; depuis le couloir, plus rarement (réel : 41 % des centres
+        # sont au sol ou tendus, et c'est là que ça marque — 22 % de conversion contre 11 % de la tête)
+        fond = abs(gx - j.x) < CENTRE_FOND
+        bas = not arrete and self.rs.random() < (CENTRE_BAS[0] if fond else CENTRE_BAS[1])     # un corner, un coup franc : en l'air
+        if bas:
+            # au sol on cherche le coéquipier libre au point de penalty, à portée d'une passe courte,
+            # plutôt que le plus près du but ; personne là : on centre en l'air
+            proches = [c for c in dans if math.hypot(gx - c.x, gy - c.y) < CENTRE_BAS_ZONE[0] and abs(c.y - gy) < CENTRE_BAS_ZONE[1]
+                       and math.hypot(c.x - j.x, c.y - j.y) < CENTRE_BAS_PORTEE]
+            if proches:
+                def valeur_bas(c):
+                    _, libre = self.plus_proche(1 - j.camp, c.x, c.y, gk=False)
+                    return min(libre, 6.0) - 0.12 * abs(math.hypot(gx - c.x, gy - c.y) - 11.0)
+                c = max(proches, key=valeur_bas)
+                cx, cy = c.x + c.vx * 0.5 + self.rs.gauss(0, 1.0), c.y + c.vy * 0.5 + self.rs.gauss(0, 1.0)
+            else:
+                bas = False
         dx, dy = cx - j.x, cy - j.y
         d = math.hypot(dx, dy) or 1.0
         sigma = math.radians(4.0 + 8.0 * (1 - j.attr("CRE") / 99))
         ang = math.atan2(dy, dx) + self.rs.gauss(0, sigma)
         v = max(12.0, min(22.0, 10.0 + 0.4 * d))
         T = d / v
-        vz = (1.7 + 0.5 * GRAVITE * T * T) / T          # à hauteur de tête à l'arrivée
+        if bas:
+            v = max(13.0, min(19.0, 9.0 + 0.5 * d))
+            vz = 0.6                                     # au sol, tendu
+        else:
+            vz = (1.7 + 0.5 * GRAVITE * T * T) / T          # à hauteur de tête à l'arrivée
         j.passes += 1
         self.stats["passes"][j.camp] += 1
         self._lacher(j, v * math.cos(ang), v * math.sin(ang), vz)
         self.ballon.passe_vers = c
+        self.ballon.centre_bas = bas
         self.ballon.hors_jeu_au_kick = {x.pid for x in self.actifs(j.camp) if x is not j and self.hors_jeu(x, self.ballon.x)}
-        self.evt("centre", de=j.pid, camp=j.camp, a=c.pid if c else None)
+        self.evt("centre", de=j.pid, camp=j.camp, a=c.pid if c else None, bas=bas)
 
     def _degager(self, j: Joueur):
         gx, gy = self.but_de(j.camp)
@@ -2868,8 +2914,10 @@ class Match:
             return
         if prec is not None and prec.camp == j.camp and prec is not j and passe_vers is not None:
             j.recu_de, j.t_recu = prec.pid, self.t
+            j.recu_centre_bas = b.centre_bas
         else:
             j.recu_de = -1
+            j.recu_centre_bas = False
         b.porteur = j
         b.passe_vers = None
         b.hors_jeu_au_kick = set()
@@ -2933,8 +2981,8 @@ class Match:
             j.tirs += 1
             self.stats["tirs"][j.camp] += 1
             self.stats["xg"][j.camp] += self.dernier_tir["xg"]
-            ang = math.atan2(gy - j.y, gx - j.x) + self.rs.gauss(0, 0.34)
-            self._lacher(j, 14.0 * math.cos(ang), 14.0 * math.sin(ang), 1.5)
+            ang = math.atan2(gy - j.y, gx - j.x) + self.rs.gauss(0, TETE_TIR[1])
+            self._lacher(j, TETE_TIR[0] * math.cos(ang), TETE_TIR[0] * math.sin(ang), 1.5)
             self.evt("tir", de=j.pid, camp=j.camp, xg=round(self.dernier_tir["xg"], 3), d=round(dbut, 1), tete=True)
             return
         # (réel : dix ballons par match sortent sur une passe ; ici trente sortaient sur des têtes

@@ -153,3 +153,16 @@ def test_club_style_gives_a_default_tactic_and_an_affinity():
     assert 0.0 < EM.affinite_style([0.63] * 5 + [0.50] * 6, "possession") < 0.5
     assert EM.affinite_style([0.63] * 11, "equilibre") == 0.0
     assert EM.affinite_style([None] * 11, "possession") == 0.0
+
+
+def test_the_line_holds_near_its_goal_and_crosses_can_be_low():
+    # near the goal the line does not follow the straight fit (ball at 20 m: line 14 m in
+    # StatsBomb, 9 m on the straight line); the two-segment rule keeps zone 14 closed
+    for bx, attendu in ((10.0, 8.0), (20.0, 13.5), (30.0, 19.0), (60.0, 39.0)):
+        ligne = max(EM.LIGNE_PENTE * bx + EM.LIGNE_BASE, EM.LIGNE_PRES[0] * bx + EM.LIGNE_PRES[1])
+        assert abs(ligne - attendu) < 0.6
+    r = EM.Match(onze(0), onze(1), graine=5, minutes=90, trace=False).jouer()
+    centres = [e for e in r["evenements"] if e["k"] == "centre"]
+    assert centres and all("bas" in e for e in centres)
+    # some crosses are cut back along the ground, most are in the air
+    assert 0 < sum(e["bas"] for e in centres) < len(centres)

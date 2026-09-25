@@ -713,6 +713,21 @@ aux individualités ; trois leviers directs à côté (`COLLECTIF_PASSE`,
 Mesuré : un PSG à 0,95 fait jeu égal avec un Real à 0,35 qui a sept
 points d'OVR de plus, et ce Real bat encore un Inter rodé.
 
+**D'où viennent les buts** (docs/TACTIQUE.md § 23). Le moteur prenait
+ses buts de 11-18 m, dans un trou que la ligne laissait ouvert près du
+but ; réel, 58 % des buts viennent de moins de onze mètres. La ligne
+garde un second segment près du but (`LIGNE_PRES` : ballon à 20 m,
+ligne à 14), le marqueur du porteur sort fermer la frappe quand le
+presseur est battu (`PORTEUR_PRESSE`, `PORTEUR_FERME`), les centres du
+fond sont remis en retrait au sol vers le point de penalty et frappés
+dans la foulée (`CENTRE_FOND`, `CENTRE_BAS`, `CENTRE_BAS_ZONE`,
+`CENTRE_BAS_PORTEE`, `CENTRE_BAS_TIR` ; l'événement `centre` porte
+`bas`), la tête vers le but est plus forte (`TETE_TIR`), et l'envie de
+frapper de 11-18 m baisse (`TIR_PROCHE`, `TIR_PRESSION`). Le banc
+général de 48 matchs passe de 3,35 buts et 29 tirs à 2,52 buts et 26
+tirs (réel : 2,8 à 3,2, 26), et le collectif double l'écart de Paris
+contre le Real (+0,66 but contre +0,28 sans).
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

@@ -886,6 +886,115 @@ dans un même club rodé part vers 0,9. C'est la récompense de l'équipe
 construite. Reste à décider si le jeu doit faire monter cette cohésion
 avec les matchs joués ensemble dans le jeu — c'est un chantier à part.
 
+## 23. D'où viennent les buts
+
+**La question de départ.** Le collectif (§ 22) ajoutait un demi-xG à
+Paris contre le Real mais presque pas de buts. Pour comprendre, une
+règle sur la finition : conversion des tirs selon la distance et la
+pression (le défenseur le plus proche dans la freeze frame 360), réel
+(150 matchs, tirs de jeu ouvert) contre moteur (24 PSG–Real).
+
+| tirs par match (les deux équipes) | réel <1,5 m / 1,5-3 m / >3 m | moteur avant |
+|---|---|---|
+| 0-11 m | 4,0 / 1,8 / 1,1 | 1,2 / 1,4 / 1,0 |
+| 11-18 m | 3,3 / 4,1 / 1,8 | 3,5 / 8,5 / 8,7 |
+| 18 m et plus | 1,6 / 3,2 / 3,4 | 0,0 / 1,5 / 7,8 |
+
+Le moteur ne convertissait pas mieux que le réel à pression égale
+(0-11 m libre : 35 % contre 41 %) : il prenait **deux fois trop de tirs
+de 11-18 m**, et huit par match sans défenseur à trois mètres (réel
+1,8). Et une seconde règle, l'origine des tirs (le key pass StatsBomb ;
+dans le moteur, le dernier événement de l'équipe avant la frappe) :
+
+| par match | réel : tirs (buts) | moteur avant |
+|---|---|---|
+| 0-11 m | 7,2 (1,86) | 4,6 (0,67) |
+| 11-18 m | 9,3 (1,04) | 19,5 (2,25) |
+| 18 m et plus | 9,4 (0,33) | 8,2 (0,67) |
+| sur centre | 3,3 (0,55), 37 % de la tête | 4,4 (0,25), 62 % de la tête |
+| sans passe (dribble, rebond, récupération) | 5,0 (0,71) | 14,4 (1,75) |
+| corner | 1,5 (0,13) | — |
+
+**58 % des vrais buts viennent de moins de onze mètres ; 63 % des buts
+du moteur venaient de 11-18 m.** Voilà pourquoi le collectif ne mordait
+pas : les buts du moteur se prenaient dans une zone que le bloc ne
+défendait pas.
+
+**Le trou.** Les instantanés au moment de ces frappes libres montrent
+toujours la même image : le tireur reçoit entre les lignes à 12-16 m,
+la ligne défensive est à **7 m** du but, son marqueur ne peut pas
+sortir de plus de 2,5 m au-dessus de la ligne, et le presseur arrive
+dans son dos. La ligne était à 7 m parce que la droite « 0,75 × ballon
+− 6 » (§ 1) est une moyenne sur tout le terrain : près du but elle sous-
+estime la vraie ligne de cinq à six mètres (réel : ballon à 10 m, ligne
+à 8 ; à 20, 14 ; à 30, 19 — la droite donne 1,5 / 9 / 16,5).
+
+**Ce qui change.**
+
+1. **La ligne près du but** (`LIGNE_PRES`) : un second segment, 0,55 ×
+   ballon + 2,5, et la ligne prend le plus haut des deux. Mesurée après :
+   ballon à 20 m, ligne à 15 (réel 14) ; à 30, 18 (19) ; à 40, 25 (25).
+2. **Le marqueur ferme la frappe** (`PORTEUR_PRESSE`, `PORTEUR_FERME`) :
+   le marqueur du porteur ne reste à quatre mètres derrière (§ 13) que si
+   le presseur est vraiment dessus (à moins de 2,5 m, pas plus d'un mètre
+   dans son dos) ; sinon, à moins de 22 m du but, il sort à un mètre.
+3. **Le centre bas** (`CENTRE_FOND`, `CENTRE_BAS`, `CENTRE_BAS_ZONE`,
+   `CENTRE_BAS_PORTEE`, `CENTRE_BAS_TIR`) : réel, 41 % des centres sont
+   au sol ou tendus, et c'est là que ça marque (22 % de conversion contre
+   11 % de la tête). Depuis le fond (à moins de douze mètres de la ligne
+   de but), sept centres sur dix sont remis en retrait, au sol, vers le
+   coéquipier libre au point de penalty (à moins de 20 m du but, de 14 m
+   de l'axe, à portée de 26 m) — et celui-ci frappe dans la foulée. Un
+   corner, un coup franc restent en l'air. Mesuré : 8 centres bas par
+   match, 44 % interceptés (réel : 58 % n'arrivent pas), 17 % suivis
+   d'un tir dans les cinq secondes (réel 23 %).
+4. **La tête** (`TETE_TIR`) : 16 m/s et 0,28 rad d'écart au lieu de 14
+   et 0,34 — les têtes du moteur finissaient à 2-5 %, réel 10 %.
+5. **L'envie de frapper** (`TIR_PROCHE`, `TIR_PRESSION`) : le bonus des
+   dix-huit mètres passe de 0,3 à 0,15, la pression enlève 0,75 au lieu
+   de 0,6. Choisi sur des bancs courts (six matchs, donc indicatifs) :
+   (0,3 à 11 m / 0,9) tombait à 17 tirs par match, (0,15 / 0,75) restait
+   à 25 tirs, le réel.
+
+Vérifié en passant : l'écart entre les centraux n'est pas en cause
+(moteur 4,7 à 6,7 m selon la position du ballon, réel 4,8 à 7,1 ; les
+quatre défenseurs sur 17-21 m, réel 18-25).
+
+**Mesuré après** (PSG–Real, 36 matchs pour l'origine, 24 pour la
+pression) : 32 tirs, 3,4 buts ; 0-11 m 4,8 tirs (0,78 but), 11-18 m
+18,4 (1,89), 18 m et plus 8,8 (0,69). Les tirs libres tombent un peu
+(15,3 par match à plus de trois mètres, 17,4 avant) mais le profil du
+match PSG–Real reste chargé en 11-18 m : ce sont surtout des **dribbles
+suivis d'une frappe** (7,4 par match, réel 1,8) — le prochain chantier,
+avec l'occupation de la surface (le moteur y prend 4,8 tirs, le réel
+7,2). Le banc général (six équipes, 48 matchs, même graine avant et
+après) : 2,52 buts, 25,9 tirs, 7,2 cadrés — contre 3,35 buts, 29,4 tirs,
+8,2 cadrés avant (réel : 2,8 à 3,2 buts, 26 tirs). Le moteur marque
+maintenant un peu moins que le réel plutôt qu'un peu plus ; les
+lectures « banc général » des sections précédentes étaient des bancs de
+six matchs (le second argument de `banc` est la graine, pas le nombre),
+à prendre comme des ordres de grandeur.
+
+**Et le collectif, maintenant** (PSG 0,95 contre Real 0,35, échelle 20,
+base entière, 96 matchs par ligne, deux séries de 48) :
+
+| | buts | xG | V-N-D |
+|---|---|---|---|
+| collectif branché | +0,79 et +0,52 (moy. +0,66) | +0,74 et +0,53 | 48-21-27 |
+| collectif à 0, que les cartes | +0,40 et +0,15 (moy. +0,28) | +0,39 et +0,27 | 37-31-28 |
+
+Avant ce chantier : +0,36 avec, +0,42 sans (§ 22). Maintenant que les
+buts se prennent dans la surface, contre un bloc, le collectif compte
+sur le score : il double l'écart de Paris. Le bruit reste ce qu'il est
+(± 0,3 but sur 48 matchs), d'où deux séries par ligne.
+
+Et l'autre exemple, Real (0,35, cinq points d'OVR de plus) contre un
+Inter rodé (0,85, en manuel), 36 matchs : collectif branché, le Real
+gagne encore, +0,42 but, 18-5-13, mais l'Inter crée autant que lui
+(xG −0,12 pour le Real) ; sans collectif, +0,53 but, +0,73 xG, 17-10-9.
+Les individualités du Real passent, le collectif de l'Inter lui coûte
+près d'un xG par match — le monde décrit au § 22.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

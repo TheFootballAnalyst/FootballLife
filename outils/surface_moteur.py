@@ -44,8 +44,8 @@ class M(EM.Match):
         px, py = point if point else (c.x, c.y)
         k = "profondeur" if point else "passe"
         self._suivre_passe(j, k, px, py, d=math.hypot(px - j.x, py - j.y))
-    def _centrer(self, j):
-        super()._centrer(j); self._centre = (self.t, j.camp)
+    def _centrer(self, j, arrete=False):
+        super()._centrer(j, arrete); self._centre = (self.t, j.camp)
         gx, gy = self.but_de(j.camp)
         self._suivre_passe(j, "centre", gx - 9.0 * j.sens(), gy, d=20)
     def _suivre_passe(self, j, k, px, py, d):
