@@ -995,6 +995,115 @@ gagne encore, +0,42 but, 18-5-13, mais l'Inter crée autant que lui
 Les individualités du Real passent, le collectif de l'Inter lui coûte
 près d'un xG par match — le monde décrit au § 22.
 
+## 24. Les dribbles suivis d'une frappe, et la surface
+
+**Deux règles de plus, réel contre moteur.** La première : ce que le
+tireur faisait juste avant de frapper — la longueur de sa conduite
+(StatsBomb : le *Carry* qui précède le tir ; moteur : la distance entre
+la prise de balle et la frappe). La seconde : l'issue de chaque tir
+(but, arrêt, contré, à côté) par distance.
+
+| conduite avant le tir | réel | moteur avant | moteur après |
+|---|---|---|---|
+| médiane, tous tirs | 0,8 m | 1,6 m | 1,3 m |
+| tirs après plus de 20 m de conduite | 1,0 / match | 7,3 / match | 3,9 / match |
+| ... dont de 11-18 m | 0,45 | 4,3 | 2,5 |
+
+**Ce que c'était.** Pas des dribbles : des **contres**. Les
+instantanés montrent toujours la même chose : un ailier prend le ballon
+à 40 m du but sur une perte adverse, avec les centraux à sa hauteur et
+**immobiles** (la ligne « gelée » du contre-pressing, § 5, les tenait
+sur place), puis il court trente mètres escorté par un presseur qui
+« se repliait » à sept mètres et par des défenseurs qui reculaient à
+pleine vitesse devant lui sans jamais l'affronter. Trois règles :
+
+1. **Le gel casse** (`GEL_CASSE`) : la ligne haute du contre-pressing
+   tient tant que le ballon est devant elle ; dès qu'un porteur adverse
+   arrive à trois mètres de sa hauteur, elle redescend avec lui.
+2. **Le défenseur rejoint chasse** (`CHASSE_DEBORDE`) : un défenseur
+   que le porteur a rejoint à sa hauteur court côté but du porteur au
+   lieu de rester planté ; et devant un porteur lancé, un défenseur
+   côté but ne recule plus à pleine vitesse, il **temporise** à quatre
+   mètres par seconde (`RECUL_FACE`) — le porteur arrive sur lui, et
+   c'est le duel. Le repli après une perte haute temporise à trois
+   mètres au lieu de sept (`REPLI_CONTIENT`), le marqueur d'un porteur
+   lancé loin du but reste à deux mètres au lieu de quatre
+   (`PORTEUR_TEMPORISE`), et un défenseur de la ligne sort sur le
+   porteur lancé sans attendre le relais (`SORTIE_PORTEUR`).
+3. Il en reste : 3,9 tirs par match après une longue conduite, dont la
+   moitié partent d'une passe en progression vers un coureur déjà
+   derrière la ligne. C'est le prochain pas, avec la course de
+   récupération des centraux (ils rendent dix mètres sur trente au
+   sprinteur, un vrai central en rend trois).
+
+**La surface.** Sur un centre, le réel a 2,5 attaquants dans la surface
+(quatre ou cinq une fois sur quatre) ; le moteur en avait 2,1 et jamais
+plus de trois. L'avant-centre attaque les six mètres (`SURFACE_BUTEUR` :
+onze mètres du but, quinze avant), l'ailier opposé le second poteau à
+dix mètres (`SURFACE_POTEAU`), l'ailier côté ballon rentre au premier
+poteau quand c'est le latéral qui centre du fond, et le relayeur opposé
+arrive au bord de la surface en troisième homme (`SURFACE_TROISIEME`).
+Mesuré : 2,7 attaquants dans la surface sur un centre. Les tirs de
+moins de onze mètres passent de 4,8 à 6,4 par match sur PSG–Real (réel
+7,2), pour 1,46 but (réel 1,86).
+
+**L'issue des tirs**, la règle qui a tout changé. Réel (150 matchs) :
+
+| | but | arrêt | contré | à côté ou poteau |
+|---|---|---|---|---|
+| réel 0-11 m | 23 % | 22 % | 15 % | 39 % |
+| réel 11-18 m | 11 % | 29 % | 28 % | 32 % |
+| réel 18 m et plus | 4 % | 27 % | 31 % | 39 % |
+| moteur avant, 0-11 m | 24 % | 32 % | 12 % | 6 % (+ 26 % « récupérés ») |
+| moteur avant, 11-18 m | 12 % | 24 % | 27 % | 14 % (+ 23 %) |
+| moteur après, 0-11 m | 14 % | 23 % | 33 % | 30 % |
+| moteur après, 11-18 m | 10 % | 28 % | 23 % | 40 % |
+| moteur après, 18 m et plus | 3 % | 22 % | 16 % | 59 % |
+
+Trois choses ne tenaient pas debout dans le moteur d'avant. **Un tir
+sur cinq était « récupéré par la défense »** : un défenseur à moins
+d'un mètre du ballon le ramassait au passage, comme une passe — une
+frappe ne se ramasse pas, elle se contre ou elle file, et le contre se
+juge maintenant à la distance au **segment parcouru** par le ballon
+dans le tic (à 25 m/s il avance de 2,5 m par tic : le test au point
+manquait un défenseur sur deux ; `CONTRE_TIR` à 1,2 m et 75 %). **Le
+gardien « arrêtait » les frappes qui partaient à côté** : il les
+touchait dans son rayon et la stat disait arrêt — il les laisse
+filer (`_va_au_but`). Et un contre sur deux qui déviait au fond des
+filets : un but contre son camp tous les deux matchs, réel un tous
+les dix (`CONTRE_DEVIE_BUT`). Trois réglages autour : le gardien a
+moins de temps de près et plus de loin (`GARDIEN_REACTION` : réel, 51 %
+des tirs cadrés de moins de 11 m entrent, 28 % de 11-18, 13 % au-delà),
+la qualité du gardien pèse moins sur le taux d'arrêt (`GARDIEN_ARRET` :
+les gardiens moyens du banc encaissaient 15 % des tirs, réel 12,5 à
+tous les niveaux), la tête se disperse comme en vrai (`TETE_TIR`), et
+on ne frappe pas dans les jambes d'un défenseur dans l'axe
+(`TIR_BOUCHE`).
+
+**Le banc général** (six équipes tirées au sort, 48 matchs, graine 1) :
+3,44 buts, 24,4 tirs, 9,2 cadrés — contre 2,52 / 25,9 / 7,2 avant ce
+chantier et 3,35 / 29,4 / 8,2 avant le § 23 (réel : 2,9 à 3,2 buts,
+26 tirs, 9,7 cadrés). Ce qui reste faux est dans le tableau : trop de
+tirs contrés dans la surface (33 % contre 15) et trop de frappes de
+loin à côté (59 % contre 39).
+
+**Et le collectif, rejoué sur ce moteur** (PSG 0,95 contre Real 0,35,
+échelle 20, deux séries de 48 matchs par ligne ; Real–Inter à 0,35 /
+0,85 sur 36) :
+
+| | buts | xG | V-N-D |
+|---|---|---|---|
+| PSG–Real, collectif branché | +0,77 et +0,62 (moy. +0,70) | +0,49 et +0,81 | 53-15-28 |
+| PSG–Real, collectif à 0, que les cartes | −0,04 et +0,12 (moy. +0,04) | +0,30 et +0,09 | 33-32-31 |
+| Real–Inter, collectif branché | +0,19 | −0,28 | 11-11-14 |
+| Real–Inter, collectif à 0 | +0,36 | +0,24 | 17-10-9 |
+
+Les cartes seules font maintenant jeu égal entre Paris et le Real
+(trois points et demi d'OVR d'écart, dans le bruit de ± 0,3) ; c'est
+le collectif qui fait gagner Paris, +0,7 but par match. Et le Real
+garde le dessus sur un Inter rodé de cinq points de moins, de peu
+(+0,19), en créant moins que lui.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

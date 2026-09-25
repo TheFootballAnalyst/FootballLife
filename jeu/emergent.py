@@ -85,6 +85,8 @@ VAGUE_DECLENCHEUR = {"haut": 0.8, "median": 0.62, "bas": 0.5}   # une relance ou
 VAGUE_DUREE = (3.0, 6.0)                     # une vague dure trois à six secondes si elle ne récupère rien (réel : 3,7 s, p90 5,7 s), puis on se replace
 VAGUE_REPOS = 5.0                            # ... et on ne relance pas de vague dans les cinq secondes qui suivent
 CONTRE_PRESSING = {"haut": 0.42, "median": 0.32, "bas": 0.25}   # après une perte haute, on contre-presse une fois sur trois (réel : 29 à 32 %)
+GEL_CASSE = 3.0                              # ... et elle casse dès que le porteur adverse est à trois mètres de sa hauteur
+CHASSE_DEBORDE = (3.0, 20.0, 12.0, 70.0)     # un défenseur rejoint par le porteur (à moins de 3 m derrière lui, 20 m de distance, 12 m de côté, ballon à moins de 70 m du but) court côté but
 CONTRE_PRESSING_DUREE = 5.0                  # ... pendant cinq secondes, la ligne reste haute ; sinon on se replie tout de suite
 ESPACE_PRESSE = 4.0                          # autour du ballon, quatre mètres entre presseur, coupeur et marqueurs (six coûte un but et demi par match)
 LATERAL_ZONE_DEDANS = 22.0                   # un latéral suit son ailier vers l'intérieur jusqu'à vingt-deux mètres
@@ -101,18 +103,20 @@ LATERAL_TOUCHE = True                        # un latéral de forme ne défend p
 GARDE = (2.3, 2.3)                           # le temps de contrôle du porteur : base + part sans pression (réel : 3 s par passe)
 GAIN_POIDS = 1.5                             # le poids de la progression dans le choix d'une passe (réel : 42 % de passes vers l'avant)
 ENTREE_COULOIR = 0.35                        # le bonus de la passe qui entre dans le dernier tiers par le couloir (réel : une entrée sur deux)
+TIR_BOUCHE = 0.5                             # ce qu'un défenseur dans l'axe enlève à l'envie de frapper à moins de vingt mètres
 TIR_PROCHE = (0.15, 18.0)                    # l'envie de frapper près du but : + 0,15 à moins de dix-huit mètres (0,3 avant ; réel : 9 tirs par match de 11-18 m, le moteur en prenait 20)
 TIR_PRESSION = 0.75                          # ce qu'un adversaire dans les pieds enlève à l'envie de frapper (réel : 23 % de tirs sous pression)
 CROCHET_BASE = 0.55                          # la base du crochet réussi (réel : 57 % de dribbles réussis)
 PROVOQUE_BASE = 1.05                         # l'envie d'un ailier de provoquer son vis-à-vis
-TETE_TIR = (16.0, 0.28)                      # la tête vers le but : vitesse et écart angulaire (réel : 1,4 tête par match sur centre, 10 % au fond)
+TETE_TIR = (16.0, 0.45)                      # la tête vers le but : vitesse et écart angulaire (réel : 1,4 tête par match sur centre, 10 % au fond)
 TETE_REMISE = True                           # une tête est une passe vers un coéquipier (coûtait +1 but par match avant la défense de la surface, +0,25 depuis : rallumé)
 LOB_BAS = False                              # un lob court qui retombe bas devant le receveur : essayé, +1,5 but par match avant la défense de la surface, encore +0,35 depuis — toujours parqué
 CONTROLE_POITRINE = True                     # un receveur seul contrôle un ballon à hauteur de poitrine au lieu de le disputer de la tête (rallumé avec la défense de la surface)
 SERRAGE_SURFACE = 3.4                        # à quelle distance le marqueur d'un receveur souffle la passe dans les vingt-cinq derniers mètres
-CONTRE_TIR = (0.65, 2.0)                     # un défenseur sur la trajectoire d'une frappe la contre : probabilité, portée (réel : un tir sur quatre contré ; à 0,5 et 1,3 m, un sur douze)
+CONTRE_DEVIE_BUT = 0.15                      # la part des contres qui filent quand même au but (un contre son camp par dix matchs en vrai ; le moteur en faisait un par deux matchs)
+CONTRE_TIR = (0.75, 1.2)                     # un défenseur sur la trajectoire d'une frappe la contre : probabilité, portée (réel : un tir sur quatre contré ; à 0,5 et 1,3 m, un sur douze)
 TIR_HAUTEUR = (2.4, 2.5, 1.5)                # l'écart de hauteur d'une frappe, en m/s : base, + par manque de finition, + sous pression (trop haut, c'est par-dessus)
-TIR_SIGMA = (8.0, 10.0, 5.0, 0.25)           # l'erreur d'une frappe, en degrés : base, + par manque de finition, + sous pression, + par mètre (réel : un tir sur trois à côté ; à 13/14/7/0,35, sept sur dix)
+TIR_SIGMA = (8.0, 10.0, 5.0, 0.2)            # l'erreur d'une frappe, en degrés : base, + par manque de finition, + sous pression, + par mètre (réel : un tir sur trois à côté ; à 13/14/7/0,35, sept sur dix)
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
 CONTIENT_SURFACE = 1.2                       # aux abords de la surface, le presseur ferme à cette distance (réel : 2,8 m du passeur dans le dernier tiers)
 PORTEUR_PRESSE = (2.5, 1.0)                  # le presseur « est dessus » à moins de 2,5 m et pas plus d'un mètre dans le dos du porteur ; sinon le marqueur sort (réel : 80 % des tirs de 11-18 m ont un défenseur à moins de 3 m, le moteur 58 %)
@@ -139,10 +143,19 @@ INERTIE_VOLUME = 6.0                         # la zone morte d'un joueur de form
 ANCRE_VOLUME = (0.4, 0.6)                    # la place sans ballon d'un attaquant suit la forme à 40 % + 60 % × volume ; le reste est ancré...
 ANCRE_X = 42.0                               # ... à quarante-deux mètres de son but (un peu sous la médiane : là où on attend le contre)
 GARDIEN_LARGEUR = 0.9                        # ... et coulisse en largeur avec lui (0,6 avant : 0,8 km par match, réel 5)
+GARDIEN_ARRET = (0.75, 0.25)                 # la part de l'arrêt qui tient au gardien : 0,89 à 56 d'ARR, 0,98 à 90 (0,6 + 0,4 avant : les gardiens moyens encaissaient 15 % des tirs, réel 12,5 à tous les niveaux)
+GARDIEN_REACTION = (0.43, 0.72, 14.0)        # l'arrêt selon la distance de la frappe : × 0,43 + 0,72 × min(1, d / 14) — 0,84 à huit mètres, 1,15 dès quatorze (réel : 51 % des tirs cadrés de moins de 11 m entrent, 28 % de 11-18, 13 % au-delà)
 GARDIEN_SORTIE = (0.5, 2.5, 0.18, 16.0)      # le gardien devant sa ligne : base sans ballon, base avec, par mètre de ballon, plafond (réel 360)
 RESTANTE_RECUL = 11.0                        # la défense restante en progression : onze mètres derrière le ballon (quinze avant ; réel 6 à 9 vus en 360, les centraux hors champ comptent moins)
+SURFACE_POTEAU = (20.0, 94.0, 12.0, 95.0)    # ballon à plus de vingt mètres de l'axe : l'ailier côté ballon rentre au premier poteau (x 94, douze mètres de l'axe) ; l'ailier opposé au second (x 95 ; 92 avant)
+SURFACE_BUTEUR = 94.0                        # l'avant-centre attaque les six mètres en finition (x 94, onze mètres du but ; 90 avant — les centres se jouaient à quinze mètres)
+SURFACE_TROISIEME = (85.0, 5.0)              # le relayeur côté opposé arrive au bord de la surface (x 85, cinq mètres de l'axe ; 70 et dix avant)
 RESTANTE_FINITION = 56.0                     # ... et à cinquante-six mètres quand on attaque la surface (cinquante-deux avant)
 RESTANTE_GLISSE = 0.25                       # ... et elle coulisse avec le ballon en largeur (réel : 0,22 ; 0,1 à 0,2 avant)
+RECUL_FACE = (12.0, 4.0)                     # un défenseur côté but à moins de douze mètres d'un porteur adverse recule à quatre mètres par seconde au plus
+REPLI_CONTIENT = 3.0                         # dans le repli après une perte haute, le presseur temporise à trois mètres (sept avant)
+PORTEUR_TEMPORISE = 2.0                      # le marqueur d'un porteur lancé loin du but reste à deux mètres côté but (quatre avant)
+SORTIE_PORTEUR = (14.0, 6.0, 3.0, 40.0, 4.0) # un défenseur de la ligne sort sur le porteur lancé : à moins de 14 m devant lui, 6 m de côté, porteur à plus de 3 m/s vers le but, ballon à moins de 40 m
 PRESSE_DUREE = (2.0, 4.0)                    # un presseur garde le ballon 2 s + 4 s × volume, puis il souffle
 PRESSE_RELEVE = 14.0                         # ... si un coéquipier peut prendre le relais à moins de quatorze mètres
 PRESSE_REPOS = 4.0                           # ... quatre secondes sans presser (un autre prend)
@@ -1224,7 +1237,14 @@ class Match:
             gel = self.ligne_gel[camp]
             L = max(15.0, min(62.0, L0 + 4.0))
             if phase == "contre_pressing" and gel is not None and self.t < gel[1]:
-                L = max(L, gel[0])                            # la ligne reste où elle était à la perte
+                # la ligne reste où elle était à la perte — sauf si le porteur adverse est déjà à sa hauteur :
+                # là on ne tient plus rien, on redescend avec lui (réel : le contre-pressing garde la ligne
+                # haute tant que le ballon est devant elle, pas quand un ailier la traverse balle au pied)
+                bxp = bx if camp == 0 else LONG - bx
+                if b.porteur is not None and b.porteur.camp != camp and bxp < gel[0] + GEL_CASSE:
+                    self.ligne_gel[camp] = None
+                else:
+                    L = max(L, gel[0])
             prof = {"central": L, "lateral": L + 3.0, "pivot": L + 11.0, "relayeur": L + 14.0, "meneur": L + 20.0,
                     "ailier": L + 22.0, "buteur": min(L + 27.0, bx + 6.0)}
             larg = {"central": 9.0, "lateral": 18.0, "pivot": 0.0, "relayeur": 10.0, "meneur": 5.0, "ailier": 19.0, "buteur": 0.0}
@@ -1282,14 +1302,20 @@ class Match:
             if sien:
                 if phase == "finition":
                     if r == "ailier":
-                        # côté ballon : la surcharge avec le latéral ; côté opposé : le second poteau
-                        x, y = (min(96.0, bx + 4.0), LARG / 2 + signe * 22.0) if cote_ballon else (92.0, LARG / 2 + signe * 7.0)
+                        # côté ballon : la surcharge avec le latéral — et quand c'est le latéral qui a le
+                        # ballon au fond, l'ailier rentre au premier poteau ; côté opposé : le second poteau
+                        if cote_ballon and abs(by - LARG / 2) > SURFACE_POTEAU[0]:
+                            x, y = SURFACE_POTEAU[1], LARG / 2 + signe * SURFACE_POTEAU[2]
+                        else:
+                            x, y = (min(96.0, bx + 4.0), LARG / 2 + signe * 22.0) if cote_ballon else (SURFACE_POTEAU[3], LARG / 2 + signe * 7.0)
                     elif r == "lateral":
                         x, y = (min(95.0, bx + 3.0), LARG / 2 + signe * 30.0) if cote_ballon else (C + 6.0, LARG / 2 + signe * 8.0)
                     elif r == "relayeur":
-                        x, y = (max(55.0, bx - 8.0), by - cote * 8.0) if cote_ballon else (70.0, LARG / 2 + signe * 10.0)
+                        # côté opposé, le troisième homme arrive au bord de la surface (réel : 2,5 attaquants dans
+                        # la surface sur un centre, quatre ou cinq une fois sur quatre ; le moteur en avait deux)
+                        x, y = (max(55.0, bx - 8.0), by - cote * 8.0) if cote_ballon else (SURFACE_TROISIEME[0], LARG / 2 + signe * SURFACE_TROISIEME[1])
                     elif r == "buteur":
-                        x, y = 90.0, LARG / 2 + (signe * 7.0 if sum(1 for o in siens if o.role_tac == "buteur") > 1 else 0.0)
+                        x, y = SURFACE_BUTEUR, LARG / 2 + (signe * 7.0 if sum(1 for o in siens if o.role_tac == "buteur") > 1 else 0.0)
                 elif phase == "contre":
                     pass
                 elif phase == "progression":
@@ -1556,6 +1582,21 @@ class Match:
             if j is not None:
                 j.cible = (px, py)
                 j.role = "chasse"
+        # un défenseur que le porteur adverse a rejoint à sa hauteur (ou dépassé) ne reste pas planté sur sa
+        # ligne : il court côté but du porteur (réel : une conduite avant un tir fait 4 m ; ici les contres
+        # traversaient une ligne de centraux immobiles)
+        p = b.porteur
+        if p is not None:
+            mx_, my_ = self.but_de(p.camp)
+            for j in self.actifs(1 - p.camp):
+                if j.gk or j.fam != "DEF" or j.role not in ("forme", "coupe", "marque"):
+                    continue
+                if (p.x - j.x) * p.sens() > -CHASSE_DEBORDE[0] and math.hypot(p.x - j.x, p.y - j.y) < CHASSE_DEBORDE[1] \
+                        and abs(p.y - j.y) < CHASSE_DEBORDE[2] and math.hypot(mx_ - p.x, my_ - p.y) < CHASSE_DEBORDE[3]:
+                    dxg, dyg = mx_ - p.x, my_ - p.y
+                    n_ = math.hypot(dxg, dyg) or 1.0
+                    j.cible = (p.x + dxg / n_ * 3.0, p.y + dyg / n_ * 3.0)
+                    j.role = "chasse"
 
     def _point_aerien(self) -> tuple[float, float]:
         """Où un ballon en l'air redescend à hauteur de tête (un mètre
@@ -1709,6 +1750,18 @@ class Match:
         if titre is not None and titre is not p and self.t - depuis < 2.0 \
                 and math.hypot(titre.x - bx, titre.y - by) < math.hypot(p.x - bx, p.y - by) + 4.0:
             p = titre
+        # la sortie sur le porteur lancé : un porteur qui arrive à pleine vitesse sur la ligne ne se
+        # laisse pas escorter par un presseur dans son dos — le défenseur de la ligne devant lui
+        # sort à sa rencontre, tout de suite, sans attendre le relais (réel : une conduite avant un
+        # tir fait 4 m, le moteur en faisait 31 : le porteur traversait le bloc en courant)
+        if porteur is not None and bxd < SORTIE_PORTEUR[3] and porteur.vx * porteur.sens() > SORTIE_PORTEUR[2]:
+            sortant = min((j for j in siens if j.fam == "DEF" and j.role in ("forme", "marque", "coupe")
+                           and (j.x - bx) * porteur.sens() > 0.5 and abs(j.y - by) < SORTIE_PORTEUR[1]
+                           and math.hypot(j.x - bx, j.y - by) < SORTIE_PORTEUR[0]),
+                          key=lambda j: math.hypot(j.x - bx, j.y - by), default=None)
+            # (sans voler le ballon à un presseur déjà dessus : à moins de 4 m et pas dans le dos du porteur)
+            if sortant is not None and sortant is not p and (math.hypot(p.x - bx, p.y - by) > SORTIE_PORTEUR[4] or (p.x - bx) * porteur.sens() < 0.0):
+                p = sortant
         if p.pid != pid_t:
             self.presseur_en_titre[df] = (p.pid, self.t)
             p.presse_t0 = self.t
@@ -1730,7 +1783,7 @@ class Match:
         if porteur is None:
             contient = 0.0
         elif self.t - self.t_perte_haute[df] < CONTRE_PRESSING_DUREE and not self.contre_choix[df] and bxd > 40.0:
-            contient = 7.0                                  # le repli : on ferme à sept mètres en reculant, on ne saute pas
+            contient = REPLI_CONTIENT                       # le repli : on temporise à trois mètres en reculant, on ne saute pas (sept avant : le porteur traversait le terrain escorté)
         elif bxd < 25.0:
             contient = CONTIENT_SURFACE
         elif phase == "bloc_bas":
@@ -1840,6 +1893,8 @@ class Match:
                         recul = max(recul, PORTEUR_COUVERT)
                     elif dm < PORTEUR_FERME[0]:
                         recul = PORTEUR_FERME[1]              # dans la zone de frappe, on ferme : un mètre
+                    else:
+                        recul = min(recul, PORTEUR_TEMPORISE)  # plus loin, on temporise à deux mètres : on n'escorte pas un porteur lancé à quatre
                 # côté but de son homme, et un peu devant sa course : on ne suit pas, on accompagne
                 ax, ay = adv.x + adv.vx * 0.6, adv.y + adv.vy * 0.6      # on anticipe la course de son homme
                 cx, cy = ax + (mx - ax) / dm * recul, ay + (my - ay) / dm * recul
@@ -2101,6 +2156,8 @@ class Match:
                 val += CENTRE_BAS_TIR                     # un centre en retrait se frappe dans la foulée
             if ang < 0.25 and dbut > 9:
                 val -= 0.6                                # un angle fermé : on cherche mieux
+            if dbut < 20 and not seul:
+                val -= TIR_BOUCHE * (1.0 - axe)           # un défenseur dans l'axe : on ne tire pas dans ses jambes (réel : 15 % de tirs contrés dans la surface, le moteur 31 %)
             loin = 20 < dbut < 32 and axe > TIR_LOIN_AXE and pression < TIR_LOIN_PRESSION and abs(j.y - gy) < 14
             if xg < TIR_MINIMUM and not seul and not loin:
                 val -= 0.55                               # une frappe pour rien : on cherche mieux
@@ -2639,7 +2696,7 @@ class Match:
         self._lacher(j, v * math.cos(theta), v * math.sin(theta), vz)
         b.passe_vers = None
         self.evt("tir", de=j.pid, camp=camp, xg=round(xg, 3), d=round(d, 1), penalty=penalty, pied=pied[0].upper())
-        self.dernier_tir = {"de": j, "xg": xg, "t": self.t, "camp": camp}
+        self.dernier_tir = {"de": j, "xg": xg, "t": self.t, "camp": camp, "d": d}
 
     # -- le mouvement ----------------------------------------------------------------
     def _bouger_joueurs(self, decision: bool, gel: bool = False):
@@ -2715,6 +2772,13 @@ class Match:
                     plafond = max(plafond or 0.0, 6.5 * j.vmax / 8.83)   # le ballon vient : la ligne recule en courant
                 if plafond is not None:
                     v_lim = min(v_lim, plafond)
+                # face à un porteur lancé, un défenseur côté but ne recule pas à pleine vitesse : il temporise
+                # en reculant à quatre mètres par seconde, et le porteur arrive sur lui (réel : une conduite
+                # avant un tir fait 4 m ; le moteur laissait courir 30 m entre deux défenseurs qui fuyaient)
+                if (b.porteur is not None and b.porteur.camp != j.camp and not j.gk and j.role != "porteur"
+                        and (j.x - b.x) * b.porteur.sens() > 0.0 and math.hypot(j.x - b.x, j.y - b.y) < RECUL_FACE[0]
+                        and (j.cible[0] - j.x) * b.porteur.sens() > 1.0):
+                    v_lim = min(v_lim, RECUL_FACE[1])
                 # à bout de souffle, on ne sprinte plus : on court
                 if j.souffle <= 0.0:
                     v_lim = min(v_lim, SPRINT - 0.6)
@@ -2819,15 +2883,25 @@ class Match:
                     portee = RAYON_CONTROLE + ((1.3 + 1.2 * j.attr("ARR") / 99) if tir else 0.6)
                 if b.dernier is not None and j.camp != b.dernier.camp and self.t - b.t_kick < 0.35 and not tir:
                     continue                          # au pied du passeur : la passe part
-                if d < portee and b.z < (2.4 if j.gk else 1.9):
+                if tir and not j.gk and j.camp != tir["camp"] and self.t - tir["t"] < 1.2:
+                    # une frappe ne se ramasse pas au passage : un défenseur sur la trajectoire la contre, une
+                    # fois sur deux, ou la voit passer (réel : 25 % de tirs contrés ; avant, 21 % contrés et
+                    # 21 % « récupérés » au passage)
+                    # (la distance au segment parcouru ce tic, pas au ballon : à 25 m/s il avance de 2,5 m par tic)
+                    sx, sy = b.x - b.vx * DT, b.y - b.vy * DT
+                    ex, ey = b.x - sx, b.y - sy
+                    n2 = ex * ex + ey * ey or 1.0
+                    u = max(0.0, min(1.0, ((j.x - sx) * ex + (j.y - sy) * ey) / n2))
+                    d_seg = math.hypot(j.x - (sx + u * ex), j.y - (sy + u * ey))
+                    if d_seg < CONTRE_TIR[1] and b.z < 1.7 and self.t - j.dernier_contact > 0.5:
+                        j.dernier_contact = self.t
+                        if self.rs.random() < CONTRE_TIR[0]:
+                            self._contrer(j)
+                            return
+                elif d < portee and b.z < (2.4 if j.gk else 1.9):
+                    if j.gk and tir and not self._va_au_but():
+                        continue                      # une frappe qui part à côté : le gardien la laisse filer
                     cand.append((d, j))
-                # un défenseur sur la trajectoire d'une frappe la contre, une fois sur deux
-                elif tir and not j.gk and j.camp != tir["camp"] and d < CONTRE_TIR[1] and b.z < 1.7 and self.t - tir["t"] < 1.2 \
-                        and self.t - j.dernier_contact > 0.5:
-                    j.dernier_contact = self.t
-                    if self.rs.random() < CONTRE_TIR[0]:
-                        self._contrer(j)
-                        return
             if not cand:
                 return
             cand.sort(key=lambda c: c[0])
@@ -2868,7 +2942,10 @@ class Match:
                 tir = self._tir_en_cours()
                 if tir:
                     d = self.d_ballon(j)
-                    p = (1.0 - 0.012 * max(0.0, v - 18.0) - 0.10 * d) * (0.6 + 0.4 * j.attr("ARR") / 99)     # un grand gardien, ça se voit sur une saison
+                    p = (1.0 - 0.012 * max(0.0, v - 18.0) - 0.10 * d) * (GARDIEN_ARRET[0] + GARDIEN_ARRET[1] * j.attr("ARR") / 99)     # un grand gardien, ça se voit sur une saison
+                    # et le temps de réaction : de près il en a moins, de loin il en a plus (réel : 22 % d'arrêts
+                    # sur les tirs de moins de onze mètres, 29 % de 11 à 18, 27 % au-delà)
+                    p *= GARDIEN_REACTION[0] + GARDIEN_REACTION[1] * min(1.0, tir.get("d", 16.0) / GARDIEN_REACTION[2])
                     if self.rs.random() > max(0.15, min(0.95, p)):
                         j.dernier_contact = self.t
                         b.dernier = j
@@ -2977,7 +3054,7 @@ class Match:
         b.passe_vers = None
         if dbut < 13 and self.rs.random() < (0.45 if j.fam == "FWD" else 0.3):
             # une tête vers le but
-            self.dernier_tir = {"de": j, "xg": self._xg(dbut, self._angle_but(j.x, j.y, j.camp), 0.4) * 0.6, "t": self.t, "camp": j.camp}
+            self.dernier_tir = {"de": j, "xg": self._xg(dbut, self._angle_but(j.x, j.y, j.camp), 0.4) * 0.6, "t": self.t, "camp": j.camp, "d": dbut}
             j.tirs += 1
             self.stats["tirs"][j.camp] += 1
             self.stats["xg"][j.camp] += self.dernier_tir["xg"]
@@ -3017,6 +3094,19 @@ class Match:
         k = 1.0 + COLLECTIF_BLOC * COLLECTIF_POIDS * (self.collectif[1 - c.camp] - 0.5)     # un bloc rodé lit la passe plus tôt
         return (SERRAGE_SURFACE if math.hypot(gx - c.x, gy - c.y) < 25.0 else 2.6) * k
 
+    def _va_au_but(self) -> bool:
+        """Le ballon, sur sa trajectoire, entre-t-il dans le but ? (à trente centimètres près)"""
+        b = self.ballon
+        if b.dernier is None or abs(b.vx) < 0.5:
+            return True
+        gx, gy = self.but_de(b.dernier.camp)
+        T = (gx - b.x) / b.vx
+        if T < 0:
+            return False
+        y = b.y + b.vy * T
+        z = b.z + b.vz * T - 0.5 * GRAVITE * T * T
+        return abs(y - gy) < BUT_LARG / 2 + 0.3 and z < BUT_HAUT + 0.3
+
     def _tir_en_cours(self) -> dict | None:
         tir = getattr(self, "dernier_tir", None)
         return tir if tir and self.t - tir["t"] < 2.5 and self.ballon.porteur is None else None
@@ -3038,6 +3128,11 @@ class Match:
         b.vz = abs(self.rs.gauss(2.0, 2.0))
         b.dernier = j
         b.dernier_camp = j.camp
+        if tir and self._va_au_but() and self.rs.random() > CONTRE_DEVIE_BUT:
+            # un contre qui file quand même au but, c'est rare (réel : un but contre son camp par dix matchs) :
+            # le ballon part de l'autre côté du défenseur
+            ang += self.rs.choice([-1, 1]) * self.rs.uniform(0.7, 1.2)
+            b.vx, b.vy = v * math.cos(ang), v * math.sin(ang)
         b.t_kick = self.t
         b.passe_vers = None
         j.touches += 1

@@ -728,6 +728,23 @@ général de 48 matchs passe de 3,35 buts et 29 tirs à 2,52 buts et 26
 tirs (réel : 2,8 à 3,2, 26), et le collectif double l'écart de Paris
 contre le Real (+0,66 but contre +0,28 sans).
 
+**Les dribbles suivis d'une frappe, et la surface** (docs/TACTIQUE.md
+§ 24). Les contres traversaient une ligne gelée par le contre-pressing
+et des défenseurs qui fuyaient devant le porteur : le gel casse quand
+le porteur arrive à sa hauteur (`GEL_CASSE`), un défenseur rejoint
+chasse (`CHASSE_DEBORDE`), un défenseur côté but temporise à quatre
+mètres par seconde (`RECUL_FACE`), le repli à trois mètres
+(`REPLI_CONTIENT`, `PORTEUR_TEMPORISE`, `SORTIE_PORTEUR`). Dans la
+surface, l'avant-centre et les ailiers attaquent les poteaux et le
+relayeur opposé arrive en troisième homme (`SURFACE_BUTEUR`,
+`SURFACE_POTEAU`, `SURFACE_TROISIEME`). L'issue d'un tir : une frappe
+se contre à la distance au segment parcouru ou elle file, jamais
+ramassée (`CONTRE_TIR`), le gardien laisse filer ce qui part à côté
+(`_va_au_but`) et a moins de temps de près (`GARDIEN_REACTION`,
+`GARDIEN_ARRET`), un contre dévie rarement au but (`CONTRE_DEVIE_BUT`),
+la tête se disperse (`TETE_TIR`), on ne tire pas dans un défenseur
+(`TIR_BOUCHE`). Banc de 48 matchs : 3,44 buts, 24 tirs, 9,2 cadrés.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

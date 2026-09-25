@@ -166,3 +166,22 @@ def test_the_line_holds_near_its_goal_and_crosses_can_be_low():
     assert centres and all("bas" in e for e in centres)
     # some crosses are cut back along the ground, most are in the air
     assert 0 < sum(e["bas"] for e in centres) < len(centres)
+
+
+def test_a_shot_that_misses_is_let_go_and_deflections_stay_out():
+    m = EM.Match(onze(0), onze(1), graine=2, minutes=1, trace=False)
+    b = m.ballon
+    tireur = next(j for j in m.joueurs if j.camp == 0 and not j.gk)
+    gx, gy = m.but_de(0)
+    b.dernier = tireur
+    # straight at the middle of the goal, on the ground: it goes in
+    b.x, b.y, b.z = gx - 12.0, gy, 0.0
+    b.vx, b.vy, b.vz = 25.0 * (1 if gx > b.x else -1), 0.0, 0.0
+    assert m._va_au_but()
+    # six metres wide of the post: it does not
+    b.vy = 15.0
+    assert not m._va_au_but()
+    # a lob over the bar does not either
+    b.vy, b.vz = 0.0, 12.0
+    assert not m._va_au_but()
+    assert 0.0 <= EM.CONTRE_DEVIE_BUT <= 0.5 and EM.CONTRE_TIR[1] <= 1.5
