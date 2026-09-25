@@ -590,8 +590,7 @@ force : les trois leviers n'arrivaient jamais au moteur, tout le monde
 jouait à 0,5. Corrigé — et c'est le lien direct avec les équipes
 fantasy : la carte porte les leviers, le moteur les lit.
 
-**Où partaient les mètres.** Mesuré rôle par rôle (`roles_course.py`
-dans le bac à sable) : les 12,6 km de Barcola, c'était 2,4 km en
+**Où partaient les mètres.** Mesuré rôle par rôle (`outils/roles_course.py`) : les 12,6 km de Barcola, c'était 2,4 km en
 presseur, 1,2 en doublage, 0,8 en coupe — il suivait le porteur, il
 redoublait, il coupait les lignes, comme Doué. Puis, ces rôles fermés,
 1,2 km de forme en bloc médian devenaient 2,1 : sa place suivait le
