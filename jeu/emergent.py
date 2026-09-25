@@ -103,7 +103,8 @@ LATERAL_TOUCHE = True                        # un latéral de forme ne défend p
 GARDE = (2.3, 2.3)                           # le temps de contrôle du porteur : base + part sans pression (réel : 3 s par passe)
 GAIN_POIDS = 1.5                             # le poids de la progression dans le choix d'une passe (réel : 42 % de passes vers l'avant)
 ENTREE_COULOIR = 0.35                        # le bonus de la passe qui entre dans le dernier tiers par le couloir (réel : une entrée sur deux)
-TIR_BOUCHE = 0.5                             # ce qu'un défenseur dans l'axe enlève à l'envie de frapper à moins de vingt mètres
+TIR_EVITE = 3.0                              # un défenseur à moins de trois mètres devant le tireur : on ouvre le pied de l'autre côté (réel : 15 % de tirs contrés dans la surface)
+TIR_BOUCHE = (0.25, 0.6, 2.0)                # ce qu'un défenseur dans l'axe enlève à l'envie de frapper à moins de vingt mètres : par le cône, et s'il est planté à moins de deux mètres devant
 TIR_PROCHE = (0.15, 18.0)                    # l'envie de frapper près du but : + 0,15 à moins de dix-huit mètres (0,3 avant ; réel : 9 tirs par match de 11-18 m, le moteur en prenait 20)
 TIR_PRESSION = 0.75                          # ce qu'un adversaire dans les pieds enlève à l'envie de frapper (réel : 23 % de tirs sous pression)
 CROCHET_BASE = 0.55                          # la base du crochet réussi (réel : 57 % de dribbles réussis)
@@ -113,14 +114,15 @@ TETE_REMISE = True                           # une tête est une passe vers un c
 LOB_BAS = False                              # un lob court qui retombe bas devant le receveur : essayé, +1,5 but par match avant la défense de la surface, encore +0,35 depuis — toujours parqué
 CONTROLE_POITRINE = True                     # un receveur seul contrôle un ballon à hauteur de poitrine au lieu de le disputer de la tête (rallumé avec la défense de la surface)
 SERRAGE_SURFACE = 3.4                        # à quelle distance le marqueur d'un receveur souffle la passe dans les vingt-cinq derniers mètres
-CONTRE_DEVIE_BUT = 0.15                      # la part des contres qui filent quand même au but (un contre son camp par dix matchs en vrai ; le moteur en faisait un par deux matchs)
-CONTRE_TIR = (0.75, 1.2)                     # un défenseur sur la trajectoire d'une frappe la contre : probabilité, portée (réel : un tir sur quatre contré ; à 0,5 et 1,3 m, un sur douze)
+FAUTE_PRESSING = (0.06, 0.045, 0.2)          # la faute de pressing (un défenseur lancé dans les pieds) : base, + par manque de récupération, × dans la surface (réel : 24 fautes et 0,3 penalty par match ; à 0,04 / 0,03 / 0,35, 14 fautes et 0,5 penalty)
+CONTRE_DEVIE_BUT = 0.08                      # la part des contres qui filent quand même au but (un contre son camp par dix matchs en vrai ; le moteur en faisait un par deux matchs)
+CONTRE_TIR = (0.75, 1.3, 0.0)                # un défenseur sur la trajectoire d'une frappe la contre : probabilité, portée (au segment), et il doit être à plus d'un demi-mètre devant le ballon (réel : un tir sur quatre contré ; à 0,5 et 1,3 m, un sur douze)
 TIR_HAUTEUR = (2.4, 2.5, 1.5)                # l'écart de hauteur d'une frappe, en m/s : base, + par manque de finition, + sous pression (trop haut, c'est par-dessus)
 TIR_SIGMA = (8.0, 10.0, 5.0, 0.2)            # l'erreur d'une frappe, en degrés : base, + par manque de finition, + sous pression, + par mètre (réel : un tir sur trois à côté ; à 13/14/7/0,35, sept sur dix)
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
 CONTIENT_SURFACE = 1.2                       # aux abords de la surface, le presseur ferme à cette distance (réel : 2,8 m du passeur dans le dernier tiers)
 PORTEUR_PRESSE = (2.5, 1.0)                  # le presseur « est dessus » à moins de 2,5 m et pas plus d'un mètre dans le dos du porteur ; sinon le marqueur sort (réel : 80 % des tirs de 11-18 m ont un défenseur à moins de 3 m, le moteur 58 %)
-PORTEUR_FERME = (22.0, 1.0)                  # ballon à moins de 22 m du but et presseur pas dessus : le marqueur du porteur ferme à un mètre
+PORTEUR_FERME = (22.0, 1.2)                  # ballon à moins de 22 m du but et presseur pas dessus : le marqueur du porteur ferme à un mètre
 PORTEUR_COUVERT = 4.0                        # le marqueur du porteur se tient à quatre mètres côté but : le presseur est déjà dessus, lui couvre (1,5 : deux hommes sur le ballon et personne derrière)
 CENTRE_FOND = 12.0                           # un centre part « du fond » à moins de douze mètres de la ligne de but (réel : 9,7 centres sur 17,7 par match)
 CENTRE_BAS_ZONE = (20.0, 14.0)               # ... vers un coéquipier à moins de vingt mètres du but et de quatorze de l'axe : le point de penalty, pas le poteau
@@ -144,7 +146,7 @@ ANCRE_VOLUME = (0.4, 0.6)                    # la place sans ballon d'un attaqua
 ANCRE_X = 42.0                               # ... à quarante-deux mètres de son but (un peu sous la médiane : là où on attend le contre)
 GARDIEN_LARGEUR = 0.9                        # ... et coulisse en largeur avec lui (0,6 avant : 0,8 km par match, réel 5)
 GARDIEN_ARRET = (0.75, 0.25)                 # la part de l'arrêt qui tient au gardien : 0,89 à 56 d'ARR, 0,98 à 90 (0,6 + 0,4 avant : les gardiens moyens encaissaient 15 % des tirs, réel 12,5 à tous les niveaux)
-GARDIEN_REACTION = (0.43, 0.72, 14.0)        # l'arrêt selon la distance de la frappe : × 0,43 + 0,72 × min(1, d / 14) — 0,84 à huit mètres, 1,15 dès quatorze (réel : 51 % des tirs cadrés de moins de 11 m entrent, 28 % de 11-18, 13 % au-delà)
+GARDIEN_REACTION = (0.45, 0.85, 14.0)        # l'arrêt selon la distance de la frappe : × 0,45 + 0,85 × min(1, d / 14) — 0,94 à huit mètres, 1,3 dès quatorze (réel : 51 % des tirs cadrés de moins de 11 m entrent, 28 % de 11-18, 13 % au-delà)
 GARDIEN_SORTIE = (0.5, 2.5, 0.18, 16.0)      # le gardien devant sa ligne : base sans ballon, base avec, par mètre de ballon, plafond (réel 360)
 RESTANTE_RECUL = 11.0                        # la défense restante en progression : onze mètres derrière le ballon (quinze avant ; réel 6 à 9 vus en 360, les centraux hors champ comptent moins)
 SURFACE_POTEAU = (20.0, 94.0, 12.0, 95.0)    # ballon à plus de vingt mètres de l'axe : l'ailier côté ballon rentre au premier poteau (x 94, douze mètres de l'axe) ; l'ailier opposé au second (x 95 ; 92 avant)
@@ -154,6 +156,9 @@ RESTANTE_FINITION = 56.0                     # ... et à cinquante-six mètres q
 RESTANTE_GLISSE = 0.25                       # ... et elle coulisse avec le ballon en largeur (réel : 0,22 ; 0,1 à 0,2 avant)
 RECUL_FACE = (12.0, 4.0)                     # un défenseur côté but à moins de douze mètres d'un porteur adverse recule à quatre mètres par seconde au plus
 REPLI_CONTIENT = 3.0                         # dans le repli après une perte haute, le presseur temporise à trois mètres (sept avant)
+MARQUAGE_LIGNE = 10.0                        # un attaquant à moins de dix mètres devant la ligne se marque même ballon loin (réel : le coureur part de l'épaule du central, pas de sept mètres)
+SUIT_COUREUR = (15.0, 12.0, 18.0, 2.0)       # un coureur lancé à moins de quinze mètres devant la ligne, pris par un défenseur à moins de 12 m de côté et 18 m de distance, qui l'attend au plus deux mètres au-dessus de la ligne
+SUIT_APPEL = (3.0, 2.0, 2.5)                 # un homme qui part vers le but à plus de 3 m/s se colle à deux mètres, et son marqueur sprinte dès qu'il dépasse 2,5 m/s (réel : à la réception d'une passe en profondeur, le défenseur le plus proche est à 2,7 m ; le moteur, 4,5)
 PORTEUR_TEMPORISE = 2.0                      # le marqueur d'un porteur lancé loin du but reste à deux mètres côté but (quatre avant)
 SORTIE_PORTEUR = (14.0, 6.0, 3.0, 40.0, 4.0) # un défenseur de la ligne sort sur le porteur lancé : à moins de 14 m devant lui, 6 m de côté, porteur à plus de 3 m/s vers le but, ballon à moins de 40 m
 PRESSE_DUREE = (2.0, 4.0)                    # un presseur garde le ballon 2 s + 4 s × volume, puis il souffle
@@ -1821,7 +1826,35 @@ class Match:
         # est STABLE : chacun garde d'abord son homme (le porteur compris),
         # puis les libres prennent le plus proche — un marquage qui change
         # d'homme à chaque passe n'est jamais au contact.
-        self.marquage_actif[df] = bxd < 40.0 or (self.marquage_actif[df] and bxd < 46.0)
+        # (et un attaquant posé à moins de dix mètres devant la ligne se marque, où que soit le ballon :
+        #  un avant-centre vit sur l'épaule d'un central, il ne part pas de sept mètres)
+        sur_la_ligne = any(o is not porteur and -2.0 < siens[0].propre(o.x, o.y)[0] - self.ligne_def[df] < MARQUAGE_LIGNE for o in adverses)
+        self.marquage_actif[df] = bxd < 40.0 or (self.marquage_actif[df] and bxd < 46.0) or sur_la_ligne
+        if True:
+            # un coureur lancé vers le but se suit, où que soit le ballon : le défenseur de la ligne le plus
+            # proche recule avec lui, à deux mètres côté but — sans sortir au-devant (il attend à deux mètres
+            # au-dessus de la ligne et part quand le coureur arrive) (réel : à la réception d'une passe en
+            # profondeur, le défenseur le plus proche est à 2,7 m ; ici 59 % des coureurs n'avaient personne,
+            # quatre défenseurs « en forme » regardaient passer, et le central ne bougeait qu'à huit mètres)
+            ligne_c = self.ligne_def[df]
+            pris_c: set[int] = set()
+            for o in sorted((o for o in adverses if o is not porteur and o.vx * o.sens() > SUIT_APPEL[2]
+                             and siens[0].propre(o.x, o.y)[0] < ligne_c + SUIT_COUREUR[0]),
+                            key=lambda o: siens[0].propre(o.x, o.y)[0]):
+                j = min((j for j in siens if j.fam == "DEF" and j.role == "forme" and j.pid not in pris_c
+                         and abs(j.y - o.y) < SUIT_COUREUR[1] and math.hypot(j.x - o.x, j.y - o.y) < SUIT_COUREUR[2]),
+                        key=lambda j: math.hypot(j.x - o.x, j.y - o.y), default=None)
+                if j is None:
+                    continue
+                pris_c.add(j.pid)
+                dm = math.hypot(mx - o.x, my - o.y) or 1.0
+                ax, ay = o.x + o.vx * 0.6, o.y + o.vy * 0.6
+                cx_, cy_ = ax + (mx - ax) / dm * SUIT_APPEL[1], ay + (my - ay) / dm * SUIT_APPEL[1]
+                cxp, cyp = j.propre(cx_, cy_)
+                cxp = min(cxp, ligne_c + SUIT_COUREUR[3])          # on ne sort pas au-devant : on l'attend
+                j.cible = j.absolu(cxp, cyp)
+                j.role = "marque"
+                j.homme, j.t_homme = o.pid, self.t
         if self.marquage_actif[df]:
             pris: set[int] = set()
             marqueurs = [x for x in tri if x.role == "forme" and x.fam in ("DEF", "MID")]
@@ -1883,6 +1916,8 @@ class Match:
                     continue
                 dm = math.hypot(mx - adv.x, my - adv.y) or 1.0
                 recul = 1.5 if dm < 22 else 4.0
+                if (adv.vx * adv.sens()) > SUIT_APPEL[0] and adv is not porteur:
+                    recul = min(recul, SUIT_APPEL[1])       # son homme part vers le but : on le colle, on ne l'attend pas quatre mètres plus bas
                 if adv is porteur and p is not j:
                     # le porteur a déjà son presseur : son marqueur couvre derrière — mais seulement si
                     # le presseur est vraiment dessus (à moins de PORTEUR_PRESSE[0] m et pas dans son dos) ;
@@ -2157,7 +2192,11 @@ class Match:
             if ang < 0.25 and dbut > 9:
                 val -= 0.6                                # un angle fermé : on cherche mieux
             if dbut < 20 and not seul:
-                val -= TIR_BOUCHE * (1.0 - axe)           # un défenseur dans l'axe : on ne tire pas dans ses jambes (réel : 15 % de tirs contrés dans la surface, le moteur 31 %)
+                val -= TIR_BOUCHE[0] * (1.0 - axe)        # un défenseur dans l'axe : on ne tire pas dans ses jambes (réel : 15 % de tirs contrés dans la surface, le moteur 31 %)
+                ux_, uy_ = (gx - j.x) / max(0.1, dbut), (gy - j.y) / max(0.1, dbut)
+                if any(0.0 < (o.x - j.x) * ux_ + (o.y - j.y) * uy_ < TIR_BOUCHE[2] and abs((o.x - j.x) * uy_ - (o.y - j.y) * ux_) < 1.0
+                       for o in self.actifs(1 - camp) if not o.gk):
+                    val -= TIR_BOUCHE[1]                  # ... et un défenseur planté à deux mètres devant, on attend qu'il bouge
             loin = 20 < dbut < 32 and axe > TIR_LOIN_AXE and pression < TIR_LOIN_PRESSION and abs(j.y - gy) < 14
             if xg < TIR_MINIMUM and not seul and not loin:
                 val -= 0.55                               # une frappe pour rien : on cherche mieux
@@ -2682,8 +2721,23 @@ class Match:
         pied = ("droit" if yp < LARG / 2 - 3.0 else "gauche" if yp > LARG / 2 + 3.0 else j.pied) if not penalty else j.pied
         mauvais = (pied != j.pied and j.pied_faible < 5)
         malus = 0.12 * (5 - j.pied_faible) if mauvais else 0.0
-        # où il vise : un poteau, avec une erreur qui dépend de la finition et de la pression
+        # où il vise : un poteau, avec une erreur qui dépend de la finition et de la pression —
+        # et du côté libre : un défenseur à moins de TIR_EVITE m devant lui, on ouvre le pied de l'autre côté
         cote = self.rs.choice([-1, 1])
+        if not penalty:
+            ux, uy = (gx - j.x) / max(0.1, d), (gy - j.y) / max(0.1, d)
+            gene = None
+            for o in self.actifs(1 - camp):
+                if o.gk:
+                    continue
+                px, py = o.x - j.x, o.y - j.y
+                le_long = px * ux + py * uy
+                if 0.0 < le_long < TIR_EVITE and abs(px * uy - py * ux) < 1.8:
+                    if gene is None or le_long < gene[0]:
+                        gene = (le_long, px * uy - py * ux)
+            if gene is not None and abs(gene[1]) > 0.2:
+                # l'écart latéral du gêneur, dans le repère du tir : on vise de l'autre côté
+                cote = -1 if (gene[1] * (1 if camp == 0 else -1)) > 0 else 1
         vise_y = gy + cote * (BUT_LARG / 2 - 0.5) * self.rs.uniform(0.3, 1.0)
         sigma = math.radians((TIR_SIGMA[0] + TIR_SIGMA[1] * (1 - fin) + TIR_SIGMA[2] * pression + TIR_SIGMA[3] * d) * (1.0 + malus))
         theta = math.atan2(vise_y - j.y, gx - j.x) + self.rs.gauss(0, sigma)
@@ -2763,8 +2817,8 @@ class Match:
                     plafond = max(plafond or 0.0, (5.2 if self.phase[j.camp] in ("bloc_bas", "bloc_median") else 4.8) * j.vmax / 8.83)
                 if j.role == "marque" and j.homme >= 0:
                     h = next((o for o in self.actifs(1 - j.camp) if o.pid == j.homme), None)
-                    if h is not None and math.hypot(h.vx, h.vy) > 4.5:
-                        plafond = j.vmax * 0.9           # son homme part : il part avec lui
+                    if h is not None and math.hypot(h.vx, h.vy) > SUIT_APPEL[2]:
+                        plafond = j.vmax * 0.9           # son homme part : il part avec lui (dès 2,5 m/s ; 4,5 avant, il partait une seconde après)
                     elif h is not None and math.hypot(tx - j.x, ty - j.y) > 4.0:
                         plafond = 5.5 * j.vmax / 8.83    # loin de lui : il revient en courant
                 if j.fam == "DEF" and j.role in ("forme", "marque", "coupe") and -(b.vx * j.sens()) > 3.0 \
@@ -2893,7 +2947,8 @@ class Match:
                     n2 = ex * ex + ey * ey or 1.0
                     u = max(0.0, min(1.0, ((j.x - sx) * ex + (j.y - sy) * ey) / n2))
                     d_seg = math.hypot(j.x - (sx + u * ex), j.y - (sy + u * ey))
-                    if d_seg < CONTRE_TIR[1] and b.z < 1.7 and self.t - j.dernier_contact > 0.5:
+                    devant = (j.x - sx) * (1 if tir["camp"] == 0 else -1) > CONTRE_TIR[2]     # un défenseur au niveau du tireur ou dans son dos ne contre rien
+                    if devant and d_seg < CONTRE_TIR[1] and b.z < 1.7 and self.t - j.dernier_contact > 0.5:
                         j.dernier_contact = self.t
                         if self.rs.random() < CONTRE_TIR[0]:
                             self._contrer(j)
@@ -3126,9 +3181,10 @@ class Match:
             ang = math.atan2(b.vy, b.vx) + self.rs.choice([-1, 1]) * self.rs.uniform(0.5, 1.1)
         b.vx, b.vy = v * math.cos(ang), v * math.sin(ang)
         b.vz = abs(self.rs.gauss(2.0, 2.0))
+        va_au_but = tir is not None and self._va_au_but()          # (jugé avant de changer le dernier toucheur : c'est le but du tireur qu'on regarde)
         b.dernier = j
         b.dernier_camp = j.camp
-        if tir and self._va_au_but() and self.rs.random() > CONTRE_DEVIE_BUT:
+        if va_au_but and self.rs.random() > CONTRE_DEVIE_BUT:
             # un contre qui file quand même au but, c'est rare (réel : un but contre son camp par dix matchs) :
             # le ballon part de l'autre côté du défenseur
             ang += self.rs.choice([-1, 1]) * self.rs.uniform(0.7, 1.2)
@@ -3185,10 +3241,10 @@ class Match:
             # la faute de pressing : un défenseur qui arrive lancé dans les pieds du
             # porteur le bouscule parfois — la plupart des fautes d'un match
             gxp, gyp = self.but_de(p.camp)
-            prudence = 0.35 if (abs(p.x - gxp) < SURFACE_X + 2.0 and abs(p.y - gyp) < SURFACE_Y + 2.0) else 1.0
+            prudence = FAUTE_PRESSING[2] if (abs(p.x - gxp) < SURFACE_X + 2.0 and abs(p.y - gyp) < SURFACE_Y + 2.0) else 1.0
             if d < 1.4 and math.hypot(o.vx, o.vy) > 4.0 and self.t - o.dernier_choc > 2.0:
                 o.dernier_choc = self.t
-                if self.rs.random() < (0.04 + 0.03 * (1.0 - o.recup)) * prudence:
+                if self.rs.random() < (FAUTE_PRESSING[0] + FAUTE_PRESSING[1] * (1.0 - o.recup)) * prudence:
                     self._faute(o, p)                     # dans la surface, on défend les mains dans le dos
                     return
             gx, gy = self.but_de(p.camp)

@@ -1104,6 +1104,85 @@ le collectif qui fait gagner Paris, +0,7 but par match. Et le Real
 garde le dessus sur un Inter rodé de cinq points de moins, de peu
 (+0,19), en créant moins que lui.
 
+## 25. Ce qui restait faux après le § 24
+
+Rejoué règle par règle, sur les mêmes 150 matchs réels.
+
+**Les tirs contrés dans la surface** (33 % contre 15 % en vrai). Le
+contre se jugeait à la distance au segment parcouru — mais le segment
+part du pied du tireur, et son marqueur à un mètre côté but, ou le
+presseur à sa hauteur, « contrait » trois frappes sur quatre. Un
+défenseur au niveau du ballon ou dans le dos du tireur ne contre rien
+(`CONTRE_TIR[2]`), le tireur ouvre son pied du côté libre quand un
+défenseur est planté à moins de trois mètres devant lui (`TIR_EVITE`),
+et il attend qu'un défenseur planté à deux mètres dans l'axe bouge
+(`TIR_BOUCHE`). Mesuré : 17 % de tirs contrés dans la surface.
+
+**Les fautes et les penaltys.** Le moteur sifflait 14 fautes et 0,5
+penalty par match (réel : 24 et 0,3) : la faute de pressing monte, la
+prudence dans la surface aussi (`FAUTE_PRESSING`). Mesuré : 18 fautes,
+0,3 à 0,4 penalty.
+
+**Les buts contre son camp** (0,5 par match, réel 0,1). Le test « le
+contre file-t-il au but » regardait le but du défenseur, pas celui du
+tireur — jamais vrai, donc jamais dévié. Corrigé : 0,1 par match.
+
+**Le gardien.** Le taux d'arrêt dépendait trop de la qualité du gardien
+(`GARDIEN_ARRET` : les gardiens moyens du banc encaissaient 15 % des
+tirs, réel 12,5 à tous les niveaux) et pas assez de la distance
+(`GARDIEN_REACTION` : de près il a moins de temps, de loin plus).
+
+**L'avance du coureur sur une passe en profondeur** — la règle qui
+résiste. Réel (StatsBomb 360) : à la réception d'une passe en
+profondeur, le défenseur le plus proche est à 2,7 m (42 % à plus de
+3 m). Moteur : 4,6 m (84 % à plus de 3 m), et le défenseur le plus
+proche du coureur est déjà à 6,6 m quand la passe part. Trois règles
+ont été ajoutées sans que le chiffre bouge : le marqueur d'un homme
+qui part se colle à deux mètres et sprinte dès 2,5 m/s (`SUIT_APPEL`),
+un attaquant posé à moins de dix mètres devant la ligne se marque où
+que soit le ballon (`MARQUAGE_LIGNE`), et un coureur lancé est pris par
+le défenseur de ligne le plus proche, qui l'attend deux mètres
+au-dessus de la ligne et recule avec lui (`SUIT_COUREUR`). Les traces
+montrent pourquoi : l'appel part de douze à quinze mètres devant la
+ligne, à huit ou neuf mètres par seconde, souvent dans un couloir à dix
+mètres du défenseur le plus proche ; en une seconde et demie il est sur
+la ligne, et le défenseur, qui n'a pas le droit de sortir, n'a pas eu
+le temps de descendre. En vrai, l'avant-centre vit sur l'épaule du
+central et part de là. C'est le placement de l'avant-centre sans
+ballon (§ 21, `BUTEUR_DEVANT`, `ANCRE_X`) qu'il faudra revoir avec la
+ligne adverse, pas le marquage. Conséquence directe : encore 4 tirs
+par match après plus de vingt mètres de conduite (réel 1).
+
+**Le banc général** (48 matchs, graine 1) : 2,94 buts, 22,9 tirs, 9,3
+cadrés, 18 fautes (réel 2,9 à 3,2 / 26 / 9,7 / 24). Les issues, sur
+les paires du banc :
+
+| | but | arrêt | contré | à côté ou poteau |
+|---|---|---|---|---|
+| réel 0-11 m | 23 % | 22 % | 15 % | 39 % |
+| moteur 0-11 m | 21 % | 27 % | 17 % | 34 % |
+| réel 11-18 m | 11 % | 29 % | 28 % | 32 % |
+| moteur 11-18 m | 14 % | 29 % | 19 % | 39 % |
+| réel 18 m et plus | 4 % | 27 % | 31 % | 39 % |
+| moteur 18 m et plus | 1 % | 30 % | 17 % | 52 % |
+
+**Et le collectif** (mêmes bancs qu'au § 24) :
+
+| | buts | xG | V-N-D |
+|---|---|---|---|
+| PSG–Real, collectif branché (2 × 48) | +1,12 et +0,69 (moy. +0,90) | +0,80 et +1,05 | 56-19-21 |
+| PSG–Real, collectif à 0 (2 × 48) | +0,48 et +0,54 (moy. +0,51) | +0,59 et +0,26 | 42-25-29 |
+| Real–Inter 0,35 / 0,85, collectif branché (36) | −0,39 | −0,38 | 11-7-18 |
+| Real–Inter, collectif à 0 (36) | +0,83 | +0,08 | 23-8-5 |
+
+Maintenant que les buts se prennent dans la surface contre un bloc, le
+collectif pèse plus lourd qu'au § 22 : un Inter rodé à 0,85 prend le
+dessus sur un Real à 0,35 qui a cinq points d'OVR de plus (sur 36
+matchs, ± 0,35). Si tu veux que les individualités du Real passent
+encore, c'est l'échelle `COLLECTIF_OVR` (20) qu'il faut baisser vers
+14, ou remonter l'Inter moins haut que 0,85 dans
+`jeu/collectif_manuel.json` — c'est ton choix, pas une mesure.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

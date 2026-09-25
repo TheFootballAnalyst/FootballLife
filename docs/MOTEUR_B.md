@@ -743,7 +743,14 @@ ramassée (`CONTRE_TIR`), le gardien laisse filer ce qui part à côté
 (`_va_au_but`) et a moins de temps de près (`GARDIEN_REACTION`,
 `GARDIEN_ARRET`), un contre dévie rarement au but (`CONTRE_DEVIE_BUT`),
 la tête se disperse (`TETE_TIR`), on ne tire pas dans un défenseur
-(`TIR_BOUCHE`). Banc de 48 matchs : 3,44 buts, 24 tirs, 9,2 cadrés.
+(`TIR_BOUCHE`). Puis (§ 25) : un défenseur au niveau du ballon ne
+contre rien et le tireur ouvre son pied du côté libre (`CONTRE_TIR`,
+`TIR_EVITE`), plus de fautes et moins de penaltys (`FAUTE_PRESSING`),
+le contre dévié jugé sur le bon but, le gardien moins dépendant de sa
+note et plus de la distance (`GARDIEN_ARRET`, `GARDIEN_REACTION`), et
+le suivi des coureurs (`SUIT_APPEL`, `MARQUAGE_LIGNE`, `SUIT_COUREUR`)
+— qui ne suffit pas encore. Banc de 48 matchs : 2,94 buts, 22,9 tirs,
+9,3 cadrés, 18 fautes.
 
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
