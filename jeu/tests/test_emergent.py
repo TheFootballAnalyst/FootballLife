@@ -66,7 +66,7 @@ def test_a_full_match_stays_on_the_pitch_and_looks_like_football():
         assert j["vmax_kmh"] <= 38.0
         assert 0.0 <= j["fatigue"] <= 1.0
     gk = [j for j in r["joueurs"] if j["poste"].startswith("Gardien")]
-    assert all(j["distance"] < 4000 for j in gk)
+    assert all(2000 < j["distance"] < 6500 for j in gk)     # le gardien libéro court : réel 5 km par match
 
 
 def test_faster_cards_reach_higher_top_speeds():
