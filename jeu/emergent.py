@@ -118,7 +118,7 @@ FAUTE_PRESSING = (0.06, 0.045, 0.2)          # la faute de pressing (un défense
 CONTRE_DEVIE_BUT = 0.08                      # la part des contres qui filent quand même au but (un contre son camp par dix matchs en vrai ; le moteur en faisait un par deux matchs)
 CONTRE_TIR = (0.75, 1.3, 0.0)                # un défenseur sur la trajectoire d'une frappe la contre : probabilité, portée (au segment), et il doit être à plus d'un demi-mètre devant le ballon (réel : un tir sur quatre contré ; à 0,5 et 1,3 m, un sur douze)
 TIR_HAUTEUR = (2.4, 2.5, 1.5)                # l'écart de hauteur d'une frappe, en m/s : base, + par manque de finition, + sous pression (trop haut, c'est par-dessus)
-TIR_SIGMA = (8.0, 10.0, 5.0, 0.2)            # l'erreur d'une frappe, en degrés : base, + par manque de finition, + sous pression, + par mètre (réel : un tir sur trois à côté ; à 13/14/7/0,35, sept sur dix)
+TIR_SIGMA = (9.5, 10.0, 5.0, 0.15)           # l'erreur d'une frappe, en degrés : base, + par manque de finition, + sous pression, + par mètre (réel : un tir sur trois à côté ; à 13/14/7/0,35, sept sur dix)
 MARQUAGE_ZONE = True                         # un marqueur lâche l'homme qui sort de sa zone
 CONTIENT_SURFACE = 1.2                       # aux abords de la surface, le presseur ferme à cette distance (réel : 2,8 m du passeur dans le dernier tiers)
 PORTEUR_PRESSE = (2.5, 1.0)                  # le presseur « est dessus » à moins de 2,5 m et pas plus d'un mètre dans le dos du porteur ; sinon le marqueur sort (réel : 80 % des tirs de 11-18 m ont un défenseur à moins de 3 m, le moteur 58 %)
@@ -157,6 +157,7 @@ RESTANTE_GLISSE = 0.25                       # ... et elle coulisse avec le ball
 RECUL_FACE = (12.0, 4.0)                     # un défenseur côté but à moins de douze mètres d'un porteur adverse recule à quatre mètres par seconde au plus
 REPLI_CONTIENT = 3.0                         # dans le repli après une perte haute, le presseur temporise à trois mètres (sept avant)
 MARQUAGE_LIGNE = 10.0                        # un attaquant à moins de dix mètres d'un défenseur se marque même ballon loin (la ligne cible peut être à vingt mètres des centraux : on regarde les hommes, pas la cible) (réel : le coureur part de l'épaule du central, pas de sept mètres)
+INTERCEPTION_CHEMIN = False                  # sur une passe adverse au sol, le chasseur coupe la route du ballon au lieu de courir à son point d'arrêt (essayé : 57 % de passes en profondeur reçues au lieu de 56, et trois tirs de moins par match ; parqué)
 SUIT_COUREUR = (15.0, 12.0, 18.0, 2.0)       # un coureur lancé à moins de quinze mètres devant la ligne, pris par un défenseur à moins de 12 m de côté et 18 m de distance, qui l'attend au plus deux mètres au-dessus de la ligne
 APPEL_DEPART = 6.0                           # un ailier ou un avant-centre ne lance un appel qu'à moins de six mètres derrière la ligne de hors-jeu
 EPAULE = (0.3, 2.5)                          # l'avant-centre sans ballon en attaque : à 0,3 m en jeu de la ligne de hors-jeu, sur l'épaule du central le plus proche (2,5 m de côté, côté ballon)
@@ -1568,6 +1569,26 @@ class Match:
                         ja.cible = (max(1.0, min(LONG - 1.0, ja.cible[0] - ux * ka)), max(1.0, min(LARG - 1.0, ja.cible[1] - uy * ka)))
                         jb.cible = (max(1.0, min(LONG - 1.0, jb.cible[0] + ux * kb)), max(1.0, min(LARG - 1.0, jb.cible[1] + uy * kb)))
 
+    def _point_interception(self, j: Joueur, ax: float, ay: float) -> tuple[float, float]:
+        """Le premier point du chemin du ballon (jusqu'à son arrêt en (ax, ay)) que j
+        atteint avant lui, à sept mètres par seconde ; sinon le point d'arrêt."""
+        b = self.ballon
+        v = b.vitesse()
+        if v < 0.5:
+            return ax, ay
+        ux, uy = b.vx / v, b.vy / v
+        total = math.hypot(ax - b.x, ay - b.y)
+        s_, t_ = 0.0, 0.0
+        vit = v
+        while s_ < total:
+            s_ += vit * 0.2
+            t_ += 0.2
+            vit = max(0.5, vit - (BALLON_ROULE + BALLON_AIR * vit * vit) * 0.2)
+            qx, qy = b.x + ux * s_, b.y + uy * s_
+            if math.hypot(qx - j.x, qy - j.y) / 7.0 <= t_ + 0.3:
+                return max(0.5, min(LONG - 0.5, qx)), max(0.5, min(LARG - 0.5, qy))
+        return ax, ay
+
     def _ballon_libre(self):
         """Un ballon que personne ne tient : le plus proche de chaque camp
         y court, là où il va s'arrêter."""
@@ -1587,6 +1608,14 @@ class Match:
         for camp in (0, 1):
             if b.passe_vers is not None and b.passe_vers.camp == camp:
                 continue                          # le receveur y va déjà
+            if not aerien and v > 0.5 and b.passe_vers is not None and INTERCEPTION_CHEMIN:
+                # une passe adverse au sol : le défenseur ne court pas là où le ballon s'arrête (trente mètres
+                # plus loin), il coupe sa route au premier point qu'il peut atteindre avant lui (réel : 35 % des
+                # passes en profondeur arrivent ; le moteur en laissait passer 59 %)
+                cand = [o for o in self.actifs(camp) if not o.gk]
+                if cand:
+                    o = min(cand, key=lambda o: math.hypot(o.x - b.x, o.y - b.y))
+                    px, py = self._point_interception(o, px, py)
             j, d = min(((o, math.hypot(o.x - px, o.y - py)) for o in self.actifs(camp) if not o.gk),
                        key=lambda t: t[1] * (1.3 - 0.6 * t[0].volume), default=(None, 0.0))    # à distance égale, celui qui court y va
             mx_, my_ = self.but_de(1 - camp)

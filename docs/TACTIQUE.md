@@ -1250,6 +1250,18 @@ les paires du banc : but 10 %, arrêt 32 %, contré 16 %, à côté 41 %
 Le Real repasse devant l'Inter avec le collectif branché (de peu, à xG
 égal), Paris garde +0,9 but sur le Real. C'est le monde du § 22.
 
+**Deux essais de plus, un gardé, un parqué.** Les frappes de moins de
+onze mètres partaient trop peu à côté (24 % contre 39) : la dispersion
+de base monte de 8 à 9,5 degrés et celle par mètre baisse
+(`TIR_SIGMA`), 36 % à côté après. Et le chasseur qui coupe la route
+d'une passe adverse au sol au premier point qu'il peut atteindre, au
+lieu de courir là où le ballon s'arrête (`INTERCEPTION_CHEMIN`) : la
+part de passes en profondeur reçues n'a pas bougé (57 % contre 56) et
+il coûtait trois tirs par match — parqué. Après ces deux réglages, le
+banc de 48 matchs donne 2,92 buts, 22,8 tirs, 8,7 cadrés, 19 fautes ;
+PSG–Real +1,04 but avec le collectif (34-2-12 sur 48), +0,58 sans ;
+Real–Inter 0,35 / 0,85 : +0,25 avec.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :
