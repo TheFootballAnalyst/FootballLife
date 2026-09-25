@@ -643,6 +643,50 @@ Pacho 6,8 contre 9,5) et le gardien presque pas (0,8 km contre 5) —
 la ligne bouge d'un bloc, sans les allers-retours d'un vrai central ;
 c'est un autre chantier.
 
+## 18. Les centraux et le gardien : la défense restante
+
+Les centraux couraient 7 à 8 km (réel 9,2 à 9,8) et le gardien 0,8
+(réel 5,1). Mesuré à chaque passe de l'équipe en possession, en réel
+(positions 360, 100 matchs) et dans le moteur (`outils/arriere_ref.py`,
+`outils/arriere_moteur.py`) :
+
+| | réel | moteur avant | moteur après |
+|---|---|---|---|
+| gardien sans ballon, ballon à 15-30 m de son but | 3,2 m devant sa ligne | 2,3 | 4,8 |
+| ... ballon à 30-45 m | 4,9 | 3,3 | 7,3 |
+| ... ballon à 45-60 m | 7,7 | 4,3 | 10,1 |
+| ... ballon à 60-75 m | 13,1 | 4,8 | 12,6 |
+| gardien avec le ballon, ballon à 15-30 m | 5,5 | 2,2 | 6,4 |
+| ... ballon à 30-45 m | 7,9 | 3,1 | 9,1 |
+| les deux plus bas de l'attaque suivent le ballon en largeur à | 0,22 | 0,11 | 0,15 |
+| ... et en profondeur à | 0,43 | 0,43 | 0,45 |
+
+Le gardien réel n'est pas sur sa ligne : il est à cinq mètres quand le
+ballon est au milieu de son camp, à treize quand il est dans l'autre
+camp, et plus loin encore quand son équipe a le ballon (le gardien
+libéro). Le moteur le laissait à cinq mètres au plus. Les deux plus bas
+de l'équipe en possession (les centraux, quand la caméra les voit :
+c'est la limite des positions 360, un central hors champ n'est pas
+compté, d'où des chiffres à lire comme un plancher) sont six à neuf
+mètres derrière le ballon ; le moteur les gardait à quinze en
+progression et à trente-huit sur une attaque de la surface.
+
+Ce qui est fait : le gardien sort à la mesure de la distance du ballon
+(`GARDIEN_SORTIE` : 0,5 m + 0,18 par mètre sans ballon, 2,5 m de base
+avec, plafond seize) et coulisse en largeur avec lui (`GARDIEN_LARGEUR`) ;
+la défense restante joue à onze mètres derrière le ballon en progression
+(`RESTANTE_RECUL`, quinze avant), à cinquante-six mètres sur une attaque
+de la surface (`RESTANTE_FINITION`, cinquante-deux avant), et coulisse
+avec le ballon à 0,25 (`RESTANTE_GLISSE`, 0,1 à 0,2 avant).
+
+Mesuré (`outils/course_moteur.py`, 4 matchs) : les centraux passent de
+6,8-7,6 km à 7,8-8,6 (réel 9,2 à 9,8), le gardien de 0,8 à 3,7 (réel
+5,1). Banc de 72 matchs : 3,2 buts (± 0,2), 27,6 tirs, 7,7 cadrés —
+comme avant ce chantier au bruit près (3,1 ± 0,1) : un gardien qui sort
+et une défense restante plus haute ne coûtent pas de buts. Ce qui manque encore aux centraux, c'est ce que la
+caméra ne montre pas et que le moteur ne fait pas : les pas de côté
+permanents d'un central en construction, qui ne sont pas des courses.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

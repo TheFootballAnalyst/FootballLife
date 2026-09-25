@@ -120,6 +120,11 @@ AILIER_VOLUME = 8.0                          # un ailier sans ballon attend jusq
 INERTIE_VOLUME = 6.0                         # la zone morte d'un joueur de forme grandit avec son manque de volume : 2,5 m + 6 × (1 − volume)
 ANCRE_VOLUME = (0.4, 0.6)                    # la place sans ballon d'un attaquant suit la forme à 40 % + 60 % × volume ; le reste est ancré...
 ANCRE_X = 42.0                               # ... à quarante-deux mètres de son but (un peu sous la médiane : là où on attend le contre)
+GARDIEN_LARGEUR = 0.9                        # ... et coulisse en largeur avec lui (0,6 avant : 0,8 km par match, réel 5)
+GARDIEN_SORTIE = (0.5, 2.5, 0.18, 16.0)      # le gardien devant sa ligne : base sans ballon, base avec, par mètre de ballon, plafond (réel 360)
+RESTANTE_RECUL = 11.0                        # la défense restante en progression : onze mètres derrière le ballon (quinze avant ; réel 6 à 9 vus en 360, les centraux hors champ comptent moins)
+RESTANTE_FINITION = 56.0                     # ... et à cinquante-six mètres quand on attaque la surface (cinquante-deux avant)
+RESTANTE_GLISSE = 0.25                       # ... et elle coulisse avec le ballon en largeur (réel : 0,22 ; 0,1 à 0,2 avant)
 PRESSE_DUREE = (2.0, 4.0)                    # un presseur garde le ballon 2 s + 4 s × volume, puis il souffle
 PRESSE_RELEVE = 14.0                         # ... si un coéquipier peut prendre le relais à moins de quatorze mètres
 PRESSE_REPOS = 4.0                           # ... quatre secondes sans presser (un autre prend)
@@ -1126,13 +1131,13 @@ class Match:
         elif phase == "construction":
             prof = {"central": 14.0, "lateral": 32.0, "pivot": 24.0, "relayeur": 40.0, "meneur": 52.0, "ailier": 60.0, "buteur": 68.0}
             larg = {"central": 11.0, "lateral": 28.0, "pivot": 0.0, "relayeur": 12.0, "meneur": 3.0, "ailier": 26.0, "buteur": 0.0}
-            glisse = 0.15
+            glisse = RESTANTE_GLISSE
         elif phase == "progression":
-            L = max(25.0, min(52.0, bx - 15.0))
+            L = max(25.0, min(58.0, bx - RESTANTE_RECUL))       # la défense restante : onze mètres derrière le ballon (réel : 6 à 9 vus en 360)
             prof = {"central": L, "lateral": L + 14.0, "pivot": L + 8.0, "relayeur": L + 18.0, "meneur": L + 28.0,
                     "ailier": max(bx + 8.0, L + 30.0), "buteur": L + 36.0}
             larg = {"central": 9.0, "lateral": 26.0, "pivot": 0.0, "relayeur": 12.0, "meneur": 4.0, "ailier": 26.0, "buteur": 0.0}
-            glisse = 0.2
+            glisse = RESTANTE_GLISSE                            # ... et elle coulisse avec le ballon (réel : 0,22)
         elif phase == "contre":
             L = max(25.0, min(50.0, bx - 12.0))
             prof = {"central": L, "lateral": L + 10.0, "pivot": L + 8.0, "relayeur": bx + 15.0, "meneur": bx + 22.0,
@@ -1140,10 +1145,10 @@ class Match:
             larg = {"central": 9.0, "lateral": 24.0, "pivot": 0.0, "relayeur": 10.0, "meneur": 4.0, "ailier": 22.0, "buteur": 0.0}
             glisse = 0.1
         else:  # finition : la surcharge côté ballon, le poteau opposé, la défense de repli
-            C = 52.0
+            C = RESTANTE_FINITION
             prof = {"central": C, "lateral": 60.0, "pivot": 63.0, "relayeur": 72.0, "meneur": 82.0, "ailier": 90.0, "buteur": 90.0}
             larg = {"central": 8.0, "lateral": 8.0, "pivot": 0.0, "relayeur": 10.0, "meneur": 4.0, "ailier": 22.0, "buteur": 0.0}
-            glisse = 0.1
+            glisse = RESTANTE_GLISSE
         self.ligne_def[camp] = prof["central"]
         # --- chaque rôle à sa place (le porteur garde la sienne : il conduit, il ne se replace pas)
         for j in siens:
@@ -1841,10 +1846,13 @@ class Match:
             mx, my = self.but_de(1 - camp)          # son propre but
             dx, dy = b.x - mx, b.y - my
             d = math.hypot(dx, dy) or 1.0
-            # sur la bissectrice, un peu devant sa ligne, plus loin quand le ballon est loin
-            sortie = min(5.0, 1.0 + d * 0.06)
+            # sur la bissectrice, devant sa ligne, d'autant plus loin que le ballon est loin — et plus loin
+            # encore quand son équipe a le ballon (réel, 360 : sans ballon 1,7 m à 7 m du but, 4,9 à 37, 13 à 67 ;
+            # avec le ballon 4 m, 7,9, 13 — le gardien libéro, pas le gardien sur sa ligne)
+            k = GARDIEN_SORTIE[1] if att == camp else GARDIEN_SORTIE[0]
+            sortie = min(GARDIEN_SORTIE[3], k + d * GARDIEN_SORTIE[2])
             x = mx + dx / d * sortie
-            y = my + dy / d * sortie * 0.6
+            y = my + dy / d * sortie * GARDIEN_LARGEUR       # et il suit le ballon en largeur
             # il sort sur un ballon libre dans sa surface si personne n'est plus près
             libre = b.porteur is None and b.vitesse() < 8 and self.arret is None
             dans = abs(b.x - mx) < SURFACE_X and abs(b.y - my) < SURFACE_Y

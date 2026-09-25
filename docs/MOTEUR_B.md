@@ -668,6 +668,15 @@ forme. Mesuré (`outils/course_moteur.py`) : Vinícius 10,0 km (réel 9,6),
 Doué 12,7 (11,5), Mbappé 8,5 (9,0) ; sans ballon, Vinícius court 4,1 km
 et Doué 6,4.
 
+**Le gardien libéro et la défense restante** (docs/TACTIQUE.md § 18).
+Le gardien sort à la mesure de la distance du ballon (cinq mètres quand
+il est au milieu de son camp, treize quand il est dans l'autre, plus
+loin encore quand son équipe a le ballon : `GARDIEN_SORTIE`) et coulisse
+en largeur (`GARDIEN_LARGEUR`) ; la défense restante joue à onze mètres
+derrière le ballon et coulisse avec lui (`RESTANTE_RECUL`,
+`RESTANTE_FINITION`, `RESTANTE_GLISSE`). Les centraux passent de 7 à 8
+km et demi, le gardien de 0,8 à 3,7.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du
