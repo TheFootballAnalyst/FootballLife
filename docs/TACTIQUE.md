@@ -1183,6 +1183,73 @@ encore, c'est l'échelle `COLLECTIF_OVR` (20) qu'il faut baisser vers
 14, ou remonter l'Inter moins haut que 0,85 dans
 `jeu/collectif_manuel.json` — c'est ton choix, pas une mesure.
 
+## 26. L'avant-centre sur l'épaule du central
+
+**Le fait réel** (StatsBomb 360, 80 matchs, à chaque passe) : quand
+son équipe a le ballon entre 25 et 75 m du but, l'attaquant le plus
+haut est **sur la ligne de hors-jeu** (0,1 à 0,3 m en jeu, un quart du
+temps en position de hors-jeu) et à 2,4 à 3,8 m du défenseur le plus
+proche. Le moteur le posait 1,4 à 2,8 m en jeu et à 2,7 à 4,7 m de tout
+le monde — et surtout, ses appels partaient de bien plus loin.
+
+**Ce que les traces ont montré**, tick par tick, sur les passes en
+profondeur : le coureur partait de 4,9 m derrière la ligne (jusqu'à
+quinze), avec le défenseur le plus proche à 6,1 m ; pendant sa course
+les centraux restaient plantés (vitesse zéro) ou sprintaient vers une
+ligne cible qui avait sauté vingt mètres devant — le marquage n'était
+actif que ballon à moins de 40 m du but, et la « ligne » que suit un
+central est une cible, pas ses coéquipiers.
+
+**Ce qui change.**
+
+1. **Le marquage s'active dès qu'un attaquant est à moins de dix
+   mètres d'un défenseur**, où que soit le ballon (`MARQUAGE_LIGNE`) :
+   le central colle son homme au lieu de tenir une cible.
+2. **L'avant-centre vit sur la ligne**, à 0,3 m en jeu, sur l'épaule
+   du central le plus proche, côté ballon (`EPAULE`).
+3. **Un appel part de la ligne** : à moins de six mètres derrière la
+   ligne de hors-jeu, jamais de quinze (`APPEL_DEPART`) ; un latéral
+   garde le droit de partir de derrière sur son côté.
+4. Le marqueur d'un homme qui part anticipe une seconde et sprinte à
+   fond (`SUIT_APPEL`).
+
+**Mesuré** (PSG–Real) :
+
+| passes en profondeur | réel | moteur avant | moteur après |
+|---|---|---|---|
+| défenseur le plus proche du coureur au départ de sa course | — | 6,1 m | 3,5 m |
+| ... à la passe | — | 6,0 m | 4,6 m |
+| marge de hors-jeu au départ | ≈ 0 | 4,9 m | 2,2 m |
+| défenseur le plus proche à la réception (tous coureurs) | 2,7 m | 4,7 m | 4,6 m |
+| ... avant-centre / ailier / latéral | — | 4,4 / 4,3 / 5,9 | 3,9 / 4,8 / 5,9 |
+| attaquant le plus haut, en jeu de | 0,1 à 0,3 m | 1,4 à 2,8 m | 0,9 à 2,0 m |
+
+Le départ de course est réglé (le défenseur est à 3,5 m au lieu de
+6), la réception pas encore : sur la seconde de vol du ballon, le
+marqueur rend encore un mètre, et les latéraux qui débordent sont
+libres à six mètres (en vrai aussi, sans doute, mais le chiffre réel
+mélange tout). Tirs après plus de vingt mètres de conduite : 3,5 par
+match (7,3 au départ, réel 1,0) ; tirs de 11-18 m sans passe : 3,5
+(8,6 au départ, réel 1,8).
+
+**Le banc général** (48 matchs, graine 1) : 3,35 buts, 23,2 tirs, 9,4
+cadrés, 3,4 hors-jeu (réel 2,9 à 3,2 / 26 / 9,7 / 3,5). Les issues sur
+les paires du banc : but 10 %, arrêt 32 %, contré 16 %, à côté 41 %
+(réel 12 / 26 / 25 / 34) — le gardien arrête maintenant un peu trop de
+11-18 m, à régler avec le prochain chantier.
+
+**Et le collectif** (mêmes bancs) :
+
+| | buts | xG | V-N-D |
+|---|---|---|---|
+| PSG–Real, collectif branché (2 × 48) | +1,00 et +0,75 (moy. +0,88) | +0,81 et +0,86 | 52-16-28 |
+| PSG–Real, collectif à 0 (2 × 48) | +0,71 et +0,31 (moy. +0,51) | +0,65 et +0,27 | 49-17-30 |
+| Real–Inter 0,35 / 0,85, collectif branché (36) | +0,31 | +0,11 | 13-10-13 |
+| Real–Inter, collectif à 0 (36) | +0,50 | +0,12 | 19-7-10 |
+
+Le Real repasse devant l'Inter avec le collectif branché (de peu, à xG
+égal), Paris garde +0,9 but sur le Real. C'est le monde du § 22.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

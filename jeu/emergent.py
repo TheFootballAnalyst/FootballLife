@@ -146,7 +146,7 @@ ANCRE_VOLUME = (0.4, 0.6)                    # la place sans ballon d'un attaqua
 ANCRE_X = 42.0                               # ... à quarante-deux mètres de son but (un peu sous la médiane : là où on attend le contre)
 GARDIEN_LARGEUR = 0.9                        # ... et coulisse en largeur avec lui (0,6 avant : 0,8 km par match, réel 5)
 GARDIEN_ARRET = (0.75, 0.25)                 # la part de l'arrêt qui tient au gardien : 0,89 à 56 d'ARR, 0,98 à 90 (0,6 + 0,4 avant : les gardiens moyens encaissaient 15 % des tirs, réel 12,5 à tous les niveaux)
-GARDIEN_REACTION = (0.45, 0.85, 14.0)        # l'arrêt selon la distance de la frappe : × 0,45 + 0,85 × min(1, d / 14) — 0,94 à huit mètres, 1,3 dès quatorze (réel : 51 % des tirs cadrés de moins de 11 m entrent, 28 % de 11-18, 13 % au-delà)
+GARDIEN_REACTION = (0.43, 0.72, 14.0)        # l'arrêt selon la distance de la frappe : × 0,43 + 0,72 × min(1, d / 14) — 0,84 à huit mètres, 1,15 dès quatorze (réel : 51 % des tirs cadrés de moins de 11 m entrent, 28 % de 11-18, 13 % au-delà)
 GARDIEN_SORTIE = (0.5, 2.5, 0.18, 16.0)      # le gardien devant sa ligne : base sans ballon, base avec, par mètre de ballon, plafond (réel 360)
 RESTANTE_RECUL = 11.0                        # la défense restante en progression : onze mètres derrière le ballon (quinze avant ; réel 6 à 9 vus en 360, les centraux hors champ comptent moins)
 SURFACE_POTEAU = (20.0, 94.0, 12.0, 95.0)    # ballon à plus de vingt mètres de l'axe : l'ailier côté ballon rentre au premier poteau (x 94, douze mètres de l'axe) ; l'ailier opposé au second (x 95 ; 92 avant)
@@ -156,9 +156,11 @@ RESTANTE_FINITION = 56.0                     # ... et à cinquante-six mètres q
 RESTANTE_GLISSE = 0.25                       # ... et elle coulisse avec le ballon en largeur (réel : 0,22 ; 0,1 à 0,2 avant)
 RECUL_FACE = (12.0, 4.0)                     # un défenseur côté but à moins de douze mètres d'un porteur adverse recule à quatre mètres par seconde au plus
 REPLI_CONTIENT = 3.0                         # dans le repli après une perte haute, le presseur temporise à trois mètres (sept avant)
-MARQUAGE_LIGNE = 10.0                        # un attaquant à moins de dix mètres devant la ligne se marque même ballon loin (réel : le coureur part de l'épaule du central, pas de sept mètres)
+MARQUAGE_LIGNE = 10.0                        # un attaquant à moins de dix mètres d'un défenseur se marque même ballon loin (la ligne cible peut être à vingt mètres des centraux : on regarde les hommes, pas la cible) (réel : le coureur part de l'épaule du central, pas de sept mètres)
 SUIT_COUREUR = (15.0, 12.0, 18.0, 2.0)       # un coureur lancé à moins de quinze mètres devant la ligne, pris par un défenseur à moins de 12 m de côté et 18 m de distance, qui l'attend au plus deux mètres au-dessus de la ligne
-SUIT_APPEL = (3.0, 2.0, 2.5)                 # un homme qui part vers le but à plus de 3 m/s se colle à deux mètres, et son marqueur sprinte dès qu'il dépasse 2,5 m/s (réel : à la réception d'une passe en profondeur, le défenseur le plus proche est à 2,7 m ; le moteur, 4,5)
+APPEL_DEPART = 6.0                           # un ailier ou un avant-centre ne lance un appel qu'à moins de six mètres derrière la ligne de hors-jeu
+EPAULE = (0.3, 2.5)                          # l'avant-centre sans ballon en attaque : à 0,3 m en jeu de la ligne de hors-jeu, sur l'épaule du central le plus proche (2,5 m de côté, côté ballon)
+SUIT_APPEL = (3.0, 2.0, 2.5, 1.0, 1.0)                # un homme qui part vers le but à plus de 3 m/s se colle à deux mètres, et son marqueur sprinte dès qu'il dépasse 2,5 m/s (réel : à la réception d'une passe en profondeur, le défenseur le plus proche est à 2,7 m ; le moteur, 4,5)
 PORTEUR_TEMPORISE = 2.0                      # le marqueur d'un porteur lancé loin du but reste à deux mètres côté but (quatre avant)
 SORTIE_PORTEUR = (14.0, 6.0, 3.0, 40.0, 4.0) # un défenseur de la ligne sort sur le porteur lancé : à moins de 14 m devant lui, 6 m de côté, porteur à plus de 3 m/s vers le but, ballon à moins de 40 m
 PRESSE_DUREE = (2.0, 4.0)                    # un presseur garde le ballon 2 s + 4 s × volume, puis il souffle
@@ -1332,9 +1334,18 @@ class Match:
                         y = LARG / 2 + signe * 14.0
                     if r == "relayeur" and (tac["milieux"] == "projection" or j.travail_att > 0.75):
                         x += 6.0
-                # personne ne se met hors jeu en se plaçant
+                # personne ne se met hors jeu en se plaçant — et l'avant-centre vit sur la ligne, sur l'épaule
+                # d'un central (réel : l'attaquant le plus haut est à 0,1 m de la ligne de hors-jeu, à 3 m du
+                # défenseur le plus proche ; le moteur le posait 1,5 m en jeu et à 5 m de tout le monde, d'où
+                # des appels qui partaient de cinq mètres derrière la ligne avec six mètres d'avance)
+                epaule = r == "buteur" and phase in ("progression", "finition", "contre") and ligne_hj is not None
                 if ligne_hj is not None:
-                    x = min(x, ligne_hj - 1.5)
+                    x = min(x, ligne_hj - (EPAULE[0] if epaule else 1.5))
+                if epaule:
+                    centraux = [o for o in self.actifs(1 - camp) if o.role_tac == "central"]
+                    if centraux:
+                        cb = min(centraux, key=lambda o: abs(o.y - y))
+                        y = cb.y + (EPAULE[1] if by >= cb.y else -EPAULE[1])     # côté ballon du central
                 # la largeur coulisse un peu vers le ballon
                 y += (by - LARG / 2) * glisse
             else:
@@ -1466,6 +1477,10 @@ class Match:
                     recul = -18.0 if (j.role_tac == "lateral" and abs(j.y - by) < 22.0) else -6.0
                     if math.hypot(j.x - bx, j.y - by) > 42.0 or (j.x - bx) * sens < recul:
                         continue                          # un latéral peut partir de derrière, sur son côté
+                    if j.role_tac != "lateral" and (lh - j.x) * sens > APPEL_DEPART:
+                        continue                          # un appel part de la ligne, pas de quinze mètres derrière : lancé à
+                                                          # neuf mètres par seconde depuis le fond, personne ne le suit (réel :
+                                                          # l'attaquant le plus haut est à 0,1 m de la ligne quand la passe part)
                     if j.role_tac == "lateral" and any(o.role_tac == "lateral" and o is not j and o.appel_jusqua > self.t
                                                        for o in self.actifs(att)):
                         continue                          # quand un latéral monte, l'autre reste
@@ -1828,7 +1843,8 @@ class Match:
         # d'homme à chaque passe n'est jamais au contact.
         # (et un attaquant posé à moins de dix mètres devant la ligne se marque, où que soit le ballon :
         #  un avant-centre vit sur l'épaule d'un central, il ne part pas de sept mètres)
-        sur_la_ligne = any(o is not porteur and -2.0 < siens[0].propre(o.x, o.y)[0] - self.ligne_def[df] < MARQUAGE_LIGNE for o in adverses)
+        defs_ = [j for j in siens if j.fam == "DEF"]
+        sur_la_ligne = any(o is not porteur and any(math.hypot(o.x - d_.x, o.y - d_.y) < MARQUAGE_LIGNE for d_ in defs_) for o in adverses)
         self.marquage_actif[df] = bxd < 40.0 or (self.marquage_actif[df] and bxd < 46.0) or sur_la_ligne
         if True:
             # un coureur lancé vers le but se suit, où que soit le ballon : le défenseur de la ligne le plus
@@ -1931,7 +1947,7 @@ class Match:
                     else:
                         recul = min(recul, PORTEUR_TEMPORISE)  # plus loin, on temporise à deux mètres : on n'escorte pas un porteur lancé à quatre
                 # côté but de son homme, et un peu devant sa course : on ne suit pas, on accompagne
-                ax, ay = adv.x + adv.vx * 0.6, adv.y + adv.vy * 0.6      # on anticipe la course de son homme
+                ax, ay = adv.x + adv.vx * SUIT_APPEL[3], adv.y + adv.vy * SUIT_APPEL[3]      # on anticipe la course de son homme (une seconde ; 0,6 avant)
                 cx, cy = ax + (mx - ax) / dm * recul, ay + (my - ay) / dm * recul
                 j.cible = self._tenir_ligne(j, cx, cy)
                 j.role = "marque"
@@ -2818,7 +2834,7 @@ class Match:
                 if j.role == "marque" and j.homme >= 0:
                     h = next((o for o in self.actifs(1 - j.camp) if o.pid == j.homme), None)
                     if h is not None and math.hypot(h.vx, h.vy) > SUIT_APPEL[2]:
-                        plafond = j.vmax * 0.9           # son homme part : il part avec lui (dès 2,5 m/s ; 4,5 avant, il partait une seconde après)
+                        plafond = j.vmax * SUIT_APPEL[4]  # son homme part : il part avec lui, à fond (dès 2,5 m/s ; 4,5 avant, il partait une seconde après)
                     elif h is not None and math.hypot(tx - j.x, ty - j.y) > 4.0:
                         plafond = 5.5 * j.vmax / 8.83    # loin de lui : il revient en courant
                 if j.fam == "DEF" and j.role in ("forme", "marque", "coupe") and -(b.vx * j.sens()) > 3.0 \

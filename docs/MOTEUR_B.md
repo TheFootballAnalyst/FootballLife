@@ -752,6 +752,16 @@ le suivi des coureurs (`SUIT_APPEL`, `MARQUAGE_LIGNE`, `SUIT_COUREUR`)
 — qui ne suffit pas encore. Banc de 48 matchs : 2,94 buts, 22,9 tirs,
 9,3 cadrés, 18 fautes.
 
+**L'avant-centre sur l'épaule du central** (docs/TACTIQUE.md § 26). Le
+marquage s'active dès qu'un attaquant est à moins de dix mètres d'un
+défenseur (`MARQUAGE_LIGNE`), l'avant-centre vit sur la ligne de
+hors-jeu sur l'épaule du central côté ballon (`EPAULE`), un appel part
+de la ligne et pas de quinze mètres derrière (`APPEL_DEPART`), le
+marqueur d'un homme qui part anticipe une seconde et sprinte à fond
+(`SUIT_APPEL`). Le défenseur le plus proche du coureur au départ de sa
+course passe de 6 à 3,5 m. Banc de 48 matchs : 3,35 buts, 23 tirs,
+9,4 cadrés.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du
