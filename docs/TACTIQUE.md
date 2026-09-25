@@ -729,6 +729,45 @@ club de possession ne presse pas forcément haut — ; la hauteur mesurée
 en 360 (§ 1) ne couvre que quelques clubs, on prend donc la possession
 comme lecture unique, à corriger à la main au besoin.
 
+## 20. Les attaquants qui redescendent trop, le latéral aspiré à la touche
+
+Deux observations du bac. « Doué et Dembélé courent partout, ils
+redescendent trop défendre » ; « les latéraux sont parfois aspirés vers
+la touche pendant que leur vis-à-vis prend l'intérieur ».
+
+**Les attaquants.** Mesuré (`outils/ailiers_touche.py`,
+la profondeur de chaque attaquant devant sa ligne sans ballon, et ses
+rôles) : Doué était à moins de douze mètres de la ligne 30 % du temps
+(les autres attaquants 7 à 15 %), et n'était en forme que 42 % du temps
+— presseur 26 %, coupeur 17 %, doubleur 14 %. Un attaquant travailleur
+faisait tout le travail d'un milieu. Ce qui est fait : un attaquant,
+même travailleur, ne presse pas loin de lui (`ATTAQUANT_LOIN` : au-delà
+de douze mètres, c'est le milieu), ne coupe une ligne qu'à moins de dix
+mètres du ballon (`COUPE_ATTAQUANT`), ne redouble son latéral que sur un
+couloir attaqué à moins de trente-deux mètres du but
+(`DOUBLE_PROFONDEUR`), et la place d'un ailier devant la ligne monte de
+deux mètres en bloc bas comme en bloc médian (`AILIER_BLOC`). Après :
+Doué à moins de douze mètres 19 % du temps, en forme 69 %, et 11,4 km
+par match (réel 11,5 ; 13,3 avant).
+
+**Le latéral à la touche.** Mesuré : un latéral sans ballon est collé à
+la touche (à moins de sept mètres) sans vis-à-vis à moins de huit mètres
+pendant qu'un adversaire est à l'intérieur 6,4 % du temps. Deux cas sur
+trois sont un latéral qui revient d'une position large en attaque (c'est
+la course de retour, pas une aspiration) ; le tiers restant avait
+vraiment sa place à la touche, parce que le bloc coulisse avec le ballon
+et qu'un latéral à seize mètres de l'axe plus le coulissement finissait
+à quatre mètres de la touche. Ce qui est fait : la place d'un latéral
+sans ballon ne dépasse jamais vingt-cinq mètres de l'axe
+(`LATERAL_EXT_MAX` : le bloc fait trente-cinq mètres de large, § 2), il
+n'est pas plus large que son vis-à-vis à quatre mètres près
+(`LATERAL_MARGE`, six avant) parmi les attaquants à moins de quinze
+mètres de lui en profondeur (`LATERAL_VIS_X`, vingt-cinq avant : un
+latéral adverse resté derrière le justifiait). Après : 5,0 % du temps,
+dont les trois quarts en course de retour. Banc de 72 matchs : 2,9 buts
+(± 0,2), 29 tirs, 8,8 cadrés (3,2 et 27,6 avant : des attaquants qui
+pressent moins loin laissent plus de tirs, mais pas plus de buts).
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

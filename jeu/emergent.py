@@ -87,7 +87,13 @@ CONTRE_PRESSING = {"haut": 0.42, "median": 0.32, "bas": 0.25}   # après une per
 CONTRE_PRESSING_DUREE = 5.0                  # ... pendant cinq secondes, la ligne reste haute ; sinon on se replie tout de suite
 ESPACE_PRESSE = 4.0                          # autour du ballon, quatre mètres entre presseur, coupeur et marqueurs (six coûte un but et demi par match)
 LATERAL_ZONE_DEDANS = 22.0                   # un latéral suit son ailier vers l'intérieur jusqu'à vingt-deux mètres
-LATERAL_MARGE = 6.0                          # ... au plus six mètres plus large que l'attaquant le plus large de son côté
+LATERAL_MARGE = 4.0                          # ... au plus quatre mètres plus large que l'attaquant le plus large de son côté (six avant : aspiré à la touche)
+LATERAL_EXT_MAX = 25.0                       # un latéral de forme ne va pas à plus de vingt-cinq mètres de l'axe (neuf de la touche) sans le ballon
+AILIER_BLOC = (10.0, 16.0)                   # la profondeur d'un ailier devant la ligne, bloc bas et bloc médian (8 et 14 avant : ils redescendaient trop)
+LATERAL_VIS_X = 15.0                         # ... parmi les attaquants à moins de quinze mètres de lui en profondeur (vingt-cinq avant : un latéral resté derrière comptait)
+ATTAQUANT_LOIN = 1.0                         # un attaquant, même travailleur, ne presse pas loin de lui : le milieu le fait (Doué pressait de trente mètres)
+COUPE_ATTAQUANT = 10.0                       # ... et ne coupe une ligne qu'à moins de dix mètres du ballon
+DOUBLE_PROFONDEUR = 32.0                     # ... et ne redouble son latéral que sur un couloir attaqué à moins de trente-deux mètres du but
 LATERAL_TOUCHE = True                        # un latéral de forme ne défend pas la ligne de touche vide
 GARDE = (2.3, 2.3)                           # le temps de contrôle du porteur : base + part sans pression (réel : 3 s par passe)
 GAIN_POIDS = 1.5                             # le poids de la progression dans le choix d'une passe (réel : 42 % de passes vers l'avant)
@@ -1167,7 +1173,7 @@ class Match:
             L = max(7.0, min(30.0, L0 - 1.0))
             serre = max(0.0, min(1.0, (bx - 20.0) / 30.0))      # 0 dans la surface, 1 à cinquante mètres
             prof = {"central": L, "lateral": L + 1.0, "pivot": L + 6.0 + 3.0 * serre, "relayeur": L + 7.0 + 4.0 * serre,
-                    "meneur": L + 10.0 + 5.0 * serre, "ailier": L + 8.0 + 5.0 * serre, "buteur": min(L + 15.0 + 6.0 * serre, bx + 2.0)}
+                    "meneur": L + 10.0 + 5.0 * serre, "ailier": L + AILIER_BLOC[0] + 5.0 * serre, "buteur": min(L + 15.0 + 6.0 * serre, bx + 2.0)}
             larg = {"central": 6.0, "lateral": 13.0 + 2.0 * serre, "pivot": 0.0, "relayeur": 7.0 + 2.0 * serre, "meneur": 3.0,
                     "ailier": 13.0 + 3.0 * serre, "buteur": 0.0}
             glisse = 0.35
@@ -1175,7 +1181,7 @@ class Match:
             # trois lignes : les milieux dix mètres devant la défense, les attaquants dix devant les milieux ; 35 m de large
             L = max(10.0, min(62.0, L0))
             prof = {"central": L, "lateral": L + 1.5, "pivot": L + 9.0, "relayeur": L + 11.0, "meneur": L + 16.0,
-                    "ailier": L + 14.0, "buteur": min(L + 21.0, bx + 4.0)}
+                    "ailier": L + AILIER_BLOC[1], "buteur": min(L + 21.0, bx + 4.0)}
             larg = {"central": 8.0, "lateral": 16.5, "pivot": 0.0, "relayeur": 9.0, "meneur": 4.0, "ailier": 17.0, "buteur": 0.0}
             glisse = 0.4
         elif phase in ("pressing", "contre_pressing"):
@@ -1286,6 +1292,8 @@ class Match:
                 if r in ("ailier", "buteur"):
                     glisse = glisse * (ANCRE_VOLUME[0] + ANCRE_VOLUME[1] * j.volume)     # il ne coulisse pas non plus avec le ballon
                 y += (by - LARG / 2) * glisse
+                if r == "lateral" and abs(y - LARG / 2) > LATERAL_EXT_MAX:
+                    y = LARG / 2 + signe * LATERAL_EXT_MAX          # jamais collé à la touche sans le ballon : le bloc fait 35 m de large
                 if phase == "bloc_bas":
                     # tassé : le côté opposé rentre jusqu'à l'axe
                     if not cote_ballon and r in ("lateral", "ailier"):
@@ -1649,7 +1657,7 @@ class Match:
             return
         # --- les blocs : le plus proche va au contact ou contient, la ligne tient
         tri = sorted(siens, key=lambda j: math.hypot(j.x - bx, j.y - by) / (0.65 + 0.7 * j.pressing)
-                     + max(0.0, math.hypot(j.x - bx, j.y - by) - PRESSE_ZONE) * (1.0 - j.volume) * 0.8      # loin, celui qui court peu n'y va pas
+                     + max(0.0, math.hypot(j.x - bx, j.y - by) - PRESSE_ZONE) * max(1.0 - j.volume, ATTAQUANT_LOIN if j.fam == "FWD" else 0.0) * 0.8   # loin, celui qui court peu n'y va pas — et un attaquant, même travailleur, laisse le milieu presser
                      + (30.0 if self.t < j.presse_repos else 0.0))                                          # il souffle : il a pressé son compte
         p = tri[0]
         if p.fam == "DEF" and bxd - self.ligne_def[df] > 12.0:
@@ -1701,7 +1709,7 @@ class Match:
         #  sinon le latéral suit le ballon jusqu'à l'autre bout du terrain)
         def peut_couper(j: Joueur) -> bool:
             return j.role == "forme" and not (j.fam == "DEF" and bxd - self.ligne_def[df] > 12.0) \
-                and not (j.fam == "FWD" and j.volume < DOUBLE_VOLUME)     # un attaquant qui court peu ne coupe pas, il attend devant
+                and not (j.fam == "FWD" and (j.volume < DOUBLE_VOLUME or math.hypot(j.x - bx, j.y - by) > COUPE_ATTAQUANT))   # un attaquant ne coupe que près du ballon, et pas s'il court peu
         second = next((j for j in tri[1:] if peut_couper(j)), None)
         # le coupeur garde son rôle trois secondes tant qu'il reste à moins de vingt mètres du ballon :
         # un coupeur qui change de titulaire à chaque tic, c'est deux hommes qui se croisent en courant
@@ -1837,10 +1845,13 @@ class Match:
                 # large que l'attaquant le plus large de son côté (plus trois mètres), et jamais à moins
                 # de dix mètres de la touche sans attaquant dedans
                 cote = 1.0 if j.home[1] >= LARG / 2 else -1.0
-                largeur = max(((o.y - LARG / 2) * cote for o in adverses if abs(o.x - j.x) < 25.0 and (o.y - LARG / 2) * cote > 0.0), default=6.0)
+                largeur = max(((o.y - LARG / 2) * cote for o in adverses if abs(o.x - j.x) < LATERAL_VIS_X and (o.y - LARG / 2) * cote > 0.0), default=6.0)
                 ext = (j.cible[1] - LARG / 2) * cote
                 if ext > largeur + LATERAL_MARGE:
                     cyp = j.propre(j.x, LARG / 2 + cote * (largeur + LATERAL_MARGE))[1]
+                    ext = largeur + LATERAL_MARGE
+                if ext > LATERAL_EXT_MAX and math.hypot(j.x - bx, j.y - by) > 8.0:
+                    cyp = j.propre(j.x, LARG / 2 + cote * LATERAL_EXT_MAX)[1]     # jamais collé à la touche sans le ballon (le bloc fait 35 m de large)
             if cxp < bas or cxp > haut:
                 j.cible = j.absolu(max(bas, min(haut, cxp)), cyp)
             elif j.role_tac == "lateral" and j.role == "forme":
@@ -1902,6 +1913,8 @@ class Match:
             if not cand:
                 continue
             o = min(cand, key=lambda o: math.hypot(o.x - mx, o.y - my))
+            if math.hypot(o.x - mx, o.y - my) > DOUBLE_PROFONDEUR:
+                continue                                    # on double un couloir attaqué bas, pas au milieu du terrain
             # notre latéral de ce côté : on double s'il est seul, entre l'adversaire et lui
             lat = next((x for x in siens if x.role_tac == "lateral" and (x.home[1] < LARG / 2) == gauche), None)
             if lat is not None and math.hypot(lat.x - o.x, lat.y - o.y) < 3.0 and o is not b.porteur:

@@ -687,6 +687,16 @@ moins ; un onze direct avec des joueurs de clubs directs voit ses longues
 partir plus droites et ses contres partir plus (`affinite_de`,
 `AFFINITE`). Le bac affiche l'affinité des deux onze.
 
+**L'attaquant travailleur n'est pas un milieu** (docs/TACTIQUE.md
+§ 20) : il ne presse pas loin de lui (`ATTAQUANT_LOIN`), ne coupe qu'à
+moins de dix mètres du ballon (`COUPE_ATTAQUANT`), ne redouble que sur un
+couloir attaqué bas (`DOUBLE_PROFONDEUR`), et se place deux mètres plus
+haut dans les blocs (`AILIER_BLOC`) : Doué passe de 13,3 à 11,4 km (réel
+11,5). **Le latéral ne va pas à la touche sans le ballon** : sa place
+s'arrête à vingt-cinq mètres de l'axe (`LATERAL_EXT_MAX`) et à quatre
+mètres plus large que son vis-à-vis proche (`LATERAL_MARGE`,
+`LATERAL_VIS_X`).
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du
