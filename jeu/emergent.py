@@ -89,7 +89,9 @@ ESPACE_PRESSE = 4.0                          # autour du ballon, quatre mètres 
 LATERAL_ZONE_DEDANS = 22.0                   # un latéral suit son ailier vers l'intérieur jusqu'à vingt-deux mètres
 LATERAL_MARGE = 4.0                          # ... au plus quatre mètres plus large que l'attaquant le plus large de son côté (six avant : aspiré à la touche)
 LATERAL_EXT_MAX = 25.0                       # un latéral de forme ne va pas à plus de vingt-cinq mètres de l'axe (neuf de la touche) sans le ballon
-AILIER_BLOC = (10.0, 16.0)                   # la profondeur d'un ailier devant la ligne, bloc bas et bloc médian (8 et 14 avant : ils redescendaient trop)
+AILIER_BLOC = (12.0, 16.0)                   # la profondeur d'un ailier devant la ligne, bloc bas et bloc médian (8 et 14 avant : ils redescendaient trop)
+BUTEUR_DEVANT = 6.0                          # l'avant-centre sans ballon reste au moins six mètres devant le pivot, quoi que fasse le ballon
+TOUCHE_LATERAL = 0.85                        # une touche sur six est rapide, jouée par le plus proche ; les autres par le latéral
 LATERAL_VIS_X = 15.0                         # ... parmi les attaquants à moins de quinze mètres de lui en profondeur (vingt-cinq avant : un latéral resté derrière comptait)
 ATTAQUANT_LOIN = 1.0                         # un attaquant, même travailleur, ne presse pas loin de lui : le milieu le fait (Doué pressait de trente mètres)
 COUPE_ATTAQUANT = 10.0                       # ... et ne coupe une ligne qu'à moins de dix mètres du ballon
@@ -741,6 +743,11 @@ class Match:
             mx, my = self.but_de(1 - camp)
             if abs(x - mx) < SURFACE_X + 4.0 and abs(y - my) < SURFACE_Y:
                 tireur = next((j for j in self.actifs(camp) if j.gk), None)   # dans sa surface : le gardien joue
+        if k == "touche" and self.rs.random() < TOUCHE_LATERAL:
+            # la touche, c'est le latéral du côté qui la joue ; la touche rapide par le plus proche est rare
+            lats = [j for j in self.actifs(camp) if j.role_tac == "lateral" and math.hypot(j.x - x, j.y - y) < 35.0]
+            if lats:
+                tireur = min(lats, key=lambda j: math.hypot(j.x - x, j.y - y))
         if tireur is None:
             tireur, _ = self.plus_proche(camp, x, y, gk=(k == "sortie_but"))
         self.arret = {"k": k, "t": self.t, "camp": camp, "x": x, "y": y, "delai": delai, "tireur": tireur}
@@ -925,8 +932,8 @@ class Match:
                     self._gardiens(a["camp"])
                     self._espacer()
                     self._forme_arret(a)
-                    if a["k"] == "sortie_but":
-                        # sur une sortie de but, personne de l'autre camp ne reste dans la surface
+                    if a["k"] in ("sortie_but", "relance"):
+                        # sur une sortie de but (ou un gardien ballon en main), personne de l'autre camp ne reste dans la surface
                         gx, gy = self.but_de(1 - a["camp"])      # le but d'où part la sortie
                         for j in self.actifs(1 - a["camp"]):
                             cx, cy = j.cible
@@ -1173,7 +1180,7 @@ class Match:
             L = max(7.0, min(30.0, L0 - 1.0))
             serre = max(0.0, min(1.0, (bx - 20.0) / 30.0))      # 0 dans la surface, 1 à cinquante mètres
             prof = {"central": L, "lateral": L + 1.0, "pivot": L + 6.0 + 3.0 * serre, "relayeur": L + 7.0 + 4.0 * serre,
-                    "meneur": L + 10.0 + 5.0 * serre, "ailier": L + AILIER_BLOC[0] + 5.0 * serre, "buteur": min(L + 15.0 + 6.0 * serre, bx + 2.0)}
+                    "meneur": L + 10.0 + 5.0 * serre, "ailier": L + AILIER_BLOC[0] + 5.0 * serre, "buteur": min(L + 16.0 + 4.0 * serre, bx + 6.0)}
             larg = {"central": 6.0, "lateral": 13.0 + 2.0 * serre, "pivot": 0.0, "relayeur": 7.0 + 2.0 * serre, "meneur": 3.0,
                     "ailier": 13.0 + 3.0 * serre, "buteur": 0.0}
             glisse = 0.35
@@ -1289,6 +1296,8 @@ class Match:
                     # un attaquant qui travaille revient dans le bloc
                     if r in ("ailier", "buteur") and j.travail_def > 0.6:
                         x = min(x, prof["relayeur"] + 6.0 + 8.0 * (1.0 - j.travail_def))
+                    if r == "buteur":
+                        x = max(x, prof["pivot"] + BUTEUR_DEVANT)      # ... mais jamais sous le pivot : Mbappé n'est pas plus bas que Tchouaméni
                 if r in ("ailier", "buteur"):
                     glisse = glisse * (ANCRE_VOLUME[0] + ANCRE_VOLUME[1] * j.volume)     # il ne coulisse pas non plus avec le ballon
                 y += (by - LARG / 2) * glisse
@@ -1298,7 +1307,7 @@ class Match:
                     # tassé : le côté opposé rentre jusqu'à l'axe
                     if not cote_ballon and r in ("lateral", "ailier"):
                         y = LARG / 2 + signe * 10.0 + (by - LARG / 2) * 0.2
-            if not sien and self.arret is not None and self.arret["k"] == "sortie_but" and self.arret["camp"] == att \
+            if not sien and self.arret is not None and self.arret["k"] in ("sortie_but", "relance") and self.arret["camp"] == att \
                     and x > LONG - SURFACE_X - 1.0 and abs(y - LARG / 2) < SURFACE_Y + 1.0:
                 x = LONG - SURFACE_X - 1.0                    # sur une sortie de but, on attend au bord de la surface
             nx, ny = j.absolu(max(2.0, min(LONG - 2.0, x)), max(2.0, min(LARG - 2.0, y)))
@@ -2575,9 +2584,13 @@ class Match:
                 j.vx = j.vy = 0.0
                 continue
             if gel:
-                # à l'arrêt, chacun rejoint sa place au pas
+                # à l'arrêt, chacun rejoint sa place au pas — et on sort de la surface adverse en trottinant
                 tx, ty = j.cible
                 v_lim = 3.2 if j.role != "porteur" else 4.0
+                gx_, gy_ = self.but_de(j.camp)
+                if abs(j.x - gx_) < SURFACE_X + 1.0 and abs(j.y - gy_) < SURFACE_Y + 1.0 and self.arret is not None \
+                        and self.arret["k"] in ("sortie_but", "relance") and self.arret["camp"] != j.camp:
+                    v_lim = 5.0
             else:
                 tx, ty = j.cible
                 v_lim = j.vmax * (1.0 - 0.12 * j.fatigue)
@@ -2641,8 +2654,9 @@ class Match:
             d = math.hypot(dx, dy)
             # une zone morte : personne ne fait deux pas pour un mètre
             tol = 0.3 if j.role in ("porteur", "presse", "receveur", "gardien", "chasse") else (2.5 if j.role == "forme" else 1.5)
-            if j.role == "forme" and j.fam in ("FWD", "MID"):
-                # (pas un défenseur : la ligne se tient à quatre, un central à zone morte de huit mètres ne la tient pas)
+            if j.role == "forme" and j.fam in ("FWD", "MID") and not gel:
+                # (pas un défenseur : la ligne se tient à quatre, un central à zone morte de huit mètres ne la tient pas ;
+                #  et pas à l'arrêt : sur une sortie de but, on sort de la surface, on n'y reste pas « à huit mètres de sa place »)
                 # ... plus large pour celui qui court peu : Vinícius ne trottine pas pour un mètre de
                 # ballon, il attend que sa place ait vraiment bougé (réel : 9,6 km contre 11,5 pour Doué)
                 tol += INERTIE_VOLUME * (1.0 - j.volume) * (1.0 if j.fam == "FWD" else 0.5)     # un milieu tient sa ligne de plus près

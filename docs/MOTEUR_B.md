@@ -697,6 +697,13 @@ s'arrête à vingt-cinq mètres de l'axe (`LATERAL_EXT_MAX`) et à quatre
 mètres plus large que son vis-à-vis proche (`LATERAL_MARGE`,
 `LATERAL_VIS_X`).
 
+**Quatre détails** (docs/TACTIQUE.md § 21) : la touche est au latéral
+du côté, sauf une sur six, rapide (`TOUCHE_LATERAL`) ; l'avant-centre
+sans ballon reste six mètres devant le pivot (`BUTEUR_DEVANT`) ; sur une
+sortie de but ou un gardien ballon en main, personne dans la surface,
+sans zone morte à l'arrêt et en sortant au trot ; les ailiers en bloc
+bas à douze mètres devant la ligne (`AILIER_BLOC`).
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

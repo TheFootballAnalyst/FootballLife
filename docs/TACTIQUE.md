@@ -768,6 +768,36 @@ dont les trois quarts en course de retour. Banc de 72 matchs : 2,9 buts
 (± 0,2), 29 tirs, 8,8 cadrés (3,2 et 27,6 avant : des attaquants qui
 pressent moins loin laissent plus de tirs, mais pas plus de buts).
 
+## 21. Quatre détails du bac
+
+- **La touche est au latéral.** Le plus proche la jouait ; c'est le
+  latéral du côté qui la joue, sauf une touche sur six, rapide, par le
+  plus proche (`TOUCHE_LATERAL`). Mesuré : 18 touches sur 18 par un
+  latéral sur un match, 15 sur 20 sur un autre.
+- **L'avant-centre n'est jamais sous le pivot.** Mbappé se retrouvait
+  plus bas que Tchouaméni : sa place sans ballon suivait le ballon
+  (« derrière le ballon » l'emportait sur tout). Elle reste au moins
+  six mètres devant le pivot (`BUTEUR_DEVANT`), et en bloc bas
+  l'avant-centre se place à seize mètres devant la ligne au lieu de
+  quinze, sans plus jamais descendre à deux mètres du ballon. Mesuré :
+  Mbappé sous son pivot 5 % du temps sans ballon (en course de retour),
+  à moins de douze mètres de sa ligne 4 % (9 à 13 avant) ; 8,7 km (réel
+  9,0).
+- **Personne dans la surface sur une sortie de but** — ni quand le
+  gardien a le ballon en main. La règle existait, mais la zone morte
+  d'un attaquant qui court peu (§ 17, jusqu'à huit mètres) le laissait
+  planté dans la surface « à moins de huit mètres de sa place ». À
+  l'arrêt, plus de zone morte, et on sort de la surface en trottinant.
+  Mesuré : quatre secondes après l'arrêt, un adversaire dans la surface
+  sur 3 % des images (tous en train d'en sortir, aucun après six
+  secondes) ; zéro sur une relance du gardien.
+- **Dembélé (et Doué) redescendent moins** : la place d'un ailier en
+  bloc bas monte à douze mètres devant la ligne (`AILIER_BLOC`), et
+  l'avant-centre a son plancher.
+
+Banc de 72 matchs : 3,0 buts (± 0,2), 30 tirs, 8 cadrés (2,9 avant, au
+bruit près).
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :
