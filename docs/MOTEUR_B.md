@@ -704,6 +704,15 @@ sortie de but ou un gardien ballon en main, personne dans la surface,
 sans zone morte à l'arrêt et en sortant au trot ; les ailiers en bloc
 bas à douze mètres devant la ligne (`AILIER_BLOC`).
 
+**Le poids du collectif** (docs/TACTIQUE.md § 22). Le collectif joue
+sur les attributs collectifs de chacun — passe, contrôle, lecture
+défensive (`COLLECTIF_ATTRIBUTS`, `COLLECTIF_OVR` : ±10 points aux
+extrêmes) — et laisse la finition, le dribble, la vitesse et le gardien
+aux individualités ; trois leviers directs à côté (`COLLECTIF_PASSE`,
+`COLLECTIF_APPEL`, `COLLECTIF_BLOC`) et un curseur (`COLLECTIF_POIDS`).
+Mesuré : un PSG à 0,95 fait jeu égal avec un Real à 0,35 qui a sept
+points d'OVR de plus, et ce Real bat encore un Inter rodé.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

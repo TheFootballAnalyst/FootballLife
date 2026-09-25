@@ -216,6 +216,7 @@ class Joueur:
     dernier_contact: float = -10.0
     travail_def: float = 0.5
     travail_att: float = 0.5
+    bonus: dict = field(default_factory=dict)  # ce que le collectif ajoute (ou retire) aux attributs collectifs : passe, contrôle, défense
     en_marche: bool = False                  # parti vers sa place : il y va jusqu'au bout, pas de zone morte à mi-chemin
     role_tac: str = "relayeur"
     volume: float = 0.5                       # la course par 90 (rang dans sa ligne)
@@ -262,7 +263,7 @@ class Joueur:
         return self.fam == "GK"
 
     def attr(self, k: str, defaut: float = 55.0) -> float:
-        return float(self.attributs.get(k, defaut))
+        return float(self.attributs.get(k, defaut)) + self.bonus.get(k, 0.0)
 
     def sens(self) -> int:
         return 1 if self.camp == 0 else -1
@@ -392,6 +393,12 @@ def travail_de(j: dict, sens: str) -> float:
 
 
 COLLECTIF_MANUEL = RACINE / "jeu" / "collectif_manuel.json"
+COLLECTIF_POIDS = 1.0                        # le poids du collectif dans le résultat : 0, que des individualités ; 1, un onze rodé vaut des points d'OVR
+COLLECTIF_OVR = 20.0                         # ... un collectif à 1 vaut dix points sur les attributs collectifs, à 0 il en retire dix (mesuré : à 12, Paris à 0,95 ne rattrape pas sept points d'OVR ; à 20, presque)
+COLLECTIF_ATTRIBUTS = ("PRO", "CON", "DEF")  # ... la passe, le contrôle et la lecture défensive ; pas la finition, le dribble, la vitesse ni le gardien
+COLLECTIF_PASSE = 0.6                        # ... une passe se rate d'autant moins (ou plus) que le collectif dépasse (ou manque) 0,5
+COLLECTIF_APPEL = 0.6                        # ... et les appels partent au bon moment (l'écart du timing se resserre)
+COLLECTIF_BLOC = 0.5                         # ... et sans ballon, le marqueur anticipe de plus loin et le contre-pressing prend
 STYLE_SEUILS = (0.55, 0.44)                  # part des touches de balle sur la saison (253 clubs : médiane 0,49, p90 0,55, p10 0,43) : au-dessus, un club de possession ; en dessous, un club direct
 AFFINITE = {"possession": 0.3, "direct": 0.3}   # ce que le style d'origine des joueurs apporte à la façon de jouer choisie (pas une science exacte)
 
@@ -525,6 +532,7 @@ class Match:
         self.tac = [dict(TACTIQUE_DEFAUT) | (tactiques[0] or {}), dict(TACTIQUE_DEFAUT) | (tactiques[1] or {})]
         self.collectif = list(collectif)
         self.affinite = list(affinite)                    # ce que le style d'origine des joueurs apporte au tempo choisi
+
         self.ligne_def = [FAMILLE_X["DEF"] * LONG, FAMILLE_X["DEF"] * LONG]   # la profondeur de chaque défense, dans son repère
         self.phase = ["construction", "bloc_median"]
         for t in self.tac:
@@ -550,6 +558,12 @@ class Match:
         self.t_bascule = 0.0
         self.x_bascule = 50.0
         self.joueurs = joueurs_de(sur_a, 0, formation_a) + joueurs_de(sur_b, 1, formation_b)
+        # le collectif joue sur les attributs COLLECTIFS de chacun (la passe, le contrôle, la défense) : un onze
+        # rodé joue comme si ses passeurs et ses défenseurs avaient quelques points de plus ; la finition, le
+        # dribble, la vitesse, le gardien restent ce qu'ils sont — c'est là que les individualités gagnent
+        for j in self.joueurs:
+            d = COLLECTIF_OVR * COLLECTIF_POIDS * (self.collectif[j.camp] - 0.5)
+            j.bonus = {k: d for k in COLLECTIF_ATTRIBUTS}
         self.camp = [[j for j in self.joueurs if j.camp == 0], [j for j in self.joueurs if j.camp == 1]]
         self.exclus = set()
         for j in self.joueurs:
@@ -1034,7 +1048,8 @@ class Match:
         if depuis == 0.0:
             # la perte vient d'avoir lieu : dans la moitié adverse (pour celui qui a perdu), on choisit
             perdu_haut = bxp < 45.0
-            self.contre_choix[df] = perdu_haut and self.rs.random() < CONTRE_PRESSING[profil] * (0.6 + 0.8 * self._envie(df))
+            self.contre_choix[df] = perdu_haut and self.rs.random() < CONTRE_PRESSING[profil] * (0.6 + 0.8 * self._envie(df)) \
+                * (1.0 + COLLECTIF_BLOC * COLLECTIF_POIDS * (self.collectif[df] - 0.5))                  # un onze rodé contre-presse ensemble
             self.ligne_gel[df] = (self.ligne_def[df], self.t + CONTRE_PRESSING_DUREE) if self.contre_choix[df] else None
             if perdu_haut:
                 self.t_perte_haute[df] = self.t
@@ -1427,7 +1442,8 @@ class Match:
                         cx, cy = lh + fond * sens, j.y + (gy - j.y) * 0.35
                     j.appel_vers = (max(3.0, min(LONG - 3.0, cx)), max(3.0, min(LARG - 3.0, cy)))
                     # le timing : un bon lecteur attend sur la ligne, un autre part un pas trop tôt
-                    j.appel_marge = 1.0 + self.rs.gauss(0.0, 1.4) * (1.2 - 0.6 * j.attr("CON") / 99)
+                    j.appel_marge = 1.0 + self.rs.gauss(0.0, 1.4) * (1.2 - 0.6 * j.attr("CON") / 99) \
+                        * max(0.3, 1.0 - COLLECTIF_APPEL * COLLECTIF_POIDS * (self.collectif[att] - 0.5))   # un onze rodé part au bon moment
                     self.evt("appel", de=j.pid, camp=att)
                 lances += 1
                 if j.appel_vers is None:
@@ -2413,6 +2429,7 @@ class Match:
         # c'est ce qui fait 90 % de réussite à Paris et 78 % à Lorient)
         p_rate = (0.04 + 0.09 * pression + 0.07 * min(d, 40.0) / 40.0 + (0.05 if serre > 1.0 else 0.0) + (0.12 if d > 30.0 else 0.0)) * (2.6 - 2.3 * precision)
         aff = self.affinite[j.camp]
+        p_rate *= max(0.3, 1.0 - COLLECTIF_PASSE * COLLECTIF_POIDS * (self.collectif[j.camp] - 0.5))   # un onze rodé se trouve les yeux fermés
         if self.tac[j.camp]["tempo"] == "possession":
             p_rate *= 1.0 - AFFINITE["possession"] * aff       # des joueurs de clubs de possession : la passe courte se rate moins
         elif self.tac[j.camp]["tempo"] == "direct" and (longue or d > 30):
@@ -2944,7 +2961,8 @@ class Match:
         deux mètres vingt en général, trois dans les vingt-cinq derniers
         mètres, où l'on colle."""
         gx, gy = self.but_de(c.camp)
-        return SERRAGE_SURFACE if math.hypot(gx - c.x, gy - c.y) < 25.0 else 2.6
+        k = 1.0 + COLLECTIF_BLOC * COLLECTIF_POIDS * (self.collectif[1 - c.camp] - 0.5)     # un bloc rodé lit la passe plus tôt
+        return (SERRAGE_SURFACE if math.hypot(gx - c.x, gy - c.y) < 25.0 else 2.6) * k
 
     def _tir_en_cours(self) -> dict | None:
         tir = getattr(self, "dernier_tir", None)

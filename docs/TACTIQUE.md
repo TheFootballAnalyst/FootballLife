@@ -798,6 +798,59 @@ pressent moins loin laissent plus de tirs, mais pas plus de buts).
 Banc de 72 matchs : 3,0 buts (± 0,2), 30 tirs, 8 cadrés (2,9 avant, au
 bruit près).
 
+## 22. Le poids du collectif
+
+« Une équipe bien construite doit être mieux récompensée qu'une somme
+d'individualités ; un PSG est bien au-dessus d'un Real, mais un Real
+peut battre un collectif comme l'Inter grâce à ses individualités. »
+
+**Avant, le collectif ne pesait rien.** Mesuré sur huit PSG–Real (les
+vraies valeurs 0,95 et 0,35, puis 0,5 partout, puis inversées) : aucun
+ordre, le bruit domine. Le collectif touchait le bruit des décisions, le
+troisième homme, la valeur d'une passe dangereuse — pas ce qui décide
+d'un match.
+
+**Le modèle.** Le collectif joue sur les attributs *collectifs* de
+chaque joueur : la passe, le contrôle, la lecture défensive
+(`COLLECTIF_ATTRIBUTS`). Un onze rodé joue comme si ses passeurs et ses
+défenseurs avaient quelques points de plus ; une somme d'individualités,
+quelques points de moins. La finition, le dribble, la vitesse et le
+gardien restent ce qu'ils sont : c'est là que les individualités
+gagnent, et c'est pourquoi un Real peut battre un Inter. L'échelle
+(`COLLECTIF_OVR`, 20) : un collectif à 1 vaut dix points sur ces
+attributs, à 0 il en retire dix ; 0,95 donne +9, 0,35 donne −3. À côté,
+trois petits leviers directs : la passe se rate moins, les appels
+partent au bon moment, le marqueur anticipe et le contre-pressing prend
+(`COLLECTIF_PASSE`, `COLLECTIF_APPEL`, `COLLECTIF_BLOC`) ; et un seul
+curseur pour tout (`COLLECTIF_POIDS`, 0 : que des individualités).
+
+**Mesuré**, 24 matchs par ligne, dans la base de démo (le onze du PSG y
+vaut 80,5 d'OVR, celui du Real 87,6, celui de l'Inter 80,4) :
+
+| | buts | xG | V-N-D |
+|---|---|---|---|
+| PSG–Real, collectif 0,5 partout (que l'OVR : −7 pour Paris) | −0,75 | −0,27 | 7-3-14 |
+| PSG–Real, 0,95 / 0,35, avant ce chantier | −1,00 | −1,06 | 5-2-17 |
+| PSG–Real, 0,95 / 0,35, échelle 12 | −0,54 | −0,29 | 6-10-8 |
+| PSG–Real, 0,95 / 0,35, échelle 20 | −0,58 | −0,36 | 8-6-10 |
+| Real–Inter, 0,35 / 0,85, échelle 12 | +1,96 | +0,91 | 17-5-2 |
+| Real–Inter, 0,35 / 0,85, échelle 20 | +1,12 | +0,68 | 15-3-6 |
+
+Avec l'échelle 20, un Paris à sept points d'OVR de moins fait jeu égal
+avec le Real grâce à son collectif (8-6-10 au lieu de 5-2-17), et le
+Real bat encore un Inter rodé de sept points de moins grâce à ses
+individualités (15-3-6 au lieu de 17-5-2). C'est le monde que tu
+décris. Dans ta base, où le onze du PSG vaut plus que 80,5, Paris sera
+au-dessus. Confirmé sur 48 PSG–Real à l'échelle 20 : −0,19 but, 17-12-19
+(sept points d'OVR de moins, jeu égal). Le banc général reste à 3,0 buts.
+
+Pour une équipe fantasy, le collectif est la cohésion mesurée (les
+minutes jouées ensemble en vrai) : un onze de onze clubs différents part
+vers 0, soit −10 sur la passe, le contrôle et la défense ; un onze pris
+dans un même club rodé part vers 0,9. C'est la récompense de l'équipe
+construite. Reste à décider si le jeu doit faire monter cette cohésion
+avec les matchs joués ensemble dans le jeu — c'est un chantier à part.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :
