@@ -90,6 +90,7 @@ CHASSE_DEBORDE = (3.0, 20.0, 12.0, 70.0)     # un défenseur rejoint par le port
 CONTRE_PRESSING_DUREE = 5.0                  # ... pendant cinq secondes, la ligne reste haute ; sinon on se replie tout de suite
 ESPACE_PRESSE = 4.0                          # autour du ballon, quatre mètres entre presseur, coupeur et marqueurs (six coûte un but et demi par match)
 LATERAL_ZONE_DEDANS = 22.0                   # un latéral suit son ailier vers l'intérieur jusqu'à vingt-deux mètres
+LATERAL_AXE = 2.0                            # un latéral ne traverse pas l'axe de plus de deux mètres pour presser, chasser ou suivre un coureur : c'est le central ou un milieu (le bac montrait des latéraux à l'opposé de leur couloir)
 LATERAL_MARGE = 4.0                          # ... au plus quatre mètres plus large que l'attaquant le plus large de son côté (six avant : aspiré à la touche)
 LATERAL_EXT_MAX = 25.0                       # un latéral de forme ne va pas à plus de vingt-cinq mètres de l'axe (neuf de la touche) sans le ballon
 AILIER_BLOC = (12.0, 16.0)                   # la profondeur d'un ailier devant la ligne, bloc bas et bloc médian (8 et 14 avant : ils redescendaient trop)
@@ -1640,6 +1641,8 @@ class Match:
             for j in self.actifs(1 - p.camp):
                 if j.gk or j.fam != "DEF" or j.role not in ("forme", "coupe", "marque"):
                     continue
+                if j.role_tac == "lateral" and (p.y - LARG / 2) * (1.0 if j.absolu(*j.home)[1] >= LARG / 2 else -1.0) < -LATERAL_AXE:
+                    continue                                  # un latéral ne traverse pas l'axe derrière un porteur
                 if (p.x - j.x) * p.sens() > -CHASSE_DEBORDE[0] and math.hypot(p.x - j.x, p.y - j.y) < CHASSE_DEBORDE[1] \
                         and abs(p.y - j.y) < CHASSE_DEBORDE[2] and math.hypot(mx_ - p.x, my_ - p.y) < CHASSE_DEBORDE[3]:
                     dxg, dyg = mx_ - p.x, my_ - p.y
@@ -1787,6 +1790,14 @@ class Match:
         tri = sorted(siens, key=lambda j: math.hypot(j.x - bx, j.y - by) / (0.65 + 0.7 * j.pressing)
                      + max(0.0, math.hypot(j.x - bx, j.y - by) - PRESSE_ZONE) * max(1.0 - j.volume, ATTAQUANT_LOIN if j.fam == "FWD" else 0.0) * 0.8   # loin, celui qui court peu n'y va pas — et un attaquant, même travailleur, laisse le milieu presser
                      + (30.0 if self.t < j.presse_repos else 0.0))                                          # il souffle : il a pressé son compte
+        def de_son_cote(j: Joueur, y: float) -> bool:
+            # un latéral ne traverse pas l'axe pour aller au ballon ou à un homme : au-delà de LATERAL_AXE m
+            # de l'autre côté, c'est le central ou un milieu (réel : le latéral garde son couloir)
+            if j.role_tac != "lateral":
+                return True
+            cote = 1.0 if j.absolu(*j.home)[1] >= LARG / 2 else -1.0
+            return (y - LARG / 2) * cote > -LATERAL_AXE
+        tri = [j for j in tri if de_son_cote(j, by)] or tri
         p = tri[0]
         if p.fam == "DEF" and bxd - self.ligne_def[df] > 12.0:
             autre = next((j for j in tri[1:] if j.fam != "DEF" and math.hypot(j.x - bx, j.y - by) < 22.0), None)
@@ -1887,7 +1898,8 @@ class Match:
                              and siens[0].propre(o.x, o.y)[0] < ligne_c + SUIT_COUREUR[0]),
                             key=lambda o: siens[0].propre(o.x, o.y)[0]):
                 j = min((j for j in siens if j.fam == "DEF" and j.role == "forme" and j.pid not in pris_c
-                         and abs(j.y - o.y) < SUIT_COUREUR[1] and math.hypot(j.x - o.x, j.y - o.y) < SUIT_COUREUR[2]),
+                         and abs(j.y - o.y) < SUIT_COUREUR[1] and math.hypot(j.x - o.x, j.y - o.y) < SUIT_COUREUR[2]
+                         and de_son_cote(j, o.y)),
                         key=lambda j: math.hypot(j.x - o.x, j.y - o.y), default=None)
                 if j is None:
                     continue

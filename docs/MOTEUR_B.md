@@ -762,6 +762,11 @@ marqueur d'un homme qui part anticipe une seconde et sprinte à fond
 course passe de 6 à 3,5 m. Banc de 48 matchs : 3,35 buts, 23 tirs,
 9,4 cadrés.
 
+**Le latéral qui traversait l'axe** (docs/TACTIQUE.md § 27) : un
+latéral ne traverse pas l'axe de plus de deux mètres pour presser,
+chasser ou suivre un coureur (`LATERAL_AXE`) — le central ou un
+milieu y va.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

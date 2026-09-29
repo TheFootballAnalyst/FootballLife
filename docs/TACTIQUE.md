@@ -1262,6 +1262,28 @@ banc de 48 matchs donne 2,92 buts, 22,8 tirs, 8,7 cadrés, 19 fautes ;
 PSG–Real +1,04 but avec le collectif (34-2-12 sur 48), +0,58 sans ;
 Real–Inter 0,35 / 0,85 : +0,25 avec.
 
+## 27. Le latéral qui traversait l'axe
+
+**Vu dans le bac** : en phase défensive, un latéral qui se déporte
+jusqu'à l'opposé de son couloir. Mesuré sur PSG–Real (3 matchs, un
+relevé par demi-seconde, hors arrêts de jeu) : un latéral était de
+l'autre côté de l'axe de plus de quatre mètres 4,2 % du temps et de
+plus de douze mètres 0,2 % — presque toujours en train de **marquer**,
+de **presser** ou de **chasser** un homme parti de l'autre côté. Trois
+règles de ce chantier l'y envoyaient sans regarder le côté : le suivi
+du coureur (§ 26), la chasse du défenseur rejoint (§ 24) et le choix
+du presseur (le plus proche du ballon, quel que soit son couloir).
+
+**Ce qui change** (`LATERAL_AXE`) : un latéral ne traverse pas l'axe de
+plus de deux mètres pour presser, chasser ou suivre un coureur — c'est
+le central ou un milieu qui y va. Mesuré après : plus aucun relevé à
+plus de douze mètres de l'autre côté ; les marquages de l'autre côté
+passent de 359 relevés à 34, les pressings de 62 à 4. Ce qui reste
+(4,3 % à plus de quatre mètres) est presque entièrement sur les arrêts
+de jeu — un latéral au poteau sur un corner — et un peu de glissement
+du bloc vers le ballon, qui est réel. Banc de 24 matchs inchangé (3,1
+buts, 23,5 tirs).
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :
