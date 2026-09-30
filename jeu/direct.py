@@ -260,6 +260,7 @@ def feuille(jeu, saison: str, r, minute: int, depuis: float | None = None, trace
     mi_temps = round(m.mi_temps / 60) if m.additionnel[0] is not None else None
     minute_vue = min(minute, total or SM.MINUTES_MAX)
     sur = {"a": [j.pid for j in m.actifs(0)], "b": [j.pid for j in m.actifs(1)]}
+    fiches = ({j["pid"]: j for j in a.joueurs + a.banc}, {j["pid"]: j for j in b.joueurs + b.banc})
     st = res["stats"]
     score = res["score"]
     f = {
@@ -273,7 +274,10 @@ def feuille(jeu, saison: str, r, minute: int, depuis: float | None = None, trace
         "jaunes": st["jaunes"], "rouges": st["rouges"], "horsjeu": st["horsjeu"], "penaltys": st.get("penaltys", [0, 0]),
         "cadres": st["cadres"],
         "changements": [sum(1 for c, _, _ in m.remplacements if c == 0), sum(1 for c, _, _ in m.remplacements if c == 1)],
-        "tireurs": {"ab"[c]: {k: (j["pid"] if j else None) for k, j in SM.tireurs(v.equipes[c].joueurs).items()} for c in (0, 1)},
+        # les tireurs désignés, parmi ceux qui sont SUR le terrain (un exclu, un remplacé ne tirent pas)
+        "tireurs": {"ab"[c]: {k: (j["pid"] if j else None)
+                              for k, j in SM.tireurs([fiches[c][j.pid] for j in m.actifs(c) if j.pid in fiches[c]]).items()}
+                    for c in (0, 1)},
         "entres": {"a": list(v.entres[0]), "b": list(v.entres[1])},
         "endurance": {"ab"[c]: {j.pid: round(100 * (1 - j.fatigue)) for j in m.actifs(c)} for c in (0, 1)},
         "attente": {"a": [], "b": []},
