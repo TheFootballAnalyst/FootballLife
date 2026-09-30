@@ -2427,6 +2427,7 @@ function panneauTerrainB(d, moi) {
   if (m.cartes) TB.terrain.remplacer(m.cartes);
   TB.terrain.ajouter(m.trace || [], m.gestes || []);
   TB.m = m; TB.moi = moi; TB.fini = !!m.fini; TB.pause = !!m.pause;
+  T2D.moi = moi;                               // le bandeau lit le score de ton côté
   TB.vitesse = (90 * 60) / (d.duree || 360);
   // on arrive en cours de match : on regarde les dernières secondes reçues, pas le coup d'envoi
   if (TB.t === 0 && TB.terrain.trace.length) TB.t = Math.max(TB.terrain.debut, TB.terrain.duree - 8);
