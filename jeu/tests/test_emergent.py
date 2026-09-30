@@ -185,3 +185,25 @@ def test_a_shot_that_misses_is_let_go_and_deflections_stay_out():
     b.vy, b.vz = 0.0, 12.0
     assert not m._va_au_but()
     assert 0.0 <= EM.CONTRE_DEVIE_BUT <= 0.5 and EM.CONTRE_TIR[1] <= 1.5
+
+
+def test_the_live_api_steps_substitutes_adjusts_and_keeps_the_match_deterministic():
+    a, b = onze(0), onze(1)
+    m = EM.Match(a, b, graine=3, minutes=90, trace=False)
+    assert not m.jouer_jusqua(30) and abs(m.t / 60 - 30) < 0.01
+    entrant = dict(a[5], pid=999, nom="Entrant")
+    assert m.remplacer(0, a[5]["pid"], entrant) and not m.remplacer(0, a[5]["pid"], entrant)
+    assert m.permuter(0, a[6]["pid"], a[7]["pid"]) and not m.permuter(0, a[0]["pid"], a[7]["pid"])
+    m.ajuster(0, {"tempo": "direct", "bloc": "haut"})
+    assert m.tac[0]["tempo"] == "direct" and m.tac[0]["style"] == -1.0
+    m.jouer_jusqua(46)
+    m.causerie(0, "secouer")
+    assert m.jouer_jusqua(1000)
+    r = m.resume()
+    assert r["fini"] and r["evenements"][-1]["k"] == "fin" and r["remplacements"] == [[0, a[5]["pid"], 999]]
+    assert len(r["joueurs"]) == 23 and next(j for j in r["joueurs"] if j["pid"] == a[5]["pid"])["sorti"] is not None
+    assert {e["k"] for e in r["evenements"]} >= {"remplacement", "tactique", "permutation", "causerie", "fin"}
+    # played in slices or in one go, the same seed gives the same match until the first change
+    m1 = EM.Match(a, b, graine=3, minutes=90, trace=False); m1.jouer_jusqua(30)
+    m2 = EM.Match(a, b, graine=3, minutes=90, trace=False); m2.jouer_jusqua(10); m2.jouer_jusqua(20); m2.jouer_jusqua(30)
+    assert [(e["k"], e["t"]) for e in m1.evenements] == [(e["k"], e["t"]) for e in m2.evenements]

@@ -181,6 +181,8 @@ DELAIS = {"touche": 24.0, "sortie_but": 36.0, "corner": 45.0, "coup_franc": 40.0
 #  francs contre 22 — ce qui compte, c'est le ballon vivant : 55 à 58 minutes sur 97)
 # ... et le temps additionnel de chaque période, sur les faits (simulation.additionnel : la même règle que le
 # moteur A, sans remplacements ni blessures ici) : le match dure 90 minutes plus ce que l'arbitre affiche
+REMPLACEMENTS_MAX = 5                        # cinq changements par équipe
+CAUSERIE_POINTS = 60.0                       # un facteur de causerie de 1,09 vaut +5,4 points d'attribut pour la seconde période
 ADDITIONNEL = True
 BALLON_ROULE, BALLON_AIR = 1.2, 0.012        # décélération au sol : 1,2 m/s² + 0,012·v² (un ballon lent roule loin, un ballon fort est freiné)
 
@@ -255,6 +257,7 @@ class Joueur:
     pressing: float = 0.5                     # les sprints vers le porteur (rang dans sa ligne)
     recup: float = 0.5                        # les ballons gagnés (rang dans sa ligne)
     appel_jusqua: float = -1.0                # une course lancée par la passe d'un coéquipier
+    minutes_sorti: int | None = None           # la minute où il est sorti (remplacé)
     appel_vers: tuple[float, float] | None = None   # où va cet appel : derrière la ligne, dans la brèche
     appel_marge: float = 1.0                  # à combien de la ligne il attend la passe (négatif : un pas trop tôt)
     perce_jusqua: float = -1.0                # une percée balle au pied : il ne relâche pas avant
@@ -338,13 +341,18 @@ def _place(sur: list[dict], formation: str) -> list[tuple[float, float]]:
 
 def joueurs_de(sur: list[dict], camp: int, formation: str) -> list[Joueur]:
     places = _place(sur, formation)
-    out = []
-    for i, j in enumerate(sur):
+    return [joueur_de(j, camp, i, places[i]) for i, j in enumerate(sur)]
+
+
+def joueur_de(j: dict, camp: int, i: int, place: tuple[float, float]) -> Joueur:
+    """Un joueur du moteur, construit sur sa fiche (attributs, physique, pied,
+    travail sans ballon) et sa place au repos, en fractions du terrain."""
+    if True:
         ph = j.get("physique") or {}
         vit = ph.get("vit") if "vit" in ph else (
             (ph.get("acceleration", 68) + ph.get("vitesse_pointe", 68)) / 2 if ph else None)
         acc = ph.get("acceleration", (vit if vit is not None else 68))
-        px, py = places[i]
+        px, py = place
         jo = Joueur(pid=j["pid"], nom=j.get("nom", str(j["pid"])), camp=camp, idx=camp * 11 + i,
                     poste=j.get("slot") or j.get("poste", "Milieu relayeur"),
                     fam=j.get("fam") or S.FAMILLE_POSTE.get(j.get("slot") or j.get("poste", ""), "MID"),
@@ -366,8 +374,7 @@ def joueurs_de(sur: list[dict], camp: int, formation: str) -> list[Joueur]:
             jo.travail_def = 0.6 * jo.pressing + 0.4 * jo.volume
         if jo.gk:
             jo.vmax = min(jo.vmax, 8.0)
-        out.append(jo)
-    return out
+        return jo
 
 
 # --------------------------------------------------------------------------
@@ -576,21 +583,7 @@ class Match:
         self.ligne_def = [FAMILLE_X["DEF"] * LONG, FAMILLE_X["DEF"] * LONG]   # la profondeur de chaque défense, dans son repère
         self.phase = ["construction", "bloc_median"]
         for t in self.tac:
-            if t.get("relance", "mixte") == "mixte" and t["tempo"] in ("possession", "direct"):
-                t["relance"] = "courte" if t["tempo"] == "possession" else "longue"
-            # l'intensité du style : +1 pour un club de possession plein (0,62 de touches), −1 pour un club
-            # direct plein (0,38), proportionnel entre les deux quand on connaît la possession réelle du club ;
-            # un tempo choisi à la main vaut plein (réel : PSG 0,62 et Real 0,56 sont tous deux « possession »,
-            # mais Paris garde le ballon contre Madrid — 0,55 — et le moteur donnait 0,48 avec le même tempo)
-            poss = t.get("possession")
-            if poss is not None and t["tempo"] in ("possession", "direct"):
-                t["style"] = max(-1.0, min(1.0, (poss - 0.5) / STYLE_PLEIN))
-                if t["tempo"] == "possession":
-                    t["style"] = max(0.2, t["style"])
-                else:
-                    t["style"] = min(-0.2, t["style"])
-            else:
-                t["style"] = {"possession": 1.0, "direct": -1.0}.get(t["tempo"], 0.0)
+            self._style(t)
         self.relance_choix = ["courte", "courte"]    # ce que chaque camp fait de SA relance en cours
         self.cote_suite = [0, 0]                     # les passes d'affilée sur un même côté : un côté bouché se quitte
         self.dernier_appel = [-9.0, -9.0]            # le dernier départ en profondeur de chaque camp
@@ -650,6 +643,10 @@ class Match:
                       "jaunes": [0, 0], "rouges": [0, 0], "tacles": [0, 0], "interceptions": [0, 0]}
         self.jaunes: dict[int, int] = {}
         self.exclus: set[int] = set()
+        self.fini = False
+        self.a_remplacer: list[tuple[int, int, dict]] = []      # (camp, sortant, fiche de l'entrant) en attente d'un arrêt de jeu
+        self.remplacements: list[tuple[int, int, int]] = []      # (camp, sortant, entrant) faits
+        self.sortis: list[Joueur] = []
         self._engagement(0)
 
     # -- outils ------------------------------------------------------------------
@@ -958,10 +955,111 @@ class Match:
 
     # -- le pas de temps -----------------------------------------------------------
     def jouer(self) -> dict:
-        while self.t < self.duree:
-            self.pas_de_temps()
-        self.evt("fin", score=list(self.score))
+        self.jouer_jusqua(1e9)
         return self.resume()
+
+    @staticmethod
+    def _style(t: dict):
+        """La relance par défaut d'un tempo, et l'intensité du style : +1 pour un club de
+        possession plein (0,62 de touches), −1 pour un club direct plein (0,38), proportionnel
+        entre les deux quand on connaît la possession réelle du club ; un tempo choisi à la main
+        vaut plein (réel : PSG 0,62 et Real 0,56 sont tous deux « possession », mais Paris garde
+        le ballon contre Madrid — 0,55 — et le moteur donnait 0,48 avec le même tempo)."""
+        if t.get("relance", "mixte") == "mixte" and t["tempo"] in ("possession", "direct"):
+            t["relance"] = "courte" if t["tempo"] == "possession" else "longue"
+        poss = t.get("possession")
+        if poss is not None and t["tempo"] in ("possession", "direct"):
+            t["style"] = max(-1.0, min(1.0, (poss - 0.5) / STYLE_PLEIN))
+            if t["tempo"] == "possession":
+                t["style"] = max(0.2, t["style"])
+            else:
+                t["style"] = min(-0.2, t["style"])
+        else:
+            t["style"] = {"possession": 1.0, "direct": -1.0}.get(t["tempo"], 0.0)
+
+    # -- le direct : avancer, remplacer, ajuster, permuter, parler ---------------------------
+    def jouer_jusqua(self, minute: float) -> bool:
+        """Avance le match jusqu'à cette minute de jeu (bornée par sa durée, temps
+        additionnel compris) et dit s'il est fini.  Le lobby s'en sert pour suivre
+        l'horloge réelle : un match en direct se joue par tranches, et une consigne,
+        un remplacement ou une causerie donnés entre deux tranches s'appliquent à
+        la suite — le match reste une fonction de la graine et de ce qui a été dit."""
+        while self.t < min(self.duree, minute * 60.0):       # (la durée grandit avec le temps additionnel affiché)
+            self.pas_de_temps()
+            if self.a_remplacer and (self.arret or self.ballon.porteur is None and self.ballon.vitesse() < 1.0):
+                self._executer_remplacements()
+        if self.t >= self.duree and not self.fini:
+            self.fini = True
+            self.evt("fin", score=list(self.score))
+        return self.fini
+
+    def remplacer(self, camp: int, sortant: int, fiche: dict) -> bool:
+        """Un remplacement : l'entrant (sa fiche, comme dans le onze de départ)
+        prend la place, le poste et le rôle du sortant au prochain arrêt de jeu.
+        Faux si le sortant n'est pas sur le terrain ou si les changements sont épuisés."""
+        if sum(1 for c, _, _ in self.remplacements if c == camp) >= REMPLACEMENTS_MAX:
+            return False
+        if not any(j.pid == sortant and j.pid not in self.exclus for j in self.camp[camp]):
+            return False
+        if any(c == camp and s_ == sortant for c, s_, _ in self.a_remplacer):
+            return False
+        self.a_remplacer.append((camp, sortant, fiche))
+        return True
+
+    def _executer_remplacements(self):
+        for camp, sortant, fiche in self.a_remplacer:
+            k = next((i for i, j in enumerate(self.joueurs) if j.pid == sortant and j.camp == camp), None)
+            if k is None:
+                continue
+            vieux = self.joueurs[k]
+            neuf = joueur_de(fiche, camp, k - camp * 11, (vieux.home[0] / LONG, vieux.home[1] / LARG))
+            neuf.poste, neuf.fam, neuf.role_tac, neuf.home = vieux.poste, vieux.fam, vieux.role_tac, vieux.home
+            neuf.bonus = dict(vieux.bonus)
+            neuf.x, neuf.y = vieux.x, vieux.y
+            neuf.cible = vieux.cible
+            neuf.capitaine = False
+            vieux.minutes_sorti = round(self.t / 60)
+            self.joueurs[k] = neuf
+            self.camp[camp] = [neuf if j is vieux else j for j in self.camp[camp]]
+            self.sortis.append(vieux)
+            self.remplacements.append((camp, sortant, neuf.pid))
+            if self.ballon.porteur is vieux:
+                self.ballon.porteur = neuf
+            self.evt("remplacement", camp=camp, sortant=sortant, entrant=neuf.pid, nom=neuf.nom)
+        self.a_remplacer = []
+
+    def ajuster(self, camp: int, tactique: dict):
+        """La tactique change en cours de match : bloc, tempo, risque, relance, ...
+        (les clés absentes gardent leur valeur)."""
+        self.tac[camp].update({k: v for k, v in tactique.items() if v is not None})
+        self._style(self.tac[camp])
+        self.evt("tactique", camp=camp, tactique={k: self.tac[camp].get(k) for k in ("bloc", "tempo", "risque", "relance")})
+
+    def permuter(self, camp: int, un: int, deux: int) -> bool:
+        """Deux joueurs échangent leur place : poste, rôle et place au repos."""
+        a = next((j for j in self.camp[camp] if j.pid == un), None)
+        b = next((j for j in self.camp[camp] if j.pid == deux), None)
+        if a is None or b is None or a.gk or b.gk:
+            return False
+        a.poste, b.poste = b.poste, a.poste
+        a.fam, b.fam = b.fam, a.fam
+        a.role_tac, b.role_tac = b.role_tac, a.role_tac
+        a.home, b.home = b.home, a.home
+        self.evt("permutation", camp=camp, un=un, deux=deux)
+        return True
+
+    def causerie(self, camp: int, quoi: str):
+        """La causerie de la mi-temps, celle du moteur A (simulation.CAUSERIES) :
+        secouer, rassurer, féliciter — un échange, pas un bonus.  Elle se
+        traduit en points d'attributs pour la seconde période."""
+        from jeu import simulation as SM
+        effets = SM.CAUSERIES.get(quoi, {}).get(SM.situation(self.score, camp), {})
+        traits = {"percussion": ("DRI",), "controle": ("CON", "PRO"), "defense": ("DEF",), "finition": ("FIN",), "creation": ("CRE",)}
+        for j in self.camp[camp]:
+            for trait, f in effets.items():
+                for k in traits.get(trait, ()):
+                    j.bonus[k] = j.bonus.get(k, 0.0) + (f - 1.0) * CAUSERIE_POINTS
+        self.evt("causerie", camp=camp, quoi=quoi)
 
     def pas_de_temps(self):
         self.pas += 1
@@ -3508,7 +3606,16 @@ class Match:
                             "interceptions": j.interceptions, "fautes": j.fautes, "arrets": j.arrets,
                             "fatigue": round(j.fatigue, 2), "exclu": j.pid in self.exclus, "capitaine": j.capitaine,
                             "travail": [round(j.volume, 2), round(j.pressing, 2), round(j.recup, 2)]})
-        return {"score": list(self.score), "noms": list(self.noms), "minutes": round(self.duree / 60),
+        for j in self.sortis:
+            joueurs.append({"pid": j.pid, "nom": j.nom, "camp": j.camp, "poste": j.poste, "sorti": j.minutes_sorti,
+                            "distance": round(j.distance), "sprint": round(j.sprint), "vmax_kmh": round(j.vmax_vue * 3.6, 1),
+                            "vmax_ea": j.physique.get("vit"), "touches": j.touches, "passes": j.passes, "passes_ok": j.passes_ok,
+                            "tirs": j.tirs, "cadres": j.tirs_cadres, "buts": j.buts, "tacles": j.tacles,
+                            "interceptions": j.interceptions, "fautes": j.fautes, "arrets": j.arrets,
+                            "fatigue": round(j.fatigue, 2), "exclu": j.pid in self.exclus, "capitaine": j.capitaine,
+                            "travail": [round(j.volume, 2), round(j.pressing, 2), round(j.recup, 2)]})
+        return {"score": list(self.score), "noms": list(self.noms), "minutes": round(self.duree / 60), "fini": self.fini,
+                "remplacements": [list(r) for r in self.remplacements],
                 "additionnel": list(self.additionnel),
                 "collectif": list(self.collectif), "affinite": list(self.affinite), "tactiques": [dict(t) for t in self.tac],
                 "possession": [round(self.possession[0] / tot, 3), round(self.possession[1] / tot, 3)],

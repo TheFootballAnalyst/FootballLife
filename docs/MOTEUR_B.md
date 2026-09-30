@@ -781,6 +781,20 @@ Le levier `ATTRIBUT_PIVOT` / `ATTRIBUT_PENTE` (les attributs vus par
 le moteur) est là, à 1. Seuls les écarts de plus de vingt points, qui
 n'existent pas en vrai, s'extrapolent trop.
 
+**Le direct** (vers le jeu). Le moteur B se joue par tranches :
+`jouer_jusqua(minute)` avance jusqu'à cette minute (temps additionnel
+compris) et dit si le match est fini ; entre deux tranches,
+`remplacer(camp, sortant, fiche)` (au prochain arrêt de jeu, cinq par
+équipe, `REMPLACEMENTS_MAX`), `ajuster(camp, tactique)`, `permuter(camp,
+un, deux)` et `causerie(camp, quoi)` (celles du moteur A, traduites en
+points d'attributs pour la seconde période, `CAUSERIE_POINTS`). Le
+résumé porte `fini`, `remplacements`, et les sortants avec leur minute
+de sortie. Joué d'un bloc ou par tranches, la même graine donne le même
+match jusqu'à la première consigne. Un match de 90 minutes coûte 17 s
+avec sa trace (14 100 images) : le lobby devra garder le match vivant
+en mémoire et l'avancer au rythme de l'horloge, pas le rejouer à
+chaque sondage comme le moteur A.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du
