@@ -74,6 +74,8 @@ def main():
             return
     mdp = a.mot_de_passe
     if mdp is None:
+        print("Tape le nouveau mot de passe puis Entrée : rien ne s'affiche pendant la frappe, c'est voulu.")
+        print("(ou passe-le directement :  py web/app/mdp.py PSEUDO --mot-de-passe lemotdepasse)")
         mdp = getpass.getpass("Nouveau mot de passe : ")
         if mdp != getpass.getpass("Encore une fois : "):
             sys.exit("Les deux saisies diffèrent, rien n'est changé.")
