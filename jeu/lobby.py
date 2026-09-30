@@ -37,6 +37,7 @@ from datetime import datetime, timezone
 from jeu import elo as ELO
 from jeu import scoring as S
 from jeu import simulation as SM
+from jeu import direct as DIRECT
 
 # Six real minutes for the ninety, not four.  Four left no room to make
 # a substitution: picking who comes off and who comes on took longer than
@@ -388,8 +389,10 @@ def _cotes(jeu, saison: str, r) -> tuple[SM.Equipe, SM.Equipe]:
     return a, b
 
 
-def feuille(jeu, saison: str, r, minute: int | None = None) -> dict:
-    """The sheet of a match up to `minute` (the clock's minute by default)."""
+def feuille(jeu, saison: str, r, minute: int | None = None, depuis: float | None = None, trace: bool = False) -> dict:
+    """The sheet of a match up to `minute` (the clock's minute by default).
+    With the B engine, `trace` asks for the positions (the frames after
+    `depuis` seconds of play) — the screen wants them, the rules do not."""
     a, b = _cotes(jeu, saison, r)
     m = minute_de(r) if minute is None else minute
     # Side A is the human's, always.  Side B is another manager in a
@@ -397,10 +400,14 @@ def feuille(jeu, saison: str, r, minute: int | None = None) -> dict:
     # replaces its injured players — and the machine's in a challenge or a
     # campaign.  Side A's injuries are never replaced behind his back: the
     # sheet reports them and the screen stops to ask.
-    f = SM.jouer(a, b, r["graine"], _tactiques(r), jusqua=m, changements=_remplacements(r),
-                 auto_remplacement=(False, True),
-                 causeries=(_champ(r, "causerie_a") or "rien", _champ(r, "causerie_b") or "rien"),
-                 permutations=_permutations(r))
+    if DIRECT.MOTEUR == "B":
+        # le moteur B : un match vivant, avancé à l'horloge (jeu/direct.py)
+        f = DIRECT.feuille(jeu, saison, r, m, depuis=depuis, trace=trace)
+    else:
+        f = SM.jouer(a, b, r["graine"], _tactiques(r), jusqua=m, changements=_remplacements(r),
+                     auto_remplacement=(False, True),
+                     causeries=(_champ(r, "causerie_a") or "rien", _champ(r, "causerie_b") or "rien"),
+                     permutations=_permutations(r))
     f["rencontre_id"] = r["rencontre_id"]
     f["pause"] = en_pause(r)
     f["solitaire"] = solitaire(r)
@@ -557,6 +564,8 @@ def cloturer(jeu, saison: str, r) -> dict | None:
     f = feuille(jeu, saison, r, SM.MINUTES_MAX)
     if not f.get("fini") and minute_de(r) < (f.get("total") or SM.MINUTES_MAX):
         return None                          # le temps additionnel se joue encore
+    f.pop("trace", None)                     # la trace ne se range pas dans la base (3 Mo par match)
+    DIRECT.oublier(r)
     ea, eb = None, None
     if not r["defi"] and r["equipe_b"]:
         ra = jeu.execute("SELECT elo_classe FROM equipe WHERE equipe_id=?", (r["equipe_a"],)).fetchone()[0]
@@ -615,7 +624,7 @@ def arbitrer(jeu, r, f: dict) -> dict:
     return f
 
 
-def etat(jeu, saison: str, equipe_id: int) -> dict:
+def etat(jeu, saison: str, equipe_id: int, depuis: float | None = None) -> dict:
     """What the lobby screen shows: waiting, running (with the sheet so
     far) or nothing, plus the manager's ranked standing."""
     out = {"duree": DUREE_REELLE, "durees": list(DUREES), "minutes": SM.MINUTES, "minutes_max": SM.MINUTES_MAX,
@@ -637,7 +646,7 @@ def etat(jeu, saison: str, equipe_id: int) -> dict:
         out["etat"] = "attente"
         out["match"] = {"rencontre_id": r["rencontre_id"], "depuis": r["cree_le"]}
         return out
-    f = json.loads(r["feuille"]) if r["feuille"] else arbitrer(jeu, r, feuille(jeu, saison, r))
+    f = json.loads(r["feuille"]) if r["feuille"] else arbitrer(jeu, r, feuille(jeu, saison, r, depuis=depuis, trace=True))
     out["duree"] = duree_de(r)
     out["etat"] = "fini" if r["resultat"] else "en_cours"
     out["cote"] = "a" if r["equipe_a"] == equipe_id else "b"

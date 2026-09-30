@@ -893,3 +893,7 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 .globaux .global span{font-family:"Barlow Condensed",sans-serif;font-size:11px;letter-spacing:.06em;color:var(--sourd,#9aa3b8)}
 .globaux .global b{font-family:Anton,sans-serif;font-weight:400;font-size:18px}
 .globaux .global b.haut{color:var(--or,#d8b45a)}
+
+/* le terrain du moteur B : un canvas au format du terrain (105 × 68) */
+.terrain2d.terrain-b{aspect-ratio:1050/680;background:#1f7a3a}
+.terrain-b-canvas{display:block;width:100%;height:100%}

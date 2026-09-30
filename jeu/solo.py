@@ -980,7 +980,7 @@ def abandonner(jeu, saison: str, equipe_id: int) -> bool:
 # What the screen reads
 # --------------------------------------------------------------------------
 
-def etat(jeu, saison: str, equipe_id: int) -> dict:
+def etat(jeu, saison: str, equipe_id: int, depuis: float | None = None) -> dict:
     camp = en_cours(jeu, saison, equipe_id)
     offerts = json.loads(jeu.execute("SELECT COALESCE(packs_offerts,'{}') FROM equipe WHERE equipe_id=?",
                                      (equipe_id,)).fetchone()[0])
@@ -997,7 +997,7 @@ def etat(jeu, saison: str, equipe_id: int) -> dict:
     if r is not None and LB.termine(jeu, saison, r):
         cloturer_tour(jeu, saison, equipe_id)
         return etat(jeu, saison, equipe_id)
-    live = (LB.arbitrer(jeu, r, LB.feuille(jeu, saison, r))
+    live = (LB.arbitrer(jeu, r, LB.feuille(jeu, saison, r, depuis=depuis, trace=True))
             | {"duree": LB.duree_de(r), "minutes": SM.MINUTES,
                "cote": "a", "domicile": bool(r["domicile"])}
             if r is not None else None)

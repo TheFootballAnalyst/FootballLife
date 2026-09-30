@@ -644,6 +644,7 @@ class Match:
         self.jaunes: dict[int, int] = {}
         self.exclus: set[int] = set()
         self.fini = False
+        self.formations = [formation_a, formation_b]
         self.a_remplacer: list[tuple[int, int, dict]] = []      # (camp, sortant, fiche de l'entrant) en attente d'un arrêt de jeu
         self.remplacements: list[tuple[int, int, int]] = []      # (camp, sortant, entrant) faits
         self.sortis: list[Joueur] = []
@@ -1027,6 +1028,23 @@ class Match:
                 self.ballon.porteur = neuf
             self.evt("remplacement", camp=camp, sortant=sortant, entrant=neuf.pid, nom=neuf.nom)
         self.a_remplacer = []
+
+    def reformer(self, camp: int, formation: str) -> bool:
+        """Le onze change de formation en cours de match : chacun prend le poste, la
+        famille, le rôle et la place au repos de son rang dans la nouvelle forme."""
+        postes = S.postes_formation(formation)
+        fams = S.familles_formation(formation)
+        js = sorted(self.camp[camp], key=lambda j: j.idx)
+        if len(postes) != len(js):
+            return False
+        places = _place([{"slot": p, "fam": f} for p, f in zip(postes, fams)], formation)
+        for i, j in enumerate(js):
+            j.poste, j.fam = postes[i], fams[i]
+            j.home = (places[i][0] * LONG, places[i][1] * LARG)
+            j.role_tac = self._role_tac(j)
+        self.formations[camp] = formation
+        self.evt("formation", camp=camp, formation=formation)
+        return True
 
     def ajuster(self, camp: int, tactique: dict):
         """La tactique change en cours de match : bloc, tempo, risque, relance, ...

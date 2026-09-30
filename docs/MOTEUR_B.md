@@ -791,9 +791,31 @@ points d'attributs pour la seconde période, `CAUSERIE_POINTS`). Le
 résumé porte `fini`, `remplacements`, et les sortants avec leur minute
 de sortie. Joué d'un bloc ou par tranches, la même graine donne le même
 match jusqu'à la première consigne. Un match de 90 minutes coûte 17 s
-avec sa trace (14 100 images) : le lobby devra garder le match vivant
-en mémoire et l'avancer au rythme de l'horloge, pas le rejouer à
-chaque sondage comme le moteur A.
+avec sa trace (14 100 images) : le lobby le garde vivant en mémoire et
+l'avance au rythme de l'horloge (`jeu/direct.py`), il ne le rejoue pas
+à chaque sondage comme le moteur A.
+
+**Le moteur B dans le jeu** (`jeu/direct.py`, `direct.MOTEUR`). Le lobby
+et le solo jouent maintenant leurs matchs sur le moteur B : un match
+vivant par rencontre, identifié par la rencontre, son coup d'envoi, sa
+graine et ses onze ; à chaque sondage de l'écran il applique ce qui est
+dû (tactiques, changements, permutations, causerie, formation — la
+chronologie enregistrée dans la rencontre, comme avant) minute par
+minute, puis avance jusqu'à la minute de l'horloge (0,15 s par minute,
+13 s pour rattraper un match entier) ; un serveur qui redémarre le
+reconstruit en rejouant la même chronologie sur la même graine. La
+feuille rendue a les champs de celle du moteur A (l'écran ne change pas
+de vocabulaire) et porte en plus les images de positions après la
+dernière reçue (`depuis`), les gestes, les tenues et les vingt-deux sur
+le terrain ; la feuille figée en base n'a pas la trace. Les notes des
+joueurs viennent des compteurs du moteur B avec le barème du moteur A
+(`direct.notes_b`). L'écran de match dessine ces images sur le terrain
+du bac (`web/app/static/terrain_b.js`, partagé avec le bac), à la
+vitesse de l'horloge, ton équipe attaquant toujours vers la droite ; le
+bandeau suit ce que le terrain montre. Ce que le moteur B n'a pas
+encore : les blessures (le moteur A les garde, `MOTEUR = "A"` y
+revient), et une formation changée en cours de match replace les
+joueurs sans les faire changer de poste réel.
 
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente

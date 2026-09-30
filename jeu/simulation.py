@@ -1878,12 +1878,12 @@ def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
     from jeu import scoring as S
     joueurs = []
     for i, pid in enumerate(pids):
-        row = jeu.execute("""SELECT j.nom, j.poste, c.ovr, c.attributs, j.postes, j.physique FROM carte c
+        row = jeu.execute("""SELECT j.nom, j.poste, c.ovr, c.attributs, j.postes, j.physique, j.pied, j.pied_faible FROM carte c
                              JOIN joueur j ON j.player_id = c.player_id
                              WHERE c.player_id = ? AND c.saison = ?""", (pid, saison)).fetchone()
         if not row:
             continue
-        nom_j, poste, ovr, attrs, postes, physique_j = row
+        nom_j, poste, ovr, attrs, postes, physique_j, pied, pied_faible = row
         tenus = json.loads(postes) if postes else [poste]
         attributs = json.loads(attrs or "{}")
         slot = postes_slots[i] if postes_slots and i < len(postes_slots) else None
@@ -1898,6 +1898,7 @@ def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
                         "slot": slot, "hors_poste": malus > 0, "malus": malus,
                         "profil": profil(attributs, fam),
                         "physique": physique_match(physique_j),
+                        "pied": pied or "droit", "pied_faible": pied_faible or 3,
                         "endurance": ENDURANCE_MAX})
     return Equipe(nom, joueurs)
 

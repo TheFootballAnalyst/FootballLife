@@ -795,9 +795,11 @@ class Ajustement(BaseModel):
 
 
 @app.get("/api/lobby")
-def lobby_etat(u=Depends(exiger), jeu=Depends(bd)):
+def lobby_etat(depuis: float | None = None, u=Depends(exiger), jeu=Depends(bd)):
+    """`depuis` : l'instant de jeu (en secondes) de la dernière image de positions
+    reçue — le moteur B ne renvoie que les suivantes."""
     e = equipe_de(jeu, u)
-    return LB.etat(jeu, SAISON, e["equipe_id"]) | {"historique": LB.historique(jeu, SAISON, e["equipe_id"])}
+    return LB.etat(jeu, SAISON, e["equipe_id"], depuis=depuis) | {"historique": LB.historique(jeu, SAISON, e["equipe_id"])}
 
 
 class TactiqueClub(BaseModel):
@@ -953,9 +955,9 @@ class TourSolo(BaseModel):
 
 
 @app.get("/api/solo")
-def solo_etat(u=Depends(exiger), jeu=Depends(bd)):
+def solo_etat(depuis: float | None = None, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
-    return SO.etat(jeu, SAISON, e["equipe_id"])
+    return SO.etat(jeu, SAISON, e["equipe_id"], depuis=depuis)
 
 
 @app.get("/api/solo/clubs/{cle}")

@@ -278,6 +278,8 @@ def test_a_ranked_match_between_two_managers_cannot_be_stopped():
 
 
 def test_an_injury_stops_a_solo_match_once_and_the_substitution_restarts_it(monkeypatch):
+    from jeu import direct as DIRECT
+    monkeypatch.setattr(DIRECT, "MOTEUR", "A")            # les blessures sont au moteur A ; le moteur B n'en a pas encore
     monkeypatch.setattr(SM, "P_BLESSURE", 1.0)
     jeu = base_avec_equipes(1)
     LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True, banc=[12, 13, 14, 15])
@@ -464,3 +466,35 @@ def test_stamina_burns_slower_for_a_player_with_more_of_it():
     assert SM.physique_match(json.dumps({"acceleration": 90, "vitesse_pointe": 96, "endurance": 80, "force": 70})) == \
         {"vit": 93, "end": 80, "for": 70}
     assert SM.physique_match(None) is None
+
+
+def test_the_b_engine_live_match_follows_the_clock_and_survives_a_restart():
+    from jeu import direct as DIRECT
+    jeu = base_avec_equipes(2)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, banc=BANC)
+    LB.rejoindre(jeu, "2025/26", 2, ONZE, None, banc=BANC)
+    r = LB.en_cours(jeu, "2025/26", 1)
+    f0 = LB.feuille(jeu, "2025/26", r, 0, trace=True)
+    assert f0["moteur"] == "B" and f0["minute"] == 0 and f0["score"] == [0, 0] and "trace" in f0
+    # a substitution recorded for minute 1 is played when the clock passes it
+    LB.changer(jeu, "2025/26", 1, ONZE[10], BANC[0])
+    r = LB.en_cours(jeu, "2025/26", 1)
+    f = LB.feuille(jeu, "2025/26", r, 12, depuis=0.0, trace=True)
+    assert BANC[0] in f["sur_le_terrain"]["a"] and ONZE[10] not in f["sur_le_terrain"]["a"]
+    assert f["entres"]["a"] == [BANC[0]] and f["changements"] == [1, 0]
+    assert any(e["type"] == "changement" for e in f["evenements"]) and f["trace"] and f["trace"][0][0] > 0
+    assert all(pid in f["joueurs"] for pid in f["sur_le_terrain"]["a"]) and 3.0 <= f["joueurs"][BANC[0]]["note"] <= 10.0
+    # only the frames after `depuis` come back
+    f2 = LB.feuille(jeu, "2025/26", r, 12, depuis=600.0, trace=True)
+    assert f2["trace"] and all(x[0] > 6000 for x in f2["trace"])
+    # the server restarts: the match is rebuilt from the same seed and the same timeline
+    score, evs = f["score"], [(e["type"], e["minute"]) for e in f["evenements"]]
+    DIRECT.oublier(r)
+    g = LB.feuille(jeu, "2025/26", r, 12)
+    assert g["score"] == score and [(e["type"], e["minute"]) for e in g["evenements"]] == evs
+    assert BANC[0] in g["sur_le_terrain"]["a"]
+    # what the screen polls is plain JSON, with the frames after the cursor, the kits and the twenty-two on the pitch
+    e = LB.etat(jeu, "2025/26", 1, depuis=300.0)
+    txt = json.dumps(e)
+    assert e["etat"] == "en_cours" and e["match"]["moteur"] == "B" and e["match"]["maillots"]["a"]["base"].startswith("#")
+    assert len(e["match"]["cartes"]) == 22 and all(x[0] > 3000 for x in e["match"]["trace"]) and len(txt) < 2_000_000

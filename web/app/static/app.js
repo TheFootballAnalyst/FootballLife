@@ -1119,7 +1119,7 @@ function arreterLobby() {
   if (G.ecran !== "solo") arreterTerrain(true); if (LOBBY.timer) { clearInterval(LOBBY.timer); LOBBY.timer = null; } }
 
 async function rendreLobby(donnees) {
-  const d = donnees || await api("/lobby");
+  const d = donnees || await api(cheminSonde("/lobby"));
   LOBBY.etat = d;
   $("#lobby-info").textContent = `Elo classé ${Math.round(d.elo)} · ${d.classees} match${d.classees > 1 ? "s" : ""} classé${d.classees > 1 ? "s" : ""}`;
   const B = $("#lobby-corps"); B.replaceChildren();
@@ -1676,7 +1676,7 @@ function lancerBoucleSolo() {
     if (G.ecran !== "solo") { arreterBoucleSolo(); return; }
     try {
       const avant = SOLO.d?.campagne?.tour;
-      const d = await api("/solo");
+      const d = await api(cheminSonde("/solo"));
       const fini = !d.campagne?.match;
       await rendreSolo(d);
       if (fini) {
@@ -2337,6 +2337,7 @@ function programmer(d) {
 
 function arreterTerrain(oublier) {
   if (T2D.timer) { clearTimeout(T2D.timer); T2D.timer = null; }
+  if (oublier) arreterTerrainB(true);
   if (oublier) {
     if (window.SIM) SIM.stop();
     T2D.noeud = null; T2D.cle = null; T2D.m = 0; T2D.dernier = null; T2D.phases = []; T2D.i = 0;
@@ -2394,11 +2395,79 @@ function majTete() {
   h.horloge.style.width = Math.round(100 * min / (m.total || (h.minutes || 90) + 7)) + "%";
 }
 
+
+// -- Le terrain du moteur B (terrain_b.js) dans l'écran de match --------------
+// Le serveur avance le match vivant au rythme de l'horloge et renvoie, à
+// chaque sondage, les images de positions après la dernière reçue
+// (`depuis`).  Le terrain les joue derrière, à la vitesse de l'horloge
+// (90 minutes en `duree` secondes), sans jamais dépasser ce qu'il a reçu ;
+// le bandeau (score, minute) suit ce que le terrain montre, pas le serveur.
+const TB = {rid: null, terrain: null, noeud: null, canvas: null, t: 0, derniere: 0, raf: null, vitesse: 15,
+            m: null, moi: "a", fini: false, pause: false};
+function depuisB() { return (TB.rid !== null && TB.terrain && TB.terrain.trace.length) ? TB.terrain.duree : null; }
+function cheminSonde(base) { const d = depuisB(); return d === null ? base : `${base}?depuis=${d}`; }
+function panneauTerrainB(d, moi) {
+  const m = d.match;
+  if (TB.rid !== m.rencontre_id || !TB.noeud) {
+    arreterTerrainB(true);
+    TB.rid = m.rencontre_id;
+    const p = el("div", {class: "panneau terrain-live"});
+    p.append(el("div", {class: "t2d-legende"},
+      el("span", {class: "lg mien"}, "Ton équipe"), el("span", {class: "lg adverse"}, "L'adversaire"),
+      el("span", {class: "t2d-action"}, "")));
+    const boite = el("div", {class: "terrain2d terrain-b"});
+    const canvas = el("canvas", {class: "terrain-b-canvas", width: 1050, height: 680});
+    boite.append(canvas); p.append(boite);
+    TB.noeud = p; TB.canvas = canvas;
+    TB.terrain = new TerrainB(canvas, {miroir: moi === "b"});
+    TB.terrain.charger({joueurs: m.cartes || [], trace: [], evenements: [], trace_pas: m.trace_pas || 0.4, phases: m.phases || null}, m.maillots);
+    TB.t = 0; TB.derniere = performance.now();
+    T2D.rid = m.rencontre_id; T2D.vus = new Set(); T2D.score = [0, 0]; T2D.m = 0;
+  }
+  if (m.cartes) TB.terrain.remplacer(m.cartes);
+  TB.terrain.ajouter(m.trace || [], m.gestes || []);
+  TB.m = m; TB.moi = moi; TB.fini = !!m.fini; TB.pause = !!m.pause;
+  TB.vitesse = (90 * 60) / (d.duree || 360);
+  // on arrive en cours de match : on regarde les dernières secondes reçues, pas le coup d'envoi
+  if (TB.t === 0 && TB.terrain.trace.length) TB.t = Math.max(TB.terrain.debut, TB.terrain.duree - 8);
+  TB.noeud.querySelector(".terrain2d").classList.toggle("suspendu", !!m.pause);
+  if (!TB.raf) { TB.derniere = performance.now(); TB.raf = requestAnimationFrame(boucleB); }
+  return TB.noeud;
+}
+function boucleB(now) {
+  TB.raf = null;
+  if (!TB.terrain || !TB.noeud || !TB.noeud.isConnected) return;
+  const dt = Math.min(0.5, (now - TB.derniere) / 1000); TB.derniere = now;
+  const tr = TB.terrain;
+  if (!TB.pause && tr.trace.length) {
+    TB.t = Math.min(tr.duree, TB.t + dt * TB.vitesse);
+    if (tr.duree - TB.t > 40) TB.t = tr.duree - 20;       // trop de retard (onglet endormi) : on rattrape
+  }
+  const r = tr.dessiner(tr.index(TB.t));
+  // le bandeau suit le terrain
+  const m = TB.m;
+  if (m) {
+    T2D.rid = m.rencontre_id;
+    T2D.m = Math.floor(r.t / 60);
+    T2D.score = r.score;
+    const vus = new Set();
+    (m.evenements || []).forEach((e, i) => { if (e.t === undefined || e.t === null || e.t <= r.t) vus.add(i); });
+    T2D.vus = vus;
+    majTete();
+  }
+  TB.raf = requestAnimationFrame(boucleB);
+}
+function arreterTerrainB(oublier) {
+  if (TB.raf) { cancelAnimationFrame(TB.raf); TB.raf = null; }
+  if (oublier) { TB.rid = null; TB.terrain = null; TB.noeud = null; TB.canvas = null; TB.t = 0; TB.m = null; }
+}
+
 // Le panneau est RÉUTILISÉ d'un sondage à l'autre, pas reconstruit :
 // redessiner vingt-deux cartes toutes les deux secondes et demie
 // relançait chaque transition CSS et effaçait le bandeau d'événement.
 function panneauTerrain(d, moi) {
   const m = d.match;
+  if (m.moteur === "B") return panneauTerrainB(d, moi);
   if (T2D.rid !== m.rencontre_id) {
     arreterTerrain(true);
     T2D.rid = m.rencontre_id;
