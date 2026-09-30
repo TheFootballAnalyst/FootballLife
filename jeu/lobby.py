@@ -70,13 +70,21 @@ def minute_courante(debut: str | None, maintenant_: datetime | None = None,
     `pause` is the instant the clock was stopped, if it is stopped now, and
     `cumul` the seconds already spent stopped earlier: a paused match sits
     on its minute instead of running on without its manager."""
+    return int(instant_courant(debut, maintenant_, pause, cumul, duree))
+
+
+def instant_courant(debut: str | None, maintenant_: datetime | None = None,
+                    pause: str | None = None, cumul: int = 0, duree: int | None = None) -> float:
+    """La même horloge, à la seconde près : la minute et sa fraction.  Le
+    moteur B avance son match jusque-là à chaque sondage, pour que l'écran
+    reçoive quelques secondes d'images à la fois et non une minute d'un coup."""
     if not debut:
-        return 0
+        return 0.0
     fin = _t(pause) if pause else (maintenant_ or datetime.now(timezone.utc))
     ecoule = (fin - _t(debut)).total_seconds() - max(0, cumul)
     # l'horloge avance d'une minute toutes les duree/90 secondes, et continue dans le temps
     # additionnel : c'est la feuille qui dit quand le match est fini (simulation.additionnel)
-    return max(0, min(SM.MINUTES_MAX, int(ecoule / (duree or DUREE_REELLE) * SM.MINUTES)))
+    return max(0.0, min(float(SM.MINUTES_MAX), ecoule / (duree or DUREE_REELLE) * SM.MINUTES))
 
 
 def termine(jeu, saison: str, r, f: dict | None = None) -> bool:
@@ -110,6 +118,12 @@ def _champ(r, cle, defaut=None):
 def minute_de(r, maintenant_: datetime | None = None) -> int:
     """The minute of a stored match, its pauses taken out."""
     return minute_courante(r["debut"], maintenant_, _champ(r, "pause"), _champ(r, "pause_cumul", 0) or 0,
+                           duree_de(r))
+
+
+def instant_de(r, maintenant_: datetime | None = None) -> float:
+    """La minute et sa fraction d'un match enregistré, ses pauses déduites."""
+    return instant_courant(r["debut"], maintenant_, _champ(r, "pause"), _champ(r, "pause_cumul", 0) or 0,
                            duree_de(r))
 
 
@@ -389,12 +403,16 @@ def _cotes(jeu, saison: str, r) -> tuple[SM.Equipe, SM.Equipe]:
     return a, b
 
 
-def feuille(jeu, saison: str, r, minute: int | None = None, depuis: float | None = None, trace: bool = False) -> dict:
+def feuille(jeu, saison: str, r, minute: float | None = None, depuis: float | None = None, trace: bool = False) -> dict:
     """The sheet of a match up to `minute` (the clock's minute by default).
     With the B engine, `trace` asks for the positions (the frames after
     `depuis` seconds of play) — the screen wants them, the rules do not."""
     a, b = _cotes(jeu, saison, r)
     m = minute_de(r) if minute is None else minute
+    # le moteur B suit l'horloge à la seconde : ce qui est dit à la 63e s'applique
+    # à la 64e (lobby.ajuster), le match ne s'arrête pas pour attendre
+    if DIRECT.MOTEUR == "B" and minute is None:
+        m = instant_de(r)
     # Side A is the human's, always.  Side B is another manager in a
     # ranked match — so it is nobody's to answer for and the machine
     # replaces its injured players — and the machine's in a challenge or a

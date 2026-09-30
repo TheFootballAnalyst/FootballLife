@@ -2404,6 +2404,10 @@ function majTete() {
 // le bandeau (score, minute) suit ce que le terrain montre, pas le serveur.
 const TB = {rid: null, terrain: null, noeud: null, canvas: null, t: 0, derniere: 0, raf: null, vitesse: 15,
             m: null, moi: "a", fini: false, pause: false};
+// Le retard que l'écran garde sur le serveur, en secondes de match : le temps
+// d'un sondage et demi, quelle que soit la vitesse du match, pour avoir toujours
+// des images d'avance et ne jamais attendre le prochain paquet.
+function margeB() { return 3.5 * TB.vitesse; }
 function depuisB() { return (TB.rid !== null && TB.terrain && TB.terrain.trace.length) ? TB.terrain.duree : null; }
 function cheminSonde(base) { const d = depuisB(); return d === null ? base : `${base}?depuis=${d}`; }
 function panneauTerrainB(d, moi) {
@@ -2430,7 +2434,7 @@ function panneauTerrainB(d, moi) {
   T2D.moi = moi;                               // le bandeau lit le score de ton côté
   TB.vitesse = (90 * 60) / (d.duree || 360);
   // on arrive en cours de match : on regarde les dernières secondes reçues, pas le coup d'envoi
-  if (TB.t === 0 && TB.terrain.trace.length) TB.t = Math.max(TB.terrain.debut, TB.terrain.duree - 8);
+  if (TB.t === 0 && TB.terrain.trace.length) TB.t = Math.max(TB.terrain.debut, TB.terrain.duree - margeB());
   TB.noeud.querySelector(".terrain2d").classList.toggle("suspendu", !!m.pause);
   if (!TB.raf) { TB.derniere = performance.now(); TB.raf = requestAnimationFrame(boucleB); }
   return TB.noeud;
@@ -2442,7 +2446,7 @@ function boucleB(now) {
   const tr = TB.terrain;
   if (!TB.pause && tr.trace.length) {
     TB.t = Math.min(tr.duree, TB.t + dt * TB.vitesse);
-    if (tr.duree - TB.t > 40) TB.t = tr.duree - 20;       // trop de retard (onglet endormi) : on rattrape
+    if (tr.duree - TB.t > 2.5 * margeB()) TB.t = tr.duree - margeB();   // trop de retard (onglet endormi) : on rattrape
   }
   const r = tr.dessiner(tr.index(TB.t));
   // le bandeau suit le terrain

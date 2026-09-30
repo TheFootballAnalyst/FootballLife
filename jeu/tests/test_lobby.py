@@ -498,3 +498,39 @@ def test_the_b_engine_live_match_follows_the_clock_and_survives_a_restart():
     txt = json.dumps(e)
     assert e["etat"] == "en_cours" and e["match"]["moteur"] == "B" and e["match"]["maillots"]["a"]["base"].startswith("#")
     assert len(e["match"]["cartes"]) == 22 and all(x[0] > 3000 for x in e["match"]["trace"]) and len(txt) < 2_000_000
+
+
+def test_the_b_engine_live_match_follows_the_clock_to_the_second_and_applies_orders_at_the_minute_mark():
+    from jeu import direct as DIRECT
+    jeu = base_avec_equipes(2)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, banc=BANC)
+    LB.rejoindre(jeu, "2025/26", 2, ONZE, None, banc=BANC)
+    r = LB.en_cours(jeu, "2025/26", 1)
+    # the screen polls every few seconds: the match advances to the clock's second, not its minute
+    f = LB.feuille(jeu, "2025/26", r, 10.5, trace=True)
+    assert f["minute"] == 10 and 6290 <= f["trace"][-1][0] <= 6300
+    f = LB.feuille(jeu, "2025/26", r, 10.55, depuis=f["t"], trace=True)
+    assert 0 < len(f["trace"]) <= 10 and f["trace"][-1][0] <= 6330
+    # an order recorded for minute 11 (said during minute 10) takes effect when the match reaches 11:00
+    # (the real clock is still at minute 0 here, so the order is written at its key by hand)
+    tac = vars(SM.Tactique(bloc="haut").valide())
+    jeu.execute("UPDATE rencontre SET ajustements=? WHERE rencontre_id=?", (json.dumps({"11": [tac, None]}), r["rencontre_id"]))
+    jeu.commit()
+    r = LB.en_cours(jeu, "2025/26", 1)
+    LB.feuille(jeu, "2025/26", r, 10.9, trace=False)
+    v = DIRECT.vivant(jeu, "2025/26", r)
+    assert "tac:11:0" not in v.appliques and abs(v.match.t - 10.9 * 60) < 0.2
+    LB.feuille(jeu, "2025/26", r, 11.2, trace=False)
+    assert "tac:11:0" in v.appliques
+    # a server that restarts replays the same match: same orders at the same seconds, same score
+    f = LB.feuille(jeu, "2025/26", r, 30.3, trace=False)
+    DIRECT.oublier(r)
+    g = LB.feuille(jeu, "2025/26", r, 30.3, trace=False)
+    assert g["score"] == f["score"] and g["tirs"] == f["tirs"] and g["possession"] == f["possession"]
+    assert [(e["type"], e["minute"]) for e in g["evenements"]] == [(e["type"], e["minute"]) for e in f["evenements"]]
+    # the clock itself carries the fraction
+    r = LB.en_cours(jeu, "2025/26", 1)
+    from datetime import datetime, timezone, timedelta
+    t0 = LB._t(r["debut"])
+    assert abs(LB.instant_de(r, t0 + timedelta(seconds=LB.duree_de(r) * 10.5 / 90)) - 10.5) < 0.01
+    assert LB.minute_de(r, t0 + timedelta(seconds=LB.duree_de(r) * 10.5 / 90)) == 10

@@ -800,10 +800,20 @@ et le solo jouent maintenant leurs matchs sur le moteur B : un match
 vivant par rencontre, identifié par la rencontre, son coup d'envoi, sa
 graine et ses onze ; à chaque sondage de l'écran il applique ce qui est
 dû (tactiques, changements, permutations, causerie, formation — la
-chronologie enregistrée dans la rencontre, comme avant) minute par
-minute, puis avance jusqu'à la minute de l'horloge (0,15 s par minute,
-13 s pour rattraper un match entier) ; un serveur qui redémarre le
-reconstruit en rejouant la même chronologie sur la même graine. La
+chronologie enregistrée dans la rencontre, comme avant), puis avance
+jusqu'à l'instant de l'horloge, à la seconde près (`lobby.instant_de` ;
+0,15 s de calcul par minute de match, 13 s pour rattraper un match
+entier) : l'écran, qui sonde toutes les 2,5 s, reçoit quelques secondes
+d'images à chaque fois et les joue avec trois secondes et demie de
+retard sur le serveur (`margeB`), jamais une minute d'un coup. Le
+joueur intervient à tout moment (tactique, changement, permutation,
+formation ; la causerie à la mi-temps) : ce qu'il dit à la minute m est
+enregistré pour la minute m + 1 (`lobby.ajuster`) et s'applique quand
+le match atteint m + 1:00 — dans un match de six minutes, quatre
+secondes réelles au plus ; le changement entre au premier arrêt de jeu
+qui suit. Cette règle fait du match une fonction de la graine et de ce
+qui a été dit : un serveur qui redémarre le reconstruit en rejouant la
+même chronologie sur la même graine et retombe sur le même score. La
 feuille rendue a les champs de celle du moteur A (l'écran ne change pas
 de vocabulaire) et porte en plus les images de positions après la
 dernière reçue (`depuis`), les gestes, les tenues et les vingt-deux sur

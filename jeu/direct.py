@@ -112,18 +112,21 @@ class Vivant:
                 self.appliques.add(f"causerie:{camp}")
                 m.causerie(camp, quoi)
 
-    def avancer(self, r, minute: int) -> bool:
-        """Avance jusqu'à la minute de l'horloge, en appliquant la chronologie au
-        passage : minute par minute, pour que ce qui a été dit à la 63e
-        s'applique à la 63e et pas à la 70e quand l'écran revient."""
+    def avancer(self, r, minute: float) -> bool:
+        """Avance jusqu'à l'instant de l'horloge (la minute et sa fraction), en
+        appliquant la chronologie au passage : ce qui est enregistré pour la
+        minute k s'applique quand le match atteint k:00, ni avant ni après.
+        Ainsi le match reste une fonction de la graine et de ce qui a été dit,
+        que l'écran sonde toutes les deux secondes ou revienne dix minutes plus
+        tard, et un serveur redémarré le rejoue à l'identique."""
         m = self.match
-        courante = int(m.t // 60)
-        for mn in range(courante, min(minute, SM.MINUTES_MAX) + 1):
-            self.appliquer(r, mn)
+        borne = min(float(minute), float(SM.MINUTES_MAX))
+        self.appliquer(r, int(m.t // 60))                  # ce qui est dû à la minute où l'on est
+        for mn in range(int(m.t // 60) + 1, int(borne) + 1):
             if m.jouer_jusqua(mn):
-                break
-        self.appliquer(r, minute)
-        return m.fini
+                return True
+            self.appliquer(r, mn)
+        return m.jouer_jusqua(borne)
 
 
 def _camps(jeu, saison, r):
@@ -246,8 +249,9 @@ def notes_b(res: dict, familles: dict[int, str], minutes_total: int) -> dict[int
     return fiches
 
 
-def feuille(jeu, saison: str, r, minute: int, depuis: float | None = None, trace: bool = True) -> dict:
-    """La feuille du match vivant à cette minute — les champs du moteur A, plus la trace."""
+def feuille(jeu, saison: str, r, minute: float, depuis: float | None = None, trace: bool = True) -> dict:
+    """La feuille du match vivant à cet instant (la minute, entière ou avec sa
+    fraction) — les champs du moteur A, plus la trace."""
     v = vivant(jeu, saison, r)
     with _VERROU:
         fini = v.avancer(r, minute)
@@ -258,7 +262,7 @@ def feuille(jeu, saison: str, r, minute: int, depuis: float | None = None, trace
     familles = {j["pid"]: j.get("fam", "MID") for j in a.joueurs + a.banc + b.joueurs + b.banc}
     total = round(m.duree / 60) if m.additionnel[1] is not None else None
     mi_temps = round(m.mi_temps / 60) if m.additionnel[0] is not None else None
-    minute_vue = min(minute, total or SM.MINUTES_MAX)
+    minute_vue = int(min(minute, total or SM.MINUTES_MAX))
     sur = {"a": [j.pid for j in m.actifs(0)], "b": [j.pid for j in m.actifs(1)]}
     fiches = ({j["pid"]: j for j in a.joueurs + a.banc}, {j["pid"]: j for j in b.joueurs + b.banc})
     st = res["stats"]

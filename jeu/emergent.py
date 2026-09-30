@@ -685,7 +685,9 @@ class Match:
         self.evt("additionnel", periode=periode, minutes=n)["lib"] = "45" if periode == 1 else "90"    # le panneau se lève à la 45e, pas à 45+1
 
     def evt(self, k: str, **kw):
-        e = {"k": k, "t": round(self.t, 1), "minute": int(self.t // 60) + 1, "lib": self.libelle()} | kw
+        # à k:00,0 pile on est encore dans la k-ième minute, comme le libellé : une consigne
+        # donnée pour la minute k et appliquée à k:00 se lit à la minute k
+        e = {"k": k, "t": round(self.t, 1), "minute": max(1, int((self.t - 1e-6) // 60) + 1), "lib": self.libelle()} | kw
         self.evenements.append(e)
         return e
 
