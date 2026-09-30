@@ -767,6 +767,13 @@ latéral ne traverse pas l'axe de plus de deux mètres pour presser,
 chasser ou suivre un coureur (`LATERAL_AXE`) — le central ou un
 milieu y va.
 
+**Le style proportionnel** (docs/TACTIQUE.md § 28) : l'intensité du
+tempo suit la possession réelle du club (`STYLE_PLEIN`, `tac["style"]`
+de −1 à +1) sur le temps de garde et l'affinité à la passe ; un tempo
+choisi à la main vaut plein. Les profils se voient (0,67 de possession
+pour un club de possession contre un club direct, réel 0,67), les
+scores des matchs déséquilibrés restent trop lourds.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

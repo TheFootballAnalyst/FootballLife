@@ -434,6 +434,7 @@ COLLECTIF_TIR = 0.0                          # ... et au moment de la frappe : l
 COLLECTIF_PASSE = 0.6                        # ... une passe se rate d'autant moins (ou plus) que le collectif dépasse (ou manque) 0,5
 COLLECTIF_APPEL = 0.6                        # ... et les appels partent au bon moment (l'écart du timing se resserre)
 COLLECTIF_BLOC = 0.5                         # ... et sans ballon, le marqueur anticipe de plus loin et le contre-pressing prend
+STYLE_PLEIN = 0.12                           # l'écart de possession réelle à 0,5 qui vaut un style plein (0,62 : possession pleine ; 0,38 : direct plein)
 STYLE_SEUILS = (0.55, 0.44)                  # part des touches de balle sur la saison (253 clubs : médiane 0,49, p90 0,55, p10 0,43) : au-dessus, un club de possession ; en dessous, un club direct
 AFFINITE = {"possession": 0.3, "direct": 0.3}   # ce que le style d'origine des joueurs apporte à la façon de jouer choisie (pas une science exacte)
 
@@ -573,6 +574,19 @@ class Match:
         for t in self.tac:
             if t.get("relance", "mixte") == "mixte" and t["tempo"] in ("possession", "direct"):
                 t["relance"] = "courte" if t["tempo"] == "possession" else "longue"
+            # l'intensité du style : +1 pour un club de possession plein (0,62 de touches), −1 pour un club
+            # direct plein (0,38), proportionnel entre les deux quand on connaît la possession réelle du club ;
+            # un tempo choisi à la main vaut plein (réel : PSG 0,62 et Real 0,56 sont tous deux « possession »,
+            # mais Paris garde le ballon contre Madrid — 0,55 — et le moteur donnait 0,48 avec le même tempo)
+            poss = t.get("possession")
+            if poss is not None and t["tempo"] in ("possession", "direct"):
+                t["style"] = max(-1.0, min(1.0, (poss - 0.5) / STYLE_PLEIN))
+                if t["tempo"] == "possession":
+                    t["style"] = max(0.2, t["style"])
+                else:
+                    t["style"] = min(-0.2, t["style"])
+            else:
+                t["style"] = {"possession": 1.0, "direct": -1.0}.get(t["tempo"], 0.0)
         self.relance_choix = ["courte", "courte"]    # ce que chaque camp fait de SA relance en cours
         self.cote_suite = [0, 0]                     # les passes d'affilée sur un même côté : un côté bouché se quitte
         self.dernier_appel = [-9.0, -9.0]            # le dernier départ en profondeur de chaque camp
@@ -2208,7 +2222,8 @@ class Match:
         if self.t < j.perce_jusqua and not force and pression < 0.7 and dbut > 22 and not seul:
             self._conduire(j, percee=True)
             return
-        tempo = {"possession": 1.25, "equilibre": 1.0, "direct": 0.7}[tac["tempo"]]
+        style = tac.get("style", {"possession": 1.0, "direct": -1.0}.get(tac["tempo"], 0.0))
+        tempo = 1.0 + (0.25 * style if style >= 0 else 0.3 * style)          # 1,25 en possession pleine, 0,7 en direct plein
         # la technique du porteur : un joueur peu technique pressé lâche plus tôt, allonge, dégage
         technique = (j.attr("PRO") * 0.6 + j.attr("CRE") * 0.4) / 99
         maladresse = max(0.0, 0.72 - technique)          # 0 pour un bon passeur, 0,17 pour un joueur de bas de tableau
@@ -2218,7 +2233,7 @@ class Match:
         # (réel : 3 secondes par passe, 6,5 passes par possession — le porteur ne garde pas le ballon trois secondes)
         garde = (GARDE[0] + GARDE[1] * (1 - pression)) * (1.0 - 0.3 * j.attr("CON") / 99) * tempo * (1.0 - 2.0 * maladresse * pression)
         if tac["tempo"] == "possession":
-            maladresse *= 1.0 - AFFINITE["possession"] * self.affinite[camp]     # ... et la précipitation aussi
+            maladresse *= 1.0 - AFFINITE["possession"] * self.affinite[camp] * style     # ... et la précipitation aussi
         if dbut < 32:
             garde *= 0.7
         if pression > 0.6:
@@ -2607,10 +2622,11 @@ class Match:
         p_rate = (0.04 + 0.09 * pression + 0.07 * min(d, 40.0) / 40.0 + (0.05 if serre > 1.0 else 0.0) + (0.12 if d > 30.0 else 0.0)) * (2.6 - 2.3 * precision)
         aff = self.affinite[j.camp]
         p_rate *= max(0.3, 1.0 - COLLECTIF_PASSE * COLLECTIF_POIDS * (self.collectif[j.camp] - 0.5))   # un onze rodé se trouve les yeux fermés
+        style_ = abs(self.tac[j.camp].get("style", 1.0))
         if self.tac[j.camp]["tempo"] == "possession":
-            p_rate *= 1.0 - AFFINITE["possession"] * aff       # des joueurs de clubs de possession : la passe courte se rate moins
+            p_rate *= 1.0 - AFFINITE["possession"] * aff * style_       # des joueurs de clubs de possession : la passe courte se rate moins
         elif self.tac[j.camp]["tempo"] == "direct" and (longue or d > 30):
-            sigma *= 1.0 - AFFINITE["direct"] * aff             # des joueurs de clubs directs : la longue part plus droite
+            sigma *= 1.0 - AFFINITE["direct"] * aff * style_             # des joueurs de clubs directs : la longue part plus droite
         if self.rs.random() < p_rate:
             ang += self.rs.gauss(0, sigma * 4.0 + math.radians(8.0))
             v *= self.rs.uniform(0.6, 1.3)

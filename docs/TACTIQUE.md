@@ -1284,6 +1284,47 @@ de jeu — un latéral au poteau sur un corner — et un peu de glissement
 du bloc vers le ballon, qui est réel. Banc de 24 matchs inchangé (3,1
 buts, 23,5 tirs).
 
+## 28. Les profils d'équipe se voient-ils ?
+
+**La question** : est-ce qu'un club de possession joue en possession
+et un club direct en direct, dans le moteur B, avec les tactiques par
+défaut du bac (§ 19) ? Mesuré sur les clubs typés de la base (Barcelone
+0,64, Paris 0,62, Bayern 0,61 ; Pisa, Vérone, Union Berlin 0,42), six
+matchs par paire, contre le réel lu dans la base (les vrais matchs de
+ces clubs contre des clubs directs à 0,46 ou moins) :
+
+| | possession | passes | longues (> 25 m) | réussite | buts |
+|---|---|---|---|---|---|
+| réel PSG contre clubs directs (10 matchs) | 0,67 | — | — | — | 2,1 - 0,3 |
+| réel Bayern contre clubs directs (12) | 0,67 | — | — | — | 2,75 - 1,33 |
+| moteur PSG–Pisa | 0,67 | 487 - 360 | 14 % - 31 % | 86 % - 77 % | 4,8 - 0,5 |
+| moteur Bayern–Vérone | 0,68 | 454 - 349 | 14 % - 30 % | 85 % - 78 % | 4,5 - 0,5 |
+| moteur Barcelone–Union Berlin | 0,71 | 476 - 333 | 14 % - 31 % | 84 % - 74 % | 4,3 - 0,8 |
+
+Oui, le profil se voit : la possession est au réel (0,67), le club
+direct joue deux fois plus long et réussit dix points de passes en
+moins. Deux choses ne vont pas.
+
+**Les scores des matchs déséquilibrés** : 4,5 buts contre 0,5 là où
+le réel dit 2,1 à 2,75 contre 0,3 à 1,3, avec 28 à 34 tirs contre 3 à
+6 (réel : 29 touches dans la surface contre 10). Le moteur exagère
+l'écart de niveau : le club direct n'arrive presque jamais dans la
+surface. C'est un chantier à part (la relance longue et le contre du
+club direct, la finition du fort qui ne devrait pas convertir un tir
+sur six).
+
+**Deux clubs de possession** : Paris (0,62) contre le Real (0,56), tous
+deux « possession » par défaut, donnait 0,47 de possession à Paris ;
+réel, Paris contre les clubs de possession fait 0,56, le Real 0,45.
+Le tempo était une étiquette (plein ou rien) : il est maintenant
+proportionnel à la possession réelle du club (`STYLE_PLEIN` : 0,62
+vaut un style plein, 0,56 un demi-style ; un tempo choisi à la main
+vaut plein), sur le temps de garde du ballon et sur ce que l'affinité
+apporte à la passe. Mesuré après : 0,50 à 0,52 pour Paris — mieux, pas
+encore 0,55. Le reste de l'écart tient au bloc haut de Paris, qui lui
+coûte du ballon dans le moteur (0,51 avec un bloc médian), alors qu'en
+vrai un bloc haut en gagne.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :
