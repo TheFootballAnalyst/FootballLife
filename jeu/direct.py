@@ -49,6 +49,9 @@ class Vivant:
         self.appliques: set[str] = set()
         self.banc = ({j["pid"]: j for j in a.banc}, {j["pid"]: j for j in b.banc})
         self.entres: list[list[int]] = [[], []]
+        # la tactique dans le vocabulaire du jeu (simulation.Tactique), celle que l'écran
+        # affiche et renvoie : le moteur B a la sienne (_tac_b), qui n'est pas la même
+        self.tac_jeu: list[SM.Tactique] = [a.tactique.valide(), b.tactique.valide()]
         # le collectif d'un onze du jeu : la cohésion mesurée (les minutes jouées ensemble en vrai, § 22)
         coll = tuple(max(0.0, min(1.0, float(EM.cohesion(jeu, [j["pid"] for j in e.joueurs], None) or 0.5))) for e in (a, b))
         tacs = (_tac_b(a.tactique), _tac_b(b.tactique))
@@ -69,6 +72,7 @@ class Vivant:
             for camp in (0, 1):
                 cle = f"tac:{mn}:{camp}"
                 if paire[camp] and cle not in self.appliques:
+                    self.tac_jeu[camp] = SM.Tactique(**paire[camp]).valide()
                     m.ajuster(camp, _tac_b(paire[camp]))
                     fo = (paire[camp] or {}).get("formation")
                     if fo and fo != m.formations[camp]:
@@ -294,7 +298,7 @@ def feuille(jeu, saison: str, r, minute: float, depuis: float | None = None, tra
         "joueurs": notes_b(res, familles, minute_vue),
         "evenements": _evenements(res, noms), "fil": [],
         "onze": sur,
-        "tactique": {"a": dict(m.tac[0]), "b": dict(m.tac[1])},
+        "tactique": {"a": vars(v.tac_jeu[0]), "b": vars(v.tac_jeu[1])},
         "causerie": {"a": r["causerie_a"] if "causerie_a" in r.keys() else None, "b": r["causerie_b"] if "causerie_b" in r.keys() else None},
         "marquage": {"a": 0, "b": 0}, "graine": v.graine,
         "collectif": res["collectif"], "affinite": res["affinite"],

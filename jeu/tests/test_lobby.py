@@ -528,6 +528,9 @@ def test_the_b_engine_live_match_follows_the_clock_to_the_second_and_applies_ord
     g = LB.feuille(jeu, "2025/26", r, 30.3, trace=False)
     assert g["score"] == f["score"] and g["tirs"] == f["tirs"] and g["possession"] == f["possession"]
     assert [(e["type"], e["minute"]) for e in g["evenements"]] == [(e["type"], e["minute"]) for e in f["evenements"]]
+    # the sheet's tactic is the game's own (simulation.Tactique), the one the screen sends back
+    assert g["tactique"]["a"]["bloc"] == "haut" and g["tactique"]["b"]["relance"] == "equilibre"
+    assert vars(SM.Tactique(**g["tactique"]["a"]).valide()) == g["tactique"]["a"]
     # the clock itself carries the fraction
     r = LB.en_cours(jeu, "2025/26", 1)
     from datetime import datetime, timezone, timedelta

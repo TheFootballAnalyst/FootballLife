@@ -384,8 +384,9 @@ def test_a_campaign_match_is_played_live_and_closes_the_round():
     # it shows up live on the campaign screen, and the round has not moved
     e = SO.etat(jeu, "2025/26", 1)["campagne"]
     assert e["match"] and e["match"]["fini"] is False and e["tour"] == 0
-    # adjust and substitute through the lobby's own machinery
-    assert LB.ajuster(jeu, "2025/26", 1, {"tempo": "possession"}, r) >= 1
+    # adjust and substitute through the lobby's own machinery — the screen sends the
+    # sheet's own tactic back with one axis changed, so the sheet must speak the game's tongue
+    assert LB.ajuster(jeu, "2025/26", 1, dict(e["match"]["tactique"]["a"], tempo="possession"), r) >= 1
     assert LB.changer(jeu, "2025/26", 1, ONZE[10], 12, r) >= 1
     # ninety minutes and the added time later, the round closes: your live sheet is the result
     _reculer(jeu, LB.DUREE_REELLE * SO.SM.MINUTES_MAX // SO.SM.MINUTES + 5)
