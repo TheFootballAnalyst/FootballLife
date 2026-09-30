@@ -284,3 +284,24 @@ def test_the_starting_tactic_is_never_locked_by_the_gameweek(client):
     assert client.get("/api/equipe").json()["marche_ouvert"] is False
     r = client.post("/api/equipe/tactique", json={"tactique": {"tempo": "direct"}})
     assert r.status_code == 200 and r.json()["tactique"]["tempo"] == "direct"
+
+
+def test_a_lost_password_is_replaced_from_the_command_line(client):
+    """Nobody can read a password back (only a salted hash is kept), but the
+    manager of the base can put a new one on an account, by pseudo, whatever
+    its case, and log in with it."""
+    from web.app import mdp as MDP
+    from web.app import serveur as SV
+    inscrire(client, "MANO", "ancien1")
+    client.post("/api/deconnexion")
+    jeu = SV.ouvrir()
+    with pytest.raises(LookupError):
+        MDP.remettre(jeu, "personne", "nouveau1")
+    with pytest.raises(ValueError):
+        MDP.remettre(jeu, "mano", "abc")                       # too short, as at sign-up
+    assert MDP.remettre(jeu, "mano", "nouveau1") == "MANO"
+    assert [c[1] for c in MDP.comptes(jeu)] == ["MANO"]
+    jeu.close()
+    assert client.post("/api/connexion", json={"pseudo": "MANO", "mot_de_passe": "ancien1"}).status_code == 401
+    assert client.post("/api/connexion", json={"pseudo": "MANO", "mot_de_passe": "nouveau1"}).status_code == 200
+    assert client.get("/api/moi").json()["pseudo"] == "MANO"

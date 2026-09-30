@@ -671,8 +671,11 @@ laissé au rechargement.
 - Le verrouillage automatique repose sur l'horloge du serveur et l'heure
   de clôture importée du calendrier ; un match avancé ou reporté demande
   de retoucher `journee.cloture` (écran Admin : verrouiller / rouvrir).
-- Pas de récupération de mot de passe : l'administrateur peut le
-  réinitialiser en base.
+- Pas de récupération de mot de passe (le jeu ne garde qu'une empreinte
+  salée) : on en pose un nouveau depuis la machine du serveur,
+  `py web/app/mdp.py MANO` (il est demandé au clavier ;
+  `--mot-de-passe` pour le passer directement, `--liste` pour voir les
+  comptes, `--jeu` pour une autre base que celle de `lancer.py`).
 - Pas de notifications.
 
 À la clôture d'une journée, la composition de chaque équipe est
