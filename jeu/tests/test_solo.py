@@ -389,7 +389,7 @@ def test_a_campaign_match_is_played_live_and_closes_the_round():
     assert LB.ajuster(jeu, "2025/26", 1, dict(e["match"]["tactique"]["a"], tempo="possession"), r) >= 1
     assert LB.changer(jeu, "2025/26", 1, ONZE[10], 12, r) >= 1
     # ninety minutes and the added time later, the round closes: your live sheet is the result
-    _reculer(jeu, LB.DUREE_REELLE * SO.SM.MINUTES_MAX // SO.SM.MINUTES + 5)
+    _reculer(jeu, 40 * 60)                           # un match complet à x2 dure une demi-heure réelle
     e = SO.etat(jeu, "2025/26", 1)["campagne"]
     assert e["match"] is None and e["tour"] == 1
     mien = [f for f in json.loads(SO.en_cours(jeu, "2025/26", 1)["resultats"]) if f["mien"]]
@@ -409,7 +409,7 @@ def test_a_live_campaign_match_never_touches_the_ranked_ladder():
     jeu = base_solo()
     SO.demarrer(jeu, "2025/26", 1, "ligue1", 11, graine=33)
     SO.lancer_tour(jeu, "2025/26", 1, ONZE, None)
-    _reculer(jeu, LB.DUREE_REELLE + 5)
+    _reculer(jeu, 40 * 60)
     SO.etat(jeu, "2025/26", 1)
     assert jeu.execute("SELECT elo_classe, classees FROM equipe WHERE equipe_id=1").fetchone()[0] == 1000
     assert LB.classement(jeu, "2025/26") == []
@@ -430,7 +430,7 @@ def test_an_exempt_round_has_nothing_to_kick_off():
     for _ in range(exempts[0]):
         SO.lancer_tour(jeu, "2025/26", 1, ONZE, None)
         from jeu import lobby as LB
-        _reculer(jeu, LB.DUREE_REELLE * SO.SM.MINUTES_MAX // SO.SM.MINUTES + 5)
+        _reculer(jeu, 40 * 60)                       # un match complet à x2 dure une demi-heure réelle
         SO.etat(jeu, "2025/26", 1)
     assert SO.lancer_tour(jeu, "2025/26", 1, ONZE, None) == 0
 

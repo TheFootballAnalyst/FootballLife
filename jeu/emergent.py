@@ -181,6 +181,8 @@ DELAIS = {"touche": 24.0, "sortie_but": 36.0, "corner": 45.0, "coup_franc": 40.0
 #  francs contre 22 — ce qui compte, c'est le ballon vivant : 55 à 58 minutes sur 97)
 # ... et le temps additionnel de chaque période, sur les faits (simulation.additionnel : la même règle que le
 # moteur A, sans remplacements ni blessures ici) : le match dure 90 minutes plus ce que l'arbitre affiche
+SAUT_ARRET = 2.0                             # le temps affiché : l'écran du jeu saute chaque arrêt de jeu et n'en montre que les
+                                             # deux dernières secondes (comme le bac) ; le ballon vivant se montre en entier
 REMPLACEMENTS_MAX = 5                        # cinq changements par équipe
 CAUSERIE_POINTS = 60.0                       # un facteur de causerie de 1,09 vaut +5,4 points d'attribut pour la seconde période
 ADDITIONNEL = True
@@ -628,6 +630,8 @@ class Match:
         self.duree = minutes * 60.0
         self.mi_temps = min(MI_TEMPS, self.duree / 2)
         self.periode = 1
+        self.affiche = 0.0                  # le temps affiché écoulé (ballon vivant + SAUT_ARRET par arrêt) : l'horloge du jeu
+        self.affiche_mi_temps: float | None = None
         self.additionnel: list[int | None] = [None, None]     # ce que l'arbitre affiche à la 45e et à la 90e
         self.plein = ADDITIONNEL and minutes >= 90.0
         self.score = [0, 0]
@@ -911,6 +915,7 @@ class Match:
         """Le coup de pied de reprise : qui tire, et quoi."""
         a = self.arret
         self.arret = None
+        self.affiche += SAUT_ARRET           # l'écran montre les deux dernières secondes de l'arrêt
         camp = a["camp"]
         b = self.ballon
         k = a["k"]
@@ -987,7 +992,14 @@ class Match:
         l'horloge réelle : un match en direct se joue par tranches, et une consigne,
         un remplacement ou une causerie donnés entre deux tranches s'appliquent à
         la suite — le match reste une fonction de la graine et de ce qui a été dit."""
-        while self.t < min(self.duree, minute * 60.0):       # (la durée grandit avec le temps additionnel affiché)
+        return self.jouer_tant_que(lambda: self.t < minute * 60.0)
+
+    def jouer_tant_que(self, continuer) -> bool:
+        """Avance tant que `continuer()` le dit (et que le match n'est pas fini,
+        temps additionnel compris — la durée grandit avec ce que l'arbitre
+        affiche) ; dit si le match est fini.  Le jeu s'en sert avec son
+        horloge à lui, le temps affiché (`affiche`)."""
+        while self.t < self.duree and continuer():
             self.pas_de_temps()
             if self.a_remplacer and (self.arret or self.ballon.porteur is None and self.ballon.vitesse() < 1.0):
                 self._executer_remplacements()
@@ -1084,6 +1096,8 @@ class Match:
     def pas_de_temps(self):
         self.pas += 1
         self.t += DT
+        if not self.arret:
+            self.affiche += DT
         # le temps additionnel, affiché à la 45e et à la 90e sur les faits de la période
         if self.plein and self.additionnel[0] is None and self.t >= MI_TEMPS:
             self._afficher_additionnel(1)
@@ -1092,6 +1106,7 @@ class Match:
         # la mi-temps
         if self.periode == 1 and self.t >= self.mi_temps:
             self.periode = 2
+            self.affiche_mi_temps = self.affiche
             self.evt("mi_temps", score=list(self.score))
             self._engagement(1 - self.camp_engagement, immediat=True)
         decision = self.pas % DECISION == 0

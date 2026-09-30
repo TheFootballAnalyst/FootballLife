@@ -17,6 +17,10 @@ class TerrainB {
     this.trace = []; this.evenements = []; this.gestes = []; this.joueurs = []; this.noms = {}; this.idx = {};
     this.cap = []; this.pas = []; this.vit = []; this.peau = []; this.tenues = []; this.prec = null;
     this.trace_pas = 0.4; this.phases = null; this.i = 0;
+    // le temps affiché : ce que coûte chaque image à l'écran quand on saute les arrêts
+    // de jeu (cout[k] = secondes affichées cumulées jusqu'à l'image k ; une image de ballon
+    // vivant coûte un pas, les deux dernières secondes d'un arrêt aussi, le reste de l'arrêt rien)
+    this.saut = 2.0; this.cout = []; this.debutArret = -1;
   }
   sx(x) { return this.MARGE + x / TB_LONG * (this.c.width - 2 * this.MARGE); }
   sy(y) { return this.MARGE * 0.4 + y / TB_LARG * (this.c.height - this.MARGE * 0.8); }
@@ -24,7 +28,9 @@ class TerrainB {
   // -- ce qu'on reçoit ---------------------------------------------------------
   charger(res, maillots) {
     this.joueurs = res.joueurs; this.trace = []; this.evenements = []; this.gestes = []; this.i = 0; this.prec = null;
+    this.cout = []; this.debutArret = -1;
     this.trace_pas = res.trace_pas; this.phases = res.phases || null;
+    if (res.saut_arret !== undefined && res.saut_arret !== null) this.saut = res.saut_arret;
     this.noms = {}; this.idx = {};
     res.joueurs.forEach((j, i) => { this.noms[j.camp + ":" + j.pid] = j.nom.split(" ").slice(-1)[0]; this.idx[j.camp + ":" + j.pid] = i; });
     const T = maillots || res.maillots || {a: {base: "#1F6FD1", second: "#ffffff", motif: "uni"}, b: {base: "#C62E2E", second: "#ffffff", motif: "uni"}, gardiens: ["#f2d33a", "#3ec46d"]};
@@ -67,10 +73,12 @@ class TerrainB {
   // des images de plus (après la dernière reçue) et des événements de plus
   ajouter(trace, evenements) {
     const dernier = this.trace.length ? this.trace[this.trace.length - 1][0] : -1;
+    const avant = this.trace.length;
     for (const f of trace) {
       if (f[0] <= dernier) continue;
       this.trace.push(this.miroir ? this._miroir(f) : f);
     }
+    if (this.trace.length > avant) this._couter(avant);
     const vus = new Set(this.evenements.map(e => e.k + "@" + e.t + "@" + (e.de ?? "")));
     for (const e of evenements || []) {
       const cle = e.k + "@" + e.t + "@" + (e.de ?? "");
@@ -104,6 +112,33 @@ class TerrainB {
     }
     if (this.miroir) g.camp = 1 - g.camp;    // les filets d'en face sont de l'autre côté
     this.gestes.push(g);
+  }
+  // le coût d'affichage des images à partir de `depuis` ; un arrêt encore ouvert à la fin
+  // (sa fin pas reçue) ne coûte rien pour l'instant, on le refait quand elle arrive
+  _couter(depuis) {
+    const tr = this.trace, pas = this.trace_pas, n = tr.length;
+    let k = Math.min(depuis, this.debutArret >= 0 ? this.debutArret : depuis);
+    if (k > 0 && tr[k - 1][4] === 1) { while (k > 0 && tr[k - 1][4] === 1) k--; }     // reprendre au début de l'arrêt en cours
+    this.cout.length = k;
+    let c = k > 0 ? this.cout[k - 1] : 0;
+    this.debutArret = -1;
+    while (k < n) {
+      if (tr[k][4] !== 1) { c += pas; this.cout.push(c); k++; continue; }
+      let fin = k; while (fin < n && tr[fin][4] === 1) fin++;
+      if (fin >= n) { this.debutArret = k; for (; k < n; k++) this.cout.push(c); break; }   // arrêt ouvert
+      const montrees = Math.max(1, Math.round(this.saut / pas));
+      for (; k < fin; k++) { if (k >= fin - montrees) c += pas; this.cout.push(c); }
+    }
+  }
+  // le temps affiché total reçu, et l'image atteinte pour un temps affiché
+  get affiche() { return this.cout.length ? this.cout[this.cout.length - 1] : 0; }
+  indexAffiche(d) {
+    const c = this.cout; if (!c.length) return 0;
+    let lo = 0, hi = c.length - 1;
+    while (lo < hi) { const mi = (lo + hi) >> 1; if (c[mi] < d) lo = mi + 1; else hi = mi; }
+    // lo : la première image dont le coût cumulé atteint d ; on y ajoute la fraction du pas
+    const prec = lo > 0 ? c[lo - 1] : 0, dc = c[lo] - prec;
+    return dc > 0 ? Math.max(0, lo - 1 + (d - prec) / dc) : lo;
   }
   get duree() { return this.trace.length ? this.trace[this.trace.length - 1][0] / 10 : 0; }
   get debut() { return this.trace.length ? this.trace[0][0] / 10 : 0; }

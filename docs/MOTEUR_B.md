@@ -801,19 +801,35 @@ vivant par rencontre, identifié par la rencontre, son coup d'envoi, sa
 graine et ses onze ; à chaque sondage de l'écran il applique ce qui est
 dû (tactiques, changements, permutations, causerie, formation — la
 chronologie enregistrée dans la rencontre, comme avant), puis avance
-jusqu'à l'instant de l'horloge, à la seconde près (`lobby.instant_de` ;
-0,15 s de calcul par minute de match, 13 s pour rattraper un match
-entier) : l'écran, qui sonde toutes les 2,5 s, reçoit quelques secondes
-d'images à chaque fois et les joue avec trois secondes et demie de
-retard sur le serveur (`margeB`), jamais une minute d'un coup. Le
-joueur intervient à tout moment (tactique, changement, permutation,
-formation ; la causerie à la mi-temps) : ce qu'il dit à la minute m est
-enregistré pour la minute m + 1 (`lobby.ajuster`) et s'applique quand
-le match atteint m + 1:00 — dans un match de six minutes, quatre
-secondes réelles au plus ; le changement entre au premier arrêt de jeu
-qui suit. Cette règle fait du match une fonction de la graine et de ce
-qui a été dit : un serveur qui redémarre le reconstruit en rejouant la
-même chronologie sur la même graine et retombe sur le même score. La
+jusqu'à l'horloge du direct. Cette horloge est le **temps affiché**
+(`Match.affiche`) : le ballon vivant compte en entier et chaque arrêt
+de jeu compte deux secondes (`SAUT_ARRET`), parce que l'écran du jeu
+saute les arrêts comme le bac et n'en montre que les deux dernières
+secondes. Le serveur avance le match jusqu'à ce que le temps affiché
+couvre les secondes réelles écoulées fois la vitesse de la rencontre
+(`lobby.vitesse_de` : ×2 en classé, `VITESSE_CLASSE` ; ×2, ×4 ou ×8 au
+choix en défi et en campagne, `VITESSES`), plus trois secondes et demie
+d'avance (`direct.MARGE_REELLE`), et jamais au milieu d'un arrêt, dont
+l'écran doit connaître la fin pour sauter dessus. Un match complet de
+90 minutes simulées, c'est 52 minutes de ballon vivant et 77 arrêts :
+à ×2, une demi-heure réelle ; ×4, un quart d'heure ; ×8, neuf minutes.
+La minute du match n'est donc plus une fonction linéaire de l'heure :
+c'est le match vivant qui la donne (`direct.minute_de`), et c'est elle
+qui date les consignes. Le joueur intervient à tout moment (tactique,
+changement, permutation, formation ; la causerie à la mi-temps) : ce
+qu'il dit à la minute m est enregistré pour la minute m + 1
+(`lobby.ajuster`) et s'applique quand le match atteint m + 1:00 ; le
+changement entre au premier arrêt de jeu qui suit. Cette règle fait du
+match une fonction de la graine et de ce qui a été dit : un serveur qui
+redémarre le reconstruit en rejouant la même chronologie sur la même
+graine et retombe sur la même seconde et le même score. Le match est
+clos quand il est fini ET que l'écran a eu le temps d'en voir la fin
+(`direct.termine`) ; la mi-temps du solo s'arrête de même quand l'écran
+l'a vue (`mi_temps_vue`). Côté écran (`terrain_b.js`), chaque image reçue
+a son coût d'affichage (un pas de trace pour le ballon vivant et pour
+les deux dernières secondes d'un arrêt, rien pour le reste) et l'écran
+consomme ce temps affiché à la vitesse de la rencontre, avec trois
+secondes et demie de retard sur le serveur (`margeB`). La
 feuille rendue a les champs de celle du moteur A (l'écran ne change pas
 de vocabulaire) et porte en plus les images de positions après la
 dernière reçue (`depuis`), les gestes, les tenues et les vingt-deux sur

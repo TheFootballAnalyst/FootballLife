@@ -105,6 +105,8 @@ def test_an_adjustment_is_stamped_by_the_clock_and_only_touches_the_future():
     LB.rejoindre(jeu, "2025/26", 2, ONZE, None)
     r = LB.en_cours(jeu, "2025/26", 1)
     sans = LB.feuille(jeu, "2025/26", r, 90)
+    from jeu import direct as DIRECT
+    DIRECT.oublier(r)          # la lecture à la 90e a fait courir la copie vivante ; l'horloge, elle, est au coup d'envoi
     minute = LB.ajuster(jeu, "2025/26", 1, {"tempo": "direct", "risque": "offensif"})
     assert minute >= 1
     r = LB.en_cours(jeu, "2025/26", 1)
@@ -123,7 +125,7 @@ def test_a_finished_match_freezes_and_moves_the_ranked_ladder():
     r = LB.en_cours(jeu, "2025/26", 1)
     # wind the clock back so the ninety minutes are up
     jeu.execute("UPDATE rencontre SET debut=? WHERE rencontre_id=?",
-                ((datetime.now(timezone.utc) - timedelta(seconds=LB.DUREE_REELLE + 5)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ((datetime.now(timezone.utc) - timedelta(seconds=40 * 60)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                  r["rencontre_id"]))
     jeu.commit()
     e = LB.etat(jeu, "2025/26", 1)
@@ -151,7 +153,7 @@ def test_a_challenge_kicks_off_at_once_and_leaves_the_ladder_alone():
     assert len(e["match"]["onze"]["b"]) == 11
     r = LB.en_cours(jeu, "2025/26", 1)
     jeu.execute("UPDATE rencontre SET debut=? WHERE rencontre_id=?",
-                ((datetime.now(timezone.utc) - timedelta(seconds=LB.DUREE_REELLE + 5)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ((datetime.now(timezone.utc) - timedelta(seconds=40 * 60)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                  r["rencontre_id"]))
     jeu.commit()
     assert LB.etat(jeu, "2025/26", 1)["etat"] == "fini"
@@ -228,6 +230,13 @@ def test_a_challenge_gets_a_bench_too():
 # --------------------------------------------------------------------------
 # L'horloge qu'on peut arrêter — et que la blessure arrête toute seule
 # --------------------------------------------------------------------------
+
+def _reel(jeu, r, minute):
+    """Les secondes réelles pour que l'horloge de ce match atteigne `minute`
+    (avec le moteur B, le match lui-même le dit : les arrêts se sautent)."""
+    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()   # la graine a pu changer
+    return LB.reel_pour(jeu, "2025/26", r, minute) + 1.0
+
 
 def _reculer(jeu, r, secondes):
     """Faire comme si le coup d'envoi avait eu lieu il y a `secondes`."""
@@ -342,7 +351,7 @@ def test_half_time_stops_a_single_player_match_once():
     r = LB.en_cours(jeu, "2025/26", 1)
     jeu.execute("UPDATE rencontre SET graine=11 WHERE rencontre_id=?", (r["rencontre_id"],))
     jeu.commit()
-    r = _reculer(jeu, r, LB.DUREE_REELLE * 0.55)          # après la 45e
+    r = _reculer(jeu, r, _reel(jeu, r, 50))               # après la 45e
     f = LB.arbitrer(jeu, r, LB.feuille(jeu, "2025/26", r))
     assert f["minute"] >= LB.MI_TEMPS
     assert f["pause"] is True and f["motif_pause"] == "mi-temps"
@@ -361,7 +370,8 @@ def test_a_ranked_match_has_no_half_time_break():
     jeu = base_avec_equipes(2)
     LB.rejoindre(jeu, "2025/26", 1, ONZE, None)
     LB.rejoindre(jeu, "2025/26", 2, ONZE, None)
-    r = _reculer(jeu, LB.en_cours(jeu, "2025/26", 1), LB.DUREE_REELLE * 0.55)
+    r = LB.en_cours(jeu, "2025/26", 1)
+    r = _reculer(jeu, r, _reel(jeu, r, 50))
     f = LB.arbitrer(jeu, r, LB.feuille(jeu, "2025/26", r))
     assert f["minute"] >= LB.MI_TEMPS
     assert not f.get("pause")
@@ -383,12 +393,12 @@ def test_a_manager_speaks_at_half_time_and_only_then():
     LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True)
     r = LB.en_cours(jeu, "2025/26", 1)
     # trop tôt : on ne parle pas à son équipe à la vingtième minute
-    r20 = _reculer(jeu, r, LB.DUREE_REELLE * 0.2)
+    r20 = _reculer(jeu, r, _reel(jeu, r, 18))
     with pytest.raises(LB.ErreurLobby):
         LB.causer(jeu, "2025/26", 1, "secouer", r20)
     # une causerie inconnue est refusée — à la vraie mi-temps, 45 plus le temps additionnel
     mt = LB.feuille(jeu, "2025/26", r, 45)["mi_temps"]
-    r46 = _reculer(jeu, r, LB.DUREE_REELLE * (mt + 0.5) / SM.MINUTES)
+    r46 = _reculer(jeu, r, _reel(jeu, r, mt + 0.5))
     with pytest.raises(LB.ErreurLobby):
         LB.causer(jeu, "2025/26", 1, "leur chanter une chanson", r46)
     assert LB.causer(jeu, "2025/26", 1, "secouer", r46) == "secouer"
@@ -398,7 +408,7 @@ def test_a_manager_speaks_at_half_time_and_only_then():
         LB.causer(jeu, "2025/26", 1, "rassurer", r46)
     assert LB.feuille(jeu, "2025/26", r46)["causerie"]["a"] == "secouer"
     # et trop tard, c'est trop tard
-    r80 = _reculer(jeu, r46, LB.DUREE_REELLE * 0.9)
+    r80 = _reculer(jeu, r46, _reel(jeu, r, 81))
     jeu.execute("UPDATE rencontre SET causerie_a=NULL WHERE rencontre_id=?", (r["rencontre_id"],))
     jeu.commit()
     r80 = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
@@ -531,9 +541,47 @@ def test_the_b_engine_live_match_follows_the_clock_to_the_second_and_applies_ord
     # the sheet's tactic is the game's own (simulation.Tactique), the one the screen sends back
     assert g["tactique"]["a"]["bloc"] == "haut" and g["tactique"]["b"]["relance"] == "equilibre"
     assert vars(SM.Tactique(**g["tactique"]["a"]).valide()) == g["tactique"]["a"]
-    # the clock itself carries the fraction
+
+
+def test_the_b_engine_clock_is_display_time_and_skips_the_stoppages():
+    """The live match runs on DISPLAY time: the ball in play counts in full,
+    every stoppage two seconds (the screen skips to its end), at the match's
+    speed.  Real time elapsed decides how far the match has gone, the match
+    itself says which minute that is; a replay lands on the same second."""
+    from jeu import direct as DIRECT
+    from jeu import emergent as EM
+    jeu = base_avec_equipes(2)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, banc=BANC)
+    LB.rejoindre(jeu, "2025/26", 2, ONZE, None, banc=BANC)
     r = LB.en_cours(jeu, "2025/26", 1)
-    from datetime import datetime, timezone, timedelta
+    assert LB.vitesse_de(r) == LB.VITESSE_CLASSE == 2.0
     t0 = LB._t(r["debut"])
-    assert abs(LB.instant_de(r, t0 + timedelta(seconds=LB.duree_de(r) * 10.5 / 90)) - 10.5) < 0.01
-    assert LB.minute_de(r, t0 + timedelta(seconds=LB.duree_de(r) * 10.5 / 90)) == 10
+    # one real minute at x2: two minutes of display time, plus the server's margin, never mid-stoppage
+    m1 = LB.minute_de(r, t0 + timedelta(seconds=60), jeu=jeu, saison="2025/26")
+    v = DIRECT.vivant(jeu, "2025/26", r)
+    assert v.match.affiche >= 120 + DIRECT.MARGE_REELLE * 2 and not v.match.arret
+    assert 2 <= m1 <= 6 and m1 == int(v.match.t // 60)
+    assert v.match.t > v.match.affiche              # the stoppages took match time the screen does not show
+    assert not LB.termine(jeu, "2025/26", r)
+    f = LB.etat(jeu, "2025/26", 1)["match"]
+    assert f["vitesse"] == 2.0 and f["saut_arret"] == EM.SAUT_ARRET and f["budget"] is not None and f["affiche"] >= f["budget"]
+    assert f["fini"] is False and f["mi_temps_vue"] is False
+    # an order is dated by the minute the MATCH has reached, not by a linear clock
+    jeu.execute("UPDATE rencontre SET debut=? WHERE rencontre_id=?",
+                ((t0 - timedelta(seconds=60)).strftime("%Y-%m-%dT%H:%M:%SZ"), r["rencontre_id"]))
+    jeu.commit()
+    r = LB.en_cours(jeu, "2025/26", 1)
+    cle = LB.ajuster(jeu, "2025/26", 1, dict(f["tactique"]["a"], bloc="haut"))
+    assert cle == int(DIRECT.vivant(jeu, "2025/26", r).match.t // 60) + 1
+    # a restart replays the same match to the same second
+    t_avant, aff_avant = DIRECT.vivant(jeu, "2025/26", r).match.t, DIRECT.vivant(jeu, "2025/26", r).match.affiche
+    DIRECT.oublier(r)
+    LB.minute_de(r, jeu=jeu, saison="2025/26")
+    v2 = DIRECT.vivant(jeu, "2025/26", r)
+    assert abs(v2.match.t - t_avant) < 0.2 and abs(v2.match.affiche - aff_avant) < 0.2
+    # forty real minutes later the whole match has been shown: it is over, and it closes
+    tard = t0 + timedelta(minutes=40)
+    assert LB.minute_de(r, tard, jeu=jeu, saison="2025/26") >= SM.MINUTES
+    assert DIRECT.termine(jeu, "2025/26", r, tard)
+    v3 = DIRECT.vivant(jeu, "2025/26", r)
+    assert v3.match.fini and 50 * 60 <= v3.match.affiche <= 62 * 60       # ~52 min of live ball + 2 s per stoppage

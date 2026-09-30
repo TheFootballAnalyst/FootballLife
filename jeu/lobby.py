@@ -6,11 +6,14 @@ allowed to do, and what the result does to the ranked ladder.
 
 Three rules hold the whole thing together.
 
-**The clock is the server's.**  A match lasts DUREE_REELLE real seconds
-for the ninety virtual minutes, so the current minute is a pure function
-of `debut` and the wall clock.  Nobody can fast-forward, and a manager
-who closes his browser keeps playing: his kick-off tactics simply run to
-the end.
+**The clock is the server's.**  With the A engine a match lasts
+DUREE_REELLE real seconds for the ninety virtual minutes, so the current
+minute is a pure function of `debut` and the wall clock.  With the B
+engine (jeu/direct.py) the clock is DISPLAY time: the ball in play at
+the match's speed (`vitesse`, x2 ranked), each stoppage two seconds, so
+the minute reached is a function of `debut`, the wall clock and the
+match itself — still nobody can fast-forward, and a manager who closes
+his browser keeps playing: his kick-off tactics simply run to the end.
 
 **The sheet is recomputed, never accumulated.**  Every read replays the
 match from the seed and the tactical timeline up to the current minute
@@ -50,6 +53,14 @@ DUREE_REELLE = 360          # seconds of real time for the ninety minutes, ranke
 # one follows from the bench.  A ranked match keeps the common clock —
 # two managers cannot each choose their own.
 DUREES = (360, 720, 1080)
+# Le moteur B a son horloge à lui, le temps affiché : le ballon vivant se
+# montre en entier à la vitesse choisie et chaque arrêt de jeu se saute
+# (emergent.SAUT_ARRET).  Un match complet de 90 minutes simulées dure
+# 52 minutes de ballon vivant et 77 arrêts : à ×2, une demi-heure réelle.
+# Le classé joue à la vitesse commune ; un défi ou un match de campagne
+# prend celle que le manager demande.
+VITESSE_CLASSE = 2.0
+VITESSES = (2.0, 4.0, 8.0)
 ECART_ELO_MAX = 250         # ranked pairing: never further apart than this
 K_CLASSE = 24               # ladder step, gentler than the gameweek's 32
 ATTENTE_MAX = 900           # a waiting entry older than this is stale
@@ -70,21 +81,24 @@ def minute_courante(debut: str | None, maintenant_: datetime | None = None,
     `pause` is the instant the clock was stopped, if it is stopped now, and
     `cumul` the seconds already spent stopped earlier: a paused match sits
     on its minute instead of running on without its manager."""
-    return int(instant_courant(debut, maintenant_, pause, cumul, duree))
+    if not debut:
+        return 0
+    ecoule_ = ecoule(debut, maintenant_, pause, cumul)
+    # l'horloge avance d'une minute toutes les duree/90 secondes, et continue dans le temps
+    # additionnel : c'est la feuille qui dit quand le match est fini (simulation.additionnel)
+    return max(0, min(SM.MINUTES_MAX, int(ecoule_ / (duree or DUREE_REELLE) * SM.MINUTES)))
 
 
-def instant_courant(debut: str | None, maintenant_: datetime | None = None,
-                    pause: str | None = None, cumul: int = 0, duree: int | None = None) -> float:
-    """La même horloge, à la seconde près : la minute et sa fraction.  Le
-    moteur B avance son match jusque-là à chaque sondage, pour que l'écran
-    reçoive quelques secondes d'images à la fois et non une minute d'un coup."""
+def ecoule(debut: str | None, maintenant_: datetime | None = None, pause: str | None = None, cumul: int = 0) -> float:
+    """Les secondes réelles écoulées depuis le coup d'envoi, pauses déduites."""
     if not debut:
         return 0.0
     fin = _t(pause) if pause else (maintenant_ or datetime.now(timezone.utc))
-    ecoule = (fin - _t(debut)).total_seconds() - max(0, cumul)
-    # l'horloge avance d'une minute toutes les duree/90 secondes, et continue dans le temps
-    # additionnel : c'est la feuille qui dit quand le match est fini (simulation.additionnel)
-    return max(0.0, min(float(SM.MINUTES_MAX), ecoule / (duree or DUREE_REELLE) * SM.MINUTES))
+    return max(0.0, (fin - _t(debut)).total_seconds() - max(0, cumul))
+
+
+def ecoule_de(r, maintenant_: datetime | None = None) -> float:
+    return ecoule(r["debut"], maintenant_, _champ(r, "pause"), _champ(r, "pause_cumul", 0) or 0)
 
 
 def termine(jeu, saison: str, r, f: dict | None = None) -> bool:
@@ -92,6 +106,10 @@ def termine(jeu, saison: str, r, f: dict | None = None) -> bool:
     included — the sheet knows it, the clock alone does not."""
     if not r["debut"]:
         return False
+    if r["resultat"] is not None:
+        return True
+    if DIRECT.MOTEUR == "B":
+        return DIRECT.termine(jeu, saison, r)
     m = minute_de(r)
     if m < SM.MINUTES:
         return False
@@ -115,16 +133,45 @@ def _champ(r, cle, defaut=None):
     return defaut if v is None else v
 
 
-def minute_de(r, maintenant_: datetime | None = None) -> int:
-    """The minute of a stored match, its pauses taken out."""
+def minute_de(r, maintenant_: datetime | None = None, jeu=None, saison: str | None = None) -> int:
+    """The minute of a stored match, its pauses taken out.
+
+    With the B engine the clock is the match's own (direct.minute_de: the
+    minute its live copy has reached for the real time elapsed), so the
+    base and the season are needed to find it; without them, the A
+    engine's linear clock is returned."""
+    if DIRECT.MOTEUR == "B" and jeu is not None and r["debut"]:
+        return DIRECT.minute_de(jeu, saison, r, maintenant_)
     return minute_courante(r["debut"], maintenant_, _champ(r, "pause"), _champ(r, "pause_cumul", 0) or 0,
                            duree_de(r))
 
 
-def instant_de(r, maintenant_: datetime | None = None) -> float:
-    """La minute et sa fraction d'un match enregistré, ses pauses déduites."""
-    return instant_courant(r["debut"], maintenant_, _champ(r, "pause"), _champ(r, "pause_cumul", 0) or 0,
-                           duree_de(r))
+def reel_pour(jeu, saison: str, r, minute: float) -> float:
+    """Les secondes réelles depuis le coup d'envoi pour que l'horloge de ce
+    match atteigne `minute` : linéaire avec le moteur A, le match lui-même
+    le dit avec le B (direct.reel_pour)."""
+    if DIRECT.MOTEUR == "B":
+        return DIRECT.reel_pour(jeu, saison, r, minute)
+    return duree_de(r) * minute / SM.MINUTES
+
+
+def _dater(jeu, saison: str, r, ecrire) -> int:
+    """La minute d'une consigne : la suivante de celle que l'horloge a
+    atteinte.  Avec le moteur B elle est lue et écrite sous le verrou du
+    direct (direct.dater), pour que le match ne bouge pas entre les deux :
+    la consigne s'applique alors exactement à sa minute, en direct comme
+    au rejeu."""
+    if DIRECT.MOTEUR == "B" and r["debut"]:
+        return DIRECT.dater(jeu, saison, r, ecrire)
+    cle = min(SM.MINUTES_MAX, minute_de(r) + 1)
+    ecrire(cle)
+    return cle
+
+
+def vitesse_de(r) -> float:
+    """La vitesse du ballon vivant à l'écran (moteur B)."""
+    v = _champ(r, "vitesse")
+    return float(v) if v else VITESSE_CLASSE
 
 
 def en_pause(r) -> bool:
@@ -137,7 +184,7 @@ def suspendre(jeu, r, oui: bool) -> bool:
     Only a match with one human in it: two managers cannot each hold the
     other's clock.  Restarting adds the time spent stopped to `pause_cumul`
     so the minute picks up exactly where it was left."""
-    if not r["debut"] or minute_de(r) >= SM.MINUTES_MAX:
+    if not r["debut"] or r["resultat"] is not None or (DIRECT.MOTEUR != "B" and minute_de(r) >= SM.MINUTES_MAX):
         return False
     if oui:
         if en_pause(r):
@@ -260,7 +307,7 @@ def en_cours(jeu, saison: str, equipe_id: int):
 
 def rejoindre(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict | None,
               formation: str = "4-3-3", defi: bool = False, graine: int | None = None,
-              banc: list[int] | None = None, duree: int | None = None) -> int:
+              banc: list[int] | None = None, duree: int | None = None, vitesse: float | None = None) -> int:
     """Enter the lobby.  Pairs with whoever is waiting at a close ranked
     Elo, else opens a waiting entry — or kicks off at once against a
     generated eleven when `defi`.  Returns the rencontre_id."""
@@ -302,12 +349,13 @@ def rejoindre(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict 
     # the clock: a challenge takes the pace its manager asked for, a ranked
     # match the common one
     duree_match = duree if defi and duree in DUREES else DUREE_REELLE
+    vitesse_match = float(vitesse) if defi and vitesse in VITESSES else VITESSE_CLASSE
     cur = jeu.execute("""INSERT INTO rencontre(saison, equipe_a, equipe_b, defi, onze_a, onze_b, banc_a, banc_b,
-                            tactique_a, tactique_b, formation_a, formation_b, graine, debut, elo_a_avant, cree_le, duree)
-                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                            tactique_a, tactique_b, formation_a, formation_b, graine, debut, elo_a_avant, cree_le, duree, vitesse)
+                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                       (saison, equipe_id, None, int(defi), json.dumps(onze), onze_b, json.dumps(banc), banc_b,
                        tac, tac_b, formation, "4-3-3" if defi else None, graine,
-                       maintenant() if defi else None, elo, maintenant(), duree_match))
+                       maintenant() if defi else None, elo, maintenant(), duree_match, vitesse_match))
     jeu.commit()
     return cur.lastrowid
 
@@ -409,10 +457,6 @@ def feuille(jeu, saison: str, r, minute: float | None = None, depuis: float | No
     `depuis` seconds of play) — the screen wants them, the rules do not."""
     a, b = _cotes(jeu, saison, r)
     m = minute_de(r) if minute is None else minute
-    # le moteur B suit l'horloge à la seconde : ce qui est dit à la 63e s'applique
-    # à la 64e (lobby.ajuster), le match ne s'arrête pas pour attendre
-    if DIRECT.MOTEUR == "B" and minute is None:
-        m = instant_de(r)
     # Side A is the human's, always.  Side B is another manager in a
     # ranked match — so it is nobody's to answer for and the machine
     # replaces its injured players — and the machine's in a challenge or a
@@ -420,7 +464,7 @@ def feuille(jeu, saison: str, r, minute: float | None = None, depuis: float | No
     # sheet reports them and the screen stops to ask.
     if DIRECT.MOTEUR == "B":
         # le moteur B : un match vivant, avancé à l'horloge (jeu/direct.py)
-        f = DIRECT.feuille(jeu, saison, r, m, depuis=depuis, trace=trace)
+        f = DIRECT.feuille(jeu, saison, r, minute, depuis=depuis, trace=trace)     # None : l'horloge du direct
     else:
         f = SM.jouer(a, b, r["graine"], _tactiques(r), jusqua=m, changements=_remplacements(r),
                      auto_remplacement=(False, True),
@@ -455,19 +499,19 @@ def ajuster(jeu, saison: str, equipe_id: int, tactique: dict, r=None) -> int:
     r = r if r is not None else en_cours(jeu, saison, equipe_id)
     if not r or not r["debut"]:
         raise ErreurLobby("Aucun match en cours")
-    m = minute_de(r)
     if termine(jeu, saison, r):
         raise ErreurLobby("Le match est terminé")
     cote = 0 if r["equipe_a"] == equipe_id else 1
     aj = json.loads(r["ajustements"] or "{}")
     # the next minute, never the one already being played
-    cle = str(min(SM.MINUTES_MAX, m + 1))
-    paire = aj.get(cle) or [None, None]
-    paire[cote] = vars(SM.Tactique(**tactique).valide())
-    aj[cle] = paire
-    jeu.execute("UPDATE rencontre SET ajustements=? WHERE rencontre_id=?", (json.dumps(aj), r["rencontre_id"]))
-    jeu.commit()
-    return int(cle)
+    def ecrire(minute):
+        cle = str(minute)
+        paire = aj.get(cle) or [None, None]
+        paire[cote] = vars(SM.Tactique(**tactique).valide())
+        aj[cle] = paire
+        jeu.execute("UPDATE rencontre SET ajustements=? WHERE rencontre_id=?", (json.dumps(aj), r["rencontre_id"]))
+        jeu.commit()
+    return _dater(jeu, saison, r, ecrire)
 
 
 def causer(jeu, saison: str, equipe_id: int, causerie: str, r=None) -> str:
@@ -481,7 +525,7 @@ def causer(jeu, saison: str, equipe_id: int, causerie: str, r=None) -> str:
         raise ErreurLobby("Aucun match en cours")
     if causerie not in SM.CAUSERIES:
         raise ErreurLobby("Causerie inconnue")
-    m = minute_de(r)
+    m = minute_de(r, jeu=jeu, saison=saison)
     mt = MI_TEMPS
     if m >= MI_TEMPS:
         mt = feuille(jeu, saison, r, m).get("mi_temps") or MI_TEMPS     # la pause est à 45 plus le temps additionnel
@@ -507,7 +551,7 @@ def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int, r=None
     r = r if r is not None else en_cours(jeu, saison, equipe_id)
     if not r or not r["debut"]:
         raise ErreurLobby("Aucun match en cours")
-    m = minute_de(r)
+    m = minute_de(r, jeu=jeu, saison=saison)
     if termine(jeu, saison, r):
         raise ErreurLobby("Le match est terminé")
     cote = 0 if r["equipe_a"] == equipe_id else 1
@@ -526,14 +570,16 @@ def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int, r=None
         raise ErreurLobby("Ce joueur n'est pas sur ton banc")
     if f["changements"][cote] >= SM.MAX_CHANGEMENTS:
         raise ErreurLobby(f"{SM.MAX_CHANGEMENTS} changements, c'est le maximum")
-    cle = str(min(SM.MINUTES_MAX, m + 1))
-    brut = json.loads(r["remplacements"] or "{}")
-    paire = brut.get(cle) or [[], []]
-    paire[cote] = list(paire[cote]) + [[sortant, entrant]]
-    brut[cle] = paire
-    jeu.execute("UPDATE rencontre SET remplacements=? WHERE rencontre_id=?",
-                (json.dumps(brut), r["rencontre_id"]))
-    jeu.commit()
+    def ecrire(minute):
+        cle = str(minute)
+        brut = json.loads(r["remplacements"] or "{}")
+        paire = brut.get(cle) or [[], []]
+        paire[cote] = list(paire[cote]) + [[sortant, entrant]]
+        brut[cle] = paire
+        jeu.execute("UPDATE rencontre SET remplacements=? WHERE rencontre_id=?",
+                    (json.dumps(brut), r["rencontre_id"]))
+        jeu.commit()
+    cle = _dater(jeu, saison, r, ecrire)
     # The whistle: a match stopped because one of his players went off
     # restarts as soon as the manager has named the man coming on.
     if en_pause(r) and sortant in f["attente"][cle_cote]:
@@ -550,7 +596,7 @@ def permuter(jeu, saison: str, equipe_id: int, un: int, deux: int, r=None) -> in
     r = r if r is not None else en_cours(jeu, saison, equipe_id)
     if not r or not r["debut"]:
         raise ErreurLobby("Aucun match en cours")
-    m = minute_de(r)
+    m = minute_de(r, jeu=jeu, saison=saison)
     if termine(jeu, saison, r):
         raise ErreurLobby("Le match est terminé")
     if un == deux:
@@ -561,15 +607,16 @@ def permuter(jeu, saison: str, equipe_id: int, un: int, deux: int, r=None) -> in
     dessus = set(f["sur_le_terrain"][cle_cote])
     if un not in dessus or deux not in dessus:
         raise ErreurLobby("Les deux joueurs doivent être sur le terrain")
-    cle = str(min(SM.MINUTES_MAX, m + 1))
-    brut = json.loads(_champ(r, "permutations") or "{}")
-    paire = brut.get(cle) or [[], []]
-    paire[cote] = list(paire[cote]) + [[un, deux]]
-    brut[cle] = paire
-    jeu.execute("UPDATE rencontre SET permutations=? WHERE rencontre_id=?",
-                (json.dumps(brut), r["rencontre_id"]))
-    jeu.commit()
-    return int(cle)
+    def ecrire(minute):
+        cle = str(minute)
+        brut = json.loads(_champ(r, "permutations") or "{}")
+        paire = brut.get(cle) or [[], []]
+        paire[cote] = list(paire[cote]) + [[un, deux]]
+        brut[cle] = paire
+        jeu.execute("UPDATE rencontre SET permutations=? WHERE rencontre_id=?",
+                    (json.dumps(brut), r["rencontre_id"]))
+        jeu.commit()
+    return _dater(jeu, saison, r, ecrire)
 
 
 def cloturer(jeu, saison: str, r) -> dict | None:
@@ -577,10 +624,15 @@ def cloturer(jeu, saison: str, r) -> dict | None:
     Idempotent — a match already closed is returned as it stands."""
     if r["resultat"] is not None:
         return json.loads(r["feuille"]) if r["feuille"] else None
-    if not r["debut"] or minute_de(r) < SM.MINUTES:
+    if not r["debut"]:
+        return None
+    if DIRECT.MOTEUR == "B":
+        if not DIRECT.termine(jeu, saison, r):
+            return None                      # l'écran n'a pas encore vu la fin
+    elif minute_de(r) < SM.MINUTES:
         return None
     f = feuille(jeu, saison, r, SM.MINUTES_MAX)
-    if not f.get("fini") and minute_de(r) < (f.get("total") or SM.MINUTES_MAX):
+    if DIRECT.MOTEUR != "B" and not f.get("fini") and minute_de(r) < (f.get("total") or SM.MINUTES_MAX):
         return None                          # le temps additionnel se joue encore
     f.pop("trace", None)                     # la trace ne se range pas dans la base (3 Mo par match)
     DIRECT.oublier(r)
@@ -625,7 +677,7 @@ def arbitrer(jeu, r, f: dict) -> dict:
     motif = None
     if neufs:
         motif, marque = "blessure", set(neufs)
-    elif f.get("minute", 0) >= (f.get("mi_temps") or MI_TEMPS) and "mi-temps" not in vus:
+    elif f.get("mi_temps_vue", f.get("minute", 0) >= (f.get("mi_temps") or MI_TEMPS)) and "mi-temps" not in vus:
         # La mi-temps : le seul arrêt que le football prévoit, et le
         # moment où un manager corrige ce qu'il a vu.  Une fois, et
         # seulement pour un match à un seul humain.
@@ -646,6 +698,7 @@ def etat(jeu, saison: str, equipe_id: int, depuis: float | None = None) -> dict:
     """What the lobby screen shows: waiting, running (with the sheet so
     far) or nothing, plus the manager's ranked standing."""
     out = {"duree": DUREE_REELLE, "durees": list(DUREES), "minutes": SM.MINUTES, "minutes_max": SM.MINUTES_MAX,
+           "moteur": DIRECT.MOTEUR, "vitesse": VITESSE_CLASSE, "vitesses": list(VITESSES),
            "etat": "libre", "match": None,
            "tactiques": {"tempo": list(SM.TEMPO), "bloc": list(SM.BLOC), "risque": list(SM.RISQUE)}}
     r = en_cours(jeu, saison, equipe_id)
@@ -666,6 +719,7 @@ def etat(jeu, saison: str, equipe_id: int, depuis: float | None = None) -> dict:
         return out
     f = json.loads(r["feuille"]) if r["feuille"] else arbitrer(jeu, r, feuille(jeu, saison, r, depuis=depuis, trace=True))
     out["duree"] = duree_de(r)
+    out["vitesse"] = vitesse_de(r)
     out["etat"] = "fini" if r["resultat"] else "en_cours"
     out["cote"] = "a" if r["equipe_a"] == equipe_id else "b"
     out["match"] = f | {"debut": r["debut"], "elo_avant": [r["elo_a_avant"], r["elo_b_avant"]],

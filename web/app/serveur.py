@@ -36,6 +36,7 @@ sys.path.insert(0, str(RACINE))
 
 from jeu import bareme as B  # noqa: E402
 from jeu import evolution as E  # noqa: E402
+from jeu import direct as DIRECT  # noqa: E402
 from jeu import lobby as LB  # noqa: E402
 from jeu import importer as I  # noqa: E402
 from jeu import marche as MA  # noqa: E402
@@ -293,6 +294,8 @@ def saison(jeu=Depends(bd)):
         "causeries": list(SM.CAUSERIES),
         "mi_temps": SM.MI_TEMPS, "duree_causerie": SM.DUREE_CAUSERIE,
         "durees_match": list(LB.DUREES), "duree_match": LB.DUREE_REELLE,
+        # le moteur du direct et, pour le B, la vitesse du ballon vivant à l'écran (classé, et les choix)
+        "moteur": DIRECT.MOTEUR, "vitesse_match": LB.VITESSE_CLASSE, "vitesses_match": list(LB.VITESSES),
     }
 
 
@@ -777,7 +780,8 @@ class EntreeLobby(BaseModel):
     banc: list[int] = []
     tactique: Optional[dict] = None
     defi: bool = False
-    duree: Optional[int] = None          # real seconds for ninety minutes, challenges only
+    duree: Optional[int] = None          # real seconds for ninety minutes, challenges only (moteur A)
+    vitesse: Optional[float] = None      # moteur B : la vitesse du ballon vivant, défis seulement
 
 
 class Changement(BaseModel):
@@ -856,7 +860,7 @@ def lobby_rejoindre(c: EntreeLobby, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     try:
         rid = LB.rejoindre(jeu, SAISON, e["equipe_id"], c.onze, c.tactique, c.formation, c.defi, banc=c.banc,
-                           duree=c.duree)
+                           duree=c.duree, vitesse=c.vitesse)
     except LB.ErreurLobby as err:
         raise HTTPException(400, str(err))
     return {"rencontre_id": rid} | LB.etat(jeu, SAISON, e["equipe_id"])
@@ -952,6 +956,7 @@ class TourSolo(BaseModel):
     banc: list[int] = []
     tactique: Optional[dict] = None
     duree: Optional[int] = None
+    vitesse: Optional[float] = None
 
 
 @app.get("/api/solo")
@@ -986,7 +991,8 @@ def solo_jouer(t: TourSolo, u=Depends(exiger), jeu=Depends(bd)):
     to kick off, so it is played straight through."""
     e = equipe_de(jeu, u)
     try:
-        rid = SO.lancer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique, t.formation, banc=t.banc, duree=t.duree)
+        rid = SO.lancer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique, t.formation, banc=t.banc, duree=t.duree,
+                             vitesse=t.vitesse)
         r = None if rid else SO.jouer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique,
                                            t.formation, banc=t.banc)
     except (SO.ErreurSolo, LB.ErreurLobby) as err:

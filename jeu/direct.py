@@ -24,6 +24,13 @@ from jeu import emergent as EM
 from jeu import simulation as SM
 
 MOTEUR = "B"                      # le moteur du direct : "B" (le terrain du bac) ou "A" (l'ancien fil minute par minute)
+# L'horloge du moteur B est le temps affiché (emergent.Match.affiche) : le ballon
+# vivant compte en entier, chaque arrêt de jeu deux secondes (SAUT_ARRET), et
+# l'écran le joue à la vitesse de la rencontre (lobby.vitesse_de).  Le serveur
+# garde de l'avance sur l'écran : MARGE_REELLE secondes réelles de temps
+# affiché, et jamais au milieu d'un arrêt (l'écran a besoin d'en connaître la
+# fin pour sauter dessus).
+MARGE_REELLE = 3.5
 _VIVANTS: dict[int, "Vivant"] = {}
 _VERROU = threading.Lock()
 
@@ -49,6 +56,7 @@ class Vivant:
         self.appliques: set[str] = set()
         self.banc = ({j["pid"]: j for j in a.banc}, {j["pid"]: j for j in b.banc})
         self.entres: list[list[int]] = [[], []]
+        self.vitesse = float(r["vitesse"]) if "vitesse" in r.keys() and r["vitesse"] else 2.0
         # la tactique dans le vocabulaire du jeu (simulation.Tactique), celle que l'écran
         # affiche et renvoie : le moteur B a la sienne (_tac_b), qui n'est pas la même
         self.tac_jeu: list[SM.Tactique] = [a.tactique.valide(), b.tactique.valide()]
@@ -131,6 +139,75 @@ class Vivant:
                 return True
             self.appliquer(r, mn)
         return m.jouer_jusqua(borne)
+
+    def avancer_affiche(self, r, budget: float) -> bool:
+        """Avance jusqu'à ce que le temps affiché couvre `budget` (les
+        secondes réelles écoulées fois la vitesse) plus la marge, sans
+        s'arrêter au milieu d'un arrêt de jeu ; les consignes s'appliquent
+        aux minutes rondes, comme `avancer`."""
+        m = self.match
+        cible = budget + MARGE_REELLE * self.vitesse
+        self.appliquer(r, int(m.t // 60))
+        while not m.fini and (m.affiche < cible or m.arret):
+            prochain = (int(m.t // 60) + 1) * 60.0
+            m.jouer_tant_que(lambda: m.t < prochain and (m.affiche < cible or m.arret))
+            if m.t >= prochain - 1e-9:
+                self.appliquer(r, int(m.t // 60))
+        return m.fini
+
+
+def budget_de(r, maintenant_=None) -> float:
+    """Le temps affiché que l'écran a eu le temps de jouer : les secondes
+    réelles écoulées (pauses déduites) fois la vitesse."""
+    from jeu import lobby as LB
+    return LB.ecoule_de(r, maintenant_) * LB.vitesse_de(r)
+
+
+def _au_present(jeu, saison, r, maintenant_=None):
+    v = vivant(jeu, saison, r)
+    b = budget_de(r, maintenant_)
+    with _VERROU:
+        v.avancer_affiche(r, b)
+    return v, b
+
+
+def minute_de(jeu, saison: str, r, maintenant_=None) -> int:
+    """La minute que le match vivant a atteinte à cet instant : c'est elle
+    qui date une consigne (lobby.ajuster : la minute suivante), pour que le
+    match reste une fonction de la graine et de ce qui a été dit."""
+    v, _ = _au_present(jeu, saison, r, maintenant_)
+    return min(SM.MINUTES_MAX, int(v.match.t // 60))
+
+
+def dater(jeu, saison: str, r, ecrire) -> int:
+    """La minute d'une consigne — la suivante de celle que le match vivant a
+    atteinte — lue et écrite (`ecrire(minute)`) sous le verrou, pour qu'aucun
+    sondage ne fasse avancer le match entre les deux."""
+    v = vivant(jeu, saison, r)
+    with _VERROU:
+        v.avancer_affiche(r, budget_de(r))
+        cle = min(SM.MINUTES_MAX, int(v.match.t // 60) + 1)
+        ecrire(cle)
+    return cle
+
+
+def termine(jeu, saison: str, r, maintenant_=None) -> bool:
+    """Fini pour de bon : le match l'est, et l'écran a eu le temps d'en voir la fin."""
+    if r["resultat"] is not None:
+        return True
+    v, b = _au_present(jeu, saison, r, maintenant_)
+    return bool(v.match.fini and b >= v.match.affiche)
+
+
+def reel_pour(jeu, saison: str, r, minute: float) -> float:
+    """Les secondes réelles qu'il faut à l'horloge du direct pour atteindre
+    cette minute de jeu (les tests, et l'écran pour dire combien il reste).
+    Joue une copie jusque-là et l'oublie : le match vivant n'en bouge pas."""
+    from jeu import lobby as LB
+    a, b = _camps(jeu, saison, r)
+    v = Vivant(jeu, saison, r, a, b)
+    v.avancer(r, minute)
+    return v.match.affiche / LB.vitesse_de(r)
 
 
 def _camps(jeu, saison, r):
@@ -253,12 +330,21 @@ def notes_b(res: dict, familles: dict[int, str], minutes_total: int) -> dict[int
     return fiches
 
 
-def feuille(jeu, saison: str, r, minute: float, depuis: float | None = None, trace: bool = True) -> dict:
-    """La feuille du match vivant à cet instant (la minute, entière ou avec sa
-    fraction) — les champs du moteur A, plus la trace."""
+def feuille(jeu, saison: str, r, minute: float | None = None, depuis: float | None = None,
+            trace: bool = True) -> dict:
+    """La feuille du match vivant — les champs du moteur A, plus la trace.
+    Sans `minute`, à l'instant de l'horloge du direct (le temps affiché) ;
+    avec, à cette minute de jeu (les règles et les tests)."""
     v = vivant(jeu, saison, r)
+    budget = None
     with _VERROU:
-        fini = v.avancer(r, minute)
+        if minute is None:
+            budget = budget_de(r)
+            fini = v.avancer_affiche(r, budget)
+            fini = bool(fini and budget >= v.match.affiche)     # l'écran a vu la fin
+            minute = min(SM.MINUTES_MAX, v.match.t / 60.0)
+        else:
+            fini = v.avancer(r, minute)
         m = v.match
         res = m.resume()
     a, b = v.equipes
@@ -303,6 +389,11 @@ def feuille(jeu, saison: str, r, minute: float, depuis: float | None = None, tra
         "marquage": {"a": 0, "b": 0}, "graine": v.graine,
         "collectif": res["collectif"], "affinite": res["affinite"],
         "trace_pas": res["trace_pas"], "phases": res["phases"],
+        # l'horloge du direct : la vitesse de l'écran, le temps affiché atteint par le match,
+        # ce que l'écran a eu le temps d'en jouer, et si la mi-temps est passée à l'écran
+        "vitesse": v.vitesse, "affiche": round(m.affiche, 1), "saut_arret": EM.SAUT_ARRET,
+        "budget": None if budget is None else round(budget, 1),
+        "mi_temps_vue": bool(m.affiche_mi_temps is not None and (budget is None or budget >= m.affiche_mi_temps)),
         "cartes": [{"pid": j.pid, "nom": j.nom, "camp": j.camp, "poste": j.poste, "fam": j.fam} for j in m.joueurs],
     }
     if trace:

@@ -13,7 +13,7 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 | Cartes | toutes les cartes (écussons ou liste), filtres par poste, ligue, tri (OVR, prix, OVR par M€, forme, âge, popularité), fiche joueur, et le nombre de ventes en cours par joueur |
 | Packs | la boutique de la banque : vingt packs (bronze, argent, or, ultra ; mixte ou par ligne), ouverture animée, les cartes vont en réserve. L'Ultra Pack, 200 M€, fait dix cartes dont trois de 80 et plus garanties et sept de 75 et plus |
 | Enchères | l'hôtel des ventes : mises à prix, achat immédiat, offres (argent bloqué), fin de vente ; tes ventes et tes offres |
-| Lobby | le match classé : ton onze contre celui d'un autre manager, joué avec les cartes sur un terrain 2D où elles jouent vraiment les actions, six minutes pour quatre-vingt-dix, tactique, formation et remplacements en direct ; ton Elo classé et tes derniers matchs |
+| Lobby | le match classé : ton onze contre celui d'un autre manager, joué avec les cartes sur le terrain du moteur B, un match complet au rythme du football (×2, les arrêts de jeu sautés, une demi-heure), tactique, formation et remplacements en direct ; ton Elo classé et tes derniers matchs |
 | Solo | la campagne : tu prends la place d'un vrai club dans une vraie compétition et tu joues son calendrier contre les onze des autres clubs ; crédits et packs selon la place ou le tour atteint |
 | Équipe | formation, onze sur le terrain, capitaine, ordre du banc, **tactique de départ** (les trois axes et les consignes aux lignes, valables pour tous tes matchs), **Envoyer la composition** avant le premier coup d'envoi ; **Mon club** : effectif et réserve, aligner, mettre en vente, vendre à la banque |
 | Journée | le résultat de la dernière journée (détail par joueur, entrants du banc, rang), l'état de la journée en cours, l'historique |
@@ -165,13 +165,21 @@ quelqu'un.
 
 ## Le rythme du match
 
-Un match classé entre deux managers dure six minutes réelles pour
-quatre-vingt-dix, horloge commune. Contre la machine — défi, campagne —
-tu choisis le rythme au coup d'envoi : 6, 12 ou 18 minutes. Six, c'est
-un résumé ; douze, le réglage par défaut, laisse le temps de voir une
-passe partir et arriver ; dix-huit se suit comme depuis le banc. Le
-choix est mémorisé, l'horloge est celle de la rencontre
-(`rencontre.duree`), et les courses des joueurs s'allongent avec elle.
+Un match est un match complet de quatre-vingt-dix minutes simulées, joué
+au rythme du football : le ballon vivant à ×2, et **les arrêts de jeu
+sautés** comme dans le bac (touche, coup franc, corner, célébration :
+l'écran ne montre que les deux dernières secondes de chacun). Un match
+complet, c'est 52 minutes de ballon vivant et 77 arrêts, donc **une
+demi-heure réelle** à ×2. Un match classé entre deux managers se joue à
+×2, horloge commune. Contre la machine — défi, campagne — tu choisis le
+rythme au coup d'envoi : ×2 (une demi-heure), ×4 (un quart d'heure) ou
+×8 (neuf minutes, un résumé). Le choix est mémorisé, la vitesse est
+celle de la rencontre (`rencontre.vitesse`), et l'horloge du match est
+le match lui-même : la minute affichée est celle que le match a
+atteinte, pas une règle de trois sur l'heure (docs/MOTEUR_B.md, « Le
+moteur B dans le jeu »). Avec l'ancien moteur A (`direct.MOTEUR = "A"`),
+l'horloge reste linéaire : 6, 12 ou 18 minutes réelles pour 90
+(`rencontre.duree`).
 
 ## L'écran de match
 

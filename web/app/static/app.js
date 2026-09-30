@@ -1150,7 +1150,15 @@ function selecteurTactique(tac, onChange) {
 // est un résumé, douze ou dix-huit un match qu'on suit du banc.  Mémorisé.
 let RYTHME = 720;
 try { RYTHME = +localStorage.getItem("fl_rythme") || 720; } catch (e) {}
+// Avec le moteur B, le rythme est une VITESSE du ballon vivant (les arrêts de jeu
+// se sautent) : ×2, c'est le football à un rythme normal, une demi-heure réelle
+// pour un match complet ; ×4 un quart d'heure ; ×8 un résumé de neuf minutes.
+let VITESSE = 2;
+try { VITESSE = +localStorage.getItem("fl_vitesse") || 2; } catch (e) {}
+const DUREE_VITESSE = v => Math.round(29 * 2 / v);          // minutes réelles, mesurées : 52 min de ballon vivant, 77 arrêts
+function moteurB() { return (G.saison?.moteur || "B") === "B"; }
 function selecteurRythme(d) {
+  if (moteurB()) return selecteurVitesse(d);
   const choix = (d.durees || G.saison?.durees_match || [360, 720, 1080]);
   if (!choix.includes(RYTHME)) RYTHME = choix[Math.min(1, choix.length - 1)];
   const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, "Rythme"));
@@ -1163,11 +1171,26 @@ function selecteurRythme(d) {
   return el("div", {class: "tactiques rythme"}, g,
     el("span", {class: "compteur"}, "Un match classé contre un autre manager reste à 6 minutes, l'horloge est commune."));
 }
+function selecteurVitesse(d) {
+  const choix = (d.vitesses || G.saison?.vitesses_match || [2, 4, 8]);
+  if (!choix.includes(VITESSE)) VITESSE = choix[0];
+  const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, "Rythme"));
+  const maj = () => g.querySelectorAll("button").forEach(b => b.classList.toggle("actif", +b.dataset.v === VITESSE));
+  for (const v of choix)
+    g.append(el("button", {class: "tac", "data-v": String(v), title: `le ballon vivant à ×${v}, les arrêts de jeu sautés : ${DUREE_VITESSE(v)} minutes réelles environ`,
+      onclick: () => { VITESSE = v; try { localStorage.setItem("fl_vitesse", String(v)); } catch (e) {} maj(); }},
+      `×${v} · ${DUREE_VITESSE(v)} min`));
+  maj();
+  return el("div", {class: "tactiques rythme"}, g,
+    el("span", {class: "compteur"}, `Un match complet, les arrêts de jeu sautés. Un match classé contre un autre manager se joue à ×${G.saison?.vitesse_match || 2}, l'horloge est commune.`));
+}
 
 function panneauEntree(d) {
   const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Lance un match"));
   p.append(el("p", {class: "compteur"},
-    `Ton onze joue contre celui d'un autre manager, avec les attributs de tes cartes. ${Math.round(d.duree / 60)} minutes pour 90 en classé, tu ajustes en direct.`));
+    moteurB()
+      ? `Ton onze joue contre celui d'un autre manager, avec les attributs de tes cartes. Un match complet à ×${d.vitesse || 2}, une demi-heure environ, tu ajustes en direct.`
+      : `Ton onze joue contre celui d'un autre manager, avec les attributs de tes cartes. ${Math.round(d.duree / 60)} minutes pour 90 en classé, tu ajustes en direct.`));
   const onze = C.slots.every(x => x !== null) ? C.slots.slice() : null;
   if (!onze) {
     p.append(el("div", {class: "avert"}, "Ton onze n'est pas complet : va dans Équipe le compléter, il sert aussi ici."));
@@ -1203,7 +1226,7 @@ function panneauEntree(d) {
 }
 
 async function entrerLobby(onze, defi) {
-  try { await rendreLobby(await api("/lobby/rejoindre", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac, defi, duree: defi ? RYTHME : null})); }
+  try { await rendreLobby(await api("/lobby/rejoindre", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac, defi, duree: defi ? RYTHME : null, vitesse: defi ? VITESSE : null})); }
   catch (e) { toast(e.message); }
 }
 
@@ -1563,7 +1586,7 @@ function panneauCampagne(d) {
             + (c.prochain.aller ? ` · aller ${c.prochain.aller.moi} – ${c.prochain.aller.lui}` : ""))));
       p.append(ligne);
       p.append(selecteurTactique(LOBBY.tac, () => {}));
-      p.append(selecteurRythme({durees: G.saison?.durees_match}));
+      p.append(selecteurRythme({durees: G.saison?.durees_match, vitesses: G.saison?.vitesses_match}));
       p.append(el("div", {class: "actions"},
         el("button", {class: "primaire", onclick: () => jouerSolo(onze)},
           c.prochain.manche === 2 ? "Jouer le match retour" : "Jouer le match")));
@@ -1594,7 +1617,7 @@ function panneauCampagne(d) {
 // Un match de campagne se joue sur LE MÊME écran qu'un match du lobby :
 // il n'y a qu'une façon de regarder un match dans ce jeu.
 function panneauMatchSolo(c) {
-  const d = {match: c.match, cote: "a", duree: c.match.duree, minutes: c.match.minutes};
+  const d = {match: c.match, cote: "a", duree: c.match.duree, vitesse: c.match.vitesse, minutes: c.match.minutes};
   const b = el("div", {});
   b.append(panneauMatch(d, "/solo/tactique", "/solo/pause", rendreSolo));
   if (c.match.fini) b.append(el("p", {class: "compteur"}, "Match terminé, la journée se clôture…"));
@@ -1657,7 +1680,7 @@ async function jouerSolo(onze) {
   // a victory.
   const place = SOLO.d?.campagne?.place;
   let r;
-  try { r = await api("/solo/jouer", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac, duree: RYTHME}); }
+  try { r = await api("/solo/jouer", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac, duree: RYTHME, vitesse: VITESSE}); }
   catch (e) { toast(e.message); return; }
   await rafraichir(false);
   await rendreSolo(r);
@@ -2402,11 +2425,14 @@ function majTete() {
 // (`depuis`).  Le terrain les joue derrière, à la vitesse de l'horloge
 // (90 minutes en `duree` secondes), sans jamais dépasser ce qu'il a reçu ;
 // le bandeau (score, minute) suit ce que le terrain montre, pas le serveur.
-const TB = {rid: null, terrain: null, noeud: null, canvas: null, t: 0, derniere: 0, raf: null, vitesse: 15,
+// L'horloge de l'écran est le TEMPS AFFICHÉ (jeu/direct.py) : le ballon vivant se joue
+// en entier à la vitesse de la rencontre, chaque arrêt de jeu se saute jusqu'à ses deux
+// dernières secondes, comme dans le bac.  `d` est le temps affiché consommé.
+const TB = {rid: null, terrain: null, noeud: null, canvas: null, d: 0, derniere: 0, raf: null, vitesse: 2,
             m: null, moi: "a", fini: false, pause: false};
-// Le retard que l'écran garde sur le serveur, en secondes de match : le temps
-// d'un sondage et demi, quelle que soit la vitesse du match, pour avoir toujours
-// des images d'avance et ne jamais attendre le prochain paquet.
+// Le retard que l'écran garde sur le serveur, en secondes de temps affiché : le
+// temps d'un sondage et demi, quelle que soit la vitesse du match, pour avoir
+// toujours des images d'avance et ne jamais attendre le prochain paquet.
 function margeB() { return 3.5 * TB.vitesse; }
 function depuisB() { return (TB.rid !== null && TB.terrain && TB.terrain.trace.length) ? TB.terrain.duree : null; }
 function cheminSonde(base) { const d = depuisB(); return d === null ? base : `${base}?depuis=${d}`; }
@@ -2424,17 +2450,18 @@ function panneauTerrainB(d, moi) {
     boite.append(canvas); p.append(boite);
     TB.noeud = p; TB.canvas = canvas;
     TB.terrain = new TerrainB(canvas, {miroir: moi === "b"});
-    TB.terrain.charger({joueurs: m.cartes || [], trace: [], evenements: [], trace_pas: m.trace_pas || 0.4, phases: m.phases || null}, m.maillots);
-    TB.t = 0; TB.derniere = performance.now();
+    TB.terrain.charger({joueurs: m.cartes || [], trace: [], evenements: [], trace_pas: m.trace_pas || 0.4, phases: m.phases || null,
+                        saut_arret: m.saut_arret}, m.maillots);
+    TB.d = -1; TB.derniere = performance.now();
     T2D.rid = m.rencontre_id; T2D.vus = new Set(); T2D.score = [0, 0]; T2D.m = 0;
   }
   if (m.cartes) TB.terrain.remplacer(m.cartes);
   TB.terrain.ajouter(m.trace || [], m.gestes || []);
   TB.m = m; TB.moi = moi; TB.fini = !!m.fini; TB.pause = !!m.pause;
   T2D.moi = moi;                               // le bandeau lit le score de ton côté
-  TB.vitesse = (90 * 60) / (d.duree || 360);
+  TB.vitesse = m.vitesse || d.vitesse || 2;
   // on arrive en cours de match : on regarde les dernières secondes reçues, pas le coup d'envoi
-  if (TB.t === 0 && TB.terrain.trace.length) TB.t = Math.max(TB.terrain.debut, TB.terrain.duree - margeB());
+  if (TB.d < 0 && TB.terrain.trace.length) TB.d = Math.max(0, TB.terrain.affiche - margeB());
   TB.noeud.querySelector(".terrain2d").classList.toggle("suspendu", !!m.pause);
   if (!TB.raf) { TB.derniere = performance.now(); TB.raf = requestAnimationFrame(boucleB); }
   return TB.noeud;
@@ -2444,11 +2471,11 @@ function boucleB(now) {
   if (!TB.terrain || !TB.noeud || !TB.noeud.isConnected) return;
   const dt = Math.min(0.5, (now - TB.derniere) / 1000); TB.derniere = now;
   const tr = TB.terrain;
-  if (!TB.pause && tr.trace.length) {
-    TB.t = Math.min(tr.duree, TB.t + dt * TB.vitesse);
-    if (tr.duree - TB.t > 2.5 * margeB()) TB.t = tr.duree - margeB();   // trop de retard (onglet endormi) : on rattrape
+  if (!TB.pause && tr.trace.length && TB.d >= 0) {
+    TB.d = Math.min(tr.affiche, TB.d + dt * TB.vitesse);
+    if (tr.affiche - TB.d > 2.5 * margeB()) TB.d = tr.affiche - margeB();   // trop de retard (onglet endormi) : on rattrape
   }
-  const r = tr.dessiner(tr.index(TB.t));
+  const r = tr.dessiner(tr.indexAffiche(Math.max(0, TB.d)));
   // le bandeau suit le terrain
   const m = TB.m;
   if (m) {
@@ -2464,7 +2491,7 @@ function boucleB(now) {
 }
 function arreterTerrainB(oublier) {
   if (TB.raf) { cancelAnimationFrame(TB.raf); TB.raf = null; }
-  if (oublier) { TB.rid = null; TB.terrain = null; TB.noeud = null; TB.canvas = null; TB.t = 0; TB.m = null; }
+  if (oublier) { TB.rid = null; TB.terrain = null; TB.noeud = null; TB.canvas = null; TB.d = -1; TB.m = null; }
 }
 
 // Le panneau est RÉUTILISÉ d'un sondage à l'autre, pas reconstruit :
