@@ -1325,6 +1325,50 @@ encore 0,55. Le reste de l'écart tient au bloc haut de Paris, qui lui
 coûte du ballon dans le moteur (0,51 avec un bloc médian), alors qu'en
 vrai un bloc haut en gagne.
 
+## 29. Les matchs déséquilibrés
+
+**La question du § 28** : PSG–Pisa finissait 4,8 - 0,5 avec 28 tirs
+contre 6. Avant de toucher au moteur, la règle : **l'écart de buts par
+point d'OVR**, en vrai et dans le moteur. Réel, sur les 1 835 vrais
+matchs de la base dont on connaît les deux OVR (la moyenne des
+quatorze meilleures cartes de chaque club) :
+
+| écart d'OVR | matchs | écart de buts | fort - faible | victoires du fort |
+|---|---|---|---|---|
+| moins de 4 (moy. 1,8) | 853 | +0,15 | 1,40 - 1,26 | 39 % |
+| 4 à 8 (5,8) | 565 | +0,62 | 1,67 - 1,05 | 54 % |
+| 8 à 12 (9,6) | 247 | +1,24 | 2,20 - 0,96 | 64 % |
+| 12 et plus (15,7) | 170 | +1,65 | 2,45 - 0,80 | 78 % |
+
+Pente réelle : 0,11 but d'écart par point d'OVR, qui s'aplatit au-delà
+de douze points. Et StatsBomb, sur les matchs à plus de 65 % de
+possession (53 matchs) : 18 tirs contre 8, 2,3 buts contre 0,85.
+
+**Le moteur**, sur 48 paires tirées au sort à 12-22 points d'écart
+(moyenne 15,7), un match chacune, tactiques par défaut du bac :
+
+| pente des attributs (`ATTRIBUT_PENTE`) | fort - faible | écart | tirs | victoires du fort |
+|---|---|---|---|---|
+| 1 (tels quels) | 2,90 - 1,04 | +1,86 | 18,3 - 7,7 | 77 % |
+| 0,85 | 2,52 - 1,00 | +1,52 | 16,4 - 8,8 | 71 % |
+| 0,7 | 2,60 - 1,10 | +1,50 | 17,6 - 8,4 | 65 % |
+| 0,55 | 2,25 - 0,98 | +1,27 | 17,3 - 8,8 | 71 % |
+| réel (15,7) | 2,45 - 0,80 | +1,65 | 18 - 8 | 78 % |
+
+À l'écart réel maximum, le moteur tel quel est **au réel** : +1,86
+contre +1,65, 77 % contre 78 % de victoires, 18 tirs contre 8 des deux
+côtés. Les lectures précédentes (+2,2 à +3,2) étaient du bruit sur
+cinq matchs. Le levier reste dans le code, à 1 : baisser la pente
+aplatit le moteur en dessous du réel sans le rendre plus juste.
+
+**Ce qui reste vrai** : PSG–Pisa, c'est 24 points d'écart, un écart
+qui n'existe dans aucun vrai match de la base (le maximum tourne
+autour de 20). Là, le moteur extrapole linéairement (+4,3) quand le
+réel s'aplatirait sans doute vers +2,5. Ça n'arrive qu'en coupe, ou
+quand une équipe fantasy de départ rencontre un cador ; si ça se voit
+dans le jeu, c'est une saturation de l'écart au-delà de vingt points
+qu'il faudra ajouter, pas un réglage des attributs.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

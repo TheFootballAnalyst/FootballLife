@@ -774,6 +774,13 @@ choisi à la main vaut plein. Les profils se voient (0,67 de possession
 pour un club de possession contre un club direct, réel 0,67), les
 scores des matchs déséquilibrés restent trop lourds.
 
+**Les matchs déséquilibrés** (docs/TACTIQUE.md § 29) : mesuré sur 48
+paires à 12-22 points d'OVR d'écart, le moteur est au réel (+1,86 but
+contre +1,65, 77 % de victoires du fort contre 78 %, 18 tirs contre 8).
+Le levier `ATTRIBUT_PIVOT` / `ATTRIBUT_PENTE` (les attributs vus par
+le moteur) est là, à 1. Seuls les écarts de plus de vingt points, qui
+n'existent pas en vrai, s'extrapolent trop.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

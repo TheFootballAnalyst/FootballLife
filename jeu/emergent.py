@@ -296,7 +296,10 @@ class Joueur:
         return self.fam == "GK"
 
     def attr(self, k: str, defaut: float = 55.0) -> float:
-        return float(self.attributs.get(k, defaut)) + self.bonus.get(k, 0.0)
+        # l'écart d'attributs pèse moins que sa valeur brute : réel, seize points d'OVR d'écart font +1,65 but
+        # (2,45 contre 0,80), le moteur en faisait +2,2 à +3,2 (essai : ATTRIBUT_PENTE)
+        v = float(self.attributs.get(k, defaut)) + self.bonus.get(k, 0.0)
+        return ATTRIBUT_PIVOT + (v - ATTRIBUT_PIVOT) * ATTRIBUT_PENTE
 
     def sens(self) -> int:
         return 1 if self.camp == 0 else -1
@@ -427,6 +430,7 @@ def travail_de(j: dict, sens: str) -> float:
 
 
 COLLECTIF_MANUEL = RACINE / "jeu" / "collectif_manuel.json"
+ATTRIBUT_PIVOT, ATTRIBUT_PENTE = 70.0, 1.0   # les attributs vus par le moteur : pivot + (attribut − pivot) × pente (1 : tels quels)
 COLLECTIF_POIDS = 1.0                        # le poids du collectif dans le résultat : 0, que des individualités ; 1, un onze rodé vaut des points d'OVR
 COLLECTIF_OVR = 20.0                         # ... un collectif à 1 vaut dix points sur les attributs collectifs, à 0 il en retire dix (mesuré : à 12, Paris à 0,95 ne rattrape pas sept points d'OVR ; à 20, presque)
 COLLECTIF_ATTRIBUTS = ("PRO", "CON", "DEF")  # ... la passe, le contrôle et la lecture défensive ; pas la finition, le dribble, la vitesse ni le gardien
