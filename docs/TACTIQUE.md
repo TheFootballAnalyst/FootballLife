@@ -1410,11 +1410,19 @@ marquait son ailier à la touche, puis l'ailier de forme. Trois choses :
   tirs ne montre pas plus de centres : c'est le bruit de 12 matchs, et
   le banc de 48 qui tranche). Rentrer le côté opposé comme en vrai rend
   le renversement de jeu trop payant dans le moteur — en vrai, le
-  défenseur opposé rentre à 10 m sans que ça coûte : la fréquence et la
-  réussite des renversements (passes de plus de 40 m de large, et ce qui
-  suit dans les dix secondes) sont le prochain chantier à mesurer dans
-  StatsBomb. En attendant, quatorze : dans la fourchette réelle de buts,
-  et un côté opposé un peu moins large. En possession, une place de
+  défenseur opposé rentre à 10 m sans que ça coûte. Mesuré ensuite
+  (StatsBomb, 80 matchs, passes de plus de 30 m de large ; moteur 6
+  matchs) : le réel tente 39 renversements par match et en réussit 72 %,
+  le moteur 19 et 47 % ; après un renversement réussi, un tir dans les
+  dix secondes 9,6 % du temps en vrai, 9,4 dans le moteur, mais un but
+  0,9 % contre 1,9 ; à la réception, le défenseur le plus proche est à
+  9,1 m en vrai (à plus de 8 m 58 % du temps), à 3,7 m dans le moteur.
+  Donc le moteur renverse deux fois moins, réussit moins, et son
+  receveur est bien moins libre — mais ce qu'il en tire se convertit
+  deux fois plus en but. Le chantier n'est pas la fréquence : c'est la
+  finition après le renversement (un centre ou une frappe du côté
+  rentré). À reprendre. En attendant, quatorze : dans la fourchette
+  réelle de buts, et un côté opposé un peu moins large. En possession, une place de
   forme qui s'éloigne du ballon se rejoint au trot (`FORME_ELOIGNE`,
   2,5 m/s ; sans effet sur les buts) : le latéral opposé ne sprinte plus
   vers sa touche quand le ballon revient au centre.
