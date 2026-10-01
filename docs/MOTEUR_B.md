@@ -843,6 +843,22 @@ encore : les blessures (le moteur A les garde, `MOTEUR = "A"` y
 revient), et une formation changée en cours de match replace les
 joueurs sans les faire changer de poste réel.
 
+**Les latéraux et les amas (TACTIQUE.md § 30).** Le côté d'un latéral
+se lit en absolu (sa place de repos est dans son repère, inversé pour le
+camp 1 : l'équipe B marquait l'ailier de l'autre côté). Sans le ballon,
+latéral et ailier du côté opposé au ballon visent quatorze mètres de
+l'axe au plus (`LATERAL_OPPOSE` ; réel 360 : 10-12 m en médiane, 21 avec
+un ballon central, où le moteur était déjà juste ; dix mètres comme en
+vrai coûtait 0,6 but par match, le renversement de jeu est un chantier à
+part), en bloc bas le latéral
+opposé se tient six mètres plus large que son central
+(`LATERAL_BAS_ECART`), en possession une place qui s'éloigne du ballon
+se rejoint au trot (`FORME_ELOIGNE`), et un coureur suivi par un
+défenseur de la ligne n'a pas de second marqueur. Les amas mesurés aux
+passes ne dépassent pas le réel, sauf les paires défensives serrées
+(croisements brefs pour l'essentiel) : trois règles essayées, aucune ne
+les desserre, toutes retirées.
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

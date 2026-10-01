@@ -1369,6 +1369,104 @@ quand une équipe fantasy de départ rencontre un cador ; si ça se voit
 dans le jeu, c'est une saturation de l'écart au-delà de vingt points
 qu'il faudra ajouter, pas un réglage des attributs.
 
+## 30. Les amas, et les latéraux qui partent en touche
+
+**La question** : dans le match du jeu, « des amas de joueurs trop
+présents, et des latéraux qui courent en touche en phase sans ballon
+sans raison ». Deux règles mesurées dans le réel (StatsBomb 360, images
+aux passes ; la largeur côté opposé seulement sur les images où la
+touche opposée est dans la zone visible de la caméra, 80 matchs) et
+dans le moteur (PSG–Real, 3 matchs, aux passes).
+
+**La largeur sans le ballon.** Le joueur le plus large du côté opposé
+au ballon, en distance à l'axe :
+
+| ballon | réel attaque | moteur avant | réel défense | moteur avant | moteur après |
+|---|---|---|---|---|---|
+| dans l'axe (<12 m) | 28,2 m | 26,5 | 21,0 | 22,2 | 22,0 |
+| à 12–20 m de l'axe | 20,2 | 18,6 | 12,0 | 14,8 | 14,7 (13,3 à 10 m) |
+| à plus de 20 m | 18,0 | 18,0 | 10,1 | 13,9 | 13,5 (11,1 à 10 m) |
+
+En attaque le moteur était déjà juste. Avec un ballon central, le réel
+a bien un défenseur large à 21 m de l'axe (le latéral va vers son
+ailier) : ce n'est pas là que ça clochait. Le défaut était **côté
+opposé au ballon** : 3 à 4 m trop large, et c'était le latéral qui
+marquait son ailier à la touche, puis l'ailier de forme. Trois choses :
+
+- **Un bug de côté pour l'équipe B.** La place de repos d'un joueur est
+  dans son repère (inversé pour le camp 1), et deux règles du latéral
+  (sa zone de marquage, « il ne défend pas la touche vide ») la
+  comparaient à des positions absolues : pour l'équipe B, « son côté »
+  était le côté opposé, et son latéral partait marquer l'ailier de
+  l'autre côté. Corrigé (`j.absolu(*j.home)`), avec un test qui compare
+  les deux camps.
+- **`LATERAL_OPPOSE` = (14, 12)** : ballon à plus de 12 m de l'axe de
+  l'autre côté, le latéral et l'ailier opposés visent quatorze mètres de
+  l'axe au plus, en forme comme en marquage. À dix mètres, le moteur
+  rejoint le réel en position (13,3 et 11,1 m contre 12,0 et 10,1 ; la
+  place rentre à 5,5 m/s, un changement de côté se joue en transition),
+  mais **coûte 0,6 but par match** sur les 48 mêmes matchs : 3,54 à dix
+  mètres, 3,52 à douze, 3,19 à quatorze, 2,94 sans borne (l'origine des
+  tirs ne montre pas plus de centres : c'est le bruit de 12 matchs, et
+  le banc de 48 qui tranche). Rentrer le côté opposé comme en vrai rend
+  le renversement de jeu trop payant dans le moteur — en vrai, le
+  défenseur opposé rentre à 10 m sans que ça coûte : la fréquence et la
+  réussite des renversements (passes de plus de 40 m de large, et ce qui
+  suit dans les dix secondes) sont le prochain chantier à mesurer dans
+  StatsBomb. En attendant, quatorze : dans la fourchette réelle de buts,
+  et un côté opposé un peu moins large. En possession, une place de
+  forme qui s'éloigne du ballon se rejoint au trot (`FORME_ELOIGNE`,
+  2,5 m/s ; sans effet sur les buts) : le latéral opposé ne sprinte plus
+  vers sa touche quand le ballon revient au centre.
+- **Le bloc bas** : le latéral opposé se tenait à 6 m de l'axe et son
+  central à 3 : l'un sur l'autre. Il se tient six mètres plus large que
+  le central (`LATERAL_BAS_ECART`), qui coulisse de six mètres au plus.
+
+Les courses de latéral vers la touche (plus de 2 m/s vers l'extérieur,
+déjà à plus de 18 m de l'axe, ballon au centre ou à l'opposé) : 5,3 s
+par minute avant, 4,5 à 4,8 après (le bruit de trois matchs). Le banc
+général sur l'état retenu, 48 matchs : 3,19 buts, 22,5 tirs, 8,2
+cadrés, 19,9 fautes (réel : 2,9–3,2 buts, 26 tirs, 9,7 cadrés, 24
+fautes). Ce qui reste est le latéral qui marque son
+ailier avec un ballon central, ce que le réel fait aussi (21 m de
+l'axe) : une course réelle, pas une erreur.
+
+**Les amas.** À l'instant des passes, hors passeur et gardiens :
+
+| à moins de 25 m du ballon | réel | moteur avant | moteur après |
+|---|---|---|---|
+| deux coéquipiers à moins de 2,5 m, attaque | 1,6 % | 2,4 | 2,5 |
+| deux coéquipiers à moins de 2,5 m, défense | 3,0 % | 6,8 | 5,9–6,2 |
+| trio de la même équipe à moins de 4 m | 1,3 % | 1,3 | 1,2 |
+| trois joueurs quelconques à moins de 5 m | 5,9 % | 3,0 | 2,8 |
+
+Pas plus de trios que le réel, et moins de duels à trois. Ce qui est en
+trop, c'est la **paire défensive serrée** : le coupeur, un joueur de
+forme ou un marqueur collé au presseur. Mesuré autour du défenseur au
+contact (à moins de 6 m du ballon) : son coéquipier le plus proche est
+à 6,6 m dans le réel (quartiles 4,8 / 8,7), à moins de 3 m dans 7 % des
+cas ; le moteur 6,2 m, à moins de 3 m dans 13 % des cas. Deux marqueurs
+tenaient parfois le même homme (un coureur suivi par un défenseur de la
+ligne, puis repris par le marquage de zone) : le coureur suivi est
+maintenant pris.
+
+Trois règles essayées pour le reste, **toutes retirées** parce que la
+mesure ne bouge pas : l'espacement des cibles autour du ballon passé de
+quatre à cinq mètres en y comptant les joueurs de forme (paires 6,2 %
+contre 6,1, et un demi-but de plus par match sur deux bancs de 24) ;
+une séparation en position, deux coéquipiers à moins de 2,5 m qui
+s'écartent à 1,2 m/s (5,9 %) ; le coupeur tenu à quatre mètres du ballon
+au lieu du milieu de la ligne de passe (5,9 %). La raison : ces paires
+sont surtout des **croisements**. Les épisodes de deux défenseurs à
+moins de 2,5 m durent 0,8 s en médiane (1,6 s au troisième quartile),
+600 par match ; 17 % dépassent deux secondes, et ce sont ceux-là que
+l'œil retient (coupeur + marqueur, marqueur + presseur, forme +
+marqueur). Un espacement des cibles ne les atteint pas, parce que les
+hommes se croisent en chemin vers des cibles déjà espacées. Le chantier
+suivant, si on y revient : la géométrie du duel (le presseur à 1,8 m du
+porteur, le marqueur du receveur le plus proche à 1,5 m de son homme,
+et le receveur à trois mètres du porteur), à mesurer avec les vitesses.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

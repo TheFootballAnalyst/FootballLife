@@ -207,3 +207,42 @@ def test_the_live_api_steps_substitutes_adjusts_and_keeps_the_match_deterministi
     m1 = EM.Match(a, b, graine=3, minutes=90, trace=False); m1.jouer_jusqua(30)
     m2 = EM.Match(a, b, graine=3, minutes=90, trace=False); m2.jouer_jusqua(10); m2.jouer_jusqua(20); m2.jouer_jusqua(30)
     assert [(e["k"], e["t"]) for e in m1.evenements] == [(e["k"], e["t"]) for e in m2.evenements]
+
+
+def test_a_full_back_keeps_his_own_side_whichever_camp_he_plays_in():
+    """A full-back's rest place is kept in HIS frame (mirrored for camp 1);
+    the rules that read 'his side' must read it in absolute terms, or team B's
+    full-backs mark the winger on the other side.  And without the ball, the
+    far-side full-back and winger stay within LATERAL_OPPOSE of the axis."""
+    mauvais = {0: 0, 1: 0}; marques = {0: 0, 1: 0}; exts = {0: [], 1: []}
+
+    class M(EM.Match):
+        def pas_de_temps(self):
+            super().pas_de_temps()
+            if self.pas % 5 or self.arret:
+                return
+            b = self.ballon
+            for j in self.joueurs:
+                if j.role_tac not in ("lateral", "ailier") or j.pid in self.exclus:
+                    continue
+                cote = 1.0 if j.absolu(*j.home)[1] >= EM.LARG / 2 else -1.0
+                if j.role_tac == "lateral" and j.role == "marque" and j.homme >= 0:
+                    o = next((o for o in self.joueurs if o.pid == j.homme), None)
+                    if o is not None:
+                        marques[j.camp] += 1
+                        if (o.y - EM.LARG / 2) * cote < -EM.LATERAL_AXE - 1.0:
+                            mauvais[j.camp] += 1
+                sien = b.porteur is not None and b.porteur.camp == j.camp
+                if (not sien and j.role == "forme" and self.phase[j.camp] in ("bloc_bas", "bloc_median")
+                        and (b.y - EM.LARG / 2) * cote < -12.5):
+                    exts[j.camp].append((j.y - EM.LARG / 2) * cote)        # sa position, pas sa cible : la place rentre à 5,5 m/s
+
+    M(onze(0), onze(1), graine=7, minutes=30, trace=False).jouer()
+    assert marques[0] > 20 and marques[1] > 20
+    for camp in (0, 1):
+        assert mauvais[camp] / marques[camp] < 0.05, (camp, mauvais, marques)
+    # the far-side men sit near the axis (real: 10-12 m median), and both camps alike
+    med = {c: sorted(v)[len(v) // 2] for c, v in exts.items()}
+    assert all(len(v) > 50 for v in exts.values())
+    assert all(m < EM.LATERAL_OPPOSE[0] + 3.0 for m in med.values()), med
+    assert abs(med[0] - med[1]) < 2.5, med

@@ -88,7 +88,8 @@ CONTRE_PRESSING = {"haut": 0.42, "median": 0.32, "bas": 0.25}   # après une per
 GEL_CASSE = 3.0                              # ... et elle casse dès que le porteur adverse est à trois mètres de sa hauteur
 CHASSE_DEBORDE = (3.0, 20.0, 12.0, 70.0)     # un défenseur rejoint par le porteur (à moins de 3 m derrière lui, 20 m de distance, 12 m de côté, ballon à moins de 70 m du but) court côté but
 CONTRE_PRESSING_DUREE = 5.0                  # ... pendant cinq secondes, la ligne reste haute ; sinon on se replie tout de suite
-ESPACE_PRESSE = 4.0                          # autour du ballon, quatre mètres entre presseur, coupeur et marqueurs (six coûte un but et demi par match)
+ESPACE_PRESSE = 4.0                          # autour du ballon, quatre mètres entre presseur, coupeur et marqueurs (six coûte un but et demi par match ;
+                                             # cinq, et les joueurs de forme comptés, coûtait encore un demi-but sans desserrer les paires : § 30)
 LATERAL_ZONE_DEDANS = 22.0                   # un latéral suit son ailier vers l'intérieur jusqu'à vingt-deux mètres
 LATERAL_AXE = 2.0                            # un latéral ne traverse pas l'axe de plus de deux mètres pour presser, chasser ou suivre un coureur : c'est le central ou un milieu (le bac montrait des latéraux à l'opposé de leur couloir)
 LATERAL_MARGE = 4.0                          # ... au plus quatre mètres plus large que l'attaquant le plus large de son côté (six avant : aspiré à la touche)
@@ -101,6 +102,15 @@ ATTAQUANT_LOIN = 1.0                         # un attaquant, même travailleur, 
 COUPE_ATTAQUANT = 10.0                       # ... et ne coupe une ligne qu'à moins de dix mètres du ballon
 DOUBLE_PROFONDEUR = 32.0                     # ... et ne redouble son latéral que sur un couloir attaqué à moins de trente-deux mètres du but
 LATERAL_TOUCHE = True                        # un latéral de forme ne défend pas la ligne de touche vide
+LATERAL_OPPOSE = (14.0, 12.0)                # sans le ballon, le latéral ET l'ailier du côté OPPOSÉ au ballon (ballon à plus de 12 m de
+                                             # l'axe de l'autre côté) visent quatorze mètres de l'axe au plus, en forme comme en marquage :
+                                             # on ne va pas chercher l'ailier à la touche à quarante mètres du ballon (réel 360, touche
+                                             # visible : le défenseur le plus large côté opposé est à 10-12 m de l'axe en médiane, 14-16 au
+                                             # 3e quartile ; avec un ballon central, 21 m : là le latéral va bien vers son ailier).  Dix
+                                             # mètres, comme en vrai, coûtait +0,6 but par match (48 matchs : 3,54 contre 2,94 sans borne,
+                                             # 3,19 à quatorze) : le renversement de jeu paie trop dans le moteur — un chantier à part (§ 30)
+LATERAL_BAS_ECART = 6.0                      # en bloc bas, le latéral opposé se tient six mètres plus large que son central, pas dessus
+FORME_ELOIGNE = 0.5                          # en possession, une place de forme qui s'éloigne du ballon se rejoint au trot (2,5 m/s), pas en sprint
 GARDE = (2.3, 2.3)                           # le temps de contrôle du porteur : base + part sans pression (réel : 3 s par passe)
 GAIN_POIDS = 1.5                             # le poids de la progression dans le choix d'une passe (réel : 42 % de passes vers l'avant)
 ENTREE_COULOIR = 0.35                        # le bonus de la passe qui entre dans le dernier tiers par le couloir (réel : une entrée sur deux)
@@ -1527,9 +1537,16 @@ class Match:
                 if r == "lateral" and abs(y - LARG / 2) > LATERAL_EXT_MAX:
                     y = LARG / 2 + signe * LATERAL_EXT_MAX          # jamais collé à la touche sans le ballon : le bloc fait 35 m de large
                 if phase == "bloc_bas":
-                    # tassé : le côté opposé rentre jusqu'à l'axe
-                    if not cote_ballon and r in ("lateral", "ailier"):
+                    # tassé : le côté opposé rentre — l'ailier jusqu'à l'axe, le latéral six mètres plus large
+                    # que son central (qui coulisse de six mètres au plus), pas dessus
+                    if not cote_ballon and r == "ailier":
                         y = LARG / 2 + signe * 10.0 + (by - LARG / 2) * 0.2
+                    if not cote_ballon and r == "lateral":
+                        gc = min(glisse, CENTRAL_GLISSE_MAX / max(1.0, abs(by - LARG / 2)))
+                        y = LARG / 2 + signe * (larg["central"] + LATERAL_BAS_ECART) + (by - LARG / 2) * gc
+                if r in ("lateral", "ailier") and not cote_ballon and abs(by - LARG / 2) > LATERAL_OPPOSE[1] \
+                        and (y - LARG / 2) * signe > LATERAL_OPPOSE[0] and phase not in ("pressing", "contre_pressing"):
+                    y = LARG / 2 + signe * LATERAL_OPPOSE[0]        # ballon de l'autre côté : il rentre (réel : 10-12 m de l'axe)
             if not sien and self.arret is not None and self.arret["k"] in ("sortie_but", "relance") and self.arret["camp"] == att \
                     and x > LONG - SURFACE_X - 1.0 and abs(y - LARG / 2) < SURFACE_Y + 1.0:
                 x = LONG - SURFACE_X - 1.0                    # sur une sortie de but, on attend au bord de la surface
@@ -1538,6 +1555,13 @@ class Match:
             # et sans ballon une place ne fuit jamais plus vite qu'un homme ne court (6,5 m/s)
             if j.role == "forme":
                 nx, ny = j.cible[0] * 0.5 + nx * 0.5, j.cible[1] * 0.5 + ny * 0.5
+                if sien and FORME_ELOIGNE:
+                    # une place qui s'éloigne du ballon se rejoint au trot : le latéral opposé ne sprinte pas
+                    # vers sa touche quand le ballon revient au centre (le bac montrait ces courses sans raison)
+                    dx, dy = nx - j.cible[0], ny - j.cible[1]
+                    dd = math.hypot(dx, dy)
+                    if dd > FORME_ELOIGNE and math.hypot(nx - b.x, ny - b.y) > math.hypot(j.cible[0] - b.x, j.cible[1] - b.y) + 0.2:
+                        nx, ny = j.cible[0] + dx / dd * FORME_ELOIGNE, j.cible[1] + dy / dd * FORME_ELOIGNE
                 if not sien:
                     dx, dy = nx - j.cible[0], ny - j.cible[1]
                     dd = math.hypot(dx, dy)
@@ -2063,8 +2087,9 @@ class Match:
                 j.cible = j.absolu(cxp, cyp)
                 j.role = "marque"
                 j.homme, j.t_homme = o.pid, self.t
+                pris_c.add(o.pid)                                  # ... et personne d'autre ne le marque (deux sur un homme : un amas)
         if self.marquage_actif[df]:
-            pris: set[int] = set()
+            pris: set[int] = set(pid for pid in pris_c if any(o.pid == pid for o in adverses))   # les coureurs déjà suivis
             marqueurs = [x for x in tri if x.role == "forme" and x.fam in ("DEF", "MID")]
             attribs: dict[int, Joueur] = {}
             # la ligne de la forme : un central ne suit pas son homme au-delà
@@ -2080,11 +2105,15 @@ class Match:
                     # vers l'intérieur, un latéral suit son ailier jusqu'à vingt-deux mètres (le central le
                     # prend ensuite) ; vers la touche, quinze ; mais jamais un homme dans le couloir central
                     # ni de l'autre côté de l'axe : l'avant-centre est l'affaire des centraux
-                    cote = 1.0 if j.home[1] >= LARG / 2 else -1.0
+                    # (son côté se lit en ABSOLU : sa place de repos est dans son repère, inversé pour le camp 1)
+                    cote = 1.0 if j.absolu(*j.home)[1] >= LARG / 2 else -1.0
                     dedans = abs(o.y - LARG / 2) < abs(j.cible[1] - LARG / 2)
                     if (o.y - LARG / 2) * cote < 7.0 - marge:
                         return False
                     if ecart > (LATERAL_ZONE_DEDANS if dedans else 15.0) + marge:
+                        return False
+                    # ballon de l'autre côté : il ne va pas chercher un homme à la touche
+                    if (by - LARG / 2) * cote < -LATERAL_OPPOSE[1] and (o.y - LARG / 2) * cote > LATERAL_OPPOSE[0] + marge:
                         return False
                 elif ecart > (12.0 if j.role_tac == "central" else 15.0) + marge:
                     return False
@@ -2188,7 +2217,7 @@ class Match:
                 # on ne défend pas la ligne de touche vide : un latéral de forme ne se place pas plus
                 # large que l'attaquant le plus large de son côté (plus trois mètres), et jamais à moins
                 # de dix mètres de la touche sans attaquant dedans
-                cote = 1.0 if j.home[1] >= LARG / 2 else -1.0
+                cote = 1.0 if j.absolu(*j.home)[1] >= LARG / 2 else -1.0     # en absolu (sa place de repos est dans son repère)
                 largeur = max(((o.y - LARG / 2) * cote for o in adverses if abs(o.x - j.x) < LATERAL_VIS_X and (o.y - LARG / 2) * cote > 0.0), default=6.0)
                 ext = (j.cible[1] - LARG / 2) * cote
                 if ext > largeur + LATERAL_MARGE:
