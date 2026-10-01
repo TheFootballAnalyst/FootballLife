@@ -160,7 +160,11 @@ def ouvrir_jeu(chemin: pathlib.Path) -> sqlite3.Connection:
         existantes = {r[1] for r in jeu.execute(f"PRAGMA table_info({table})")}
         for nom, typ in cols:
             if nom not in existantes:
-                jeu.execute(f"ALTER TABLE {table} ADD COLUMN {nom} {typ}")
+                try:
+                    jeu.execute(f"ALTER TABLE {table} ADD COLUMN {nom} {typ}")
+                except sqlite3.OperationalError as err:        # deux processus sur la même base : l'autre l'a ajoutée
+                    if "duplicate column" not in str(err):
+                        raise
     jeu.commit()
     return jeu
 
