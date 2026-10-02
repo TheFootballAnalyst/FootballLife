@@ -233,7 +233,14 @@ try { marcheVue = localStorage.getItem("fl_vue") || "cartes"; } catch (e) {}
 document.querySelectorAll(".vue button").forEach(b => b.addEventListener("click", () => { marcheVue = b.dataset.vue; try { localStorage.setItem("fl_vue", marcheVue); } catch (e) {} rendreMarche(); }));
 document.querySelectorAll("#pills-fam button").forEach(b => b.addEventListener("click", () => { $("#f-fam").value = b.dataset.fam; document.querySelectorAll("#pills-fam button").forEach(x => x === b ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current")); marcheLimite = 60; rendreMarche(); }));
 // ---- the market: packs, club, auctions ----
-const TIER_TXT = {bronze: "Bronze", argent: "Argent", or: "Or", ultra: "Ultra"};
+const TIER_TXT = {bronze: "Bronze", argent: "Argent", or: "Or", elite: "Élite", ultra: "Ultra"};
+const PALIER_TXT = {bronze: "moins de 60", argent: "60 à 74", argent65: "65 et plus", argent70: "70 et plus", or: "75 et plus", elite: "80 et plus"};
+// les chances d'un pack, telles qu'elles sont : chaque tirage est uniforme parmi les cartes du palier
+function chancesTxt(p) {
+  if (!p.chances) return "";
+  const parts = Object.entries(p.chances).map(([t, n]) => `${PALIER_TXT[t] || t} : 1 chance sur ${n} par carte`);
+  return parts.join(" · ");
+}
 const resteTxt = fin => { const ms = new Date(fin) - Date.now(); if (ms <= 0) return "terminée"; const h = Math.floor(ms / 3.6e6), m = Math.floor(ms % 3.6e6 / 6e4); return h ? `${h} h ${String(m).padStart(2, "0")}` : `${m} min`; };
 async function rendrePacks() {
   G.packs = await api("/packs");
@@ -242,7 +249,7 @@ async function rendrePacks() {
   const offerts = Object.entries(G.packs.offerts || {}).filter(([, n]) => n > 0);
   if (offerts.length) {
     const b = el("div", {class: "panneau offerts"}, el("h3", {class: "anton"}, "Packs offerts"),
-      el("p", {class: "compteur"}, "Gagnés en campagne solo. Ils s'ouvrent sans rien coûter."));
+      el("p", {class: "compteur"}, "Le pack du jour, et ceux gagnés en campagne. Ils s'ouvrent sans rien coûter."));
     const l = el("div", {class: "offerts-liste"});
     for (const [type, n] of offerts) {
       const p = G.packs.catalogue.find(x => x.type === type && !x.fam);
@@ -260,6 +267,7 @@ async function rendrePacks() {
       el("div", {class: "pack-tier etiq"}, TIER_TXT[p.type] + (p.fam ? " · " + (p.fam === "GK" ? "Gardiens" : p.fam === "DEF" ? "Défenseurs" : p.fam === "MID" ? "Milieux" : "Attaquants") : " · Mixte")),
       el("div", {class: "pack-visuel"}, el("div", {class: "pack-carte a"}), el("div", {class: "pack-carte b"}), el("div", {class: "pack-carte c"})),
       el("div", {class: "pack-desc"}, p.desc),
+      el("div", {class: "pack-chances compteur", title: "Un doublon ne s'aligne pas : il se vend, à la banque ou aux enchères."}, chancesTxt(p)),
       el("div", {class: "pack-prix anton"}, fM(p.prix)),
       el("button", {class: "primaire", disabled: !p.disponible || p.prix > G.equipe.budget + 1e-9, onclick: () => ouvrirPack(p), title: p.disponible ? "" : "Toutes les cartes de ce pack ont atteint leur nombre d'exemplaires : vends à la banque pour en libérer, ou lance le site avec --copies 0"}, p.disponible ? "Ouvrir" : "Épuisé"));
     P.append(k);
@@ -272,7 +280,11 @@ async function ouvrirPack(p) {
   const box = el("div", {class: "fiche ouverture"}, el("h3", {class: "anton"}, `${p.nom}`), el("p", {class: "compteur"}, `${p.offert ? "offert" : fM(p.prix)} · il te reste ${fM(r.budget)}`));
   const grille = el("div", {class: "cartes-grille ouverture-grille"});
   r.cartes.forEach((x, i) => { const c = x.carte; const k = carteMarche(c, {vitrine: true, largeur: 240}); k.classList.add("revele"); k.style.animationDelay = (i * 0.25) + "s";
-    k.append(el("div", {class: "cj-cote"}, `cote ${fM(x.cote)} · n° ${x.numero}`)); grille.append(k); });
+    k.append(el("div", {class: "cj-cote"}, `cote ${fM(x.cote)} · n° ${x.numero}`));
+    if (x.doublon) k.append(el("div", {class: "cj-doublon"}, `Doublon : à vendre (banque ${fM(x.banque)})`));
+    grille.append(k); });
+  const nd = r.cartes.filter(x => x.doublon).length;
+  if (nd) box.append(el("p", {class: "compteur"}, `${nd} doublon${nd > 1 ? "s" : ""} : tu as déjà ${nd > 1 ? "ces cartes" : "cette carte"}. Un doublon ne s'aligne pas, il se vend : à la banque tout de suite, ou aux enchères à un autre manager.`));
   box.append(grille, el("div", {class: "actions"}, el("button", {onclick: () => { dlg.close(); montrer("equipe"); }}, "Gérer mon club"), el("button", {class: "primaire", onclick: () => { dlg.close(); rendrePacks(); }}, "Encore un pack")));
   dlg.append(box); dlg.showModal();
 }
@@ -799,11 +811,12 @@ async function rendreClub() {
     const acts = el("div", {class: "club-actions"});
     if (x.enchere_id) acts.append(el("span", {class: "compteur"}, "en vente"), el("button", {onclick: () => montrer("encheres")}, "Voir"));
     else {
-      acts.append(x.dans_effectif
+      if (x.doublon) acts.append(el("span", {class: "doublon", title: "Tu as déjà cette carte : celle-ci ne s'aligne pas, elle se vend."}, "Doublon"));
+      else acts.append(x.dans_effectif
         ? el("button", {title: "Mettre en réserve", onclick: () => actionClub("/club/aligner", {exemplaire_id: x.exemplaire_id, dans_effectif: false}, `${c.nom} en réserve`)}, "Réserve")
         : el("button", {class: "primaire", title: "Aligner dans l'effectif", disabled: !G.equipe.marche_ouvert, onclick: () => actionClub("/club/aligner", {exemplaire_id: x.exemplaire_id, dans_effectif: true}, `${c.nom} dans l'effectif`)}, "Aligner"));
       acts.append(el("button", {class: "vente", onclick: () => dialogueVente(x)}, "Vendre"),
-        el("button", {class: "discret", title: `Vendre à la banque : ${fM((G.packs?.rachat ?? 0.4) * (x.cote || 0))}`, onclick: () => { if (confirm(`Vendre ${c.nom} à la banque pour ${fM((G.packs?.rachat ?? 0.4) * (x.cote || 0))} ? La carte est détruite.`)) actionClub("/club/banque", {exemplaire_id: x.exemplaire_id}, "Vendu à la banque"); }}, "Banque"));
+        el("button", {class: "discret", title: `Vendre à la banque : ${fM((G.packs?.rachat ?? 0.25) * (x.cote || 0))}`, onclick: () => { if (confirm(`Vendre ${c.nom} à la banque pour ${fM((G.packs?.rachat ?? 0.25) * (x.cote || 0))} ? La carte est détruite.`)) actionClub("/club/banque", {exemplaire_id: x.exemplaire_id}, "Vendu à la banque"); }}, "Banque"));
     }
     l.append(acts); return l;
   };
@@ -3288,6 +3301,9 @@ function sparkline(vals, fmt = f1) {
     if (s.affinites) AFFINITES = s.affinites;
     if (s.aise) AISE = s.aise;
     const moi = await api("/moi"); connecte(moi);
+    if (moi.cadeau) toast(moi.cadeau.bonus
+      ? `Pack du jour offert, et un pack ${TIER_TXT[moi.cadeau.bonus]} pour ${moi.cadeau.serie} jours d'affilée !`
+      : `Pack ${TIER_TXT[moi.cadeau.pack]} du jour offert${moi.cadeau.serie > 1 ? ` (${moi.cadeau.serie}e jour d'affilée)` : ""} : ouvre-le dans Packs.`);
     if (moi.connecte) { const h = location.hash.replace("#", ""); await montrer(["packs", "encheres", "marche", "equipe", "lobby", "solo", "journee", "classement", "admin"].includes(h) ? h : (idsEffectif().length ? "equipe" : "packs")); }
   } catch (e) { toast("Serveur injoignable : " + e.message); }
 })();

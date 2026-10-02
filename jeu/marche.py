@@ -44,16 +44,22 @@ QUOTA: dict[str, int] = {}
 TAILLE_EFFECTIF = 18
 RESERVE_MAX = None          # no cap: a club may hold as many cards as it buys
 
-TIERS = {"bronze": (0, 59), "argent": (60, 74), "or": (75, 99), "elite": (80, 99)}
-CARTES_PAR_PACK = 3          # the three small packs; a pack's real size is len(tirages)
-# a gold pack guarantees one gold card, the other two are silver; the ultra
-# pack is ten cards, three of them 80 or better
+TIERS = {"bronze": (0, 59), "argent": (60, 74), "argent65": (65, 74), "argent70": (70, 74), "or": (75, 99), "elite": (80, 99)}
+CARTES_PAR_PACK = 5          # a pack is five cards (seven for the elite one); the real size is len(tirages)
+# Five cards with a guarantee one can read ("dont 1 de 70+"), priced on the
+# expected cote of what they draw (docs/ECONOMIE.md): the ratio value / price
+# falls as the pack grows, and with the bank at 25 % no pack sells back at a
+# profit (the old 6 M€ bronze pack paid 9.8 M€ at the bank).  A pack CAN draw
+# a card you already own: the copy is a duplicate, it cannot be lined up, it
+# is there to be sold (bank or auction) — that is what keeps the best cards
+# from piling up in every squad.
 PACKS = {
-    "bronze": {"prix": 6.0, "tirages": ("bronze", "bronze", "bronze"), "nom": "Pack Bronze", "desc": "3 cartes de moins de 60"},
-    "argent": {"prix": 25.0, "tirages": ("argent", "argent", "argent"), "nom": "Pack Argent", "desc": "3 cartes de 60 à 74"},
-    "or":     {"prix": 50.0, "tirages": ("or", "argent", "argent"), "nom": "Pack Or", "desc": "1 carte de 75 et plus, 2 cartes de 60 à 74"},
-    "ultra":  {"prix": 200.0, "tirages": ("elite",) * 3 + ("or",) * 7, "nom": "Ultra Pack",
-               "desc": "10 cartes : 3 de 80 et plus garanties, 7 de 75 et plus"},
+    "bronze": {"prix": 25.0, "tirages": ("bronze",) * 5, "nom": "Pack Bronze", "desc": "5 cartes de moins de 60"},
+    "argent": {"prix": 60.0, "tirages": ("argent70",) + ("argent",) * 4, "nom": "Pack Argent", "desc": "5 cartes de 60 à 74, dont 1 de 70 et plus"},
+    "or":     {"prix": 90.0, "tirages": ("or", "argent70") + ("argent",) * 3, "nom": "Pack Or",
+               "desc": "5 cartes : 1 de 75 et plus, 1 de 70 et plus, 3 de 60 à 74"},
+    "elite":  {"prix": 250.0, "tirages": ("elite",) * 2 + ("or",) * 2 + ("argent65",) * 3, "nom": "Pack Élite",
+               "desc": "7 cartes : 2 de 80 et plus, 2 de 75 et plus, 3 de 65 et plus"},
 }
 
 
@@ -61,7 +67,7 @@ def taille_pack(cle: str) -> int:
     return len(PACKS[cle]["tirages"])
 SUPPLEMENT_POSTE = 0.2        # +20 % for a pack of one family
 PLAFOND_MIN, PLAFOND_PART = 3, 0.25    # copies of a player: max(3, 25 % of the teams)
-RACHAT_BANQUE = 0.40
+RACHAT_BANQUE = 0.25          # of the cote: opening a pack and selling it back always loses
 COMMISSION = 0.05
 DUREES_H = (6, 12, 24, 48)
 OFFRE_MIN_PAS = 0.05          # a bid beats the previous one by 5 % at least
@@ -145,7 +151,9 @@ def catalogue_packs(jeu, saison: str, ligue_jeu_id: int) -> list[dict]:
             ok = all(n[t] >= besoin[t] for t in besoin) and len({pid for t in besoin for pid, _, _ in eligibles(jeu, saison, t, fam, plafond, source)}) >= taille_pack(cle)
             prix = round(p["prix"] * (1 + SUPPLEMENT_POSTE if fam else 1), 1)
             out.append({"type": cle, "fam": fam, "nom": p["nom"] + (f" · {fam}" if fam else ""), "desc": p["desc"],
-                        "prix": prix, "cartes": taille_pack(cle), "disponible": ok, "eligibles": dispo})
+                        "prix": prix, "cartes": taille_pack(cle), "disponible": ok, "eligibles": dispo,
+                        # the odds, shown as they are: each draw is uniform among that many cards
+                        "chances": {t: n[t] for t in besoin}, "paliers": {t: list(TIERS[t]) for t in besoin}})
     return out
 
 
@@ -205,12 +213,14 @@ def ouvrir_pack(jeu, saison: str, equipe_id: int, type_pack: str, fam: str | Non
     else:
         jeu.execute("UPDATE equipe SET budget = ROUND(budget - ?, 2) WHERE equipe_id=?", (prix, equipe_id))
     out = []
+    deja = {r[0] for r in jeu.execute("SELECT player_id FROM exemplaire WHERE equipe_id=? AND saison=? AND detruit=0", (equipe_id, saison))}
     for pid, cote, ovr in tirage:
         numero = _un(jeu, "SELECT COUNT(*) FROM exemplaire WHERE saison=? AND player_id=?", (saison, pid))[0] + 1
         part = round(prix * cote / total_cote, 2)          # the pack price split by cote
         cur = jeu.execute("""INSERT INTO exemplaire(player_id, saison, numero, equipe_id, dans_effectif, origine, prix_achat, achete_le)
                              VALUES (?,?,?,?,0,'pack',?,?)""", (pid, saison, numero, equipe_id, part, now))
-        out.append({"exemplaire_id": cur.lastrowid, "player_id": pid, "numero": numero, "cote": cote, "ovr": ovr, "prix_achat": part})
+        out.append({"exemplaire_id": cur.lastrowid, "player_id": pid, "numero": numero, "cote": cote, "ovr": ovr, "prix_achat": part,
+                    "doublon": pid in deja, "banque": round(RACHAT_BANQUE * cote, 2)})   # a duplicate: to be sold
     jeu.execute("INSERT INTO pack_ouvert(equipe_id, type, fam, prix, contenu, date) VALUES (?,?,?,?,?,?)",
                 (equipe_id, type_pack, fam, 0.0 if offert else prix,
                  json.dumps([e["player_id"] for e in out]), now))
@@ -445,7 +455,13 @@ def club(jeu, saison: str, equipe_id: int) -> list[dict]:
         FROM exemplaire x WHERE x.equipe_id=? AND x.saison=? AND x.detruit=0 ORDER BY x.dans_effectif DESC, x.exemplaire_id""",
         (equipe_id, saison)).fetchall()
     cles = ("exemplaire_id", "player_id", "numero", "dans_effectif", "origine", "prix_achat", "achete_le", "enchere_id")
-    return [dict(zip(cles, tuple(r))) | {"dans_effectif": bool(r[3])} for r in rows]
+    out, vus = [], set()
+    for r in rows:                      # the first copy of a player (the one lined up comes first) is his; the others are duplicates
+        d = dict(zip(cles, tuple(r))) | {"dans_effectif": bool(r[3])}
+        d["doublon"] = d["player_id"] in vus
+        vus.add(d["player_id"])
+        out.append(d)
+    return out
 
 
 def parts_detention(jeu, saison: str) -> dict[int, float]:
@@ -455,3 +471,82 @@ def parts_detention(jeu, saison: str) -> dict[int, float]:
         return {}
     return {pid: c / n for pid, c in jeu.execute(
         "SELECT player_id, COUNT(DISTINCT equipe_id) FROM exemplaire WHERE saison=? AND detruit=0 AND dans_effectif=1 GROUP BY player_id", (saison,))}
+
+
+# --------------------------------------------------------------------------
+# The daily pack, and the starting squad
+# --------------------------------------------------------------------------
+
+PACK_DU_JOUR = "bronze"       # one free bronze pack per day one shows up ...
+PACK_SERIE = ("argent", 7)    # ... and a silver one every seventh day in a row
+
+
+def pack_du_jour(jeu, equipe_id: int, aujourdhui: str | None = None) -> dict | None:
+    """Give the team its daily pack if it has not had today's: a bronze pack,
+    and a silver one on every seventh consecutive day.  Returns what was
+    given ({"pack": ..., "serie": n}) or None when today's is already taken."""
+    from datetime import date, timedelta
+    jour = aujourdhui or date.today().isoformat()
+    row = _un(jeu, "SELECT jour_pack, serie_jours FROM equipe WHERE equipe_id=?", (equipe_id,))
+    if row is None or row[0] == jour:
+        return None
+    hier = (date.fromisoformat(jour) - timedelta(days=1)).isoformat()
+    serie = (row[1] or 0) + 1 if row[0] == hier else 1
+    offerts = packs_offerts(jeu, equipe_id)
+    offerts[PACK_DU_JOUR] = offerts.get(PACK_DU_JOUR, 0) + 1
+    cadeau = {"pack": PACK_DU_JOUR, "serie": serie, "bonus": None}
+    if serie % PACK_SERIE[1] == 0:
+        offerts[PACK_SERIE[0]] = offerts.get(PACK_SERIE[0], 0) + 1
+        cadeau["bonus"] = PACK_SERIE[0]
+    jeu.execute("UPDATE equipe SET jour_pack=?, serie_jours=?, packs_offerts=? WHERE equipe_id=?",
+                (jour, serie, json.dumps(offerts), equipe_id))
+    jeu.commit()
+    return cadeau
+
+
+EFFECTIF_DEPART = {"GK": 2, "DEF": 6, "MID": 6, "FWD": 4}     # eighteen cards, drawn, not bought
+DEPART_OVR = (50, 64)                                        # ... around 56: one sees cards one does not know
+ESPOIRS_DEPART = ((68, 72), 2, 21)                            # ... and two hopes of 68-72, 21 or younger when the age is known
+
+
+def effectif_depart(jeu, saison: str, equipe_id: int, rng=None) -> list[dict]:
+    """Draw a new club's starting squad: EFFECTIF_DEPART by family in
+    DEPART_OVR, two of them replaced by young hopes.  The copies go to the
+    reserve (the manager picks his eleven); the cap on copies is respected.
+    A club that already owns cards gets nothing (idempotent)."""
+    if _un(jeu, "SELECT COUNT(*) FROM exemplaire WHERE equipe_id=? AND detruit=0", (equipe_id,))[0]:
+        return []
+    rng = rng or random.SystemRandom()
+    lid = _un(jeu, "SELECT ligue_jeu_id FROM equipe WHERE equipe_id=?", (equipe_id,))[0]
+    plafond = plafond_copies(jeu, lid)
+    source = _cartes_tirables(jeu, saison, plafond)
+    ages = {pid: age for pid, age in jeu.execute("SELECT player_id, age FROM joueur")}
+    lo, hi = DEPART_OVR
+    (elo, ehi), n_esp, age_max = ESPOIRS_DEPART
+    tirage: list[tuple[int, float, int, str]] = []
+    pris: set[int] = set()
+    for fam, n in EFFECTIF_DEPART.items():
+        cands = [c for c in source if c[3] == fam and lo <= c[2] <= hi and c[0] not in pris]
+        if len(cands) < n:
+            cands = [c for c in source if c[3] == fam and c[0] not in pris]      # a thin base: whatever there is
+        for c in rng.sample(cands, min(n, len(cands))):
+            tirage.append(c); pris.add(c[0])
+    # the hopes: two outfield players of 68-72, young when ages are known, in place of two draws
+    esp = [c for c in source if c[3] != "GK" and elo <= c[2] <= ehi and c[0] not in pris
+           and (ages.get(c[0]) is None or ages[c[0]] <= age_max)]
+    for c in rng.sample(esp, min(n_esp, len(esp))):
+        meme_fam = next((i for i, t in enumerate(tirage) if t[3] == c[3]), None)
+        if meme_fam is not None:
+            tirage[meme_fam] = c
+        else:
+            tirage.append(c)
+        pris.add(c[0])
+    now = maintenant()
+    out = []
+    for pid, cote, ovr, fam in tirage:
+        numero = _un(jeu, "SELECT COUNT(*) FROM exemplaire WHERE saison=? AND player_id=?", (saison, pid))[0] + 1
+        cur = jeu.execute("""INSERT INTO exemplaire(player_id, saison, numero, equipe_id, dans_effectif, origine, prix_achat, achete_le)
+                             VALUES (?,?,?,?,0,'depart',0.0,?)""", (pid, saison, numero, equipe_id, now))
+        out.append({"exemplaire_id": cur.lastrowid, "player_id": pid, "cote": cote, "ovr": ovr, "fam": fam})
+    jeu.commit()
+    return out

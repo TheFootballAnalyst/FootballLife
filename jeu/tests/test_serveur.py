@@ -9,6 +9,7 @@ import sqlite3
 import pytest
 
 from jeu import evolution as E
+from jeu import marche as MA
 from jeu import pipeline as P
 from jeu.tests import test_pipeline as TP
 
@@ -66,10 +67,11 @@ def test_only_the_first_account_gets_the_demo_budget(client):
     assert SV.BUDGET_PREMIER > E.BUDGET_INITIAL
     client.post("/api/deconnexion")
     inscrire(client, "second", "motdepasse")
-    assert client.get("/api/equipe").json()["budget"] == E.BUDGET_INITIAL
+    assert client.get("/api/equipe").json()["budget"] == E.BUDGET_DEPART
+    assert len(client.get("/api/club").json()["cartes"]) >= 10            # a drawn squad, in the reserve
     client.post("/api/deconnexion")
     inscrire(client, "troisieme", "motdepasse")
-    assert client.get("/api/equipe").json()["budget"] == E.BUDGET_INITIAL
+    assert client.get("/api/equipe").json()["budget"] == E.BUDGET_DEPART
 
 
 def test_the_demo_budget_can_be_turned_off(monkeypatch):
@@ -113,12 +115,13 @@ def test_packs_club_and_auction_house(client):
     assert {"catalogue", "plafond", "rachat", "commission"} <= set(cat)
     assert client.post("/api/packs/ouvrir", json={"type": "diamant"}).status_code == 409
     # every synthetic card is bronze: a bronze pack works, its copies land in the reserve
+    n0 = len(client.get("/api/club").json()["cartes"])                   # the drawn starting squad
     r = client.post("/api/packs/ouvrir", json={"type": "bronze"}).json()
-    assert len(r["cartes"]) == 3 and all(c["carte"]["ovr"] < 60 for c in r["cartes"])
-    assert abs(r["budget"] - (depart - 6.0)) < 1e-6
+    assert len(r["cartes"]) == 5 and all(c["carte"]["ovr"] < 60 for c in r["cartes"])
+    assert abs(r["budget"] - (depart - MA.PACKS["bronze"]["prix"])) < 1e-6
     club = client.get("/api/club").json()["cartes"]
-    assert len(club) == 3 and not any(c["dans_effectif"] for c in club)
-    x = club[0]["exemplaire_id"]
+    assert len(club) == n0 + 5 and not any(c["dans_effectif"] for c in club)
+    x = next(c["exemplaire_id"] for c in club if not c["doublon"])
     assert client.post("/api/club/aligner", json={"exemplaire_id": x, "dans_effectif": True}).status_code == 200
     assert client.get("/api/equipe").json()["effectif"] != {}
     # list it: it leaves the squad; a second manager bids, buys now
@@ -131,14 +134,16 @@ def test_packs_club_and_auction_house(client):
     inscrire(client, "bob", "motdepasse")
     assert client.post("/api/marche/encherir", json={"enchere_id": vente["enchere_id"], "montant": 1.0}).status_code == 409   # under start
     assert client.post("/api/marche/encherir", json={"enchere_id": vente["enchere_id"], "montant": 2.0}).status_code == 200
-    assert abs(client.get("/api/equipe").json()["budget"] - (E.BUDGET_INITIAL - 2.0)) < 1e-6           # locked
+    assert abs(client.get("/api/equipe").json()["budget"] - (E.BUDGET_DEPART - 2.0)) < 1e-6           # locked
     assert client.post("/api/marche/acheter", json={"enchere_id": vente["enchere_id"]}).status_code == 200
-    assert abs(client.get("/api/equipe").json()["budget"] - (E.BUDGET_INITIAL - 3.0)) < 1e-6
+    assert abs(client.get("/api/equipe").json()["budget"] - (E.BUDGET_DEPART - 3.0)) < 1e-6
     club_b = client.get("/api/club").json()["cartes"]
-    assert [c["exemplaire_id"] for c in club_b] == [x] and club_b[0]["prix_achat"] == 3.0
-    # sell it to the bank: 40 % of the cote, the copy is gone
+    achat = next(c for c in club_b if c["exemplaire_id"] == x)
+    assert achat["prix_achat"] == 3.0
+    # sell it to the bank: a quarter of the cote, the copy is gone
     r = client.post("/api/club/banque", json={"exemplaire_id": x}).json()
-    assert abs(r["montant"] - 0.4 * club_b[0]["cote"]) < 1e-6 and client.get("/api/club").json()["cartes"] == []
+    assert abs(r["montant"] - MA.RACHAT_BANQUE * achat["cote"]) < 1e-6
+    assert x not in [c["exemplaire_id"] for c in client.get("/api/club").json()["cartes"]]
     assert client.get("/api/marche").json()["ventes"] == []
 
 

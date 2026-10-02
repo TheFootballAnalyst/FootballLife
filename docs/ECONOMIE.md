@@ -1,5 +1,16 @@
 # Économie, droits, mise en ligne : état des lieux et propositions
 
+**Fait (chantier 1, octobre 2026)** : la banque à 25 %, les packs à
+cinq cartes prixés sur leur valeur attendue (Bronze 25, Argent 60, Or 90,
+Élite 250) avec les chances affichées, les doublons marqués (pas de
+fusion : un doublon se vend, c'est tout), les primes de match par
+résultat, rythme et adversité (`lobby.prime_match`, dans le lobby et en
+campagne), les compétitions pondérées par la force du champ
+(`solo.FORCE_CHAMP`), le pack du jour et la série de sept jours
+(`marche.pack_du_jour`), l'effectif de départ tiré au sort et 30 M€
+(`marche.effectif_depart`, `evolution.BUDGET_DEPART`). Reste à mesurer
+sur une campagne jouée : le temps qu'il faut pour un pack Or.
+
 Ce document répond à cinq questions : comment équilibrer les points de
 départ et les gains ; ce que vaut un pack en argent réel ; combien de
 cartes par pack ; comment garder des cartes de joueurs sans les droits ;

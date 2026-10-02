@@ -61,6 +61,23 @@ DUREES = (360, 720, 1080)
 # prend celle que le manager demande.
 VITESSE_CLASSE = 2.0
 VITESSES = (2.0, 4.0, 8.0)
+# Ce qu'un match paie (M€), à ×2 : la victoire, le nul, la défaite (on a joué).  À ×4 la
+# moitié, à ×8 le quart : le temps passé est ce qu'on paie, sinon tout le monde joue en
+# résumé.  +50 % contre un adversaire mieux classé (Elo, ou force du club en campagne) :
+# le fort ne farme pas le faible.  Un défi contre la machine paie moitié (docs/ECONOMIE.md).
+PRIMES = {"V": 6.0, "N": 3.0, "D": 1.5}
+PRIME_ADVERSITE = (1.5, 25.0)          # ×1,5 quand l'adversaire a 25 points d'Elo de plus (ou 2 points de force)
+PRIME_DEFI = 0.5
+
+
+def prime_match(resultat: str, vitesse: float, plus_fort: bool, defi: bool = False) -> float:
+    """La prime d'un match pour un camp : resultat "V", "N" ou "D"."""
+    p = PRIMES[resultat] * (VITESSE_CLASSE / max(VITESSE_CLASSE, float(vitesse or VITESSE_CLASSE)))
+    if plus_fort:
+        p *= PRIME_ADVERSITE[0]
+    if defi:
+        p *= PRIME_DEFI
+    return round(p, 2)
 ECART_ELO_MAX = 250         # ranked pairing: never further apart than this
 K_CLASSE = 24               # ladder step, gentler than the gameweek's 32
 ATTENTE_MAX = 900           # a waiting entry older than this is stale
@@ -643,6 +660,20 @@ def cloturer(jeu, saison: str, r) -> dict | None:
         ea, eb = ELO.elo_maj(ra, rb, f["resultat"], K_CLASSE)
         jeu.execute("UPDATE equipe SET elo_classe=?, classees=classees+1 WHERE equipe_id=?", (ea, r["equipe_a"]))
         jeu.execute("UPDATE equipe SET elo_classe=?, classees=classees+1 WHERE equipe_id=?", (eb, r["equipe_b"]))
+    # les primes : chaque humain est payé pour son match (un match de campagne est payé par la campagne)
+    if _champ(r, "campagne_id") is None:
+        primes = {}
+        elos = {eid: jeu.execute("SELECT elo_classe FROM equipe WHERE equipe_id=?", (eid,)).fetchone()[0]
+                for eid in (r["equipe_a"], r["equipe_b"]) if eid}
+        for cote, eid in (("A", r["equipe_a"]), ("B", r["equipe_b"])):
+            if not eid:
+                continue
+            res = "N" if f["resultat"] == "N" else ("V" if f["resultat"] == cote else "D")
+            autre = r["equipe_b"] if cote == "A" else r["equipe_a"]
+            plus_fort = bool(autre and elos.get(autre, 0) >= elos.get(eid, 0) + PRIME_ADVERSITE[1])
+            primes[cote.lower()] = prime_match(res, vitesse_de(r), plus_fort, defi=bool(r["defi"]))
+            jeu.execute("UPDATE equipe SET budget = ROUND(budget + ?, 2) WHERE equipe_id=?", (primes[cote.lower()], eid))
+        f["primes"] = primes
     jeu.execute("""UPDATE rencontre SET score_a=?, score_b=?, resultat=?, feuille=?, elo_a_apres=?, elo_b_apres=?
                    WHERE rencontre_id=?""",
                 (f["score"][0], f["score"][1], f["resultat"], json.dumps(f, ensure_ascii=False), ea, eb,

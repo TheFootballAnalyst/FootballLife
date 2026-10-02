@@ -122,7 +122,8 @@ PRIX_DOUBLE_TOUS_LES = 8     # +8 OVR since the season start = price x2
 DEMANDE = 0.0
 
 # Budget (M€)
-BUDGET_INITIAL = 100.0       # a club's transfer budget for 15 cards
+BUDGET_INITIAL = 100.0       # a league's transfer budget for 15 cards (the fantasy leagues)
+BUDGET_DEPART = 30.0         # a new club in the world league: its squad is drawn (marche.effectif_depart), this is its cash
 TAILLE_EFFECTIF = 18         # 11 + 7 bench
 SCORE_REFERENCE = 60.0       # a gameweek at 11 x 5.5 (or 66 at 11 x 6)
 TAUX_GAIN = 0.1              # M€ per point above the reference

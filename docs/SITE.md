@@ -11,7 +11,7 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 |---|---|
 | Connexion | créer un compte (pseudo, mot de passe, nom d'équipe) ; le premier compte est administrateur |
 | Cartes | toutes les cartes (écussons ou liste), filtres par poste, ligue, tri (OVR, prix, OVR par M€, forme, âge, popularité), fiche joueur, et le nombre de ventes en cours par joueur |
-| Packs | la boutique de la banque : vingt packs (bronze, argent, or, ultra ; mixte ou par ligne), ouverture animée, les cartes vont en réserve. L'Ultra Pack, 200 M€, fait dix cartes dont trois de 80 et plus garanties et sept de 75 et plus |
+| Packs | la boutique de la banque : vingt packs (Bronze 25 M€, Argent 60, Or 90, Élite 250 ; mixte ou par ligne), cinq cartes (sept pour l'Élite) avec des garanties lisibles et les chances affichées, ouverture animée, les cartes vont en réserve. Un pack peut tirer une carte qu'on a déjà : c'est un doublon, il ne s'aligne pas, il se vend (banque à 25 % de la cote, ou enchères). Un pack Bronze offert par jour de connexion, un Argent au septième jour d'affilée. Le détail et les raisons : `docs/ECONOMIE.md` |
 | Enchères | l'hôtel des ventes : mises à prix, achat immédiat, offres (argent bloqué), fin de vente ; tes ventes et tes offres |
 | Lobby | le match classé : ton onze contre celui d'un autre manager, joué avec les cartes sur le terrain du moteur B, un match complet au rythme du football (×2, les arrêts de jeu sautés, une demi-heure), tactique, formation et remplacements en direct ; ton Elo classé et tes derniers matchs |
 | Solo | la campagne : tu prends la place d'un vrai club dans une vraie compétition et tu joues son calendrier contre les onze des autres clubs ; crédits et packs selon la place ou le tour atteint |
@@ -130,8 +130,8 @@ copier après chaque clôture suffit.
 
 **Le premier compte est le compte de démonstration.** C'est déjà celui
 de l'administrateur — c'est lui qui monte la base et qui fait visiter le
-jeu — et il démarre avec **10 milliards d'euros** au lieu des 100 M€ de
-la ligue, de quoi acheter n'importe quelle carte sans passer une heure
+jeu — et il démarre avec **10 milliards d'euros** au lieu des 30 M€ (et de
+l'effectif tiré au sort) de tout le monde, de quoi acheter n'importe quelle carte sans passer une heure
 au mercato. Tous les comptes suivants démarrent normalement.
 
 Une vraie mise en ligne voudra le désactiver : `FL_BUDGET_PREMIER=0` (ou

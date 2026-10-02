@@ -221,6 +221,8 @@ CREATE TABLE IF NOT EXISTS equipe (
     packs_offerts    TEXT,                          -- JSON {type: nombre}, gagnés en campagne solo
     tactique         TEXT,                          -- JSON: la tactique de départ du club, tous matchs
     maillot          TEXT,                          -- JSON: {base, second, motif}, le kit choisi par le manager
+    jour_pack        TEXT,                          -- le jour du dernier pack du jour (AAAA-MM-JJ)
+    serie_jours      INTEGER NOT NULL DEFAULT 0,    -- jours de connexion d'affilée
     UNIQUE (utilisateur_id, ligue_jeu_id)
 );
 

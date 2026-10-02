@@ -224,9 +224,15 @@ def inscription(ident: Identifiants, reponse: Response, jeu=Depends(bd)):
     budget = jeu.execute("SELECT budget_initial FROM ligue_jeu WHERE ligue_jeu_id=?", (lm,)).fetchone()[0]
     if premier and BUDGET_PREMIER:
         budget = BUDGET_PREMIER              # le compte de démonstration
-    jeu.execute("INSERT INTO equipe(utilisateur_id, ligue_jeu_id, nom, budget) VALUES (?,?,?,?)",
-                (uid, lm, (ident.equipe or f"Équipe de {pseudo}").strip()[:40], budget))
+    cur = jeu.execute("INSERT INTO equipe(utilisateur_id, ligue_jeu_id, nom, budget) VALUES (?,?,?,?)",
+                      (uid, lm, (ident.equipe or f"Équipe de {pseudo}").strip()[:40], budget))
+    eid = cur.lastrowid
     jeu.commit()
+    # le club démarre avec un effectif tiré au sort et de quoi ouvrir un premier pack (docs/ECONOMIE.md § 2) ;
+    # le compte de démonstration garde son budget
+    if MA.effectif_depart(jeu, SAISON, eid) and not (premier and BUDGET_PREMIER):
+        jeu.execute("UPDATE equipe SET budget=? WHERE equipe_id=?", (E.BUDGET_DEPART, eid))
+        jeu.commit()
     poser_session(reponse, uid)
     return {"pseudo": pseudo, "admin": bool(admin)}
 
@@ -251,8 +257,9 @@ def moi(u=Depends(utilisateur_courant), jeu=Depends(bd)):
     if u is None:
         return {"connecte": False}
     e = equipe_de(jeu, u)
+    cadeau = MA.pack_du_jour(jeu, e["equipe_id"]) if e else None      # le pack du jour, à la première visite du jour
     return {"connecte": True, "pseudo": u["pseudo"], "admin": bool(u["est_admin"]),
-            "equipe": e["nom"] if e else None}
+            "equipe": e["nom"] if e else None, "cadeau": cadeau}
 
 
 # --------------------------------------------------------------------------

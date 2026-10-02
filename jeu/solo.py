@@ -85,7 +85,10 @@ MATCHS_LIGUE = 8      # ... each playing eight different opponents
 
 # What a campaign pays.  `credits` in M€, `packs` by type.  A league pays on
 # the final position (as a share of the field), a cup on the round reached.
-PRIME_VICTOIRE, PRIME_NUL = 1.5, 0.5     # per match, so every match is worth playing
+# Per match, the lobby's grid (lobby.prime_match: by result, by the pace chosen, +50 % against a
+# stronger club); the competition's prize is weighted by the strength of its field (FORCE_CHAMP:
+# the mean force of the clubs over 75, clamped — the Premier League pays more than the Eredivisie).
+FORCE_CHAMP = (75.0, 0.7, 1.3)
 RECOMPENSES_CHAMPIONNAT = {
     "champion": ("Champion", 60.0, {"or": 2}),
     "podium": ("Podium", 35.0, {"or": 1}),
@@ -947,9 +950,21 @@ def cloturer(jeu, saison: str, campagne_id: int) -> dict:
         table = _table(camp, resultats, "ligue", len(clubs))
         rang = next((l["rang"] for l in table if l["place"] == moi), None)
         detail = {"tour": libelle, "rang_ligue": rang, "sur": len(clubs)}
-    credits += PRIME_VICTOIRE * victoires + PRIME_NUL * nuls
-    credits = round(credits, 1)
-    bilan = {"libelle": libelle, "credits": credits, "packs": packs,
+    from jeu import lobby as LB
+    forces = [c.get("force", 60.0) for c in clubs if isinstance(c, dict)]
+    champ = max(FORCE_CHAMP[1], min(FORCE_CHAMP[2], (sum(forces) / len(forces)) / FORCE_CHAMP[0])) if forces else 1.0
+    credits = round(credits * champ, 1)
+    ma_force = clubs[moi].get("force", 60.0) if isinstance(clubs[moi], dict) else 60.0
+    primes = 0.0
+    for rr in jeu.execute("SELECT equipe_a, resultat, vitesse, nom_adverse, domicile, tour FROM rencontre WHERE campagne_id=? AND resultat IS NOT NULL",
+                          (campagne_id,)).fetchall():
+        res = "N" if rr["resultat"] == "N" else ("V" if rr["resultat"] == "A" else "D")     # l'humain est toujours le camp A
+        adv = next((c for c in clubs if isinstance(c, dict) and c.get("nom") == rr["nom_adverse"]), None)
+        plus_fort = bool(adv and adv.get("force", 60.0) >= ma_force + 2.0)
+        primes += LB.prime_match(res, rr["vitesse"] or LB.VITESSE_CLASSE, plus_fort)
+    primes = round(primes, 1)
+    credits = round(credits + primes, 1)
+    bilan = {"libelle": libelle, "credits": credits, "packs": packs, "primes": primes, "champ": round(champ, 2),
              "victoires": victoires, "nuls": nuls, "matchs": len(miens)} | detail
     jeu.execute("UPDATE campagne SET statut='fini', fini_le=?, recompenses=? WHERE campagne_id=?",
                 (maintenant(), json.dumps(bilan), campagne_id))
