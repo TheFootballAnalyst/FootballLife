@@ -221,6 +221,7 @@ CREATE TABLE IF NOT EXISTS equipe (
     packs_offerts    TEXT,                          -- JSON {type: nombre}, gagnés en campagne solo
     tactique         TEXT,                          -- JSON: la tactique de départ du club, tous matchs
     maillot          TEXT,                          -- JSON: {base, second, motif}, le kit choisi par le manager
+    titres           TEXT,                          -- JSON [texte] : les trois objectifs d'une campagne remplis
     jour_pack        TEXT,                          -- le jour du dernier pack du jour (AAAA-MM-JJ)
     serie_jours      INTEGER NOT NULL DEFAULT 0,    -- jours de connexion d'affilée
     UNIQUE (utilisateur_id, ligue_jeu_id)
@@ -244,10 +245,21 @@ CREATE TABLE IF NOT EXISTS campagne (
     tour             INTEGER NOT NULL DEFAULT 0,    -- rounds played
     statut           TEXT NOT NULL DEFAULT 'en_cours',
     recompenses      TEXT,                          -- JSON, written once at the close
+    objectifs        TEXT,                          -- JSON [{cle, libelle, cible, credits, pack}] : ce que le club attend (solo.tirer_objectifs)
     cree_le          TEXT NOT NULL,
     fini_le          TEXT
 );
 CREATE INDEX IF NOT EXISTS ix_campagne_equipe ON campagne(equipe_id, saison, statut);
+
+-- La cohésion gagnée dans le jeu : les minutes que deux cartes ont jouées ensemble
+-- sous tes couleurs (lobby.cloturer), comptées comme les vraies (emergent.cohesion).
+CREATE TABLE IF NOT EXISTS cohesion_jeu (
+    equipe_id        INTEGER NOT NULL REFERENCES equipe(equipe_id),
+    player_id        INTEGER NOT NULL,
+    autre_id         INTEGER NOT NULL,              -- player_id < autre_id
+    minutes          REAL NOT NULL DEFAULT 0,
+    PRIMARY KEY (equipe_id, player_id, autre_id)
+);
 
 CREATE TABLE IF NOT EXISTS rencontre (
     rencontre_id     INTEGER PRIMARY KEY AUTOINCREMENT,

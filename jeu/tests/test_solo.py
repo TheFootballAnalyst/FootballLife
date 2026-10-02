@@ -180,12 +180,23 @@ def test_a_league_campaign_plays_out_and_pays_the_final_position():
     e = SO.etat(jeu, "2025/26", 1)
     tours = e["campagne"]["tours"]
     assert tours == 2 * (n - 1) and e["campagne"]["prochain"]["tour"] == 1
+    # the club's three objectives: the table, the goals, the home record — drawn from your strength in the field
+    objs = e["campagne"]["objectifs"]
+    assert [o["cle"] for o in objs] == ["classement", "domicile", "buts"] and all(o["credits"] > 0 and o["pack"] for o in objs)
+    assert objs[2]["cible"] >= tours and objs[2]["valeur"] == 0 and objs[1]["valeur"] == 0
     budget0 = jeu.execute("SELECT budget FROM equipe WHERE equipe_id=1").fetchone()[0]
     r = None
     for _ in range(tours):
         r = SO.jouer_tour(jeu, "2025/26", 1, ONZE, {"tempo": "possession"})
     assert r["fini"] and r["bilan"]["credits"] > 0
     assert 1 <= r["bilan"]["rang"] <= n and r["bilan"]["matchs"] == tours
+    # ... measured and paid at the close: a met objective adds its credits and its pack
+    mes = r["bilan"]["objectifs"]
+    assert len(mes) == 3 and all("reussi" in o for o in mes)
+    assert mes[0]["valeur"] == r["bilan"]["rang"] and mes[0]["reussi"] == (r["bilan"]["rang"] <= mes[0]["cible"])
+    assert abs(r["bilan"]["gains_objectifs"] - round(sum(o["credits"] * r["bilan"]["champ"] for o in mes if o["reussi"]), 1)) < 0.11
+    assert (r["bilan"]["titre"] is not None) == all(o["reussi"] for o in mes)
+    assert SO.etat(jeu, "2025/26", 1)["titres"] == ([r["bilan"]["titre"]] if r["bilan"]["titre"] else [])
     budget = jeu.execute("SELECT budget FROM equipe WHERE equipe_id=1").fetchone()[0]
     assert abs(budget - budget0 - r["bilan"]["credits"]) < 1e-6
     assert MA.packs_offerts(jeu, 1) == {k: v for k, v in r["bilan"]["packs"].items()}

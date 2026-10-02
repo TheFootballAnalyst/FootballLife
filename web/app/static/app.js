@@ -409,6 +409,13 @@ function recrue(c) {
 // D'où vient la carte et où elle en est : la note initiale de la saison
 // (ovr_base, celle de l'amorce) et une flèche — verte si elle est montée
 // depuis, rouge si elle a baissé, un trait bleu si elle n'a pas bougé.
+// La forme : trois bons vrais matchs d'affilée, +1 temporaire (et +2 sur chaque attribut en match) ; trois mauvais, -1.
+function formeBadge(c) {
+  if (!c || !c.forme) return null;
+  return el("span", {class: "forme " + (c.forme > 0 ? "bonne" : "mauvaise"),
+    title: c.forme > 0 ? "En forme : trois bons matchs d'affilée en vrai. +1 d'OVR tant que ça dure." : "Méforme : trois mauvais matchs d'affilée en vrai. -1 d'OVR tant que ça dure."},
+    c.forme > 0 ? "✦ en forme" : "▾ méforme");
+}
 function tendance(c, compact = false) {
   if (c.ovr_base == null || c.ovr == null) return null;
   const d = c.ovr - c.ovr_base;
@@ -808,7 +815,7 @@ async function rendreClub() {
     const c = x.carte; const l = el("div", {class: "ligne club-ligne" + (x.enchere_id ? " en-vente" : "")}); l.style.setProperty("--clubc", c.couleur);
     const delta = (x.cote || 0) - x.prix_achat;
     l.append(carteDessinee(c, 120), el("div", {class: "qui", tabindex: "0", onclick: () => ouvrirFiche(c.id)}, el("div", {class: "nom"}, c.nom, el("span", {class: "compteur"}, ` n° ${x.numero}`)), el("div", {class: "sous"}, el("b", {}, codesDe(c)), ` · ${c.club} · acheté ${fM(x.prix_achat)} · cote ${fM(x.cote)} `, el("span", {class: "delta " + (delta >= 0 ? "plus" : "moins")}, fM(delta, true)))),
-      el("span", {class: "fam " + c.fam}, POSTE_ABBR[c.poste] || FAM_COURT[c.fam]), el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr), tendance(c)));
+      el("span", {class: "fam " + c.fam}, POSTE_ABBR[c.poste] || FAM_COURT[c.fam]), el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr), tendance(c), formeBadge(c)));
     const acts = el("div", {class: "club-actions"});
     if (x.enchere_id) acts.append(el("span", {class: "compteur"}, "en vente"), el("button", {onclick: () => montrer("encheres")}, "Voir"));
     else {
@@ -1583,6 +1590,7 @@ function panneauCampagne(d) {
       try { await rendreSolo(await api("/solo/abandonner", {})); } catch (e) { toast(e.message); }
     }}, "Abandonner")));
   if (c.match) { p.append(panneauMatchSolo(c)); return p; }
+  if (c.objectifs && c.objectifs.length) p.append(panneauObjectifs(c.objectifs));
   const onze = C.slots.every(x => x !== null) ? C.slots.slice() : null;
   if (!onze) p.append(el("div", {class: "avert"}, "Ton onze n'est pas complet : va dans Équipe le compléter, c'est lui qui joue ici."));
   else if (c.prochain) {
@@ -1758,12 +1766,31 @@ function montrerFeuilleSolo(f, bilan, place) {
   box.append(acts); dlg.append(box); dlg.showModal();
 }
 
+// Les objectifs du club : trois par campagne, tirés selon ta force dans le champ.
+// Chacun paie ; les trois remplis donnent un titre.
+function panneauObjectifs(objs, fini) {
+  const p = el("div", {class: "objectifs"}, el("div", {class: "etiq"}, fini ? "Les objectifs du club" : "Ce que le club attend"));
+  for (const o of objs) {
+    const etat = o.reussi ? "ok" : (o.perdu || (fini && !o.reussi)) ? "rate" : "encours";
+    const valeur = o.cle === "buts" ? `${o.valeur ?? 0} / ${o.cible}`
+      : o.cle === "domicile" ? `${o.valeur ?? 0} défaite${(o.valeur || 0) > 1 ? "s" : ""} chez toi`
+      : o.cle === "classement" ? (o.valeur ? `${o.valeur}${o.valeur === 1 ? "er" : "e"} (cible : ${o.cible}${o.cible === 1 ? "er" : "e"})` : "—")
+      : (o.valeur ? (PHASES_SOLO[o.valeur] || o.valeur) : "—");
+    p.append(el("div", {class: "objectif " + etat},
+      el("span", {class: "coche"}, etat === "ok" ? "✓" : etat === "rate" ? "✗" : "·"),
+      el("div", {class: "qui"}, el("b", {}, o.libelle), el("span", {class: "compteur"}, ` · ${valeur}`)),
+      el("span", {class: "compteur"}, `${fM(o.credits)} + pack ${TIER_TXT[o.pack] || o.pack}`)));
+  }
+  return p;
+}
 function montrerBilanSolo(b) {
   if (!b) return;
   const dlg = $("#fiche"); dlg.replaceChildren();
   const box = el("div", {class: "fiche bilan"}, el("h3", {class: "anton"}, b.libelle),
     el("p", {class: "compteur"}, b.rang ? `${b.rang}${b.rang === 1 ? "er" : "e"} sur ${b.sur} · ${b.victoires} victoires, ${b.nuls} nuls en ${b.matchs} matchs`
       : `${b.tour || ""} · ${b.victoires} victoires en ${b.matchs} matchs`));
+  if (b.objectifs && b.objectifs.length) box.append(panneauObjectifs(b.objectifs, true));
+  if (b.titre) box.append(el("p", {class: "titre-gagne anton"}, `🏆 ${b.titre}`));
   box.append(el("div", {class: "gains"},
     el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Crédits"), el("b", {class: "anton"}, fM(b.credits))),
     ...Object.entries(b.packs || {}).map(([t, n]) =>
@@ -1776,6 +1803,7 @@ function montrerBilanSolo(b) {
 
 function panneauPalmares(d) {
   const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Palmarès"));
+  if (d.titres?.length) p.append(el("div", {class: "titres"}, ...d.titres.map(t => el("span", {class: "titre-gagne"}, `🏆 ${t}`))));
   if (!d.palmares?.length) { p.append(el("p", {class: "compteur"}, "Aucune campagne terminée.")); return p; }
   for (const c of d.palmares)
     p.append(el("div", {class: "ligne simple"},

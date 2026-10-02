@@ -585,3 +585,45 @@ def test_the_b_engine_clock_is_display_time_and_skips_the_stoppages():
     assert DIRECT.termine(jeu, "2025/26", r, tard)
     v3 = DIRECT.vivant(jeu, "2025/26", r)
     assert v3.match.fini and 50 * 60 <= v3.match.affiche <= 62 * 60       # ~52 min of live ball + 2 s per stoppage
+
+
+def test_form_comes_from_three_real_matches_in_a_row_and_plays_on_the_pitch():
+    """Three good rated matches in a row: the card is in form, +1 OVR and +2 on
+    every attribute when it plays; three bad ones: -1.  Temporary: it is read
+    from the last three rated performances of computed gameweeks."""
+    jeu = base_avec_equipes(1)
+    jid = jeu.execute("INSERT INTO journee(saison, numero, du, au, cloture, calculee) VALUES ('2025/26', 99, '2026-06-01', '2026-06-07', '2026-06-01T18:00:00Z', 1)").lastrowid
+    for k, (pid, note) in enumerate([(1, 7.5), (1, 8.0), (1, 7.0), (2, 4.0), (2, 3.5), (2, 4.9), (3, 7.0), (3, 7.0), (3, 6.9)]):
+        mid = 900 + k
+        jeu.execute("INSERT INTO match(match_id, journee_id, competition_id, date_utc, home_team_id, away_team_id) VALUES (?,?,53,?,1,2)",
+                    (mid, jid, f"2026-06-{1 + k:02d}T18:00:00Z"))
+        jeu.execute("""INSERT INTO prestation(match_id, player_id, team_id, poste, minutes, entrant, brut, coef, points, note, statut, lignes)
+                       VALUES (?,?,1,'Gardien',90,0,1,1,1,?,'ok','{}')""", (mid, pid, note))
+    jeu.commit()
+    f = SM.forme_cartes(jeu, "2025/26")
+    assert f.get(1) == 1 and f.get(2) == -1 and f.get(3, 0) == 0           # the third's last match was under 7
+    eq = SM.onze_depuis_cartes(jeu, "2025/26", ONZE)
+    j1 = next(j for j in eq.joueurs if j["pid"] == 1); j3 = next(j for j in eq.joueurs if j["pid"] == 3)
+    ovr1 = jeu.execute("SELECT ovr FROM carte WHERE player_id=1 AND saison='2025/26'").fetchone()[0]
+    assert j1["forme"] == 1 and j1["ovr"] == ovr1 + 1 and j3["forme"] == 0
+    brut = __import__("json").loads(jeu.execute("SELECT attributs FROM carte WHERE player_id=1 AND saison='2025/26'").fetchone()[0])
+    assert all(j1["attributs_bruts"][k] == v + SM.FORME_POINTS for k, v in brut.items())
+
+
+def test_cohesion_is_earned_in_the_game_by_playing_together():
+    """A kept eleven gets to know itself in the game: the minutes two cards
+    play together under your colours count like the real ones (after three
+    matches), and the live match takes the better of the two measures."""
+    from jeu import emergent as EM
+    jeu = base_avec_equipes(2)
+    assert EM.cohesion_jeu(jeu, 1, ONZE) == 0.0
+    for g in range(3):
+        LB.rejoindre(jeu, "2025/26", 1, ONZE, None, banc=BANC)
+        LB.rejoindre(jeu, "2025/26", 2, ONZE, None, banc=BANC)
+        r = LB.en_cours(jeu, "2025/26", 1)
+        r = _reculer(jeu, r, 40 * 60)                                   # the whole match has been shown
+        assert LB.cloturer(jeu, "2025/26", r) is not None
+    n = jeu.execute("SELECT COUNT(*), MIN(minutes), MAX(minutes) FROM cohesion_jeu WHERE equipe_id=1").fetchone()
+    assert n[0] == 55 and n[1] == n[2] and n[1] >= 3 * 90                 # every pair of the eleven, three matches
+    assert EM.cohesion_jeu(jeu, 1, ONZE) == 1.0                           # the same eleven every match: fully run in
+    assert 0.0 < EM.cohesion_jeu(jeu, 1, ONZE[:6] + BANC[:5]) < 1.0       # half the men never played together here

@@ -911,3 +911,15 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 .vivante-ligne .delta.moins{color:#ff9c9c;background:rgba(220,80,80,.15)}
 .vivante-ligne .delta.nul{opacity:.5}
 #nav button.nouveau::after{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#ffb347;margin-left:6px;vertical-align:middle}
+
+.objectifs{display:flex;flex-direction:column;gap:4px;margin:8px 0 12px}
+.objectif{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.03)}
+.objectif .coche{font-weight:700;text-align:center}
+.objectif.ok .coche{color:#7ee787}
+.objectif.rate .coche{color:#ff9c9c}
+.objectif.rate{opacity:.7}
+.titre-gagne{display:inline-block;margin:6px 6px 0 0;padding:4px 10px;border-radius:999px;background:rgba(255,179,71,.15);color:#ffb347}
+
+.forme{display:inline-block;margin-left:6px;font-size:11px;padding:1px 6px;border-radius:999px;vertical-align:middle}
+.forme.bonne{color:#ffd166;background:rgba(255,209,102,.15)}
+.forme.mauvaise{color:#ff9c9c;background:rgba(220,80,80,.15)}

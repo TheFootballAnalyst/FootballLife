@@ -61,7 +61,11 @@ class Vivant:
         # affiche et renvoie : le moteur B a la sienne (_tac_b), qui n'est pas la même
         self.tac_jeu: list[SM.Tactique] = [a.tactique.valide(), b.tactique.valide()]
         # le collectif d'un onze du jeu : la cohésion mesurée (les minutes jouées ensemble en vrai, § 22)
-        coll = tuple(max(0.0, min(1.0, float(EM.cohesion(jeu, [j["pid"] for j in e.joueurs], None) or 0.5))) for e in (a, b))
+        # ... et la cohésion gagnée dans le jeu, pour un club du jeu : le meilleur des deux (§ 2.3 du plan)
+        eids = (r["equipe_a"], r["equipe_b"] if "equipe_b" in r.keys() else None)
+        coll = tuple(max(max(0.0, min(1.0, float(EM.cohesion(jeu, [j["pid"] for j in e.joueurs], None) or 0.5))),
+                         EM.cohesion_jeu(jeu, eid, [j["pid"] for j in e.joueurs]) if eid else 0.0)
+                     for e, eid in zip((a, b), eids))
         tacs = (_tac_b(a.tactique), _tac_b(b.tactique))
         aff = (EM.affinite_de(jeu, [j["pid"] for j in a.joueurs], tacs[0]["tempo"]),
                EM.affinite_de(jeu, [j["pid"] for j in b.joueurs], tacs[1]["tempo"]))

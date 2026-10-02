@@ -41,6 +41,7 @@ from jeu import elo as ELO
 from jeu import scoring as S
 from jeu import simulation as SM
 from jeu import direct as DIRECT
+from jeu import emergent as EM
 
 # Six real minutes for the ninety, not four.  Four left no room to make
 # a substitution: picking who comes off and who comes on took longer than
@@ -660,6 +661,13 @@ def cloturer(jeu, saison: str, r) -> dict | None:
         ea, eb = ELO.elo_maj(ra, rb, f["resultat"], K_CLASSE)
         jeu.execute("UPDATE equipe SET elo_classe=?, classees=classees+1 WHERE equipe_id=?", (ea, r["equipe_a"]))
         jeu.execute("UPDATE equipe SET elo_classe=?, classees=classees+1 WHERE equipe_id=?", (eb, r["equipe_b"]))
+    # la cohésion gagnée dans le jeu : le onze aligné a joué le match ensemble (emergent.cohesion_jeu)
+    for eid, onze in ((r["equipe_a"], r["onze_a"]), (_champ(r, "equipe_b"), _champ(r, "onze_b"))):
+        if eid and onze:
+            try:
+                EM.noter_cohesion_jeu(jeu, eid, json.loads(onze), float(f.get("total") or SM.MINUTES))
+            except (TypeError, json.JSONDecodeError):
+                pass
     # les primes : chaque humain est payé pour son match (un match de campagne est payé par la campagne)
     if _champ(r, "campagne_id") is None:
         primes = {}

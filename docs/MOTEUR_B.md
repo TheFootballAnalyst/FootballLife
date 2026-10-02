@@ -859,6 +859,14 @@ passes ne dépassent pas le réel, sauf les paires défensives serrées
 (croisements brefs pour l'essentiel) : trois règles essayées, aucune ne
 les desserre, toutes retirées.
 
+**La forme et la cohésion du jeu (PLAN.md § 2.3).** Un onze du jeu
+arrive sur le terrain avec la forme de ses cartes (trois bons vrais
+matchs d'affilée : +2 sur chaque attribut, `simulation.FORME_POINTS` ;
+trois mauvais : −2) et un collectif qui est le meilleur de la cohésion
+réelle (`cohesion`) et de celle gagnée dans le jeu (`cohesion_jeu` : les
+minutes que les paires du onze ont jouées ensemble sous ces couleurs,
+notées à chaque clôture, étirées de la même façon).
+
 **Le bac dessine les gestes** : l'élan d'une frappe (la jambe part en
 arrière puis fouette vers le ballon, le pied dit D ou G), la détente
 d'une tête (le jeton s'élève, son ombre reste au sol), la détente du

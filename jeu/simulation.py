@@ -1863,6 +1863,40 @@ def lecture_adverse(f: dict, cote: str) -> list[str]:
 
 # --------------------------------------------------------------------------
 
+# La forme (docs/PLAN.md § 2.3) : une carte dont le vrai joueur enchaîne FORME_NOTES[0]
+# bons matchs (note >= FORME_NOTES[1]) est en forme, +1 d'OVR temporaire et FORME_POINTS
+# sur chaque attribut ; trois mauvais (note < FORME_NOTES[2]) : -1.  Ça se lit sur la
+# carte et ça se joue sur le terrain.  Temporaire : la prochaine journée la refait.
+FORME_NOTES = (3, 7.0, 5.0)
+FORME_POINTS = 2
+
+
+def forme_cartes(jeu, saison: str, pids: list[int] | None = None) -> dict[int, int]:
+    """{player_id: +1, -1 ou 0} d'après les trois dernières vraies prestations notées."""
+    n, bon, mauvais = FORME_NOTES
+    where = ""
+    args: list = [saison]
+    if pids is not None:
+        if not pids:
+            return {}
+        where = f" AND p.player_id IN ({','.join('?' * len(pids))})"
+        args += list(pids)
+    notes: dict[int, list[float]] = {}
+    for pid, note in jeu.execute(f"""SELECT p.player_id, p.note FROM prestation p
+                                     JOIN match m ON m.match_id = p.match_id JOIN journee j ON j.journee_id = m.journee_id
+                                     WHERE j.saison = ? AND j.calculee = 1 AND p.note IS NOT NULL{where}
+                                     ORDER BY m.date_utc""", args):
+        notes.setdefault(pid, []).append(float(note))
+    out = {}
+    for pid, ns in notes.items():
+        der = ns[-n:]
+        if len(der) == n and all(x >= bon for x in der):
+            out[pid] = 1
+        elif len(der) == n and all(x < mauvais for x in der):
+            out[pid] = -1
+    return out
+
+
 def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
                        postes_slots: list[str] | None = None) -> Equipe:
     """Build an eleven from the game base's cards.
@@ -1877,6 +1911,7 @@ def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
     import json
     from jeu import scoring as S
     joueurs = []
+    formes = forme_cartes(jeu, saison, pids)
     for i, pid in enumerate(pids):
         row = jeu.execute("""SELECT j.nom, j.poste, c.ovr, c.attributs, j.postes, j.physique, j.pied, j.pied_faible FROM carte c
                              JOIN joueur j ON j.player_id = c.player_id
@@ -1886,6 +1921,10 @@ def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
         nom_j, poste, ovr, attrs, postes, physique_j, pied, pied_faible = row
         tenus = json.loads(postes) if postes else [poste]
         attributs = json.loads(attrs or "{}")
+        forme = formes.get(pid, 0)
+        if forme:
+            attributs = {k: v + FORME_POINTS * forme for k, v in attributs.items()}
+            ovr = ovr + forme
         slot = postes_slots[i] if postes_slots and i < len(postes_slots) else None
         malus = S.malus_poste(tenus, slot, attributs, poste) if slot else 0
         fam = S.FAMILLE_POSTE.get(slot or poste, S.FAMILLE_POSTE.get(poste, "MID"))
@@ -1899,6 +1938,7 @@ def onze_depuis_cartes(jeu, saison: str, pids: list[int], nom: str = "Équipe",
                         "profil": profil(attributs, fam),
                         "physique": physique_match(physique_j),
                         "pied": pied or "droit", "pied_faible": pied_faible or 3,
+                        "forme": forme,
                         "endurance": ENDURANCE_MAX})
     return Equipe(nom, joueurs)
 

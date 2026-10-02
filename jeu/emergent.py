@@ -532,6 +532,35 @@ def affinite_de(jeu, pids: list[int], tempo: str) -> float:
     return affinite_style(poss, tempo)
 
 
+def cohesion_jeu(jeu, equipe_id: int, pids: list[int]) -> float:
+    """Le collectif gagné DANS LE JEU : la part des matchs du club que chaque
+    paire du onze a joués ensemble sous ses couleurs (table cohesion_jeu,
+    remplie à la clôture), étirée comme `cohesion`.  Un onze qu'on garde se
+    rode, même si les vrais joueurs ne se sont jamais croisés."""
+    if len(pids) < 2:
+        return 0.0
+    nm = jeu.execute("SELECT COUNT(*) FROM rencontre WHERE resultat IS NOT NULL AND (equipe_a=? OR equipe_b=?)",
+                     (equipe_id, equipe_id)).fetchone()[0]
+    if nm < 3:
+        return 0.0
+    marks = ",".join("?" * len(pids))
+    tot = jeu.execute(f"""SELECT COALESCE(SUM(minutes), 0) FROM cohesion_jeu WHERE equipe_id=?
+                          AND player_id IN ({marks}) AND autre_id IN ({marks})""", [equipe_id] + list(pids) + list(pids)).fetchone()[0]
+    n = len(pids) * (len(pids) - 1) / 2
+    part = tot / n / (nm * 90.0)
+    return round(max(0.0, min(1.0, (part - 0.25) / 0.35)), 3)
+
+
+def noter_cohesion_jeu(jeu, equipe_id: int, pids: list[int], minutes: float) -> None:
+    """À la clôture d'un match : chaque paire du onze aligné a joué `minutes` ensemble."""
+    ps = sorted(set(int(p) for p in pids))
+    for i in range(len(ps)):
+        for k in range(i + 1, len(ps)):
+            jeu.execute("""INSERT INTO cohesion_jeu(equipe_id, player_id, autre_id, minutes) VALUES (?,?,?,?)
+                           ON CONFLICT(equipe_id, player_id, autre_id) DO UPDATE SET minutes = minutes + excluded.minutes""",
+                        (equipe_id, ps[i], ps[k], float(minutes)))
+
+
 def cohesion(jeu, pids: list[int], team_id: int | None = None) -> float:
     """Le collectif d'un onze, lu dans la saison : la part des matchs du
     club que chaque paire a commencés ENSEMBLE, en moyenne sur les

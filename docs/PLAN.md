@@ -63,7 +63,8 @@ semaine prochaine ?** Aujourd'hui le jeu répond « pour jouer un match »
 ; il faut qu'il réponde « parce que quelque chose m'attend ». Six
 mécaniques, par ordre de valeur sur effort.
 
-**2.1 La saison vivante (3 j).** C'est ce que personne d'autre n'a : tes
+**2.1 La saison vivante (3 j). — Fait** : `/api/journee/club`, le
+panneau en tête de l'écran Journée, le point sur l'onglet. C'est ce que personne d'autre n'a : tes
 cartes sont de vrais joueurs et elles **bougent chaque semaine avec
 leurs vrais matchs**. Le jeu le fait déjà dans la base (le pipeline, les
 journées) mais ne le montre pas comme un événement. Proposition : un
@@ -75,7 +76,11 @@ semaine (la plus grosse hausse du jeu), tes cartes blessées en vrai
 connecté. Le joueur qui suit le vrai football a une raison de revenir
 qui ne dépend pas de nous.
 
-**2.2 Les objectifs de club (2 j).** Au début d'une campagne, le club te
+**2.2 Les objectifs de club (2 j). — Fait** : `solo.tirer_objectifs`
+(classement, buts, domicile ; en coupe d'Europe le tour à atteindre),
+suivis dans l'état de la campagne, payés à la clôture, le titre quand
+les trois sont remplis (`equipe.titres`). Les défis de la semaine
+restent à faire. Au début d'une campagne, le club te
 fixe **trois objectifs** tirés selon ta force : « finir dans les six »,
 « marquer 50 buts », « aligner trois joueurs de moins de 23 ans dans dix
 matchs », « ne pas perdre à domicile ». Chacun paie (M€ et un pack), et
@@ -85,15 +90,18 @@ plus court pour le classé : des **défis de la semaine** (« gagne un
 match avec un onze de moins de 65 », « marque de la tête ») qui
 poussent à varier le jeu.
 
-**2.3 La progression des cartes (2 j).** Trois mécaniques, toutes
-lisibles sur la carte : la **fusion** (trois copies → +1, un liseré), la
-**forme** (une carte dont le vrai joueur enchaîne trois bons matchs
-gagne +1 temporaire : elle brille, et ça se voit sur le terrain), et la
-**cohésion** (le collectif mesuré, § 22 de TACTIQUE.md, compte déjà les
-minutes jouées ensemble en vrai ; on ajoute les minutes jouées ensemble
-*dans le jeu* : un onze qu'on garde gagne du collectif, et le collectif
-fait des buts — mesuré). Résultat : on a envie de garder ses joueurs,
-pas seulement d'en acheter de meilleurs.
+**2.3 La progression des cartes (2 j). — Fait** (sans fusion : un
+doublon se vend, c'est tout). Deux mécaniques, lisibles sur la carte :
+la **forme** (une carte dont le vrai joueur enchaîne trois bons matchs
+notés gagne +1 temporaire et +2 sur chaque attribut en match, trois
+mauvais −1 : `simulation.forme_cartes`, le badge « en forme » dans le
+club), et la **cohésion** (le collectif mesuré, § 22 de TACTIQUE.md,
+compte les minutes jouées ensemble en vrai ; on ajoute les minutes
+jouées ensemble *dans le jeu*, table `cohesion_jeu` remplie à chaque
+clôture, `emergent.cohesion_jeu`, et le match prend le meilleur des
+deux : un onze qu'on garde se rode, et le collectif fait des buts —
+mesuré au § 22). Résultat : on a envie de garder ses joueurs, pas
+seulement d'en acheter de meilleurs.
 
 **2.4 Blessures, suspensions, fatigue d'un match à l'autre (3 j).** Le
 moteur B n'a pas de blessures (le moteur A les garde). Il faut : les
@@ -103,6 +111,20 @@ manque le match suivant), et la **fatigue qui reste** : un joueur qui a
 joué 90 minutes hier part à 85 % d'endurance ; donc on fait tourner, et
 le banc de sept sert à quelque chose. C'est la mécanique qui fait
 exister l'effectif de 18 au lieu d'un onze figé.
+
+Le dessin retenu : dans le moteur B, une blessure est un arrêt de jeu
+(`DELAIS["blessure"]`, la reprise à celui qui avait le ballon), le
+blessé sort ; le camp de la machine fait entrer le premier du banc à
+son poste, le camp d'un humain reste à dix tant qu'il n'a pas nommé
+l'entrant (`attente`, l'écran s'arrête en solo comme avec le moteur A).
+L'état d'une carte entre deux matchs vit dans une table `etat_carte`
+(équipe, carte : jaunes cumulés, matchs de suspension, matchs de
+blessure, fatigue reportée), écrite à chaque clôture : un rouge ou trois
+jaunes suspendent pour le match suivant, une blessure prive de un à
+trois matchs, et la fatigue de fin de match se reporte pour un tiers au
+coup d'envoi suivant (un joueur qui a tout joué repart à 85 %), remise à
+zéro par un match sans jouer. Le onze refuse un suspendu ou un blessé en
+le nommant ; le club les montre.
 
 **2.5 La boîte de dialogue (3 j).** Le point 2 du plan précédent : parler
 à ses joueurs pendant le match en français (« Hakimi, cherche Dembélé

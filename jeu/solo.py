@@ -89,6 +89,90 @@ MATCHS_LIGUE = 8      # ... each playing eight different opponents
 # stronger club); the competition's prize is weighted by the strength of its field (FORCE_CHAMP:
 # the mean force of the clubs over 75, clamped — the Premier League pays more than the Eredivisie).
 FORCE_CHAMP = (75.0, 0.7, 1.3)
+
+# Les objectifs de club (docs/PLAN.md § 2.2) : au départ d'une campagne, le club
+# t'en fixe trois, tirés selon ta force dans le champ — le classement, les buts,
+# et la maison (ne pas perdre chez soi) ou, en coupe d'Europe, le tour à
+# atteindre.  Chacun paie (M€ et un pack) ; les trois remplis donnent un titre.
+OBJECTIF_CREDITS = (12.0, 18.0, 25.0)         # facile, moyen, dur (pondérés par la force du champ comme le reste)
+OBJECTIF_PACKS = ("bronze", "argent", "or")
+BUTS_PAR_MATCH = (1.2, 1.5, 2.0)              # la cible de buts par match : club faible, moyen, fort
+DOMICILE_DEFAITES = 1                          # « ne pas perdre plus d'un match à domicile »
+
+
+def force_equipe(jeu, saison: str, equipe_id: int) -> float:
+    """La force de TON club : la moyenne d'OVR de ses huit meilleures cartes alignées (sinon possédées)."""
+    rows = [r[0] for r in jeu.execute("""SELECT c.ovr FROM exemplaire x JOIN carte c ON c.player_id = x.player_id AND c.saison = x.saison
+                                         WHERE x.equipe_id=? AND x.saison=? AND x.detruit=0 ORDER BY x.dans_effectif DESC, c.ovr DESC""",
+                                      (equipe_id, saison))]
+    top = sorted(rows, reverse=True)[:TAILLE_FORCE]
+    return round(sum(top) / len(top), 1) if top else 60.0
+
+
+def tirer_objectifs(cle: str, clubs: list[dict], place: int, ma_force: float, rng=None) -> list[dict]:
+    """Trois objectifs selon ton rang de force dans le champ."""
+    rng = rng or random.SystemRandom()
+    n = len(clubs)
+    forces = sorted((c.get("force", 60.0) for i, c in enumerate(clubs) if i != place), reverse=True)
+    rang = 1 + sum(1 for f in forces if f > ma_force)          # ton rang de force : 1 = le plus fort
+    tiers = 0 if rang <= max(2, n // 6) else 1 if rang <= n // 2 else 2       # fort, moyen, faible
+    europe = COMPETITIONS[cle]["format"] != "championnat"
+    out = []
+    if europe:
+        matchs = MATCHS_LIGUE
+        tour = (["vainqueur", "F", "2"], ["4", "8", "8"], ["8", "barrage", "barrage"])[tiers][0]
+        libelle = {"vainqueur": "Gagner la coupe", "F": "Atteindre la finale", "2": "Atteindre les demi-finales",
+                   "4": "Atteindre les quarts de finale", "8": "Atteindre les huitièmes", "barrage": "Passer la phase de ligue"}[tour]
+        out.append({"cle": "tour", "libelle": libelle, "cible": tour, "niveau": 2})
+    else:
+        matchs = 2 * (n - 1)
+        if tiers == 0:
+            cible, libelle = (1, "Être champion") if rang == 1 else (3, "Finir sur le podium")
+        elif tiers == 1:
+            cible, libelle = max(4, round(0.30 * n)), "Se qualifier pour l'Europe"
+        else:
+            cible, libelle = (n // 2, "Finir dans la première moitié") if rang <= 2 * n // 3 else (n - 3, "Se maintenir")
+        out.append({"cle": "classement", "libelle": libelle, "cible": cible, "niveau": 2})
+        out.append({"cle": "domicile", "libelle": f"Ne pas perdre plus de {DOMICILE_DEFAITES} match à domicile", "cible": DOMICILE_DEFAITES, "niveau": 1})
+    buts = round(matchs * BUTS_PAR_MATCH[2 - tiers])
+    out.append({"cle": "buts", "libelle": f"Marquer {buts} buts", "cible": buts, "niveau": 0 if europe else 0})
+    if europe:
+        out.append({"cle": "domicile", "libelle": f"Ne pas perdre plus de {DOMICILE_DEFAITES} match à domicile", "cible": DOMICILE_DEFAITES, "niveau": 1})
+    for o in out:
+        o["credits"] = OBJECTIF_CREDITS[o["niveau"]]
+        o["pack"] = OBJECTIF_PACKS[o["niveau"]]
+    return out
+
+
+def _mesure_objectifs(camp, resultats: list[dict], cal: list[dict], clubs: list[dict], objectifs: list[dict],
+                      fini: bool) -> list[dict]:
+    """Où en est chaque objectif : sa valeur, et s'il est rempli (ou encore possible)."""
+    moi = camp["place"]
+    miens = [f for f in resultats if f["mien"]]
+    buts = sum(f["score"][0] if f["a"] == moi else f["score"][1] for f in miens)
+    defaites_dom = sum(1 for f in miens if f["a"] == moi and f["resultat"] == "B")
+    out = []
+    for o in objectifs:
+        d = dict(o)
+        if o["cle"] == "buts":
+            d["valeur"] = buts
+            d["reussi"] = buts >= o["cible"]
+        elif o["cle"] == "domicile":
+            d["valeur"] = defaites_dom
+            d["reussi"] = defaites_dom <= o["cible"] and (fini or True)
+            d["perdu"] = defaites_dom > o["cible"]
+        elif o["cle"] == "classement":
+            table = _table(camp, resultats, "championnat", len(clubs))
+            rang = next((l["rang"] for l in table if l["place"] == moi), None)
+            d["valeur"] = rang
+            d["reussi"] = rang is not None and rang <= o["cible"]
+        elif o["cle"] == "tour":
+            ordre = ["ligue", "barrage", "8", "4", "2", "F", "vainqueur"]
+            sortie = _sortie_europe(camp, resultats, cal, moi) if fini else None
+            d["valeur"] = sortie
+            d["reussi"] = bool(fini and sortie and ordre.index(sortie) >= ordre.index(o["cible"]))
+        out.append(d)
+    return out
 RECOMPENSES_CHAMPIONNAT = {
     "champion": ("Champion", 60.0, {"or": 2}),
     "podium": ("Podium", 35.0, {"or": 1}),
@@ -482,11 +566,12 @@ def demarrer(jeu, saison: str, equipe_id: int, cle: str, club_remplace: int,
         calendrier_championnat(len(tids))[:MATCHS_LIGUE] if europe else calendrier_championnat(len(tids)))
     phase = "ligue" if europe else "championnat"
     cal = [_tour(phase, 0, t) for t in tours]
+    objectifs = tirer_objectifs(cle, clubs, place, force_equipe(jeu, saison, equipe_id), random.Random(graine))
     cur = jeu.execute("""INSERT INTO campagne(saison, equipe_id, cle, club_remplace, place, graine,
-                            clubs, calendrier, cree_le)
-                         VALUES (?,?,?,?,?,?,?,?,?)""",
+                            clubs, calendrier, cree_le, objectifs)
+                         VALUES (?,?,?,?,?,?,?,?,?,?)""",
                       (saison, equipe_id, cle, club_remplace, place, graine,
-                       json.dumps(tids), json.dumps(cal), maintenant()))
+                       json.dumps(tids), json.dumps(cal), maintenant(), json.dumps(objectifs, ensure_ascii=False)))
     jeu.commit()
     return cur.lastrowid
 
@@ -963,8 +1048,29 @@ def cloturer(jeu, saison: str, campagne_id: int) -> dict:
         plus_fort = bool(adv and adv.get("force", 60.0) >= ma_force + 2.0)
         primes += LB.prime_match(res, rr["vitesse"] or LB.VITESSE_CLASSE, plus_fort)
     primes = round(primes, 1)
-    credits = round(credits + primes, 1)
+    # les objectifs du club : chacun paie, les trois donnent un titre
+    try:
+        objectifs = json.loads(camp["objectifs"] or "[]")
+    except (TypeError, KeyError, IndexError, json.JSONDecodeError):
+        objectifs = []
+    mesures = _mesure_objectifs(camp, resultats, cal, clubs, objectifs, fini=True)
+    gains_obj = 0.0
+    for o in mesures:
+        if o["reussi"]:
+            gains_obj += o["credits"] * champ
+            packs[o["pack"]] = packs.get(o["pack"], 0) + 1
+    gains_obj = round(gains_obj, 1)
+    titre = None
+    if mesures and all(o["reussi"] for o in mesures):
+        titre = f"Objectifs remplis · {COMPETITIONS[camp['cle']]['nom']} {saison}"
+        try:
+            titres = json.loads(jeu.execute("SELECT COALESCE(titres,'[]') FROM equipe WHERE equipe_id=?", (camp["equipe_id"],)).fetchone()[0])
+        except (TypeError, json.JSONDecodeError):
+            titres = []
+        jeu.execute("UPDATE equipe SET titres=? WHERE equipe_id=?", (json.dumps(titres + [titre], ensure_ascii=False), camp["equipe_id"]))
+    credits = round(credits + primes + gains_obj, 1)
     bilan = {"libelle": libelle, "credits": credits, "packs": packs, "primes": primes, "champ": round(champ, 2),
+             "objectifs": mesures, "gains_objectifs": gains_obj, "titre": titre,
              "victoires": victoires, "nuls": nuls, "matchs": len(miens)} | detail
     jeu.execute("UPDATE campagne SET statut='fini', fini_le=?, recompenses=? WHERE campagne_id=?",
                 (maintenant(), json.dumps(bilan), campagne_id))
@@ -1001,7 +1107,7 @@ def etat(jeu, saison: str, equipe_id: int, depuis: float | None = None) -> dict:
     camp = en_cours(jeu, saison, equipe_id)
     offerts = json.loads(jeu.execute("SELECT COALESCE(packs_offerts,'{}') FROM equipe WHERE equipe_id=?",
                                      (equipe_id,)).fetchone()[0])
-    base = {"packs_offerts": offerts, "palmares": palmares(jeu, saison, equipe_id)}
+    base = {"packs_offerts": offerts, "palmares": palmares(jeu, saison, equipe_id), "titres": titres(jeu, equipe_id)}
     if not camp:
         return base | {"campagne": None,
                        "competitions": [{"cle": k, "nom": v["nom"], "format": v["format"]}
@@ -1047,6 +1153,10 @@ def etat(jeu, saison: str, equipe_id: int, depuis: float | None = None) -> dict:
                         for f in resultats if f["mien"]][-10:]}
     phase_table = "championnat" if comp["format"] == "championnat" else "ligue"
     c["classement"] = classement(camp, clubs, phase_table)
+    try:
+        c["objectifs"] = _mesure_objectifs(camp, resultats, cal, clubs, json.loads(camp["objectifs"] or "[]"), fini=False)
+    except (TypeError, KeyError, IndexError, json.JSONDecodeError):
+        c["objectifs"] = []
     if comp["format"] != "championnat":
         c["qualification"] = {"directs": DIRECTS, "barrages": BARRAGISTES}
         c["tableau"] = _tableau_ko(camp, clubs, cal, resultats)
@@ -1074,6 +1184,13 @@ def _tableau_ko(camp, clubs: list[dict], cal: list[dict], resultats: list[dict])
                            "toi": camp["place"] in (a, b)})
         out.append({"phase": phase, "libelle": PHASES[phase], "ties": lignes})
     return out
+
+
+def titres(jeu, equipe_id: int) -> list[str]:
+    try:
+        return json.loads(jeu.execute("SELECT COALESCE(titres,'[]') FROM equipe WHERE equipe_id=?", (equipe_id,)).fetchone()[0])
+    except (TypeError, json.JSONDecodeError):
+        return []
 
 
 def palmares(jeu, saison: str, equipe_id: int) -> list[dict]:

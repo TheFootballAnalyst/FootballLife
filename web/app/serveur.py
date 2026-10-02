@@ -337,6 +337,7 @@ def cartes_toutes(jeu):
     dj = derniere_journee_calculee(jeu)
     limite = dj["au"] if dj else "9999-12-31"
     valeurs = dict(jeu.execute("SELECT player_id, valeur FROM valeur_marche WHERE date <= ? ORDER BY date", (limite,)))
+    formes = SM.forme_cartes(jeu, SAISON)
     out = []
     for r in jeu.execute("""
             SELECT c.player_id, c.ovr, c.prix, c.part, c.note_ovr, c.matchs, c.minutes,
@@ -365,6 +366,7 @@ def cartes_toutes(jeu):
             "globaux": S.contributions(json.loads(r["attributs"] or "{}"), r["physique"]),
             "matchs": r["matchs"], "minutes": int(r["minutes"] or 0), "arrivee": r["arrivee"],
             "notes": notes.get(r["player_id"], [])[-6:],
+            "forme": formes.get(r["player_id"], 0),          # +1 en forme (trois bons vrais matchs d'affilée), -1 en méforme
             # La FORME du joueur sur les six axes, lue contre sa ligne :
             # six nombres, pas une étiquette (jeu/simulation.profil).  Les
             # libellés se déduisent côté écran à partir de la table
