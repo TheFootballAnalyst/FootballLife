@@ -7,6 +7,7 @@ creation, progression, defense, dribble, conservation. Les sous-notes sont
 sur 40-99 comme les radars du Ballon d'or.
 """
 import math, pathlib
+from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 PROJ = pathlib.Path(__file__).resolve().parent
@@ -74,8 +75,8 @@ def logo_ligue(nom, haut):
     return im.resize((int(im.width*k), haut), Image.LANCZOS)
 
 
-def logo_club(tid, taille):
-    src = PROJ / "images" / "logos" / f"{tid}.png"
+def logo_club(tid, taille, chemin=None):
+    src = Path(chemin) if chemin else PROJ / "images" / "logos" / f"{tid}.png"
     if not src.exists():
         return None
     return Image.open(src).convert('RGBA').resize((taille, taille), Image.LANCZOS)
@@ -87,7 +88,9 @@ PIEDS = {"gauche": "GAUCHER", "droit": "DROITIER", "deux": "AMBIDEXTRE"}
 
 
 def carte(pid, nom, note, club_couleur, competition, poste="", minutes=None,
-          attributs=None, larg=420, team_id=None, pied=None):
+          attributs=None, larg=420, team_id=None, pied=None, portrait=None, logo=None):
+    # `portrait` et `logo` : d'autres fichiers que ceux de images/ (le monde fictif
+    # dessine ses avatars et ses blasons, un mod apporte les siens)
     haut = int(larg * 1.50)
     dec = DECORS.get(competition, DEFAUT)
     marge = 26
@@ -115,7 +118,7 @@ def carte(pid, nom, note, club_couleur, competition, poste="", minutes=None,
     # MAILLAGE d'ecussons : le logo du club repete en quinconce, tres pale,
     # comme un papier peint. C'est lui qui donne sa matiere a la carte — une
     # trame geometrique neutre ne disait rien du club.
-    tuile = logo_club(team_id, int(larg*0.30)) if team_id else None
+    tuile = logo_club(team_id, int(larg*0.30), logo) if (team_id or logo) else None
     if tuile is not None:
         pale = tuile.copy()
         pale.putalpha(pale.getchannel('A').point(lambda v: int(v*0.20)))
@@ -183,7 +186,7 @@ def carte(pid, nom, note, club_couleur, competition, poste="", minutes=None,
         corps.alpha_composite(lg, (int(larg*0.07), int(larg*0.06)))
 
     # --- portrait, grand ---
-    src = PROJ / "images" / "joueurs" / f"{pid}.png"
+    src = Path(portrait) if portrait else PROJ / "images" / "joueurs" / f"{pid}.png"
     if src.exists():
         ph = Image.open(src).convert('RGBA')
         # Les portraits FotMob ont des marges variables : on recadre sur la

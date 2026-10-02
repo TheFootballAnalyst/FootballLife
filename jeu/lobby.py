@@ -43,6 +43,7 @@ from jeu import simulation as SM
 from jeu import direct as DIRECT
 from jeu import emergent as EM
 from jeu import dialogue as DI
+from jeu.messages import ErreurJeu
 
 # Six real minutes for the ninety, not four.  Four left no room to make
 # a substitution: picking who comes off and who comes on took longer than
@@ -224,7 +225,7 @@ def solitaire(r) -> bool:
     return bool(r["defi"]) or _champ(r, "campagne_id") is not None
 
 
-class ErreurLobby(Exception):
+class ErreurLobby(ErreurJeu):
     pass
 
 
@@ -282,8 +283,8 @@ def noter_etat_cartes(jeu, equipe_id: int, cote: str, f: dict, graine: int = 0) 
                     (equipe_id, pid, d["jaunes"], d["suspension"], d["blessure"], d["fatigue"]))
 
 
-def _indisponible(jeu, equipe_id: int, pids: list[int]) -> str | None:
-    """Le premier joueur suspendu ou blessé parmi `pids`, dit en clair ; None sinon."""
+def _indisponible(jeu, equipe_id: int, pids: list[int]) -> ErreurLobby | None:
+    """Le premier joueur suspendu ou blessé parmi `pids`, comme erreur à lever ; None sinon."""
     etat = etat_cartes_equipe(jeu, equipe_id)
     for pid in pids:
         d = etat.get(pid)
@@ -291,8 +292,8 @@ def _indisponible(jeu, equipe_id: int, pids: list[int]) -> str | None:
             continue
         nom = (jeu.execute("SELECT nom FROM joueur WHERE player_id=?", (pid,)).fetchone() or ["?"])[0]
         if d["suspension"] > 0:
-            return f"{nom} est suspendu (encore {d['suspension']} match{'s' if d['suspension'] > 1 else ''})"
-        return f"{nom} est blessé (encore {d['blessure']} match{'s' if d['blessure'] > 1 else ''})"
+            return ErreurLobby("suspendu", nom=nom, n=d["suspension"])
+        return ErreurLobby("blesse", nom=nom, n=d["blessure"])
     return None
 
 
@@ -301,20 +302,20 @@ def verifier_onze(jeu, saison: str, equipe_id: int, onze: list[int], formation: 
     Anyone may play anywhere — the slot's distance from what he really
     held is paid in the match (scoring.malus_poste), not refused here."""
     if formation not in S.FORMATIONS:
-        raise ErreurLobby("Formation inconnue")
+        raise ErreurLobby("formation_inconnue")
     if len(onze) != S.TAILLE_ONZE or len(set(onze)) != S.TAILLE_ONZE or any(p is None for p in onze):
-        raise ErreurLobby("Il faut onze joueurs, tous différents")
+        raise ErreurLobby("onze_onze")
     effectif = {r[0] for r in jeu.execute(
         "SELECT player_id FROM exemplaire WHERE equipe_id=? AND saison=? AND detruit=0 AND dans_effectif=1",
         (equipe_id, saison))}
     if not set(onze) <= effectif:
-        raise ErreurLobby("Un joueur du onze n'est pas dans ton effectif")
+        raise ErreurLobby("onze_hors_effectif")
     for pid in onze:
         if not jeu.execute("SELECT 1 FROM joueur WHERE player_id=?", (pid,)).fetchone():
-            raise ErreurLobby("Joueur inconnu")
+            raise ErreurLobby("joueur_inconnu")
     indispo = _indisponible(jeu, equipe_id, onze)
     if indispo:
-        raise ErreurLobby(indispo)
+        raise indispo
     return list(onze)
 
 
@@ -337,17 +338,17 @@ def verifier_banc(jeu, saison: str, equipe_id: int, onze: list[int], banc: list[
     if not banc:
         return []
     if len(set(banc)) != len(banc) or set(banc) & set(onze):
-        raise ErreurLobby("Un remplaçant est en double, ou déjà titulaire")
+        raise ErreurLobby("banc_double")
     if len(banc) > S.TAILLE_BANC:
-        raise ErreurLobby(f"{S.TAILLE_BANC} remplaçants au plus")
+        raise ErreurLobby("banc_max", n=S.TAILLE_BANC)
     indispo = _indisponible(jeu, equipe_id, banc)
     if indispo:
-        raise ErreurLobby(indispo)
+        raise indispo
     effectif = {r[0] for r in jeu.execute(
         "SELECT player_id FROM exemplaire WHERE equipe_id=? AND saison=? AND detruit=0 AND dans_effectif=1",
         (equipe_id, saison))}
     if not set(banc) <= effectif:
-        raise ErreurLobby("Un remplaçant n'est pas dans ton effectif")
+        raise ErreurLobby("banc_hors_effectif")
     return list(banc)
 
 
@@ -405,7 +406,7 @@ def rejoindre(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict 
     Elo, else opens a waiting entry — or kicks off at once against a
     generated eleven when `defi`.  Returns the rencontre_id."""
     if en_cours(jeu, saison, equipe_id):
-        raise ErreurLobby("Tu as déjà un match en cours")
+        raise ErreurLobby("deja_match")
     onze = verifier_onze(jeu, saison, equipe_id, onze, formation)
     banc = verifier_banc(jeu, saison, equipe_id, onze, banc)
     tac = json.dumps(vars(SM.Tactique(**(tactique or {})).valide()))
@@ -569,6 +570,7 @@ def feuille(jeu, saison: str, r, minute: float | None = None, depuis: float | No
     # ce que chaque camp peut dire de l'autre — pas sa feuille de
     # réglages, ce qu'il en VOIT (simulation.lecture_adverse)
     f["lecture"] = {"a": SM.lecture_adverse(f, "a"), "b": SM.lecture_adverse(f, "b")}
+    f["lecture_codes"] = {"a": SM.lecture_adverse_codes(f, "a"), "b": SM.lecture_adverse_codes(f, "b")}
     f["defi"] = bool(r["defi"])
     f["noms"] = [a.nom, b.nom]
     sur = f.pop("onze", {"a": [], "b": []})
@@ -583,6 +585,7 @@ def feuille(jeu, saison: str, r, minute: float | None = None, depuis: float | No
     f["banc"] = {"a": [vu(j, "a") for j in a.banc], "b": [vu(j, "b") for j in b.banc]}
     f["sur_le_terrain"] = sur
     f["style"] = {"a": SM.style(a.joueurs), "b": SM.style(b.joueurs)}
+    f["style_codes"] = {"a": SM.style_codes(a.joueurs), "b": SM.style_codes(b.joueurs)}
     return f
 
 
@@ -591,9 +594,9 @@ def ajuster(jeu, saison: str, equipe_id: int, tactique: dict, r=None) -> int:
     what has not been played.  Returns that minute."""
     r = r if r is not None else en_cours(jeu, saison, equipe_id)
     if not r or not r["debut"]:
-        raise ErreurLobby("Aucun match en cours")
+        raise ErreurLobby("aucun_match")
     if termine(jeu, saison, r):
-        raise ErreurLobby("Le match est terminé")
+        raise ErreurLobby("match_termine")
     cote = 0 if r["equipe_a"] == equipe_id else 1
     aj = json.loads(r["ajustements"] or "{}")
     # the next minute, never the one already being played
@@ -615,18 +618,18 @@ def causer(jeu, saison: str, equipe_id: int, causerie: str, r=None) -> str:
     est dit."""
     r = r if r is not None else en_cours(jeu, saison, equipe_id)
     if not r or not r["debut"]:
-        raise ErreurLobby("Aucun match en cours")
+        raise ErreurLobby("aucun_match")
     if causerie not in SM.CAUSERIES:
-        raise ErreurLobby("Causerie inconnue")
+        raise ErreurLobby("causerie_inconnue")
     m = minute_de(r, jeu=jeu, saison=saison)
     mt = MI_TEMPS
     if m >= MI_TEMPS:
         mt = feuille(jeu, saison, r, m).get("mi_temps") or MI_TEMPS     # la pause est à 45 plus le temps additionnel
     if m < mt or m >= mt + SM.DUREE_CAUSERIE:
-        raise ErreurLobby("C'est à la mi-temps qu'on parle à son équipe")
+        raise ErreurLobby("causerie_mi_temps")
     cote = "a" if r["equipe_a"] == equipe_id else "b"
     if _champ(r, f"causerie_{cote}"):
-        raise ErreurLobby("Tu leur as déjà parlé")
+        raise ErreurLobby("causerie_deja")
     jeu.execute(f"UPDATE rencontre SET causerie_{cote}=? WHERE rencontre_id=?",
                 (causerie, r["rencontre_id"]))
     jeu.commit()
@@ -643,15 +646,15 @@ def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int, r=None
     injury, and a check here would have to guess."""
     r = r if r is not None else en_cours(jeu, saison, equipe_id)
     if not r or not r["debut"]:
-        raise ErreurLobby("Aucun match en cours")
+        raise ErreurLobby("aucun_match")
     m = minute_de(r, jeu=jeu, saison=saison)
     if termine(jeu, saison, r):
-        raise ErreurLobby("Le match est terminé")
+        raise ErreurLobby("match_termine")
     cote = 0 if r["equipe_a"] == equipe_id else 1
     cle_cote = "ab"[cote]
     f = feuille(jeu, saison, r, m)
     if sortant not in f["sur_le_terrain"][cle_cote] and sortant not in f["attente"][cle_cote]:
-        raise ErreurLobby("Ce joueur n'est pas sur le terrain")
+        raise ErreurLobby("pas_sur_terrain")
     # f["banc"] is the bench as it was NAMED; whoever already came on is
     # still in it, so the ones already used have to be taken out here.  The
     # simulation's own `entres` is what to read: it also counts the man who
@@ -660,9 +663,9 @@ def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int, r=None
     # read at the current minute and they take effect at the next one.
     deja = set(f["entres"][cle_cote]) | {e for paire in _remplacements(r).values() for _s, e in paire[cote]}
     if entrant not in [j["pid"] for j in f["banc"][cle_cote]] or entrant in deja:
-        raise ErreurLobby("Ce joueur n'est pas sur ton banc")
+        raise ErreurLobby("pas_sur_banc")
     if f["changements"][cote] >= SM.MAX_CHANGEMENTS:
-        raise ErreurLobby(f"{SM.MAX_CHANGEMENTS} changements, c'est le maximum")
+        raise ErreurLobby("changements_max", n=SM.MAX_CHANGEMENTS)
     def ecrire(minute):
         cle = str(minute)
         brut = json.loads(r["remplacements"] or "{}")
@@ -690,7 +693,7 @@ def dire(jeu, saison: str, equipe_id: int, texte: str, tactique: dict | None, r=
     (plus de changements, pas la mi-temps...) rend la raison en clair."""
     r = r if r is not None else en_cours(jeu, saison, equipe_id)
     if not r or not r["debut"]:
-        raise ErreurLobby("Aucun match en cours")
+        raise ErreurLobby("aucun_match")
     m = minute_de(r, jeu=jeu, saison=saison)
     f = feuille(jeu, saison, r, m)
     cote = "a" if r["equipe_a"] == equipe_id else "b"
@@ -721,7 +724,7 @@ def dire(jeu, saison: str, equipe_id: int, texte: str, tactique: dict | None, r=
         elif c["action"] == "causerie":
             causer(jeu, saison, equipe_id, c["causerie"], r)
     except ErreurLobby as err:
-        out.update(compris=False, reponse=str(err), action=None)
+        out.update(compris=False, reponse=str(err), action=None, code=err.code, params=err.params)
     return out
 
 
@@ -733,18 +736,18 @@ def permuter(jeu, saison: str, equipe_id: int, un: int, deux: int, r=None) -> in
     now stands.  Returns the minute it takes effect."""
     r = r if r is not None else en_cours(jeu, saison, equipe_id)
     if not r or not r["debut"]:
-        raise ErreurLobby("Aucun match en cours")
+        raise ErreurLobby("aucun_match")
     m = minute_de(r, jeu=jeu, saison=saison)
     if termine(jeu, saison, r):
-        raise ErreurLobby("Le match est terminé")
+        raise ErreurLobby("match_termine")
     if un == deux:
-        raise ErreurLobby("Il faut deux joueurs différents")
+        raise ErreurLobby("deux_joueurs")
     cote = 0 if r["equipe_a"] == equipe_id else 1
     cle_cote = "ab"[cote]
     f = feuille(jeu, saison, r, m)
     dessus = set(f["sur_le_terrain"][cle_cote])
     if un not in dessus or deux not in dessus:
-        raise ErreurLobby("Les deux joueurs doivent être sur le terrain")
+        raise ErreurLobby("deux_sur_terrain")
     def ecrire(minute):
         cle = str(minute)
         brut = json.loads(_champ(r, "permutations") or "{}")
@@ -804,6 +807,9 @@ def cloturer(jeu, saison: str, r) -> dict | None:
             autre = r["equipe_b"] if cote == "A" else r["equipe_a"]
             plus_fort = bool(autre and elos.get(autre, 0) >= elos.get(eid, 0) + PRIME_ADVERSITE[1])
             primes[cote.lower()] = prime_match(res, vitesse_de(r), plus_fort, defi=bool(r["defi"]))
+            # un premium touche un peu mieux (jeu/comptes, quand les limites sont actives)
+            from jeu import comptes as CO
+            primes[cote.lower()] = round(primes[cote.lower()] * CO.coefficient_prime(jeu, saison, eid), 2)
             jeu.execute("UPDATE equipe SET budget = ROUND(budget + ?, 2) WHERE equipe_id=?", (primes[cote.lower()], eid))
         f["primes"] = primes
     jeu.execute("""UPDATE rencontre SET score_a=?, score_b=?, resultat=?, feuille=?, elo_a_apres=?, elo_b_apres=?

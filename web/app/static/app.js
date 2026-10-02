@@ -4,14 +4,18 @@
 
 const QUOTA = {};
 const FAMS = ["GK", "DEF", "MID", "FWD"];
-const NOM_FAM = {GK: "Gardien", DEF: "Défenseur", MID: "Milieu", FWD: "Attaquant"};
-const PLURIEL = {GK: "gardiens", DEF: "défenseurs", MID: "milieux", FWD: "attaquants"};
-const POSTE_COURT = {"Gardien":"Gardien","Defenseur central":"Défenseur central","Lateral":"Latéral","Lateral gauche":"Latéral gauche","Lateral droit":"Latéral droit","Milieu defensif":"Milieu défensif","Milieu relayeur":"Milieu relayeur","Milieu offensif":"Meneur","Milieu de couloir":"Milieu de couloir","Milieu gauche":"Milieu gauche","Milieu droit":"Milieu droit","Ailier":"Ailier","Ailier droit":"Ailier droit","Ailier gauche":"Ailier gauche","Buteur":"Buteur"};
+// Les tables de libellés lisent le dictionnaire de la langue (static/lang) : une
+// table est un préfixe de clés, et NOM_FAM.GK vaut t("fam.GK").
+const tableT = prefixe => new Proxy({}, {get: (_, k) => typeof k === "string" && existeT(prefixe + k) ? t(prefixe + k) : undefined,
+  has: (_, k) => typeof k === "string" && existeT(prefixe + k)});
+const NOM_FAM = tableT("fam.");
+const PLURIEL = tableT("fam_pl.");
+const POSTE_COURT = tableT("poste.");
 // Un poste sans son côté : « Lateral gauche » → « Lateral ».
 const posteBase = p => (p === "Milieu gauche" || p === "Milieu droit") ? "Milieu de couloir" : (p || "").replace(/ (gauche|droit)$/, "");
-const ATTR_NOMS = {FIN:"Finition",CRE:"Création",PRO:"Progression",DEF:"Défense",DRI:"Dribble",CON:"Conservation",ARR:"Arrêts",EVI:"Buts évités",SOR:"Sorties",REL:"Jeu long",BUT:"Imbattabilité"};
-const ATTR_NOMS_GARDIEN = {PRO:"Jeu court"};   // a keeper's PRO axis is his short passing (jeu/bareme.py)
-const PIEDS = {gauche: "gaucher", droit: "droitier", deux: "ambidextre"};
+const ATTR_NOMS = tableT("attr.");
+const ATTR_NOMS_GARDIEN = tableT("attr_gk.");   // a keeper's PRO axis is his short passing (jeu/bareme.py)
+const PIEDS = tableT("pied.");
 // Les deux pieds, en jauges sur deux icônes de pied : le pied fort est
 // plein, le mauvais pied se remplit selon sa qualité (1 à 5, d'après la
 // fiche EA).  Un droitier dont le mauvais pied est à 5 est simplement
@@ -39,20 +43,19 @@ function piedsDe(c, compact = false) {
   const n = niveauxPieds(c);
   const w = el("span", {class: "pieds" + (compact ? " compact" : "") + (n ? "" : " inconnu")});
   if (!n) {
-    w.title = "Pied fort inconnu : la fiche EA (moteur/physique_ea.csv) ne le couvre pas";
+    w.title = t("pied.inconnu");
     w.append(iconePied("gauche", 0, "pg" + (++_piedId)), iconePied("droit", 0, "pd" + (++_piedId)));
     return w;
   }
-  const txt = n.gauche >= 1 && n.droit >= 1 ? "Ambidextre : les deux pieds pleins"
-    : `Pied ${c.pied} fort · ${c.pied === "droit" ? "gauche" : "droit"} à ${n.faible}/5` + (n.connu ? "" : " (qualité inconnue)");
+  const txt = n.gauche >= 1 && n.droit >= 1 ? t("pied.ambidextre_titre")
+    : t("pied.fort_titre", {fort: t("pied.cote_" + c.pied), faible: t("pied.cote_" + (c.pied === "droit" ? "gauche" : "droit")), n: n.faible}) + (n.connu ? "" : t("pied.qualite_inconnue"));
   w.title = txt;
   w.append(iconePied("gauche", n.gauche, "pg" + (++_piedId)), iconePied("droit", n.droit, "pd" + (++_piedId)));
-  if (!compact) w.append(el("span", {class: "pieds-txt"}, n.gauche >= 1 && n.droit >= 1 ? "ambidextre" : `${PIEDS[c.pied]} · ${n.faible ? n.faible + "/5" : "?"}`));
+  if (!compact) w.append(el("span", {class: "pieds-txt"}, n.gauche >= 1 && n.droit >= 1 ? t("pied.deux") : `${PIEDS[c.pied]} · ${n.faible ? n.faible + "/5" : "?"}`));
   return w;
 }
 // La fiche physique (EA) : les neuf jauges et les mesures.
-const PHYSIQUE_NOMS = {acceleration: "Accélération", vitesse_pointe: "Vitesse", agilite: "Agilité", equilibre: "Équilibre",
-  reactions: "Réactions", endurance: "Endurance", force: "Force", detente: "Détente", agressivite: "Agressivité"};
+const PHYSIQUE_CLES = ["acceleration", "vitesse_pointe", "agilite", "equilibre", "reactions", "endurance", "force", "detente", "agressivite"];
 function blocPhysique(d) {
   const ph = d.physique;
   const b = el("div", {class: "physique-bloc"});
@@ -61,54 +64,55 @@ function blocPhysique(d) {
   if (g && (g.phy != null || g.off != null)) {
     const ligne = el("div", {class: "globaux"});
     const dev = (g.source ? " (" + g.source + ")" : "") + (g.leviers ? " — " + g.leviers : "");
-    for (const [k, v, t] of [["PHY", g.phy, "Physique : accélération, pointe, endurance, force, détente"], ["OFF", g.off, "Taux de travail offensif" + dev], ["DEF", g.def, "Taux de travail défensif" + dev]]) {
+    for (const [k, v, titre] of [["PHY", g.phy, t("phys.phy_titre")], ["OFF", g.off, t("phys.off_titre") + dev], ["DEF", g.def, t("phys.def_titre") + dev]]) {
       if (v == null) continue;
-      ligne.append(el("div", {class: "global", title: t}, el("span", {}, k), el("b", {class: "num" + (v >= 80 || v === "Haut" ? " haut" : "")}, String(v))));
+      ligne.append(el("div", {class: "global", title: titre}, el("span", {}, k), el("b", {class: "num" + (v >= 80 || v === "Haut" ? " haut" : "")}, String(v))));
     }
     b.append(ligne);
   }
-  b.append(el("div", {class: "etiq"}, "Physique"));
-  if (!ph) { b.append(el("p", {class: "compteur"}, "Pas de fiche physique pour ce joueur (moteur/physique_ea.csv).")); return b; }
+  b.append(el("div", {class: "etiq"}, t("phys.titre")));
+  if (!ph) { b.append(el("p", {class: "compteur"}, t("phys.sans_fiche"))); return b; }
   const A = el("div", {class: "attrs physique"});
-  for (const [k, nom] of Object.entries(PHYSIQUE_NOMS)) {
+  for (const k of PHYSIQUE_CLES) {
     const v = ph[k]; if (v === undefined || v === null) continue;
-    A.append(el("div", {class: "attr"}, el("span", {}, nom), el("div", {class: "jauge"}, el("i", {class: v >= 80 ? "haut" : "", style: `width:${Math.max(0, Math.min(100, v))}%`})), el("b", {class: "num"}, String(v))));
+    A.append(el("div", {class: "attr"}, el("span", {}, t("phys." + k)), el("div", {class: "jauge"}, el("i", {class: v >= 80 ? "haut" : "", style: `width:${Math.max(0, Math.min(100, v))}%`})), el("b", {class: "num"}, String(v))));
   }
   b.append(A);
   const mesures = [];
   if (ph.taille) mesures.push(`${Math.floor(ph.taille / 100)} m ${String(ph.taille % 100).padStart(2, "0")}`);
   if (ph.poids) mesures.push(`${ph.poids} kg`);
-  if (ph.gestes) mesures.push(`gestes techniques ${ph.gestes}/5`);
-  if (ph.note_physique) mesures.push(`physique ${ph.note_physique}`);
-  if (ph.defaut) b.append(el("div", {class: "compteur"}, "Pas de fiche EA pour lui : le profil est la médiane des joueurs de son poste" + (mesures.length ? " (" + mesures.join(" · ") + ")" : "") + "."));
-  else if (mesures.length) b.append(el("div", {class: "compteur"}, mesures.join(" · ") + " · d'après la fiche EA Sports, qui colle à la réalité"));
+  if (ph.gestes) mesures.push(t("phys.gestes", {n: ph.gestes}));
+  if (ph.note_physique) mesures.push(t("phys.note", {n: ph.note_physique}));
+  if (ph.defaut) b.append(el("div", {class: "compteur"}, t("phys.defaut") + (mesures.length ? " (" + mesures.join(" · ") + ")" : "") + "."));
+  else if (mesures.length) b.append(el("div", {class: "compteur"}, mesures.join(" · ") + " · " + t("phys.source_ea")));
   const m = d.mesures;
   if (m && m.n) {
-    const km = v => (Math.round(v / 100) / 10).toLocaleString("fr-FR", {minimumFractionDigits: 1, maximumFractionDigits: 1});
-    b.append(el("div", {class: "compteur mesure", title: "Suivi FotMob en Ligue des champions, ramené à 90 minutes"},
-      `Mesuré en Ligue des champions (${m.n} match${m.n > 1 ? "s" : ""}) : pointe ${(Math.round(m.vmax * 10) / 10).toLocaleString("fr-FR")} km/h · ${km(m.dist90)} km par 90 min · ${Math.round(m.nsprint90)} sprints par 90 min`));
+    const km = v => (Math.round(v / 100) / 10).toLocaleString(LOCALE, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+    b.append(el("div", {class: "compteur mesure", title: t("phys.mesure_titre")},
+      t("phys.mesure", {n: m.n, vmax: (Math.round(m.vmax * 10) / 10).toLocaleString(LOCALE), km: km(m.dist90), sprints: Math.round(m.nsprint90)})));
   }
   return b;
 }
-const dateFr = iso => { if (!iso) return ""; const [a, m, j] = iso.split("-"); return `${+j} ${["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."][+m - 1] || ""} ${a}`; };
+const dateFr = iso => { if (!iso) return ""; const [a, m, j] = iso.split("-"); try { return new Date(Date.UTC(+a, +m - 1, +j)).toLocaleDateString(LOCALE, {day: "numeric", month: "short", year: "numeric", timeZone: "UTC"}); } catch (e) { return `${+j}/${+m}/${a}`; } };
 const AXES = {champ:["FIN","CRE","PRO","DEF","DRI","CON"], gardien:["ARR","EVI","SOR","REL","BUT","PRO"]};
 const f1 = x => (Math.round((+x || 0) * 10) / 10).toFixed(1);
 // money: every amount is in M€ (0.1 = 100 k€)
 // Les montants sont en M€.  Le palier du milliard sert au compte de
 // démonstration, qui démarre à dix : « 10000,0 M€ » ne se lit pas.
+const virgule = x => (typeof LOCALE === "string" && !LOCALE.startsWith("fr")) ? x : x.replace(".", ",");
 const fM = (x, signe = false) => { const v = +x || 0, a = Math.abs(v), s = v < 0 ? "−" : signe && v > 0 ? "+" : "";
   if (a < 1) return s + Math.round(a * 1000) + " k€";
-  if (a < 10) return s + a.toFixed(2).replace(".", ",") + " M€";
-  if (a < 1000) return s + (Math.round(a * 10) / 10).toFixed(1).replace(".", ",") + " M€";
-  return s + (a / 1000).toFixed(2).replace(".", ",") + " Md€"; };
+  if (a < 10) return s + virgule(a.toFixed(2)) + " M€";
+  if (a < 1000) return s + virgule((Math.round(a * 10) / 10).toFixed(1)) + " M€";
+  return s + virgule((a / 1000).toFixed(2)) + " Md€"; };
 
 // ISO-3 (FotMob) -> ISO-2, for the flag emoji on the card
 const ISO2 = {FRA:"FR",ENG:"GB",SCO:"GB",WAL:"GB",NIR:"GB",IRL:"IE",ESP:"ES",ITA:"IT",GER:"DE",POR:"PT",NED:"NL",BEL:"BE",SUI:"CH",AUT:"AT",DEN:"DK",SWE:"SE",NOR:"NO",FIN:"FI",ISL:"IS",POL:"PL",CZE:"CZ",SVK:"SK",HUN:"HU",ROU:"RO",BUL:"BG",SRB:"RS",CRO:"HR",SVN:"SI",BIH:"BA",MNE:"ME",MKD:"MK",ALB:"AL",KOS:"XK",GRE:"GR",TUR:"TR",UKR:"UA",RUS:"RU",BLR:"BY",GEO:"GE",ARM:"AM",AZE:"AZ",KAZ:"KZ",ISR:"IL",CYP:"CY",MLT:"MT",LUX:"LU",LTU:"LT",LVA:"LV",EST:"EE",MDA:"MD",BRA:"BR",ARG:"AR",URU:"UY",PAR:"PY",CHI:"CL",COL:"CO",PER:"PE",ECU:"EC",VEN:"VE",BOL:"BO",MEX:"MX",USA:"US",CAN:"CA",JAM:"JM",CRC:"CR",HON:"HN",PAN:"PA",GUA:"GT",SLV:"SV",HAI:"HT",CUB:"CU",DOM:"DO",TRI:"TT",CUW:"CW",SUR:"SR",MAR:"MA",ALG:"DZ",TUN:"TN",EGY:"EG",SEN:"SN",CIV:"CI",CMR:"CM",NGA:"NG",GHA:"GH",MLI:"ML",GUI:"GN",BFA:"BF",COD:"CD",CGO:"CG",GAB:"GA",ANG:"AO",MOZ:"MZ",ZAM:"ZM",ZIM:"ZW",RSA:"ZA",KEN:"KE",UGA:"UG",TAN:"TZ",ETH:"ET",SUD:"SD",TOG:"TG",BEN:"BJ",NIG:"NE",GAM:"GM",SLE:"SL",LBR:"LR",CPV:"CV",GNB:"GW",EQG:"GQ",CTA:"CF",CHA:"TD",MTN:"MR",LBY:"LY",COM:"KM",MAD:"MG",BDI:"BI",RWA:"RW",JPN:"JP",KOR:"KR",CHN:"CN",AUS:"AU",NZL:"NZ",IRN:"IR",IRQ:"IQ",KSA:"SA",QAT:"QA",UAE:"AE",UZB:"UZ",IND:"IN",THA:"TH",VIE:"VN",PHI:"PH",IDN:"ID",MAS:"MY",SYR:"SY",JOR:"JO",LBN:"LB",PLE:"PS"};
 const drapeau = code => { const c = ISO2[code] || (code && code.length === 2 ? code : null); if (!c) return ""; return String.fromCodePoint(...[...c.toUpperCase()].map(ch => 0x1F1E6 + ch.charCodeAt(0) - 65)); };
-const ageTxt = c => c.age ? `${c.age} ans` : "";
+const ageTxt = c => c.age ? t("carte.ans", {n: c.age}) : "";
 // pour chercher : minuscules, sans accents
 const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-const FAM_COURT = {GK: "GB", DEF: "DÉF", MID: "MIL", FWD: "ATT"};
+const FAM_COURT = tableT("fam_court.");
 
 // ---- état local (miroir de ce que le serveur a renvoyé) ----
 const G = {moi: null, saison: null, cartes: [], idx: new Map(), equipe: null, compo: null, ecran: "connexion", ventes: [], club: [], packs: null};
@@ -133,11 +137,77 @@ const nomFormation = f => LIBELLES_FORMATION[f] || f;
 // ---- utilitaires ----
 const $ = s => document.querySelector(s);
 const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (v === null || v === false || v === undefined) continue; if (k === "class") e.className = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v); } for (const k of kids) if (k != null) e.append(k); return e; };
+
+// ---- les langues (PLAN § 3) ----
+// Un dictionnaire par langue (static/lang/<code>.json), le français comme
+// langue source et secours.  t(clé, {nom}) met les paramètres ; une valeur
+// {"1": ..., "n": ...} choisit sa forme sur le paramètre n.  La langue vient du
+// profil (fl_langue), sinon du navigateur.  « xx » est la pseudo-traduction :
+// le français allongé de 30 % avec des accents, pour voir ce qui déborde.
+const LANGUES = {fr: "Français", en: "English"};
+let LANGUE = "fr", LOCALE = "fr-FR", DICO = {}, DICO_FR = {};
+const LOCALES = {fr: "fr-FR", en: "en-GB"};
+function langueChoisie() {
+  try { const l = localStorage.getItem("fl_langue"); if (l && (LANGUES[l] || l === "xx")) return l; } catch (e) {}
+  const nav = (navigator.language || "fr").slice(0, 2).toLowerCase();
+  return LANGUES[nav] ? nav : "fr";
+}
+function pseudoTraduire(d) {
+  const acc = {a: "å", e: "ë", i: "ï", o: "ø", u: "ü", c: "ç", n: "ñ", A: "Å", E: "Ë", O: "Ø", U: "Ü"};
+  // les {paramètres} restent intacts : ce sont des clés, pas du texte
+  const f = s => { const x = s.replace(/\{\w+\}|[aeiouAEOUcn]/g, ch => ch.length > 1 ? ch : (acc[ch] || ch)); return x + " " + "~".repeat(Math.ceil(x.replace(/\{\w+\}/g, "").length * 0.3)); };
+  const out = {};
+  for (const [k, v] of Object.entries(d)) out[k] = typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([a, b]) => [a, f(b)])) : f(v);
+  return out;
+}
+async function chargerLangue(code) {
+  const charge = async c => { try { const r = await fetch(`/static/lang/${c}.json?v=1`); return r.ok ? await r.json() : {}; } catch (e) { return {}; } };
+  DICO_FR = await charge("fr");
+  LANGUE = code;
+  DICO = code === "fr" ? DICO_FR : code === "xx" ? pseudoTraduire(DICO_FR) : await charge(code);
+  LOCALE = LOCALES[code] || "fr-FR";
+}
+const existeT = cle => DICO[cle] !== undefined || DICO_FR[cle] !== undefined;
+function t(cle, p) {
+  let s = DICO[cle]; if (s === undefined) s = DICO_FR[cle];
+  if (s === undefined) return cle;
+  if (typeof s === "object") s = (p && +p.n === 1) ? (s["1"] ?? s.n) : (s.n ?? s["1"]);
+  return String(s).replace(/\{(\w+)\}/g, (_, k) => (p && p[k] !== undefined && p[k] !== null) ? p[k] : "");
+}
+function appliquerLangue() {
+  document.documentElement.lang = LANGUE === "xx" ? "fr" : LANGUE;
+  for (const e of document.querySelectorAll("[data-t]")) e.textContent = t(e.dataset.t);
+  for (const e of document.querySelectorAll("[data-t-placeholder]")) e.placeholder = t(e.dataset.tPlaceholder);
+  for (const e of document.querySelectorAll("[data-t-title]")) e.title = t(e.dataset.tTitle);
+  const sel = $("#langue");
+  if (sel) {
+    sel.replaceChildren(...Object.entries(LANGUES).map(([c, nom]) => el("option", {value: c}, nom)));
+    if (LANGUE === "xx") sel.append(el("option", {value: "xx"}, "Pseudo"));
+    sel.value = LANGUE;
+    sel.onchange = () => { try { localStorage.setItem("fl_langue", sel.value); } catch (e) {} location.reload(); };
+  }
+}
+// Le commentaire d'un événement de match : par gabarit dans la langue de
+// l'écran quand la feuille en donne un (moteur B), sinon le texte tel quel.
+// L'ordinal d'un rang : 1er, 2e en français ; 1st, 2nd, 3rd en anglais.
+function ordinal(n) {
+  n = +n;
+  if (LANGUE === "en") { const r = n % 100; return n + ((r >= 11 && r <= 13) ? "th" : ({1: "st", 2: "nd", 3: "rd"}[n % 10] || "th")); }
+  return n + (n === 1 ? t("ordinal.premier") : t("ordinal.autres"));
+}
+const texteEvt = e => (e && e.gab && existeT("evt." + e.gab.k)) ? t("evt." + e.gab.k, e.gab) : (e ? e.texte : "");
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("on"), 2200); }
 async function api(chemin, corps, methode) {
   const r = await fetch("/api" + chemin, {method: methode || (corps ? "POST" : "GET"), headers: corps ? {"Content-Type": "application/json"} : {}, body: corps ? JSON.stringify(corps) : undefined, credentials: "same-origin"});
   let data = null; try { data = await r.json(); } catch (e) {}
-  if (!r.ok) { const e = new Error((data && data.detail) ? (typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail)) : r.statusText); e.status = r.status; throw e; }
+  if (!r.ok) {
+    const d = data && data.detail;
+    let msg = r.statusText;
+    if (d && typeof d === "object" && d.code) msg = existeT("err." + d.code) ? t("err." + d.code, d.params) : (d.message || d.code);
+    else if (typeof d === "string") msg = d;
+    else if (d) msg = JSON.stringify(d);
+    const e = new Error(msg); e.status = r.status; e.code = d && d.code; throw e;
+  }
   return data;
 }
 const carte = id => G.idx.get(+id);
@@ -153,7 +223,7 @@ function vignette(id) {
   v.append(img); return v;
 }
 function barresForme(c) {
-  const f = el("div", {class: "forme", title: "dernières notes"});
+  const f = el("div", {class: "forme", title: t("carte.dernieres_notes")});
   for (const [n] of (c.notes || [])) { const b = el("i"); b.style.height = (4 + Math.max(0, n - 1) * 2.4) + "px"; b.style.background = n >= 7 ? "var(--vert)" : n < 5 ? "var(--rouge)" : "var(--sourd)"; f.append(b); }
   return f;
 }
@@ -174,8 +244,8 @@ async function rafraichir(tout) {
 }
 function majStatut() {
   const j = G.saison?.courante;
-  $("#marque-sous").textContent = "saison " + (G.saison?.saison || "");
-  $("#st-j").textContent = j ? "J" + j.numero + (j.verrouillee ? " 🔒" : "") : "Fin";
+  $("#marque-sous").textContent = t("statut.saison", {saison: G.saison?.saison || ""});
+  $("#st-j").textContent = j ? t("journee.j") + j.numero + (j.verrouillee ? " 🔒" : "") : t("statut.fin");
   $("#st-cash").textContent = fM(G.equipe?.budget);
   $("#st-val").textContent = fM(patrimoine());
   $("#st-pts").textContent = f1(G.equipe?.points);
@@ -190,7 +260,7 @@ async function montrer(ecran) {
   if (ecran === "connexion") return;
   try {
     await rafraichir(ecran === "marche" || !G.cartes.length);
-    await ({packs: rendrePacks, encheres: rendreEncheres, marche: rendreMarche, equipe: rendreEquipe, lobby: rendreLobby, solo: rendreSolo, journee: rendreJournee, classement: rendreClassement, admin: rendreAdmin}[ecran] || (async () => {}))();
+    await ({packs: rendrePacks, encheres: rendreEncheres, marche: rendreMarche, equipe: rendreEquipe, lobby: rendreLobby, solo: rendreSolo, journee: rendreJournee, classement: rendreClassement, compte: rendreCompte, admin: rendreAdmin}[ecran] || (async () => {}))();
   } catch (e) { if (e.status === 401) { connecte(null); } else toast(e.message); }
   finally { if (ecran !== "lobby") arreterLobby(); if (ecran !== "solo") arreterBoucleSolo();
     if (ecran !== "lobby" && ecran !== "solo") arreterTerrain(true); }
@@ -213,16 +283,39 @@ for (const b of document.querySelectorAll(".onglets button")) b.addEventListener
   modeAuth = b.dataset.mode;
   for (const x of document.querySelectorAll(".onglets button")) x.setAttribute("aria-current", x === b ? "page" : "false");
   $("#champ-equipe").hidden = modeAuth !== "inscription";
-  $("#auth-bouton").textContent = modeAuth === "inscription" ? "Créer mon compte" : "Se connecter";
+  $("#champ-email").hidden = modeAuth !== "inscription";
+  $("#champ-naissance").hidden = modeAuth !== "inscription";
+  $("#btn-oublie").hidden = modeAuth === "inscription";
+  $("#auth-bouton").textContent = modeAuth === "inscription" ? t("auth.creer") : t("auth.se_connecter");
 });
+// Le mot de passe oublié : un lien par courriel (ou dans le journal du serveur), puis
+// un nouveau mot de passe choisi depuis ce lien (?mdp=<jeton>).
+$("#btn-oublie").addEventListener("click", async () => {
+  const qui = prompt(t("auth.oublie_qui"), $("#form-auth").pseudo.value || "");
+  if (!qui) return;
+  try { await api("/mdp/oublie", {qui}); toast(t("auth.oublie_envoye")); } catch (e) { toast(e.message); }
+});
+async function remiseDepuisLien() {
+  const jeton = new URLSearchParams(location.search).get("mdp");
+  if (!jeton) return;
+  const mdp = prompt(t("auth.nouveau_mdp"));
+  if (!mdp) return;
+  try {
+    const r = await api("/mdp/remettre", {jeton, mot_de_passe: mdp});
+    history.replaceState(null, "", location.pathname);
+    connecte({connecte: true, ...r}); toast(t("auth.mdp_change"));
+    await montrer(idsEffectif().length ? "equipe" : "packs");
+  } catch (e) { toast(e.message); }
+}
 $("#form-auth").addEventListener("submit", async e => {
   e.preventDefault(); $("#auth-erreur").textContent = "";
   const fd = new FormData(e.target);
   try {
-    const r = await api("/" + modeAuth, {pseudo: fd.get("pseudo"), mot_de_passe: fd.get("mot_de_passe"), equipe: fd.get("equipe") || null});
+    const r = await api("/" + modeAuth, {pseudo: fd.get("pseudo"), mot_de_passe: fd.get("mot_de_passe"), equipe: fd.get("equipe") || null,
+                                           email: fd.get("email") || null, naissance: fd.get("naissance") || null});
     connecte({connecte: true, ...r});
     await montrer(idsEffectif().length ? "equipe" : "packs");
-    if (modeAuth === "inscription") toast("Bienvenue ! Ouvre tes premiers packs.");
+    if (modeAuth === "inscription") toast(t("auth.bienvenue"));
   } catch (err) { $("#auth-erreur").textContent = err.message; }
 });
 $("#btn-deconnexion").addEventListener("click", async () => { await api("/deconnexion", {}); connecte(null); });
@@ -234,23 +327,24 @@ try { marcheVue = localStorage.getItem("fl_vue") || "cartes"; } catch (e) {}
 document.querySelectorAll(".vue button").forEach(b => b.addEventListener("click", () => { marcheVue = b.dataset.vue; try { localStorage.setItem("fl_vue", marcheVue); } catch (e) {} rendreMarche(); }));
 document.querySelectorAll("#pills-fam button").forEach(b => b.addEventListener("click", () => { $("#f-fam").value = b.dataset.fam; document.querySelectorAll("#pills-fam button").forEach(x => x === b ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current")); marcheLimite = 60; rendreMarche(); }));
 // ---- the market: packs, club, auctions ----
-const TIER_TXT = {bronze: "Bronze", argent: "Argent", or: "Or", elite: "Élite", ultra: "Ultra"};
-const PALIER_TXT = {bronze: "moins de 60", argent: "60 à 74", argent65: "65 et plus", argent70: "70 et plus", or: "75 et plus", elite: "80 et plus"};
+const TIER_TXT = tableT("tier.");
+const tierTxt = k => TIER_TXT[k] || k;
+const PALIER_TXT = tableT("palier.");
 // les chances d'un pack, telles qu'elles sont : chaque tirage est uniforme parmi les cartes du palier
 function chancesTxt(p) {
   if (!p.chances) return "";
-  const parts = Object.entries(p.chances).map(([t, n]) => `${PALIER_TXT[t] || t} : 1 chance sur ${n} par carte`);
+  const parts = Object.entries(p.chances).map(([pal, n]) => t("packs.chance", {palier: PALIER_TXT[pal] || pal, n}));
   return parts.join(" · ");
 }
-const resteTxt = fin => { const ms = new Date(fin) - Date.now(); if (ms <= 0) return "terminée"; const h = Math.floor(ms / 3.6e6), m = Math.floor(ms % 3.6e6 / 6e4); return h ? `${h} h ${String(m).padStart(2, "0")}` : `${m} min`; };
+const resteTxt = fin => { const ms = new Date(fin) - Date.now(); if (ms <= 0) return t("vente.terminee"); const h = Math.floor(ms / 3.6e6), m = Math.floor(ms % 3.6e6 / 6e4); return h ? `${h} h ${String(m).padStart(2, "0")}` : `${m} min`; };
 async function rendrePacks() {
   G.packs = await api("/packs");
   const P = $("#packs-liste"); P.replaceChildren();
-  $("#packs-info").textContent = `${G.packs.plafond >= 1e6 ? "Pas de limite d'exemplaires par carte dans cette ligue" : `Une carte ne peut exister qu'en ${G.packs.plafond} exemplaires dans la ligue`}. Réserve ${G.packs.reserve_max == null ? "illimitée" : G.packs.reserve_max + " cartes"}. La banque rachète à ${Math.round(G.packs.rachat * 100)} % de la cote.`;
+  $("#packs-info").textContent = (G.packs.plafond >= 1e6 ? t("packs.sans_plafond") : t("packs.plafond", {n: G.packs.plafond})) + " " + t("packs.reserve", {reserve: G.packs.reserve_max == null ? t("packs.illimitee") : t("packs.n_cartes", {n: G.packs.reserve_max}), rachat: Math.round(G.packs.rachat * 100)});
   const offerts = Object.entries(G.packs.offerts || {}).filter(([, n]) => n > 0);
   if (offerts.length) {
-    const b = el("div", {class: "panneau offerts"}, el("h3", {class: "anton"}, "Packs offerts"),
-      el("p", {class: "compteur"}, "Le pack du jour, et ceux gagnés en campagne. Ils s'ouvrent sans rien coûter."));
+    const b = el("div", {class: "panneau offerts"}, el("h3", {class: "anton"}, t("packs.offerts")),
+      el("p", {class: "compteur"}, t("packs.offerts_texte")));
     const l = el("div", {class: "offerts-liste"});
     for (const [type, n] of offerts) {
       const p = G.packs.catalogue.find(x => x.type === type && !x.fam);
@@ -258,19 +352,19 @@ async function rendrePacks() {
         el("b", {class: "anton"}, `${n} × ${TIER_TXT[type]}`),
         el("span", {class: "compteur"}, p ? p.desc : ""),
         el("button", {class: "primaire", disabled: !(p && p.disponible),
-          onclick: () => ouvrirPack({...(p || {type, nom: "Pack " + TIER_TXT[type], prix: 0}), offert: true})},
-          "Ouvrir gratuitement")));
+          onclick: () => ouvrirPack({...(p || {type, nom: t("packs.pack") + " " + TIER_TXT[type], prix: 0}), offert: true})},
+          t("packs.ouvrir_gratuit"))));
     }
     b.append(l); P.append(b);
   }
   for (const p of G.packs.catalogue) {
     const k = el("div", {class: "pack " + p.type + (p.disponible ? "" : " epuise")},
-      el("div", {class: "pack-tier etiq"}, TIER_TXT[p.type] + (p.fam ? " · " + (p.fam === "GK" ? "Gardiens" : p.fam === "DEF" ? "Défenseurs" : p.fam === "MID" ? "Milieux" : "Attaquants") : " · Mixte")),
+      el("div", {class: "pack-tier etiq"}, TIER_TXT[p.type] + " · " + (p.fam ? t("filtre." + {GK: "gardiens", DEF: "defenseurs", MID: "milieux", FWD: "attaquants"}[p.fam]) : t("packs.mixte"))),
       el("div", {class: "pack-visuel"}, el("div", {class: "pack-carte a"}), el("div", {class: "pack-carte b"}), el("div", {class: "pack-carte c"})),
       el("div", {class: "pack-desc"}, p.desc),
-      el("div", {class: "pack-chances compteur", title: "Un doublon ne s'aligne pas : il se vend, à la banque ou aux enchères."}, chancesTxt(p)),
+      el("div", {class: "pack-chances compteur", title: t("packs.doublon_titre")}, chancesTxt(p)),
       el("div", {class: "pack-prix anton"}, fM(p.prix)),
-      el("button", {class: "primaire", disabled: !p.disponible || p.prix > G.equipe.budget + 1e-9, onclick: () => ouvrirPack(p), title: p.disponible ? "" : "Toutes les cartes de ce pack ont atteint leur nombre d'exemplaires : vends à la banque pour en libérer, ou lance le site avec --copies 0"}, p.disponible ? "Ouvrir" : "Épuisé"));
+      el("button", {class: "primaire", disabled: !p.disponible || p.prix > G.equipe.budget + 1e-9, onclick: () => ouvrirPack(p), title: p.disponible ? "" : t("packs.epuise_titre")}, p.disponible ? t("packs.ouvrir") : t("packs.epuise")));
     P.append(k);
   }
 }
@@ -278,15 +372,15 @@ async function ouvrirPack(p) {
   let r; try { r = await api("/packs/ouvrir", {type: p.type, fam: p.offert ? null : p.fam, offert: !!p.offert}); } catch (e) { toast(e.message); return; }
   await rafraichir(false);
   const dlg = $("#fiche"); dlg.replaceChildren();
-  const box = el("div", {class: "fiche ouverture"}, el("h3", {class: "anton"}, `${p.nom}`), el("p", {class: "compteur"}, `${p.offert ? "offert" : fM(p.prix)} · il te reste ${fM(r.budget)}`));
+  const box = el("div", {class: "fiche ouverture"}, el("h3", {class: "anton"}, `${p.nom}`), el("p", {class: "compteur"}, `${p.offert ? t("packs.offert") : fM(p.prix)} · ${t("packs.reste", {budget: fM(r.budget)})}`));
   const grille = el("div", {class: "cartes-grille ouverture-grille"});
   r.cartes.forEach((x, i) => { const c = x.carte; const k = carteMarche(c, {vitrine: true, largeur: 240}); k.classList.add("revele"); k.style.animationDelay = (i * 0.25) + "s";
-    k.append(el("div", {class: "cj-cote"}, `cote ${fM(x.cote)} · n° ${x.numero}`));
-    if (x.doublon) k.append(el("div", {class: "cj-doublon"}, `Doublon : à vendre (banque ${fM(x.banque)})`));
+    k.append(el("div", {class: "cj-cote"}, `${t("carte.cote")} ${fM(x.cote)} · n° ${x.numero}`));
+    if (x.doublon) k.append(el("div", {class: "cj-doublon"}, t("packs.doublon_vendre", {banque: fM(x.banque)})));
     grille.append(k); });
   const nd = r.cartes.filter(x => x.doublon).length;
-  if (nd) box.append(el("p", {class: "compteur"}, `${nd} doublon${nd > 1 ? "s" : ""} : tu as déjà ${nd > 1 ? "ces cartes" : "cette carte"}. Un doublon ne s'aligne pas, il se vend : à la banque tout de suite, ou aux enchères à un autre manager.`));
-  box.append(grille, el("div", {class: "actions"}, el("button", {onclick: () => { dlg.close(); montrer("equipe"); }}, "Gérer mon club"), el("button", {class: "primaire", onclick: () => { dlg.close(); rendrePacks(); }}, "Encore un pack")));
+  if (nd) box.append(el("p", {class: "compteur"}, t("packs.doublons", {n: nd})));
+  box.append(grille, el("div", {class: "actions"}, el("button", {onclick: () => { dlg.close(); montrer("equipe"); }}, t("packs.gerer_club")), el("button", {class: "primaire", onclick: () => { dlg.close(); rendrePacks(); }}, t("packs.encore"))));
   dlg.append(box); dlg.showModal();
 }
 async function rendreEncheres(filtrePid = null) {
@@ -295,9 +389,9 @@ async function rendreEncheres(filtrePid = null) {
   let rows = d.ventes.filter(v => v.carte && (!filtrePid || v.player_id === filtrePid) && (!fam || v.carte.fam === fam) && (!miennes || v.mienne || v.je_mene) && (!q || norm(v.carte.nom).includes(q) || norm(v.carte.club).includes(q)));
   const cle = {fin: v => new Date(v.fin) - 0, prix: v => -(v.meilleure_offre ?? v.prix_depart), ovr: v => -v.carte.ovr, cote: v => -(v.cote || 0)}[tri];
   rows.sort((a, b) => cle(a) - cle(b));
-  $("#encheres-compteur").textContent = `${rows.length} vente${rows.length > 1 ? "s" : ""} en cours`;
+  $("#encheres-compteur").textContent = t("vente.en_cours_n", {n: rows.length});
   const L = $("#encheres-liste"); L.replaceChildren();
-  if (!rows.length) L.append(el("p", {class: "info"}, "Aucune vente en cours. Les cartes se vendent depuis ton club (écran Équipe) : mise à prix, achat immédiat, durée."));
+  if (!rows.length) L.append(el("p", {class: "info"}, t("vente.aucune_texte")));
   for (const v of rows) L.append(ligneVente(v));
 }
 function ligneVente(v) {
@@ -306,20 +400,20 @@ function ligneVente(v) {
   l.style.setProperty("--clubc", c.couleur);
   const k = carteMarche(c, {vitrine: true}); k.classList.add("petite");
   const infos = el("div", {class: "vente-infos"},
-    el("div", {class: "etiq"}, `Vendeur : ${v.vendeur} · exemplaire n° ${v.numero} · cote ${fM(v.cote)}`),
-    el("div", {class: "vente-prix"}, el("div", {}, el("span", {class: "etiq"}, cour ? "Meilleure offre" : "Mise à prix"), el("b", {class: "anton"}, fM(cour ?? v.prix_depart))),
-      v.prix_immediat ? el("div", {}, el("span", {class: "etiq"}, "Achat immédiat"), el("b", {class: "anton"}, fM(v.prix_immediat))) : null,
-      el("div", {}, el("span", {class: "etiq"}, "Fin"), el("b", {class: "anton"}, resteTxt(v.fin)))),
-    v.je_mene ? el("div", {class: "compteur", style: "color:var(--vert)"}, "Tu mènes l'enchère") : null);
+    el("div", {class: "etiq"}, `${t("vente.vendeur")} ${v.vendeur} · ${t("carte.exemplaire")} n° ${v.numero} · ${t("carte.cote")} ${fM(v.cote)}`),
+    el("div", {class: "vente-prix"}, el("div", {}, el("span", {class: "etiq"}, cour ? t("vente.meilleure_offre") : t("vente.mise_a_prix")), el("b", {class: "anton"}, fM(cour ?? v.prix_depart))),
+      v.prix_immediat ? el("div", {}, el("span", {class: "etiq"}, t("vente.achat_immediat")), el("b", {class: "anton"}, fM(v.prix_immediat))) : null,
+      el("div", {}, el("span", {class: "etiq"}, t("vente.fin")), el("b", {class: "anton"}, resteTxt(v.fin)))),
+    v.je_mene ? el("div", {class: "compteur", style: "color:var(--vert)"}, t("vente.tu_menes")) : null);
   const acts = el("div", {class: "vente-actions"});
   if (v.mienne) {
-    acts.append(el("span", {class: "compteur"}, cour ? "Une offre est faite, la vente ira à son terme." : "Ta vente."),
-      el("button", {disabled: !!cour, onclick: async () => { try { await api("/marche/annuler", {enchere_id: v.enchere_id}); toast("Vente annulée"); rendreEncheres(); } catch (e) { toast(e.message); } }}, "Retirer"));
+    acts.append(el("span", {class: "compteur"}, cour ? t("vente.offre_faite") : t("vente.ta_vente")),
+      el("button", {disabled: !!cour, onclick: async () => { try { await api("/marche/annuler", {enchere_id: v.enchere_id}); toast(t("vente.annulee")); rendreEncheres(); } catch (e) { toast(e.message); } }}, t("vente.retirer")));
   } else {
     const mini = cour ? Math.round(cour * 1.05 * 100 + 0.5) / 100 : v.prix_depart;
     const inp = el("input", {type: "number", step: "0.1", min: String(mini), value: String(mini), style: "width:110px"});
-    acts.append(inp, el("button", {class: "achat", onclick: async () => { try { const r = await api("/marche/encherir", {enchere_id: v.enchere_id, montant: +inp.value}); toast(`Offre de ${fM(r.montant)} placée`); await rafraichir(false); rendreEncheres(); } catch (e) { toast(e.message); } }}, "Enchérir"));
-    if (v.prix_immediat) acts.append(el("button", {class: "achat primaire", onclick: async () => { try { const r = await api("/marche/acheter", {enchere_id: v.enchere_id}); toast(`${c.nom} acheté ${fM(r.prix)}`); await rafraichir(false); rendreEncheres(); } catch (e) { toast(e.message); } }}, "Acheter " + fM(v.prix_immediat)));
+    acts.append(inp, el("button", {class: "achat", onclick: async () => { try { const r = await api("/marche/encherir", {enchere_id: v.enchere_id, montant: +inp.value}); toast(t("vente.offre_placee", {montant: fM(r.montant)})); await rafraichir(false); rendreEncheres(); } catch (e) { toast(e.message); } }}, t("vente.encherir")));
+    if (v.prix_immediat) acts.append(el("button", {class: "achat primaire", onclick: async () => { try { const r = await api("/marche/acheter", {enchere_id: v.enchere_id}); toast(t("vente.achete", {nom: c.nom, prix: fM(r.prix)})); await rafraichir(false); rendreEncheres(); } catch (e) { toast(e.message); } }}, t("vente.acheter") + " " + fM(v.prix_immediat)));
   }
   l.append(k, infos, acts);
   return l;
@@ -329,20 +423,26 @@ function dialogueVente(x) {
   const cote = x.cote || 1;
   const dep = el("input", {type: "number", step: "0.1", min: "0.1", value: String(Math.round(cote * 0.8 * 10) / 10)});
   const imm = el("input", {type: "number", step: "0.1", min: "0.1", value: String(Math.round(cote * 1.2 * 10) / 10)});
-  const dur = el("select", {}, ...(G.packs?.durees || [6, 12, 24, 48]).map(h => el("option", {value: String(h), selected: h === 24 ? "selected" : null}, h + " heures")));
-  const box = el("div", {class: "fiche"}, el("h3", {class: "anton"}, "Mettre en vente"), el("p", {class: "compteur"}, `${c.nom} · exemplaire n° ${x.numero} · cote ${fM(cote)} · acheté ${fM(x.prix_achat)}`),
-    el("form", {class: "form-vente", onsubmit: async e => { e.preventDefault(); try { await api("/marche/vendre", {exemplaire_id: x.exemplaire_id, prix_depart: +dep.value, prix_immediat: imm.value ? +imm.value : null, duree_h: +dur.value}); toast("Carte mise en vente"); dlg.close(); await rafraichir(false); rendreEquipe(); } catch (err) { toast(err.message); } }},
-      el("label", {}, "Mise à prix (M€)", dep), el("label", {}, "Achat immédiat (M€, facultatif)", imm), el("label", {}, "Durée", dur),
-      el("p", {class: "compteur"}, `La banque prend ${Math.round((G.packs?.commission ?? 0.05) * 100)} % à la vente. Une carte en vente quitte l'effectif.`),
-      el("div", {class: "actions"}, el("button", {type: "button", class: "discret", onclick: () => dlg.close()}, "Annuler"), el("button", {type: "submit", class: "primaire"}, "Mettre en vente"))));
+  const dur = el("select", {}, ...(G.packs?.durees || [6, 12, 24, 48]).map(h => el("option", {value: String(h), selected: h === 24 ? "selected" : null}, t("vente.heures", {n: h}))));
+  const box = el("div", {class: "fiche"}, el("h3", {class: "anton"}, t("vente.mettre_en_vente")), el("p", {class: "compteur"}, `${c.nom} · ${t("carte.exemplaire")} n° ${x.numero} · ${t("carte.cote")} ${fM(cote)} · ${t("carte.achete")} ${fM(x.prix_achat)}`),
+    el("form", {class: "form-vente", onsubmit: async e => { e.preventDefault(); try { await api("/marche/vendre", {exemplaire_id: x.exemplaire_id, prix_depart: +dep.value, prix_immediat: imm.value ? +imm.value : null, duree_h: +dur.value}); toast(t("vente.mise")); dlg.close(); await rafraichir(false); rendreEquipe(); } catch (err) { toast(err.message); } }},
+      el("label", {}, t("vente.mise_a_prix_m"), dep), el("label", {}, t("vente.achat_immediat_m"), imm), el("label", {}, t("vente.duree"), dur),
+      el("p", {class: "compteur"}, t("vente.commission", {pct: Math.round((G.packs?.commission ?? 0.05) * 100)})),
+      el("div", {class: "actions"}, el("button", {type: "button", class: "discret", onclick: () => dlg.close()}, t("annuler")), el("button", {type: "submit", class: "primaire"}, t("vente.mettre_en_vente")))));
   dlg.append(box); dlg.showModal();
 }
 async function actionClub(chemin, corps, msg) {
   try { await api(chemin, corps); if (msg) toast(msg); await rafraichir(false); if (G.ecran === "equipe") rendreEquipe(); if (G.ecran === "packs") rendrePacks(); } catch (e) { toast(e.message); }
 }
 function rendreMarche() {
+  // les ligues du filtre viennent des cartes elles-mêmes (le monde fictif les renomme)
+  const sl = $("#f-ligue");
+  if (sl && sl.options.length <= 1) {
+    const ligues = [...new Set(G.cartes.map(c => c.ligue).filter(Boolean))].sort();
+    for (const l of ligues) sl.append(el("option", {value: l}, l));
+  }
   const mf = $("#marche-ferme"); mf.hidden = !!G.saison.courante;
-  mf.textContent = "Aucune journée ouverte sur cette base : la saison est terminée, ou le serveur a été lancé sur la mauvaise base (utiliser  py web/app/lancer.py).";
+  mf.textContent = t("marche.ferme");
   const q = norm($("#f-nom").value), fam = $("#f-fam").value, ligue = $("#f-ligue").value, tri = $("#f-tri").value;
   const abord = $("#f-abord").checked, miens = $("#f-miens").checked;
   let rows = G.cartes.filter(c => {
@@ -352,9 +452,9 @@ function rendreMarche() {
   });
   const cle = {ovr: c => -c.ovr, prix: c => -c.prix, rapport: c => -(c.ovr - 40) / Math.max(c.prix, 0.1), forme: c => -formeMoy(c), age: c => c.age || 99, part: c => -c.part, nom: c => 0}[tri];
   rows.sort((a, b) => cle(a) - cle(b) || a.nom.localeCompare(b.nom));
-  $("#marche-compteur").textContent = `${rows.length} cartes`;
+  $("#marche-compteur").textContent = t("marche.n_cartes", {n: rows.length});
   // dix-huit cartes, réparties comme le manager veut : on compte, on ne plafonne plus
-  const ME = $("#marche-effectif"); ME.replaceChildren(el("span", {class: "etiq"}, "Effectif"), el("b", {class: "num"}, `${idsEffectif().length} / ${TAILLE}`),
+  const ME = $("#marche-effectif"); ME.replaceChildren(el("span", {class: "etiq"}, t("marche.effectif")), el("b", {class: "num"}, `${idsEffectif().length} / ${TAILLE}`),
     ...FAMS.map(f => el("span", {class: "quota"}, `${FAM_COURT[f]} `, el("b", {}, String(nbFam(f))))));
   document.querySelectorAll(".vue button").forEach(b => { if (b.dataset.vue === marcheVue) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   const L = $("#marche-liste"); L.replaceChildren(); L.className = marcheVue === "cartes" ? "cartes-grille" : "liste";
@@ -363,7 +463,7 @@ function rendreMarche() {
 }
 function boutonAchatVente(c, mien) {
   const n = ventesDe(c.id).length;
-  return el("button", {class: "achat" + (n ? " primaire" : ""), disabled: !n, onclick: e => { e.stopPropagation(); if (n) allerAuxVentes(c.id); }}, n ? `${n} vente${n > 1 ? "s" : ""}` : "Aucune vente");
+  return el("button", {class: "achat" + (n ? " primaire" : ""), disabled: !n, onclick: e => { e.stopPropagation(); if (n) allerAuxVentes(c.id); }}, n ? t("vente.n", {n}) : t("vente.aucune"));
 }
 async function allerAuxVentes(pid) { $("#e-nom").value = carte(pid)?.nom || ""; await montrer("encheres"); }
 // the card itself: an escutcheon (clip-path) in the club colour — OVR, position, age,
@@ -382,7 +482,7 @@ function carteMarche(c, opts = {}) {
     el("img", {class: "cj-logo", src: `/images/logos/${c.team_id}.png`, alt: "", loading: "lazy", onerror: e => e.target.remove()}),
     c.pays ? el("div", {class: "cj-drapeau", title: c.pays}, drapeau(c.pays)) : null,
     c.numero ? el("div", {class: "cj-num"}, "#" + c.numero) : null,
-    recrue(c) ? el("div", {class: "cj-recrue", title: `Entré dans le jeu à la journée ${c.arrivee}`}, "NOUVEAU") : null,
+    recrue(c) ? el("div", {class: "cj-recrue", title: t("carte.recrue_titre", {n: c.arrivee})}, t("carte.nouveau")) : null,
     vignetteDe(c));
   const corps = el("div", {class: "cj-corps"},
     el("div", {class: "nom", title: c.nom}, c.nom),
@@ -413,15 +513,15 @@ function recrue(c) {
 function formeBadge(c) {
   if (!c || !c.forme) return null;
   return el("span", {class: "forme " + (c.forme > 0 ? "bonne" : "mauvaise"),
-    title: c.forme > 0 ? "En forme : trois bons matchs d'affilée en vrai. +1 d'OVR tant que ça dure." : "Méforme : trois mauvais matchs d'affilée en vrai. -1 d'OVR tant que ça dure."},
-    c.forme > 0 ? "✦ en forme" : "▾ méforme");
+    title: c.forme > 0 ? t("carte.forme_titre") : t("carte.meforme_titre")},
+    c.forme > 0 ? t("carte.forme") : t("carte.meforme"));
 }
 // L'état d'une carte entre deux matchs : suspendue, blessée (en matchs), ou la fatigue reportée.
 function etatBadge(x) {
   const e = x && x.etat; if (!e) return null;
-  if (e.suspension > 0) return el("span", {class: "etat suspendu", title: "Un rouge ou trois jaunes : il manque le match suivant."}, `suspendu · ${e.suspension} match${e.suspension > 1 ? "s" : ""}`);
-  if (e.blessure > 0) return el("span", {class: "etat blesse", title: "Sorti sur blessure : il manque un à trois matchs."}, `blessé · ${e.blessure} match${e.blessure > 1 ? "s" : ""}`);
-  if (e.fatigue > 0.04) return el("span", {class: "etat fatigue", title: "Il a joué le dernier match : il repart avec un peu moins de jus. Un match sans jouer, et il est frais."}, `${Math.round(100 - e.fatigue * 100)} % de jus`);
+  if (e.suspension > 0) return el("span", {class: "etat suspendu", title: t("carte.suspendu_titre")}, t("carte.suspendu", {n: e.suspension}));
+  if (e.blessure > 0) return el("span", {class: "etat blesse", title: t("carte.blesse_titre")}, t("carte.blesse", {n: e.blessure}));
+  if (e.fatigue > 0.04) return el("span", {class: "etat fatigue", title: t("carte.fatigue_titre")}, t("carte.jus", {pct: Math.round(100 - e.fatigue * 100)}));
   return null;
 }
 function tendance(c, compact = false) {
@@ -430,7 +530,7 @@ function tendance(c, compact = false) {
   const cls = d > 0 ? "plus" : d < 0 ? "moins" : "egal";
   const fleche = d > 0 ? "▲" : d < 0 ? "▼" : "—";
   return el("span", {class: "tend " + cls,
-    title: `Note initiale ${c.ovr_base}, aujourd'hui ${c.ovr}` + (d ? ` (${d > 0 ? "+" : ""}${d})` : " (inchangée)")},
+    title: t("carte.tendance_titre", {base: c.ovr_base, ovr: c.ovr}) + (d ? ` (${d > 0 ? "+" : ""}${d})` : t("carte.inchangee"))},
     fleche + (compact ? "" : " " + c.ovr_base));
 }
 
@@ -462,7 +562,7 @@ function ligneCarte(c) {
   l.style.setProperty("--clubc", c.couleur);
   const delta = mien ? c.prix - G.equipe.effectif[c.id] : 0;
   l.append(carteDessinee(c, 120),
-    el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, `${codesDe(c)} · ${c.club}${c.age ? " · " + c.age + " ans" : ""}${c.part > 0 ? " · " + Math.round(c.part * 100) + " % des équipes" : ""}`)),
+    el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, `${codesDe(c)} · ${c.club}${c.age ? " · " + ageTxt(c) : ""}${c.part > 0 ? " · " + t("carte.part_equipes", {pct: Math.round(c.part * 100)}) : ""}`)),
     barresForme(c),
     el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr), tendance(c)),
     el("div", {class: "prix num"}, fM(c.prix), mien && Math.abs(delta) >= 0.005 ? el("div", {class: "delta " + (delta > 0 ? "plus" : "moins")}, fM(delta, true)) : null));
@@ -513,9 +613,8 @@ let POSTE_ABBR = {"Gardien": "GB", "Defenseur central": "DC", "Lateral": "DG/DD"
 // les postes tenus d'une carte, en codes : « AD / BU »
 const codesDe = c => ((c.postes && c.postes.length) ? c.postes : [c.poste]).map(p => POSTE_ABBR[p] || p).join(" / ");
 // les postes qu'on peut filtrer, en codes
-const FILTRES_POSTE = {GB: "GB · gardien", DC: "DC · défenseur central", DG: "DG · latéral gauche", DD: "DD · latéral droit",
-  MDC: "MDC · milieu défensif", MC: "MC · milieu relayeur", MOC: "MOC · meneur", MG: "MG · milieu gauche", MD: "MD · milieu droit",
-  AG: "AG · ailier gauche", AD: "AD · ailier droit", BU: "BU · buteur"};
+// (les codes sont ceux des cartes dessinées, le libellé vient du dictionnaire : code.<code>)
+const FILTRES_POSTE = ["GB", "DC", "DG", "DD", "MDC", "MC", "MOC", "MG", "MD", "AG", "AD", "BU"];
 function legal(fams) { return fams.length === 11 && fams.every(x => !!x); }
 // A card is eligible wherever the player really played, not only at the one
 // label the barème shows: Valverde spent a third of his season at right
@@ -642,7 +741,7 @@ function rendreEquipe(recalc = true) {
   if (!ok) {
     const trous = C.slots.filter(i => i === null).length;
     A.append(el("div", {class: "avert"},
-      `Il manque ${trous} joueur${trous > 1 ? "s" : ""} : glisse une carte du banc sur une case vide.`));
+      t("compo.manque", {n: trous})));
   }
   // Out of position is allowed, and it costs: say who, and how much the
   // eleven is worth where it stands.
@@ -650,20 +749,16 @@ function rendreEquipe(recalc = true) {
   const dehors = C.slots.map((id, s) => id === null ? 0 : malusDe(id, postesC[s]));
   const nDehors = dehors.filter(x => x > 0).length, perdu = dehors.filter(x => x > 0).reduce((a, b) => a + b, 0);
   const nBonus = dehors.filter(x => x < 0).length;
-  if (nDehors) A.append(el("div", {class: "info"},
-    `${nDehors} joueur${nDehors > 1 ? "s" : ""} hors de son poste : `
-    + `${perdu} points d'OVR perdus en tout pendant le match, selon la distance avec ce qu'il a tenu et ce que ses attributs valent là `
-    + `(orange : un peu, rouge : loin de chez lui). C'est permis, ça coûte.`));
-  if (nBonus) A.append(el("div", {class: "info"},
-    `${nBonus} joueur${nBonus > 1 ? "s" : ""} dont les attributs valent mieux à ce poste qu'au sien (case verte).`));
+  if (nDehors) A.append(el("div", {class: "info"}, t("compo.hors_poste", {n: nDehors, perdu})));
+  if (nBonus) A.append(el("div", {class: "info"}, t("compo.bonus", {n: nBonus})));
   const moyenne = C.slots.every(x => x !== null)
     ? C.slots.reduce((a, id, s) => a + ovrAu(id, postesC[s]), 0) / 11 : null;
-  if (moyenne !== null) A.append(el("div", {class: "compteur"}, `Onze au poste : ${moyenne.toFixed(1)} d'OVR en moyenne.`));
+  if (moyenne !== null) A.append(el("div", {class: "compteur"}, t("compo.moyenne", {ovr: moyenne.toFixed(1)})));
   const j = G.saison.courante;
   const etat = $("#compo-etat"); etat.replaceChildren();
-  if (!j) etat.append("Saison terminée.");
-  else if (j.verrouillee) etat.append(el("b", {}, `Journée ${j.numero} verrouillée`), ` depuis le coup d'envoi. Composition envoyée : ${G.equipe.composition ? "oui" : "non, score nul"}.`);
-  else etat.append(`Journée ${j.numero}, du ${j.du} au ${j.au}. Verrouillage au premier coup d'envoi : ${new Date(j.cloture).toLocaleString("fr-FR")}. `, G.equipe.composition ? el("b", {}, `Composition envoyée le ${new Date(G.equipe.composition.soumise_le).toLocaleString("fr-FR")}.`) : el("b", {class: "rouge"}, "Aucune composition envoyée."));
+  if (!j) etat.append(t("compo.saison_terminee"));
+  else if (j.verrouillee) etat.append(el("b", {}, t("compo.verrouillee", {n: j.numero})), " " + t("compo.verrouillee_suite", {envoyee: G.equipe.composition ? t("oui") : t("compo.non_score_nul")}));
+  else etat.append(t("compo.ouverte", {n: j.numero, du: dateFr(j.du), au: dateFr(j.au), cloture: new Date(j.cloture).toLocaleString(LOCALE)}) + " ", G.equipe.composition ? el("b", {}, t("compo.envoyee_le", {date: new Date(G.equipe.composition.soumise_le).toLocaleString(LOCALE)})) : el("b", {class: "rouge"}, t("compo.aucune_envoyee")));
   $("#btn-envoyer").disabled = !ok || !j || j.verrouillee;
   const B = $("#banc"); B.replaceChildren();
   zoneDepot(B, {type: "banc"});
@@ -672,16 +767,15 @@ function rendreEquipe(recalc = true) {
   C.banc.forEach((i, r) => { if (!q || cherche(i, q)) B.append(ligneBanc(i, r)); });
   if (q) T.querySelectorAll(".slot").forEach(n => n.classList.toggle("trouve", n._slot !== undefined && C.slots[n._slot] !== null && cherche(C.slots[n._slot], q)));
   if (q && !C.banc.some(i => cherche(i, q)) && !C.slots.some(i => i !== null && cherche(i, q)))
-    B.append(el("p", {class: "compteur"}, `Personne ne s'appelle « ${$("#eq-nom").value.trim()} » dans ton effectif.`));
-  if (!C.banc.length) B.append(el("p", {class: "compteur"}, `Banc vide. ${BANC_MAX} remplaçants : un gardien et six joueurs de champ, dans l’ordre où tu veux les faire entrer.`));
+    B.append(el("p", {class: "compteur"}, t("compo.personne", {nom: $("#eq-nom").value.trim()})));
+  if (!C.banc.length) B.append(el("p", {class: "compteur"}, t("compo.banc_vide", {n: BANC_MAX})));
   // Un banc court n'est pas un bug de l'écran : c'est un effectif court.
   // Le dire, plutôt que de laisser croire à un banc de trois imposé.
   else if (C.banc.length < BANC_MAX) {
     const manque = 11 + BANC_MAX - idsEffectif().length;
     B.append(el("div", {class: "avert"},
-      `Banc de ${C.banc.length} sur ${BANC_MAX} : tu n'as que ${idsEffectif().length} cartes dans l'effectif. `
-      + `Il en faut ${11 + BANC_MAX} pour un onze et sept remplaçants`
-      + (manque > 0 ? ` — il t'en manque ${manque}. Ouvre des packs, achète aux enchères, ou fais entrer des cartes de ta réserve dans l'effectif.` : ".")));
+      t("compo.banc_court", {banc: C.banc.length, max: BANC_MAX, effectif: idsEffectif().length, requis: 11 + BANC_MAX})
+      + (manque > 0 ? " " + t("compo.banc_manque", {n: manque}) : ".")));
   }
   ecrireBrouillon();
   rendreTactiqueClub();
@@ -694,7 +788,7 @@ let TAC_ENREG = null;
 
 // Le maillot du club : un aperçu (une chemise en SVG au motif choisi) et
 // trois réglages, enregistrés dès qu'on les touche.
-const MOTIFS_MAILLOT = {uni: "Uni", bande: "Bande centrale", rayures: "Rayures", cercle: "Cerclé", moitie: "Deux moitiés", echarpe: "Écharpe"};
+const MOTIFS_MAILLOT = ["uni", "bande", "rayures", "cercle", "moitie", "echarpe"];
 function chemiseSVG(m, taille = 96) {
   const id = "m" + Math.random().toString(36).slice(2, 8);
   const corps = "M20 14 L36 6 Q48 14 60 6 L76 14 L92 30 L78 40 L74 34 L74 90 L22 90 L22 34 L18 40 L4 30 Z";
@@ -717,16 +811,16 @@ function rendreMaillot() {
     apercu.innerHTML = chemiseSVG(m);
     clearTimeout(MAILLOT_ENREG);
     MAILLOT_ENREG = setTimeout(async () => {
-      try { const r = await api("/equipe/maillot", m); if (G.equipe) G.equipe.maillot = r.maillot; $("#maillot-etat").textContent = "enregistré"; }
+      try { const r = await api("/equipe/maillot", m); if (G.equipe) G.equipe.maillot = r.maillot; $("#maillot-etat").textContent = t("enregistre"); }
       catch (e) { $("#maillot-etat").textContent = e.message; }
     }, 400);
   };
   const cBase = el("input", {type: "color", value: m.base, oninput: e => { m.base = e.target.value; maj(); }});
   const cSecond = el("input", {type: "color", value: m.second, oninput: e => { m.second = e.target.value; maj(); }});
   const sel = el("select", {onchange: e => { m.motif = e.target.value; maj(); }});
-  for (const [k, v] of Object.entries(MOTIFS_MAILLOT)) sel.append(el("option", {value: k, selected: k === m.motif ? "selected" : null}, v));
+  for (const k of MOTIFS_MAILLOT) sel.append(el("option", {value: k, selected: k === m.motif ? "selected" : null}, t("maillot." + k)));
   box.replaceChildren(apercu, el("div", {class: "reglages"},
-    el("label", {}, "Couleur ", cBase), el("label", {}, "Seconde couleur ", cSecond), el("label", {}, "Motif ", sel)));
+    el("label", {}, t("maillot.couleur") + " ", cBase), el("label", {}, t("maillot.seconde") + " ", cSecond), el("label", {}, t("maillot.motif") + " ", sel)));
 }
 
 // Un seul endroit qui écrit la tactique du club, appelé depuis l'écran
@@ -738,7 +832,7 @@ function enregistrerTactique(etat) {
     try {
       const r = await api("/equipe/tactique", {tactique: LOBBY.tac});
       if (G.equipe) G.equipe.tactique = r.tactique;
-      if (etat) etat.textContent = "enregistrée";
+      if (etat) etat.textContent = t("enregistree");
     } catch (e) { if (etat) etat.textContent = e.message; }
   }, 350);
 }
@@ -755,10 +849,8 @@ function rendreTactiqueClub() {
   };
   boite.append(selecteurTactique(LOBBY.tac, enregistrer));
   boite.append(bilanAise());
-  boite.append(depliant("equipe", "Consignes aux lignes",
-    el("p", {class: "compteur"},
-      "Ce que tu demandes à chaque ligne. Chacune est un échange, jamais un bonus : "
-      + "le premier choix de chaque ligne ne touche à rien."),
+  boite.append(depliant("equipe", t("consignes.titre"),
+    el("p", {class: "compteur"}, t("consignes.texte_equipe")),
     selecteurConsignes(LOBBY.tac, enregistrer)));
 }
 
@@ -782,10 +874,10 @@ function bilanAise() {
   gens.sort((x, y) => y.a - x.a);
   const servis = gens.filter(g => pct(g.a) >= 1.5);
   const desservis = gens.filter(g => pct(g.a) <= -1.5).reverse();
-  b.append(el("div", {class: "etiq"}, "Ce que ta tactique fait à ton onze"));
+  b.append(el("div", {class: "etiq"}, t("aise.titre")));
   b.append(el("div", {class: "bilan-chiffre " + (moyen > 0.5 ? "bon" : moyen < -0.5 ? "mauvais" : "")},
     (moyen > 0 ? "+" : "") + moyen.toFixed(1) + " %",
-    el("span", {class: "compteur"}, " en moyenne sur tes onze titulaires")));
+    el("span", {class: "compteur"}, " " + t("aise.moyenne"))));
   const ligne = (titre, liste, classe) => {
     if (!liste.length) return null;
     return el("div", {class: "bilan-ligne " + classe},
@@ -794,10 +886,10 @@ function bilanAise() {
         `${g.nom.split(" ").slice(-1)[0]} ${pct(g.a) > 0 ? "+" : ""}${pct(g.a).toFixed(0)} %`).join(" · ")
         + (liste.length > 4 ? ` (+${liste.length - 4})` : "")));
   };
-  for (const l of [ligne("Elle les sert", servis, "bon"), ligne("Elle les dessert", desservis, "mauvais")])
+  for (const l of [ligne(t("aise.sert"), servis, "bon"), ligne(t("aise.dessert"), desservis, "mauvais")])
     if (l) b.append(l);
   if (!servis.length && !desservis.length)
-    b.append(el("p", {class: "compteur"}, "Ton onze est indifférent à ce réglage : personne n'y gagne ni n'y perd."));
+    b.append(el("p", {class: "compteur"}, t("aise.indifferent")));
   return b;
 }
 
@@ -808,7 +900,7 @@ async function rendreClub() {
   const q = normEq();
   const selPoste = $("#club-poste");
   if (selPoste && selPoste.options.length <= 1) {
-    for (const [code, lib] of Object.entries(FILTRES_POSTE)) selPoste.append(el("option", {value: code}, lib));
+    for (const code of FILTRES_POSTE) selPoste.append(el("option", {value: code}, code + " · " + t("code." + code)));
   }
   const codeVoulu = selPoste ? selPoste.value : "";
   const tri = $("#club-tri") ? $("#club-tri").value : "ovr";
@@ -818,26 +910,27 @@ async function rendreClub() {
                achat: x => -x.prix_achat, plus: x => -((x.cote || 0) - x.prix_achat), nom: x => 0}[tri] || (x => -x.carte.ovr);
   const ordre = (a, b) => cle(a) - cle(b) || a.carte.nom.localeCompare(b.carte.nom);
   const eff = d.cartes.filter(x => x.dans_effectif && garde(x)).sort(ordre), res = d.cartes.filter(x => !x.dans_effectif && garde(x)).sort(ordre);
-  $("#club-compteur").textContent = `${eff.length} / ${d.effectif_max} dans l'effectif · ${res.length}${d.reserve_max == null ? "" : " / " + d.reserve_max} en réserve`;
+  $("#club-compteur").textContent = `${eff.length} / ${d.effectif_max} ${t("club.dans_effectif")} · ${res.length}${d.reserve_max == null ? "" : " / " + d.reserve_max} ${t("club.en_reserve")}`;
   const ligne = x => {
     const c = x.carte; const l = el("div", {class: "ligne club-ligne" + (x.enchere_id ? " en-vente" : "")}); l.style.setProperty("--clubc", c.couleur);
     const delta = (x.cote || 0) - x.prix_achat;
-    l.append(carteDessinee(c, 120), el("div", {class: "qui", tabindex: "0", onclick: () => ouvrirFiche(c.id)}, el("div", {class: "nom"}, c.nom, el("span", {class: "compteur"}, ` n° ${x.numero}`)), el("div", {class: "sous"}, el("b", {}, codesDe(c)), ` · ${c.club} · acheté ${fM(x.prix_achat)} · cote ${fM(x.cote)} `, el("span", {class: "delta " + (delta >= 0 ? "plus" : "moins")}, fM(delta, true)))),
+    l.append(carteDessinee(c, 120), el("div", {class: "qui", tabindex: "0", onclick: () => ouvrirFiche(c.id)}, el("div", {class: "nom"}, c.nom, el("span", {class: "compteur"}, ` n° ${x.numero}`)), el("div", {class: "sous"}, el("b", {}, codesDe(c)), ` · ${c.club} · ${t("carte.achete")} ${fM(x.prix_achat)} · ${t("carte.cote")} ${fM(x.cote)} `, el("span", {class: "delta " + (delta >= 0 ? "plus" : "moins")}, fM(delta, true)))),
       el("span", {class: "fam " + c.fam}, POSTE_ABBR[c.poste] || FAM_COURT[c.fam]), el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr), tendance(c), formeBadge(c), etatBadge(x)));
     const acts = el("div", {class: "club-actions"});
-    if (x.enchere_id) acts.append(el("span", {class: "compteur"}, "en vente"), el("button", {onclick: () => montrer("encheres")}, "Voir"));
+    if (x.enchere_id) acts.append(el("span", {class: "compteur"}, t("marche.en_vente")), el("button", {onclick: () => montrer("encheres")}, t("club.voir")));
     else {
-      if (x.doublon) acts.append(el("span", {class: "doublon", title: "Tu as déjà cette carte : celle-ci ne s'aligne pas, elle se vend."}, "Doublon"));
+      if (x.doublon) acts.append(el("span", {class: "doublon", title: t("club.doublon_titre")}, t("club.doublon")));
       else acts.append(x.dans_effectif
-        ? el("button", {title: "Mettre en réserve", onclick: () => actionClub("/club/aligner", {exemplaire_id: x.exemplaire_id, dans_effectif: false}, `${c.nom} en réserve`)}, "Réserve")
-        : el("button", {class: "primaire", title: "Aligner dans l'effectif", disabled: !G.equipe.marche_ouvert, onclick: () => actionClub("/club/aligner", {exemplaire_id: x.exemplaire_id, dans_effectif: true}, `${c.nom} dans l'effectif`)}, "Aligner"));
-      acts.append(el("button", {class: "vente", onclick: () => dialogueVente(x)}, "Vendre"),
-        el("button", {class: "discret", title: `Vendre à la banque : ${fM((G.packs?.rachat ?? 0.25) * (x.cote || 0))}`, onclick: () => { if (confirm(`Vendre ${c.nom} à la banque pour ${fM((G.packs?.rachat ?? 0.25) * (x.cote || 0))} ? La carte est détruite.`)) actionClub("/club/banque", {exemplaire_id: x.exemplaire_id}, "Vendu à la banque"); }}, "Banque"));
+        ? el("button", {title: t("club.mettre_reserve"), onclick: () => actionClub("/club/aligner", {exemplaire_id: x.exemplaire_id, dans_effectif: false}, t("club.en_reserve_toast", {nom: c.nom}))}, t("club.reserve"))
+        : el("button", {class: "primaire", title: t("club.aligner_titre"), disabled: !G.equipe.marche_ouvert, onclick: () => actionClub("/club/aligner", {exemplaire_id: x.exemplaire_id, dans_effectif: true}, t("club.dans_effectif_toast", {nom: c.nom}))}, t("club.aligner")));
+      const banque = fM((G.packs?.rachat ?? 0.25) * (x.cote || 0));
+      acts.append(el("button", {class: "vente", onclick: () => dialogueVente(x)}, t("club.vendre")),
+        el("button", {class: "discret", title: t("club.banque_titre", {montant: banque}), onclick: () => { if (confirm(t("club.banque_confirmer", {nom: c.nom, montant: banque}))) actionClub("/club/banque", {exemplaire_id: x.exemplaire_id}, t("club.vendu_banque")); }}, t("club.banque")));
     }
     l.append(acts); return l;
   };
-  R.append(el("div", {class: "etiq"}, "Effectif"), ...(eff.length ? eff.map(ligne) : [el("p", {class: "compteur"}, "Personne. Ouvre des packs, puis aligne tes cartes ici.")]));
-  R.append(el("div", {class: "etiq", style: "margin-top:12px"}, "Réserve"), ...(res.length ? res.map(ligne) : [el("p", {class: "compteur"}, "Réserve vide.")]));
+  R.append(el("div", {class: "etiq"}, t("marche.effectif")), ...(eff.length ? eff.map(ligne) : [el("p", {class: "compteur"}, t("club.personne"))]));
+  R.append(el("div", {class: "etiq", style: "margin-top:12px"}, t("club.reserve")), ...(res.length ? res.map(ligne) : [el("p", {class: "compteur"}, t("club.reserve_vide"))]));
   if (!G.packs) { try { G.packs = await api("/packs"); } catch (e) {} }
 }
 // What is being moved: a pitch slot or a bench line.  The same state serves
@@ -960,12 +1053,12 @@ function slotEl(s, poste) {
   else if (malus > 0) classes.push("dephase");
   else if (malus < 0) classes.push("bonus");
   const nomPoste = POSTE_COURT[poste] || poste;
-  const titre = i === null ? `Case ${nomPoste.toLowerCase()} vide`
+  const titre = i === null ? t("slot.vide", {poste: nomPoste.toLowerCase()})
     : malus > 0
-      ? `${carte(i).nom} joue ${nomPoste.toLowerCase()}, loin de ce qu'il a tenu (${codesDe(carte(i))}) : −${malus} sur chaque attribut, OVR ${ovrAu(i, poste)} à ce poste.`
+      ? t("slot.loin", {nom: carte(i).nom, poste: nomPoste.toLowerCase(), tenus: codesDe(carte(i)), malus, ovr: ovrAu(i, poste)})
       : malus < 0
-      ? `${carte(i).nom} joue ${nomPoste.toLowerCase()} : ses attributs y sont même mieux qu'à son poste, +${-malus} sur chacun, OVR ${ovrAu(i, poste)}.`
-      : `${carte(i).nom} — ${nomPoste}. Glisse-le ailleurs, ou touche-le puis touche sa destination.`;
+      ? t("slot.bonus", {nom: carte(i).nom, poste: nomPoste.toLowerCase(), bonus: -malus, ovr: ovrAu(i, poste)})
+      : t("slot.ok", {nom: carte(i).nom, poste: nomPoste});
   const d = el("div", {class: classes.join(" "), tabindex: "0", title: titre,
     style: PROF_POSTE[poste] ? `--prof:${PROF_POSTE[poste]}` : null,
     onclick: () => { if (PRISE) deposer(PRISE, {type: "slot", i: s}); else if (i !== null) prendre({type: "slot", i: s}); },
@@ -988,7 +1081,7 @@ function slotEl(s, poste) {
   d.append(el("div", {class: "slot-poste" + (malus >= 14 ? " loin" : malus > 0 ? " dephase" : malus < 0 ? " bonus" : "")},
     (POSTE_ABBR[poste] || fam) + (malus !== 0 ? ` · ${ovrAu(i, poste)}` : "")));
   if (C.cap === i) d.append(el("div", {class: "cap"}, "C"));
-  d.append(el("button", {class: "slot-menu", title: "Options", onclick: e => { e.stopPropagation(); PRISE = null; menuSlot(s); }}, "···"));
+  d.append(el("button", {class: "slot-menu", title: t("slot.options"), onclick: e => { e.stopPropagation(); PRISE = null; menuSlot(s); }}, "···"));
   return d;
 }
 function menuSlot(s) {
@@ -997,33 +1090,31 @@ function menuSlot(s) {
   const c = carte(i);
   const box = el("div", {class: "fiche"}, el("h3", {class: "anton"}, c.nom),
     el("p", {class: "compteur"}, `${POSTE_COURT[poste] || poste} · OVR ${ovr(i)}`
-      + (malusDe(i, poste) !== 0 ? ` (${ovrAu(i, poste)} à ce poste)` : "") + ` · a tenu ${codesDe(c)}`),
-    malusDe(i, poste) > 0 ? el("div", {class: "avert"},
-      `Hors de son poste : −${malusDe(i, poste)} sur chacun de ses attributs pendant le match.`)
-    : malusDe(i, poste) < 0 ? el("div", {class: "info"},
-      `Ses attributs valent mieux ici qu'à son poste : +${-malusDe(i, poste)} sur chacun pendant le match.`) : null);
+      + (malusDe(i, poste) !== 0 ? ` (${t("slot.a_ce_poste", {ovr: ovrAu(i, poste)})})` : "") + ` · ${t("slot.a_tenu", {codes: codesDe(c)})}`),
+    malusDe(i, poste) > 0 ? el("div", {class: "avert"}, t("slot.hors_poste", {malus: malusDe(i, poste)}))
+    : malusDe(i, poste) < 0 ? el("div", {class: "info"}, t("slot.mieux_ici", {bonus: -malusDe(i, poste)})) : null);
   const acts = el("div", {class: "actions", style: "justify-content:flex-start"});
-  acts.append(el("button", {class: "primaire", onclick: () => { C.cap = i; dlg.close(); rendreEquipe(false); }}, "Nommer capitaine"));
+  acts.append(el("button", {class: "primaire", onclick: () => { C.cap = i; dlg.close(); rendreEquipe(false); }}, t("slot.capitaine")));
   // the bench, those who really hold the position first
   const remplacants = C.banc.slice().sort((x, y) => ovrAu(y, poste) - ovrAu(x, poste));
   for (const b of remplacants) acts.append(el("button", {onclick: () => { C.banc = C.banc.map(x => x === b ? i : x); C.slots[s] = b; if (C.cap === i) C.cap = b; dlg.close(); rendreEquipe(false); }},
-    `Remplacer par ${carte(b).nom} (${ovrAu(b, poste)})${malusDe(b, poste) > 0 ? ` — hors poste, −${malusDe(b, poste)}` : malusDe(b, poste) < 0 ? ` — +${-malusDe(b, poste)} là` : ""}`));
-  acts.append(el("button", {onclick: () => { C.slots[s] = null; C.banc.unshift(i); if (C.cap === i) C.cap = null; dlg.close(); rendreEquipe(false); }}, "Mettre sur le banc"));
-  acts.append(el("button", {onclick: () => { dlg.close(); ouvrirFiche(i); }}, "Voir la fiche"), el("button", {class: "discret", onclick: () => dlg.close()}, "Fermer"));
+    t("slot.remplacer_par", {nom: carte(b).nom, ovr: ovrAu(b, poste)}) + (malusDe(b, poste) > 0 ? ` — ${t("slot.hors_poste_court", {malus: malusDe(b, poste)})}` : malusDe(b, poste) < 0 ? ` — ${t("slot.bonus_court", {bonus: -malusDe(b, poste)})}` : "")));
+  acts.append(el("button", {onclick: () => { C.slots[s] = null; C.banc.unshift(i); if (C.cap === i) C.cap = null; dlg.close(); rendreEquipe(false); }}, t("slot.sur_le_banc")));
+  acts.append(el("button", {onclick: () => { dlg.close(); ouvrirFiche(i); }}, t("voir_fiche")), el("button", {class: "discret", onclick: () => dlg.close()}, t("fermer")));
   box.append(acts); dlg.append(box); dlg.showModal();
 }
 function ligneBanc(i, r) {
   const c = carte(i);
   const choisi = PRISE && PRISE.type === "banc" && PRISE.i === r;
   const l = el("div", {class: "ligne" + (choisi ? " prise" : ""), tabindex: "0",
-    title: `${c.nom} — ${codesDe(c)}. Glisse-le sur le terrain.`,
+    title: t("banc.glisse", {nom: c.nom, codes: codesDe(c)}),
     onclick: () => { if (PRISE && PRISE.type === "slot") deposer(PRISE, {type: "banc"}); else prendre({type: "banc", i: r}); },
     onkeydown: e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (PRISE && PRISE.type === "slot") deposer(PRISE, {type: "banc"}); else prendre({type: "banc", i: r}); } }});
   l.style.setProperty("--clubc", c.couleur);
   zonePrise(l, {type: "banc", i: r});
   const ord = el("div", {class: "ordre"},
-    el("button", {title: "Monter", disabled: r === 0, onclick: e => { e.stopPropagation(); [C.banc[r - 1], C.banc[r]] = [C.banc[r], C.banc[r - 1]]; rendreEquipe(false); }}, "▲"),
-    el("button", {title: "Descendre", disabled: r === C.banc.length - 1, onclick: e => { e.stopPropagation(); [C.banc[r + 1], C.banc[r]] = [C.banc[r], C.banc[r + 1]]; rendreEquipe(false); }}, "▼"));
+    el("button", {title: t("banc.monter"), disabled: r === 0, onclick: e => { e.stopPropagation(); [C.banc[r - 1], C.banc[r]] = [C.banc[r], C.banc[r - 1]]; rendreEquipe(false); }}, "▲"),
+    el("button", {title: t("banc.descendre"), disabled: r === C.banc.length - 1, onclick: e => { e.stopPropagation(); [C.banc[r + 1], C.banc[r]] = [C.banc[r], C.banc[r + 1]]; rendreEquipe(false); }}, "▼"));
   l.append(ord, carteDessinee(c, 120), el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom), el("div", {class: "sous"}, `${codesDe(c)} · ${c.club}`)),
     el("span", {class: "fams"}, el("span", {class: "fam " + c.fam}, POSTE_ABBR[c.poste] || c.poste)),
     el("div", {class: "ovr num"}, String(c.ovr), tendance(c)));
@@ -1032,7 +1123,7 @@ function ligneBanc(i, r) {
 async function envoyer() {
   try {
     const r = await api("/equipe/composition", {formation: C.formation, titulaires: C.slots, banc: C.banc, capitaine: C.cap});
-    toast(`Composition envoyée pour la journée ${r.journee}`); await rafraichir(false); rendreEquipe();
+    toast(t("compo.envoyee_toast", {n: r.journee})); await rafraichir(false); rendreEquipe();
   } catch (e) { toast(e.message); }
 }
 
@@ -1040,37 +1131,15 @@ async function envoyer() {
 // The sheet is recomputed server-side from the seed and the tactical
 // timeline on every poll, so what we draw is never a local accumulation:
 // refreshing, or coming back after a while, shows the same match.
-const TEMPO_TXT = {possession: "Garder le ballon", equilibre: "Équilibré", direct: "Jouer direct"};
-const BLOC_TXT = {haut: "Bloc haut", median: "Bloc médian", bas: "Bloc bas"};
-const RISQUE_TXT = {offensif: "Offensif", equilibre: "Équilibré", prudent: "Prudent"};
-const AXE_TXT = {tempo: TEMPO_TXT, bloc: BLOC_TXT, risque: RISQUE_TXT};
+const AXE_VALEURS = {tempo: ["possession", "equilibre", "direct"], bloc: ["haut", "median", "bas"], risque: ["offensif", "equilibre", "prudent"]};
+const axeTxt = (axe, v) => t(`tac.${axe}.${v}`);
 
 // Les consignes individuelles : ce qu'on demande à une LIGNE, dans les
 // mots d'un entraîneur.  Chacune est un échange, jamais un bonus, et le
 // premier choix de chaque ligne est neutre (jeu/simulation.CONSIGNES).
-const CONSIGNE_TXT = {
-  lateraux: {titre: "Latéraux", opts: {
-    couloir: ["Monte dans son couloir", "Le latéral accompagne l'attaque sur son aile. Le réglage neutre."],
-    bas: ["Reste derrière", "Il ne dépasse pas le milieu : +défense, −percussion."],
-    axe: ["Rentre dans l'axe", "Latéral axial : un homme de plus au milieu. +contrôle, −défense."]}},
-  ailiers: {titre: "Ailiers", opts: {
-    equilibre: ["Équilibré", "Il alterne appel extérieur et intérieur. Le réglage neutre."],
-    ligne: ["Colle la ligne", "Il tient la largeur et étire le bloc adverse : +percussion, −création."],
-    interieur: ["Repique dans l'axe", "Ailier inversé, il rentre pour frapper : +création, +finition, −percussion."]}},
-  milieux: {titre: "Milieux", opts: {
-    equilibre: ["Équilibré", "Il monte et redescend avec le jeu. Le réglage neutre."],
-    projection: ["Rejoint l'attaque", "Il se projette dans la surface : +percussion, −défense (l'espace derrière)."],
-    bas: ["Reste derrière", "Il protège la ligne : +défense, +contrôle, −percussion."],
-    lateral: ["Organise sur les côtés", "Il décale le jeu vers les ailes : +création, −contrôle (l'axe se vide)."]}},
-  attaquants: {titre: "Attaquants", opts: {
-    equilibre: ["Équilibré", "Il joue entre les lignes et en profondeur. Le réglage neutre."],
-    profondeur: ["Cherche la profondeur", "Appels dans le dos : plus de ballons joués, moins bien : +percussion, −création."],
-    pivot: ["Joue en pivot", "Dos au but, il fixe et remise : +contrôle, +création, −percussion."]}},
-  relance: {titre: "Relance", opts: {
-    equilibre: ["Équilibrée", "On ressort comme on peut. Le réglage neutre."],
-    courte: ["Courte, par le bas", "On sort proprement mais on se découvre : +contrôle, −défense."],
-    longue: ["Jeu long", "On saute le milieu : +percussion, +défense, −contrôle."]}},
-};
+// (les libellés et les aides sont dans le dictionnaire : consigne.<ligne>.<valeur> et .aide)
+const CONSIGNE_VALEURS = {lateraux: ["couloir", "bas", "axe"], ailiers: ["equilibre", "ligne", "interieur"],
+  milieux: ["equilibre", "projection", "bas", "lateral"], attaquants: ["equilibre", "profondeur", "pivot"], relance: ["equilibre", "courte", "longue"]};
 
 // Un dépliant dont l'état SURVIT au sondage : l'écran du lobby est
 // redessiné toutes les deux secondes et demie, et un <details> reconstruit
@@ -1117,7 +1186,7 @@ function lectureProfil(profil, poste, combien = 3) {
   for (const [axe, opts] of Object.entries(AFFINITES))
     for (const choix of Object.keys(opts)) {
       const v = affinite(profil, poste, axe, choix);
-      if (v !== null && v !== 0) out.push({texte: opts[choix].texte, score: v});
+      if (v !== null && v !== 0) out.push({texte: existeT(`affinite.${axe}.${choix}`) ? t(`affinite.${axe}.${choix}`) : opts[choix].texte, score: v});
     }
   out.sort((a, b) => b.score - a.score);
   return {aise: out.filter(x => x.score >= AISE.seuil).slice(0, combien),
@@ -1126,12 +1195,12 @@ function lectureProfil(profil, poste, combien = 3) {
 
 function selecteurConsignes(tac, onChange) {
   const d = el("div", {class: "tactiques consignes-jeu"});
-  for (const [axe, def] of Object.entries(CONSIGNE_TXT)) {
-    const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, def.titre));
-    for (const [v, [libelle, aide]] of Object.entries(def.opts))
+  for (const [axe, valeurs] of Object.entries(CONSIGNE_VALEURS)) {
+    const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, t("consigne." + axe)));
+    for (const v of valeurs)
       g.append(el("button", {class: "tac" + (tac[axe] === v ? " actif" : ""),
-        "data-consigne": axe, "data-valeur": v, title: aide,
-        onclick: () => { tac[axe] = v; onChange(); }}, libelle));
+        "data-consigne": axe, "data-valeur": v, title: t(`consigne.${axe}.${v}.aide`),
+        onclick: () => { tac[axe] = v; onChange(); }}, t(`consigne.${axe}.${v}`)));
     d.append(g);
   }
   return d;
@@ -1150,7 +1219,7 @@ function arreterLobby() {
 async function rendreLobby(donnees) {
   const d = donnees || await api(cheminSonde("/lobby"));
   LOBBY.etat = d;
-  $("#lobby-info").textContent = `Elo classé ${Math.round(d.elo)} · ${d.classees} match${d.classees > 1 ? "s" : ""} classé${d.classees > 1 ? "s" : ""}`;
+  $("#lobby-info").textContent = `${t("statut.elo")} ${Math.round(d.elo)} · ${t("lobby.n_classes", {n: d.classees})}`;
   const B = $("#lobby-corps"); B.replaceChildren();
   if (d.etat === "libre") { arreterLobby(); B.append(panneauEntree(d)); B.append(panneauHistorique(d)); return; }
   if (d.etat === "attente") { B.append(panneauAttente(d)); lancerBoucle(); return; }
@@ -1162,13 +1231,13 @@ function lancerBoucle() { if (!LOBBY.timer) LOBBY.timer = setInterval(() => { if
 function selecteurTactique(tac, onChange) {
   const d = el("div", {class: "tactiques"});
   for (const axe of ["tempo", "bloc", "risque"]) {
-    const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, {tempo: "Tempo", bloc: "Bloc", risque: "Risque"}[axe]));
-    for (const v of Object.keys(AXE_TXT[axe])) {
+    const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, t("tac." + axe)));
+    for (const v of AXE_VALEURS[axe]) {
       // l'axe et la valeur sont posés sur le bouton : le panneau du match
       // est réutilisé d'un sondage à l'autre et n'a plus qu'à remettre la
       // classe `actif` au bon endroit, sans reconstruire les boutons
       g.append(el("button", {class: "tac" + (tac[axe] === v ? " actif" : ""), "data-axe": axe, "data-valeur": v,
-        onclick: () => { tac[axe] = v; onChange(); }}, AXE_TXT[axe][v]));
+        onclick: () => { tac[axe] = v; onChange(); }}, axeTxt(axe, v)));
     }
     d.append(g);
   }
@@ -1190,67 +1259,63 @@ function selecteurRythme(d) {
   if (moteurB()) return selecteurVitesse(d);
   const choix = (d.durees || G.saison?.durees_match || [360, 720, 1080]);
   if (!choix.includes(RYTHME)) RYTHME = choix[Math.min(1, choix.length - 1)];
-  const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, "Rythme"));
+  const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, t("rythme.titre")));
   const maj = () => g.querySelectorAll("button").forEach(b => b.classList.toggle("actif", +b.dataset.d === RYTHME));
   for (const s of choix)
-    g.append(el("button", {class: "tac", "data-d": String(s), title: `${Math.round(s / 60)} minutes réelles pour les 90`,
+    g.append(el("button", {class: "tac", "data-d": String(s), title: t("rythme.minutes_reelles", {n: Math.round(s / 60)}),
       onclick: () => { RYTHME = s; try { localStorage.setItem("fl_rythme", String(s)); } catch (e) {} maj(); }},
       `${Math.round(s / 60)} min`));
   maj();
   return el("div", {class: "tactiques rythme"}, g,
-    el("span", {class: "compteur"}, "Un match classé contre un autre manager reste à 6 minutes, l'horloge est commune."));
+    el("span", {class: "compteur"}, t("rythme.classe_six")));
 }
 function selecteurVitesse(d) {
   const choix = (d.vitesses || G.saison?.vitesses_match || [2, 4, 8]);
   if (!choix.includes(VITESSE)) VITESSE = choix[0];
-  const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, "Rythme"));
+  const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, t("rythme.titre")));
   const maj = () => g.querySelectorAll("button").forEach(b => b.classList.toggle("actif", +b.dataset.v === VITESSE));
   for (const v of choix)
-    g.append(el("button", {class: "tac", "data-v": String(v), title: `le ballon vivant à ×${v}, les arrêts de jeu sautés : ${DUREE_VITESSE(v)} minutes réelles environ`,
+    g.append(el("button", {class: "tac", "data-v": String(v), title: t("rythme.vitesse_titre", {v, n: DUREE_VITESSE(v)}),
       onclick: () => { VITESSE = v; try { localStorage.setItem("fl_vitesse", String(v)); } catch (e) {} maj(); }},
       `×${v} · ${DUREE_VITESSE(v)} min`));
   maj();
   return el("div", {class: "tactiques rythme"}, g,
-    el("span", {class: "compteur"}, `Un match complet, les arrêts de jeu sautés. Un match classé contre un autre manager se joue à ×${G.saison?.vitesse_match || 2}, l'horloge est commune.`));
+    el("span", {class: "compteur"}, t("rythme.vitesse_texte", {v: G.saison?.vitesse_match || 2})));
 }
 
 function panneauEntree(d) {
-  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Lance un match"));
+  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, t("lobby.lance")));
   p.append(el("p", {class: "compteur"},
-    moteurB()
-      ? `Ton onze joue contre celui d'un autre manager, avec les attributs de tes cartes. Un match complet à ×${d.vitesse || 2}, une demi-heure environ, tu ajustes en direct.`
-      : `Ton onze joue contre celui d'un autre manager, avec les attributs de tes cartes. ${Math.round(d.duree / 60)} minutes pour 90 en classé, tu ajustes en direct.`));
+    moteurB() ? t("lobby.texte_b", {v: d.vitesse || 2}) : t("lobby.texte_a", {n: Math.round(d.duree / 60)})));
   const onze = C.slots.every(x => x !== null) ? C.slots.slice() : null;
   if (!onze) {
-    p.append(el("div", {class: "avert"}, "Ton onze n'est pas complet : va dans Équipe le compléter, il sert aussi ici."));
+    p.append(el("div", {class: "avert"}, t("lobby.onze_incomplet")));
     return p;
   }
   const strip = el("div", {class: "onze-strip"});
   for (const i of onze) {
     const c = carte(i);
-    const t = el("div", {class: "onze-carte", title: c.nom, onclick: () => ouvrirFiche(i)});
-    t.style.setProperty("--clubc", c.couleur);
-    t.append(carteDessinee(c, 120), el("div", {class: "n"}, c.nom.split(" ").slice(-1)[0]));
-    strip.append(t);
+    const k = el("div", {class: "onze-carte", title: c.nom, onclick: () => ouvrirFiche(i)});
+    k.style.setProperty("--clubc", c.couleur);
+    k.append(carteDessinee(c, 120), el("div", {class: "n"}, c.nom.split(" ").slice(-1)[0]));
+    strip.append(k);
   }
-  p.append(el("div", {class: "etiq"}, "Le onze que tu alignes"), strip);
+  p.append(el("div", {class: "etiq"}, t("lobby.ton_onze")), strip);
   // Retoucher la tactique ici l'enregistre aussi : c'est la MÊME que
   // celle de l'écran Équipe, il n'y en a qu'une par club.
   const maj = () => { const n = panneauEntree(d); p.replaceWith(n); enregistrerTactique(); };
-  p.append(el("div", {class: "etiq"}, "Ta tactique de départ"));
+  p.append(el("div", {class: "etiq"}, t("lobby.ta_tactique")));
   p.append(selecteurTactique(LOBBY.tac, maj));
-  p.append(depliant("entree", "Consignes aux lignes",
-    el("p", {class: "compteur"},
-      "Ce que tu demandes à chaque ligne, en plus des trois axes. Tu peux les changer en cours de match."),
+  p.append(depliant("entree", t("consignes.titre"),
+    el("p", {class: "compteur"}, t("consignes.texte_entree")),
     selecteurConsignes(LOBBY.tac, maj)));
-  p.append(el("p", {class: "compteur"},
-    "Réglée une fois, elle sert à tous tes matchs — tu la retrouves aussi sur l'écran Équipe."));
+  p.append(el("p", {class: "compteur"}, t("lobby.tactique_une_fois")));
   const acts = el("div", {class: "actions", style: "justify-content:flex-start"});
   p.append(selecteurRythme(d));
-  acts.append(el("button", {class: "primaire", onclick: () => entrerLobby(onze, false)}, "Chercher un adversaire"),
-    el("button", {onclick: () => entrerLobby(onze, true)}, "Jouer un défi tout de suite"));
+  acts.append(el("button", {class: "primaire", onclick: () => entrerLobby(onze, false)}, t("lobby.chercher")),
+    el("button", {onclick: () => entrerLobby(onze, true)}, t("lobby.defi")));
   p.append(acts);
-  p.append(el("p", {class: "compteur"}, d.attente_file ? `${d.attente_file} manager(s) dans la file.` : "Personne dans la file : le défi te fait jouer contre un onze de ton niveau, hors classement."));
+  p.append(el("p", {class: "compteur"}, d.attente_file ? t("lobby.file", {n: d.attente_file}) : t("lobby.file_vide")));
   return p;
 }
 
@@ -1260,10 +1325,10 @@ async function entrerLobby(onze, defi) {
 }
 
 function panneauAttente(d) {
-  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "En attente d'un adversaire"));
-  p.append(el("p", {class: "compteur"}, "Le match démarre dès qu'un manager de ton niveau entre dans la file."),
+  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, t("lobby.attente")));
+  p.append(el("p", {class: "compteur"}, t("lobby.attente_texte")),
     el("div", {class: "actions", style: "justify-content:flex-start"},
-      el("button", {onclick: async () => { try { await rendreLobby(await api("/lobby/quitter", {})); } catch (e) { toast(e.message); } }}, "Quitter la file")));
+      el("button", {onclick: async () => { try { await rendreLobby(await api("/lobby/quitter", {})); } catch (e) { toast(e.message); } }}, t("lobby.quitter_file"))));
   return p;
 }
 
@@ -1280,12 +1345,16 @@ function panneauAttente(d) {
 //
 // L'onglet reste où le manager l'a laissé d'un sondage à l'autre.
 // ---------------------------------------------------------------------------
-const ONGLETS_MATCH = {direct: "Le direct", tactique: "Tactique", stats: "Statistiques"};
+const ONGLETS_MATCH = ["direct", "tactique", "stats"];
 let ONGLET = "direct";
 const MATCH_FINI_VU = new Set();     // pour n'ouvrir la feuille qu'une fois
 
 function couleurNote(n) { return n >= 7.5 ? "haute" : n >= 6.5 ? "bonne" : n >= 5.5 ? "" : "basse"; }
 
+// Le style d'un onze et la lecture de l'adversaire : par codes dans la langue de
+// l'écran quand la feuille les donne, sinon le français du serveur.
+const styleTxt = (m, c) => m.style_codes ? ((m.style_codes[c] || []).map(x => t("style." + x)).join(", ") || t("style.equilibre")) : (m.style?.[c] || "");
+const lectureTxt = (m, c) => m.lecture_codes ? (m.lecture_codes[c] || []).map(x => t("lecture." + x)).join(" · ") : (m.lecture?.[c] || []).join(" · ");
 // Une composition, joueur par joueur : sa note de match, ce qu'il a
 // fait, ce qu'il lui reste dans les jambes.
 function colonneCompo(m, cote, mien) {
@@ -1307,7 +1376,7 @@ function colonneCompo(m, cote, mien) {
     if (f.rouges) faits.push("🟥");
     const e = endu[j.pid];
     const l = el("div", {class: "compo-j", title: `${j.nom} · ${j.slot || j.poste} · OVR ${j.ovr}`
-        + (f.touches ? ` · ${f.touches} ballons joués` : "")},
+        + (f.touches ? ` · ${t("match.ballons_joues", {n: f.touches})}` : "")},
       el("span", {class: "po"}, POSTE_ABBR[j.slot] || ""),
       el("span", {class: "nm"}, (j.nom || "").split(" ").slice(-1)[0]),
       el("span", {class: "fa"}, faits.join(" ")),
@@ -1317,8 +1386,8 @@ function colonneCompo(m, cote, mien) {
   }
   const utilises = new Set(m.entres?.[cote] || []);
   const restants = (m.banc?.[cote] || []).filter(j => !utilises.has(j.pid));
-  c.append(el("div", {class: "compo-banc"}, `Banc : ${restants.length} · `
-    + `${m.changements?.[cote === "a" ? 0 : 1] ?? 0}/${SM_MAX_CHG} changements`));
+  c.append(el("div", {class: "compo-banc"}, `${t("match.banc")} ${restants.length} · `
+    + `${m.changements?.[cote === "a" ? 0 : 1] ?? 0}/${SM_MAX_CHG} ${t("match.changements")}`));
   return c;
 }
 
@@ -1329,19 +1398,19 @@ function ongletStats(d) {
   const stats = el("div", {class: "live-stats"});
   const pair = (lib, a, b) => [lib, a, b];
   for (const [lib, va, vb] of [
-      pair("Possession", m.possession[moi] + " %", m.possession[lui] + " %"),
-      pair("Tirs", m.tirs[moi], m.tirs[lui]),
+      pair(t("stats.possession"), m.possession[moi] + " %", m.possession[lui] + " %"),
+      pair(t("stats.tirs"), m.tirs[moi], m.tirs[lui]),
       pair("xG", m.xg[moi].toFixed(2), m.xg[lui].toFixed(2)),
-      pair("xG par tir", (m.tirs[moi] ? m.xg[moi] / m.tirs[moi] : 0).toFixed(2),
+      pair(t("stats.xg_par_tir"), (m.tirs[moi] ? m.xg[moi] / m.tirs[moi] : 0).toFixed(2),
            (m.tirs[lui] ? m.xg[lui] / m.tirs[lui] : 0).toFixed(2)),
-      pair("Corners", m.corners?.[moi] ?? 0, m.corners?.[lui] ?? 0),
-      pair("Fautes", m.fautes?.[moi] ?? 0, m.fautes?.[lui] ?? 0),
-      pair("Hors-jeu", m.horsjeu?.[moi] ?? 0, m.horsjeu?.[lui] ?? 0),
-      pair("Cartons", cartons(m, moi), cartons(m, lui))])
+      pair(t("stats.corners"), m.corners?.[moi] ?? 0, m.corners?.[lui] ?? 0),
+      pair(t("stats.fautes"), m.fautes?.[moi] ?? 0, m.fautes?.[lui] ?? 0),
+      pair(t("stats.horsjeu"), m.horsjeu?.[moi] ?? 0, m.horsjeu?.[lui] ?? 0),
+      pair(t("stats.cartons"), cartons(m, moi), cartons(m, lui))])
     stats.append(el("div", {class: "sl"}, el("b", {}, String(va)), el("span", {}, lib), el("b", {}, String(vb))));
   p.append(stats);
-  p.append(el("div", {class: "etiq"}, "La course au xG"), courseXg(m, moi));
-  p.append(el("div", {class: "etiq"}, "Où ils ont tiré"), carteTirs(m, moi));
+  p.append(el("div", {class: "etiq"}, t("stats.course_xg")), courseXg(m, moi));
+  p.append(el("div", {class: "etiq"}, t("stats.ou_tire")), carteTirs(m, moi));
   // les meilleures notes des deux camps
   const fiches = Object.entries(m.joueurs || {}).map(([pid, f]) => ({pid: +pid, ...f}));
   if (fiches.length) {
@@ -1356,17 +1425,17 @@ function ongletStats(d) {
     fiches.slice(0, m.fini ? 6 : 5).forEach((f, i) => {
       const [n, c] = nom(f.pid);
       const faits = [];
-      if (f.buts) faits.push(`${f.buts} but${f.buts > 1 ? "s" : ""}`);
-      if (f.passes_d) faits.push(`${f.passes_d} passe${f.passes_d > 1 ? "s" : ""} d.`);
-      if (f.arrets) faits.push(`${f.arrets} arrêt${f.arrets > 1 ? "s" : ""}`);
-      faits.push(`${f.touches} ballons`);
+      if (f.buts) faits.push(t("stats.n_buts", {n: f.buts}));
+      if (f.passes_d) faits.push(t("stats.n_passes_d", {n: f.passes_d}));
+      if (f.arrets) faits.push(t("stats.n_arrets", {n: f.arrets}));
+      faits.push(t("stats.n_ballons", {n: f.touches}));
       h.append(el("div", {class: "homme" + (c === "ab"[moi] ? " mien" : "") + (i === 0 && m.fini ? " premier" : "")},
         el("b", {class: "note " + couleurNote(f.note)}, f.note.toFixed(1)),
         el("span", {}, n),
-        i === 0 && m.fini ? el("span", {class: "medaille"}, "homme du match") : null,
+        i === 0 && m.fini ? el("span", {class: "medaille"}, t("stats.homme_du_match")) : null,
         el("span", {class: "compteur"}, faits.join(" · "))));
     });
-    p.append(el("div", {class: "etiq"}, m.fini ? "La feuille de match" : "Les hommes du match"), h);
+    p.append(el("div", {class: "etiq"}, m.fini ? t("stats.feuille") : t("stats.hommes")), h);
   }
   return p;
 }
@@ -1397,8 +1466,8 @@ function courseXg(m, moi) {
   }
   const b = el("div", {class: "xg-boite"});
   b.append(svg, el("div", {class: "xg-legende"},
-    el("span", {class: "lg mien"}, `toi ${cum[moi][n - 1].toFixed(2)}`),
-    el("span", {class: "lg adverse"}, `eux ${cum[1 - moi][n - 1].toFixed(2)}`)));
+    el("span", {class: "lg mien"}, `${t("stats.toi")} ${cum[moi][n - 1].toFixed(2)}`),
+    el("span", {class: "lg adverse"}, `${t("stats.eux")} ${cum[1 - moi][n - 1].toFixed(2)}`)));
   return b;
 }
 
@@ -1420,26 +1489,25 @@ function carteTirs(m, moi) {
     const prof = 0.06 + (1 - Math.min(1, xg / 0.5)) * 0.26;
     const trav = tir && tir.t !== undefined ? 0.5 + (tir.t - 0.5) * 0.62 : 0.5;
     const pt = el("span", {class: "tir " + e.type + (mien ? " mien" : " adverse"),
-      title: `${e.minute}' ${e.texte} · xG ${xg.toFixed(2)}`,
+      title: `${e.minute}' ${texteEvt(e)} · xG ${xg.toFixed(2)}`,
       style: `right:${(prof * 100).toFixed(1)}%;top:${(trav * 100).toFixed(1)}%;`
              + `width:${taille}px;height:${taille}px;margin:${-taille / 2}px`});
     fond.append(pt); n++;
   }
-  if (!n) b.append(el("p", {class: "compteur"}, "Pas encore de tir."));
-  else b.append(el("p", {class: "compteur"},
-    "Taille = xG. Plein = but, cerclé = arrêt ou occasion manquée. Tes tirs en bleu, les leurs en rouge."));
+  if (!n) b.append(el("p", {class: "compteur"}, t("stats.pas_de_tir")));
+  else b.append(el("p", {class: "compteur"}, t("stats.legende_tirs")));
   return b;
 }
 
 function ligneEvt(e, moi) {
   const l = el("div", {class: "evt " + e.type + (e.cote === "AB"[moi] ? " mien" : "")},
     el("span", {class: "min"}, (e.lib || e.minute) + "'"), el("span", {class: "ico"}, EVT_ICONE[e.type] || "•"),
-    el("span", {class: "txt"}, e.texte));
+    el("span", {class: "txt"}, texteEvt(e)));
   // d'où venait le but : une action à une passe ne raconte pas la même
   // chose qu'une action à six
   if (e.type === "but" && e.passes !== undefined)
     l.append(el("span", {class: "amont"},
-      e.passes <= 1 ? "action directe" : `${e.passes} passes, parti de ${(e.depart || "").split(" ").slice(-1)[0]}`));
+      e.passes <= 1 ? t("match.action_directe") : t("match.passes_depuis", {n: e.passes, de: (e.depart || "").split(" ").slice(-1)[0]})));
   return l;
 }
 
@@ -1452,7 +1520,7 @@ function ongletDirect(d) {
   const fil = el("div", {class: "fil"});
   const vus = m.evenements.map((e, i) => [e, i]).filter(([, i]) => evtVu(m, i));
   for (const [e] of vus.reverse()) fil.append(ligneEvt(e, moi));
-  if (!vus.length) fil.append(el("p", {class: "compteur"}, "Le match vient de commencer."));
+  if (!vus.length) fil.append(el("p", {class: "compteur"}, t("match.vient_de_commencer")));
   p.append(fil);
   return p;
 }
@@ -1465,7 +1533,7 @@ function panneauMatch(d, routeTac = "/lobby/tactique", routePause = "/lobby/paus
   // ---- le bandeau : les deux équipes, le score, l'horloge
   const tete = el("div", {class: "panneau match-tete"});
   tete.append(el("div", {class: "mt-eq"}, el("div", {class: "nom anton"}, m.noms[moi]),
-    el("div", {class: "style"}, m.style["ab"[moi]])));
+    el("div", {class: "style"}, styleTxt(m, "ab"[moi]))));
   // Le score et la minute sont ceux que l'ANIMATION a montrés : le
   // serveur a une minute d'avance, et un score qui change avant que le
   // ballon n'entre gâche le but (majTete).
@@ -1474,8 +1542,8 @@ function panneauMatch(d, routeTac = "/lobby/tactique", routePause = "/lobby/paus
   tete.append(el("div", {class: "mt-centre"}, scoreEl, minEl));
   tete.append(el("div", {class: "mt-eq droite"}, el("div", {class: "nom anton"}, m.noms[lui]),
     // Pas ses réglages : ce qu'on en voit (simulation.lecture_adverse).
-    el("div", {class: "style"}, (m.lecture?.[cote] || []).join(" · ")
-      || (m.minute < 15 ? "trop tôt pour les lire" : "rien de net"))));
+    el("div", {class: "style"}, lectureTxt(m, cote)
+      || (m.minute < 15 ? t("match.trop_tot") : t("match.rien_de_net")))));
   const aiguille = el("i", {});
   tete.append(el("div", {class: "horloge" + (m.pause ? " suspendue" : "")}, aiguille));
   bloc.append(tete);
@@ -1500,9 +1568,9 @@ function panneauMatch(d, routeTac = "/lobby/tactique", routePause = "/lobby/paus
       : ONGLET === "tactique" && !m.fini ? blocAjuster(d, routeTac, routePause, rendre)
       : ongletDirect(d));
   };
-  for (const [cle, lib] of Object.entries(ONGLETS_MATCH)) {
+  for (const cle of ONGLETS_MATCH) {
     if (cle === "tactique" && m.fini) continue;
-    barre.append(el("button", {"data-onglet": cle, onclick: () => { ONGLET = cle; dessiner(); }}, lib));
+    barre.append(el("button", {"data-onglet": cle, onclick: () => { ONGLET = cle; dessiner(); }}, t("onglet." + cle)));
   }
   // Au coup de sifflet final, c'est la feuille de match qu'on veut voir,
   // pas le fil des actions qu'on vient de regarder passer.
@@ -1515,11 +1583,11 @@ function panneauMatch(d, routeTac = "/lobby/tactique", routePause = "/lobby/paus
   bloc.append(p);
 
   if (m.fini) {
-    const r = m.resultat === "N" ? "Match nul" : ((m.resultat === "A") === (moi === 0) ? "Victoire" : "Défaite");
+    const r = m.resultat === "N" ? t("res.nul") : ((m.resultat === "A") === (moi === 0) ? t("res.victoire") : t("res.defaite"));
     const de = m.elo_apres && m.elo_apres[moi] !== null ? m.elo_apres[moi] - m.elo_avant[moi] : null;
     p.append(el("div", {class: "live-fin"}, el("b", {class: "anton"}, r),
-      de === null ? el("span", {}, m.defi ? " · défi, hors classement" : "") : el("span", {}, ` · Elo ${de > 0 ? "+" : ""}${de.toFixed(1)}`),
-      routeTac === "/lobby/tactique" ? el("button", {class: "primaire", onclick: () => rendreLobby()}, "Rejouer") : null));
+      de === null ? el("span", {}, m.defi ? " · " + t("match.defi_hors_classement") : "") : el("span", {}, ` · Elo ${de > 0 ? "+" : ""}${de.toFixed(1)}`),
+      routeTac === "/lobby/tactique" ? el("button", {class: "primaire", onclick: () => rendreLobby()}, t("match.rejouer")) : null));
   }
   return bloc;
 }
@@ -1537,28 +1605,24 @@ async function rendreSolo(donnees) {
   SOLO.d = d;
   const B = $("#solo-corps"); B.replaceChildren();
   const offerts = Object.values(d.packs_offerts || {}).reduce((a, b) => a + b, 0);
-  $("#solo-info").textContent = offerts ? `${offerts} pack${offerts > 1 ? "s" : ""} offert${offerts > 1 ? "s" : ""} à ouvrir`
-    : "Prends la place d'un club et joue sa saison";
+  $("#solo-info").textContent = offerts ? t("solo.packs_offerts", {n: offerts}) : t("solo.accroche");
   B.append(d.campagne ? panneauCampagne(d) : panneauChoixSolo(d));
   B.append(panneauPalmares(d));
   if (d.campagne?.match && !d.campagne.match.fini) lancerBoucleSolo();
 }
 
 function panneauChoixSolo(d) {
-  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Choisis ta compétition"),
-    el("p", {class: "compteur"},
-      "Tu remplaces un club de la compétition et tu joues son calendrier avec ton onze. "
-      + "Les adversaires sont les vrais clubs, alignés avec les cartes de leurs joueurs : "
-      + "quand un joueur baisse, son club baisse avec lui. Plus tu vas loin, plus tu gagnes."));
+  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, t("solo.choisis_competition")),
+    el("p", {class: "compteur"}, t("solo.choisis_texte")));
   const onglets = el("div", {class: "onglets"});
   for (const c of d.competitions)
     onglets.append(el("button", {class: SOLO.cle === c.cle ? "actif" : "",
       onclick: async () => { SOLO.cle = c.cle; await rendreSolo(SOLO.d); }},
-      c.nom + (c.format === "coupe" ? " · coupe" : "")));
+      nomCompetition(c.cle, c.nom) + (c.format === "coupe" ? " · " + t("solo.coupe") : "")));
   p.append(onglets);
-  if (!SOLO.cle) { p.append(el("p", {class: "info"}, "Choisis une compétition pour voir les clubs.")); return p; }
-  const zone = el("div", {class: "clubs-solo"}, el("p", {class: "compteur"}, "Chargement…"));
-  p.append(el("div", {class: "etiq"}, "Quel club remplaces-tu ?"), zone);
+  if (!SOLO.cle) { p.append(el("p", {class: "info"}, t("solo.choisis_pour_voir"))); return p; }
+  const zone = el("div", {class: "clubs-solo"}, el("p", {class: "compteur"}, t("chargement")));
+  p.append(el("div", {class: "etiq"}, t("solo.quel_club")), zone);
   api(`/solo/clubs/${SOLO.cle}`).then(r => {
     zone.replaceChildren();
     for (const c of r.clubs) {
@@ -1567,7 +1631,7 @@ function panneauChoixSolo(d) {
       k.style.setProperty("--clubc", c.couleur);
       k.append(el("img", {src: `/images/logos/${c.team_id}.png`, alt: "", loading: "lazy", onerror: e => e.target.remove()}),
         el("div", {class: "qui"}, el("div", {class: "nom"}, c.nom),
-          el("div", {class: "sous"}, `effectif ${c.force}`)));
+          el("div", {class: "sous"}, t("solo.effectif_force", {n: c.force}))));
       zone.append(k);
     }
   }).catch(e => { zone.replaceChildren(el("p", {class: "avert"}, e.message)); });
@@ -1575,7 +1639,7 @@ function panneauChoixSolo(d) {
 }
 
 async function demarrerSolo(r, club) {
-  if (!confirm(`Tu prends la place de ${club.nom} en ${r.nom}. C'est parti ?`)) return;
+  if (!confirm(t("solo.confirmer", {club: club.nom, competition: nomCompetition(r.cle, r.nom)}))) return;
   try { await rendreSolo(await api("/solo/demarrer", {cle: r.cle, club: club.team_id})); }
   catch (e) { toast(e.message); }
 }
@@ -1586,59 +1650,59 @@ function panneauCampagne(d) {
   const pr = c.prochain;
   // A league round is a journée; a knockout round has a name of its own,
   // and which leg it is matters more than its number in the calendar.
-  const ou = !pr ? "campagne terminée"
+  const ou = !pr ? t("solo.campagne_terminee")
     : (pr.phase === "ligue" || pr.phase === "championnat")
-      ? `journée ${pr.tour} sur ${c.format === "championnat" ? c.tours : 8}`
-      : (PHASES_SOLO[pr.phase] || pr.libelle || "") + (pr.manche ? ` · match ${pr.manche === 1 ? "aller" : "retour"}` : "");
+      ? t("solo.journee_sur", {n: pr.tour, total: c.format === "championnat" ? c.tours : 8})
+      : (PHASES_SOLO[pr.phase] || pr.libelle || "") + (pr.manche ? ` · ${pr.manche === 1 ? t("solo.aller") : t("solo.retour")}` : "");
   p.append(el("div", {class: "tete-campagne"},
-    el("div", {}, el("h3", {class: "anton"}, c.nom),
-      el("div", {class: "compteur"}, `À la place de ${c.club_remplace} · ${ou}`)),
+    el("div", {}, el("h3", {class: "anton"}, nomCompetition(c.cle, c.nom)),
+      el("div", {class: "compteur"}, `${t("solo.a_la_place_de", {club: c.club_remplace})} · ${ou}`)),
     el("button", {class: "discret", onclick: async () => {
-      if (!confirm("Abandonner la campagne ? Elle ne rapportera rien.")) return;
+      if (!confirm(t("solo.abandonner_confirmer"))) return;
       try { await rendreSolo(await api("/solo/abandonner", {})); } catch (e) { toast(e.message); }
-    }}, "Abandonner")));
+    }}, t("solo.abandonner"))));
   if (c.match) { p.append(panneauMatchSolo(c)); return p; }
   if (c.objectifs && c.objectifs.length) p.append(panneauObjectifs(c.objectifs));
   const onze = C.slots.every(x => x !== null) ? C.slots.slice() : null;
-  if (!onze) p.append(el("div", {class: "avert"}, "Ton onze n'est pas complet : va dans Équipe le compléter, c'est lui qui joue ici."));
+  if (!onze) p.append(el("div", {class: "avert"}, t("solo.onze_incomplet")));
   else if (c.prochain) {
     if (c.prochain.exempt) {
-      p.append(el("p", {class: "info"}, "Tu es exempt cette journée : les autres jouent, toi tu regardes."));
-      p.append(el("div", {class: "actions"}, el("button", {class: "primaire", onclick: () => jouerSolo(onze)}, "Passer la journée")));
+      p.append(el("p", {class: "info"}, t("solo.exempt")));
+      p.append(el("div", {class: "actions"}, el("button", {class: "primaire", onclick: () => jouerSolo(onze)}, t("solo.passer_journee"))));
     } else {
       const a = c.prochain.adversaire;
       const ligne = el("div", {class: "affiche"});
       ligne.style.setProperty("--clubc", a.couleur || "#14161E");
       ligne.append(el("img", {src: `/images/logos/${a.team_id}.png`, alt: "", onerror: e => e.target.remove()}),
-        el("div", {}, el("div", {class: "etiq"}, c.prochain.domicile ? "À domicile contre" : "En déplacement à"),
+        el("div", {}, el("div", {class: "etiq"}, c.prochain.domicile ? t("solo.a_domicile") : t("solo.en_deplacement")),
           el("div", {class: "nom anton"}, a.nom),
-          el("div", {class: "compteur"}, `effectif ${a.force}`
-            + (c.prochain.aller ? ` · aller ${c.prochain.aller.moi} – ${c.prochain.aller.lui}` : ""))));
+          el("div", {class: "compteur"}, t("solo.effectif_force", {n: a.force})
+            + (c.prochain.aller ? ` · ${t("solo.aller").toLowerCase()} ${c.prochain.aller.moi} – ${c.prochain.aller.lui}` : ""))));
       p.append(ligne);
       p.append(selecteurTactique(LOBBY.tac, () => {}));
       p.append(selecteurRythme({durees: G.saison?.durees_match, vitesses: G.saison?.vitesses_match}));
       p.append(el("div", {class: "actions"},
         el("button", {class: "primaire", onclick: () => jouerSolo(onze)},
-          c.prochain.manche === 2 ? "Jouer le match retour" : "Jouer le match")));
+          c.prochain.manche === 2 ? t("solo.jouer_retour") : t("solo.jouer"))));
     }
   }
   if (c.mes_matchs?.length) {
-    p.append(el("div", {class: "etiq"}, "Tes derniers matchs"));
+    p.append(el("div", {class: "etiq"}, t("solo.derniers_matchs")));
     for (const m of [...c.mes_matchs].reverse()) {
       const r = resSolo(m, c.place), chez_moi = m.a === c.place;
       p.append(el("div", {class: "ligne simple"},
         el("span", {class: "res " + r}, r),
-        el("div", {class: "qui"}, el("div", {class: "nom"}, (chez_moi ? "" : "à ") + m.adversaire),
+        el("div", {class: "qui"}, el("div", {class: "nom"}, (chez_moi ? "" : t("solo.chez") + " ") + m.adversaire),
           el("div", {class: "sous"}, PHASES_SOLO[m.phase]
-            ? PHASES_SOLO[m.phase] + (m.manche ? (m.manche === 1 ? " · aller" : " · retour") : "")
-            : `journée ${m.tour + 1}`)),
+            ? PHASES_SOLO[m.phase] + (m.manche ? " · " + (m.manche === 1 ? t("solo.aller") : t("solo.retour")) : "")
+            : t("solo.journee_n", {n: m.tour + 1}))),
         el("b", {class: "num"}, scoreSolo(m, c.place))));
     }
   }
   if (c.classement?.length)
-    p.append(el("div", {class: "etiq"}, c.format === "championnat" ? "Classement" : "Phase de ligue"),
+    p.append(el("div", {class: "etiq"}, c.format === "championnat" ? t("solo.classement") : t("solo.phase_ligue")),
       tableauClassement(c.classement, c.qualification));
-  if (c.tableau?.length) p.append(el("div", {class: "etiq"}, "Tableau final"), tableauCoupe(c.tableau));
+  if (c.tableau?.length) p.append(el("div", {class: "etiq"}, t("solo.tableau_final")), tableauCoupe(c.tableau));
   return p;
 }
 
@@ -1650,7 +1714,7 @@ function panneauMatchSolo(c) {
   const d = {match: c.match, cote: "a", duree: c.match.duree, vitesse: c.match.vitesse, minutes: c.match.minutes};
   const b = el("div", {});
   b.append(panneauMatch(d, "/solo/tactique", "/solo/pause", rendreSolo));
-  if (c.match.fini) b.append(el("p", {class: "compteur"}, "Match terminé, la journée se clôture…"));
+  if (c.match.fini) b.append(el("p", {class: "compteur"}, t("solo.cloture")));
   return b;
 }
 
@@ -1669,30 +1733,29 @@ function scoreSolo(m, place) {
 // go straight to the last sixteen, nine to twenty-four to the play-off,
 // the rest are out.  Colouring the rows says it without a legend.
 function tableauClassement(lignes, qual) {
-  const t = el("div", {class: "table-solo"});
-  t.append(el("div", {class: "tl tete"}, el("span", {}, "#"), el("span", {}, "Club"),
-    el("b", {}, "J"), el("b", {}, "G"), el("b", {}, "N"), el("b", {}, "P"), el("b", {}, "Diff"), el("b", {}, "Pts")));
+  const tab = el("div", {class: "table-solo"});
+  tab.append(el("div", {class: "tl tete"}, el("span", {}, "#"), el("span", {}, t("table.club")),
+    el("b", {}, t("table.j")), el("b", {}, t("table.g")), el("b", {}, t("table.n")), el("b", {}, t("table.p")), el("b", {}, t("table.diff")), el("b", {}, t("table.pts"))));
   for (const l of lignes) {
     const zone = qual ? (l.rang <= qual.directs ? " direct" : l.rang <= qual.barrages ? " barrage" : " dehors") : "";
-    t.append(el("div", {class: "tl" + (l.toi ? " moi" : "") + zone}, el("span", {}, String(l.rang)),
+    tab.append(el("div", {class: "tl" + (l.toi ? " moi" : "") + zone}, el("span", {}, String(l.rang)),
       el("span", {class: "nom"}, l.nom), el("b", {}, String(l.j)), el("b", {}, String(l.g)),
       el("b", {}, String(l.n)), el("b", {}, String(l.p)),
       el("b", {}, (l.bp - l.bc > 0 ? "+" : "") + (l.bp - l.bc)), el("b", {class: "pts"}, String(l.pts))));
   }
-  if (qual) t.append(el("p", {class: "compteur"},
-    `Les ${qual.directs} premiers passent directement en huitièmes, du ${qual.directs + 1}ᵉ au ${qual.barrages}ᵉ par les barrages, les autres sont éliminés.`));
-  return t;
+  if (qual) tab.append(el("p", {class: "compteur"},
+    t("solo.qualification", {directs: qual.directs, suivant: qual.directs + 1, barrages: qual.barrages})));
+  return tab;
 }
 
-const PHASES_SOLO = {barrage: "Barrages", "8": "Huitièmes de finale", "4": "Quarts de finale",
-  "2": "Demi-finales", F: "Finale"};
+const PHASES_SOLO = tableT("phase.");
 
 // One column per phase, each tie with its AGGREGATE over the two legs —
 // that is what decides it, so that is what the bracket shows.
 function tableauCoupe(phases) {
   const t = el("div", {class: "bracket"});
   for (const ph of phases) {
-    const col = el("div", {class: "bcol"}, el("div", {class: "etiq"}, ph.libelle));
+    const col = el("div", {class: "bcol"}, el("div", {class: "etiq"}, PHASES_SOLO[ph.phase] || ph.libelle));
     for (const d of ph.ties)
       col.append(el("div", {class: "btie" + (d.toi ? " moi" : "") + (d.vainqueur ? " fini" : "")},
         el("span", {class: d.vainqueur === d.a ? "gagne" : ""}, d.a),
@@ -1758,67 +1821,72 @@ function montrerFeuilleSolo(f, bilan, place) {
   const chez_moi = f.a === place;
   const box = el("div", {class: "fiche"}, el("h3", {class: "anton"}, scoreSolo(f, place)),
     el("p", {class: "compteur"},
-      `${{V: "Victoire", N: "Match nul", D: "Défaite"}[resSolo(f, place)]}`
-      + ` · possession ${chez_moi ? f.possession[0] : f.possession[1]} %`
-      + ` · tirs ${chez_moi ? f.tirs[0] : f.tirs[1]} contre ${chez_moi ? f.tirs[1] : f.tirs[0]}`));
+      `${{V: t("res.victoire"), N: t("res.nul"), D: t("res.defaite")}[resSolo(f, place)]}`
+      + ` · ${t("stats.possession").toLowerCase()} ${chez_moi ? f.possession[0] : f.possession[1]} %`
+      + ` · ${t("solo.tirs_contre", {a: chez_moi ? f.tirs[0] : f.tirs[1], b: chez_moi ? f.tirs[1] : f.tirs[0]})}`));
   const fil = el("div", {class: "fil"});
   for (const e of f.evenements)
     fil.append(el("div", {class: "evt " + e.type},
       el("span", {class: "min"}, (e.lib || e.minute) + "'"), el("span", {class: "ico"}, EVT_ICONE[e.type] || "•"),
-      el("span", {class: "txt"}, e.texte)));
-  if (!f.evenements.length) fil.append(el("p", {class: "compteur"}, "Match sans fait marquant."));
+      el("span", {class: "txt"}, texteEvt(e))));
+  if (!f.evenements.length) fil.append(el("p", {class: "compteur"}, t("solo.sans_fait")));
   box.append(fil);
   const acts = el("div", {class: "actions"});
-  if (bilan) acts.append(el("button", {class: "primaire", onclick: () => { dlg.close(); montrerBilanSolo(bilan); }}, "Voir le bilan"));
-  else acts.append(el("button", {class: "primaire", onclick: () => dlg.close()}, "Journée suivante"));
+  if (bilan) acts.append(el("button", {class: "primaire", onclick: () => { dlg.close(); montrerBilanSolo(bilan); }}, t("solo.voir_bilan")));
+  else acts.append(el("button", {class: "primaire", onclick: () => dlg.close()}, t("solo.journee_suivante")));
   box.append(acts); dlg.append(box); dlg.showModal();
 }
 
+// Le nom d'une compétition : dans le monde fictif (jeu/fictif), le pays dans la langue
+// de l'écran ; dans le monde réel, le vrai nom, qui ne se traduit pas.
+const nomCompetition = (cle, nom) => (G.saison?.monde === "fictif" && cle && existeT("competition." + cle)) ? t("competition." + cle) : (nom || cle || "");
+// Ce qu'une campagne a payé : par code dans la langue de l'écran, sinon le français du serveur.
+const recompenseTxt = b => (b.code && existeT("recompense." + b.code)) ? t("recompense." + b.code) : (b.libelle || b.tour || "");
 // Les objectifs du club : trois par campagne, tirés selon ta force dans le champ.
 // Chacun paie ; les trois remplis donnent un titre.
 function panneauObjectifs(objs, fini) {
-  const p = el("div", {class: "objectifs"}, el("div", {class: "etiq"}, fini ? "Les objectifs du club" : "Ce que le club attend"));
+  const p = el("div", {class: "objectifs"}, el("div", {class: "etiq"}, fini ? t("objectifs.titre_fin") : t("objectifs.titre")));
   for (const o of objs) {
     const etat = o.reussi ? "ok" : (o.perdu || (fini && !o.reussi)) ? "rate" : "encours";
     const valeur = o.cle === "buts" ? `${o.valeur ?? 0} / ${o.cible}`
-      : o.cle === "domicile" ? `${o.valeur ?? 0} défaite${(o.valeur || 0) > 1 ? "s" : ""} chez toi`
-      : o.cle === "classement" ? (o.valeur ? `${o.valeur}${o.valeur === 1 ? "er" : "e"} (cible : ${o.cible}${o.cible === 1 ? "er" : "e"})` : "—")
+      : o.cle === "domicile" ? t("objectifs.defaites_chez_toi", {n: o.valeur ?? 0})
+      : o.cle === "classement" ? (o.valeur ? `${ordinal(o.valeur)} (${t("objectifs.cible")} : ${ordinal(o.cible)})` : "—")
       : (o.valeur ? (PHASES_SOLO[o.valeur] || o.valeur) : "—");
     p.append(el("div", {class: "objectif " + etat},
       el("span", {class: "coche"}, etat === "ok" ? "✓" : etat === "rate" ? "✗" : "·"),
-      el("div", {class: "qui"}, el("b", {}, o.libelle), el("span", {class: "compteur"}, ` · ${valeur}`)),
-      el("span", {class: "compteur"}, `${fM(o.credits)} + pack ${TIER_TXT[o.pack] || o.pack}`)));
+      el("div", {class: "qui"}, el("b", {}, o.code && existeT("obj." + o.code) ? t("obj." + o.code, o.params) : o.libelle), el("span", {class: "compteur"}, ` · ${valeur}`)),
+      el("span", {class: "compteur"}, `${fM(o.credits)} + ${t("packs.pack").toLowerCase()} ${TIER_TXT[o.pack] || o.pack}`)));
   }
   return p;
 }
 function montrerBilanSolo(b) {
   if (!b) return;
   const dlg = $("#fiche"); dlg.replaceChildren();
-  const box = el("div", {class: "fiche bilan"}, el("h3", {class: "anton"}, b.libelle),
-    el("p", {class: "compteur"}, b.rang ? `${b.rang}${b.rang === 1 ? "er" : "e"} sur ${b.sur} · ${b.victoires} victoires, ${b.nuls} nuls en ${b.matchs} matchs`
-      : `${b.tour || ""} · ${b.victoires} victoires en ${b.matchs} matchs`));
+  const box = el("div", {class: "fiche bilan"}, el("h3", {class: "anton"}, recompenseTxt(b)),
+    el("p", {class: "compteur"}, b.rang ? `${t("solo.rang_sur", {rang: ordinal(b.rang), sur: b.sur})} · ${t("solo.bilan_ligue", {v: b.victoires, n: b.nuls, m: b.matchs})}`
+      : `${b.tour ? recompenseTxt(b) : ""} · ${t("solo.bilan_coupe", {v: b.victoires, m: b.matchs})}`));
   if (b.objectifs && b.objectifs.length) box.append(panneauObjectifs(b.objectifs, true));
   if (b.titre) box.append(el("p", {class: "titre-gagne anton"}, `🏆 ${b.titre}`));
   box.append(el("div", {class: "gains"},
-    el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Crédits"), el("b", {class: "anton"}, fM(b.credits))),
-    ...Object.entries(b.packs || {}).map(([t, n]) =>
-      el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Packs " + TIER_TXT[t]), el("b", {class: "anton"}, "× " + n)))));
+    el("div", {class: "tuile"}, el("div", {class: "etiq"}, t("solo.credits")), el("b", {class: "anton"}, fM(b.credits))),
+    ...Object.entries(b.packs || {}).map(([tier, n]) =>
+      el("div", {class: "tuile"}, el("div", {class: "etiq"}, t("packs.titre") + " " + TIER_TXT[tier]), el("b", {class: "anton"}, "× " + n)))));
   box.append(el("div", {class: "actions"},
-    el("button", {onclick: () => { dlg.close(); montrer("packs"); }}, "Ouvrir mes packs"),
-    el("button", {class: "primaire", onclick: () => { dlg.close(); rendreSolo(); }}, "Nouvelle campagne")));
+    el("button", {onclick: () => { dlg.close(); montrer("packs"); }}, t("solo.ouvrir_packs")),
+    el("button", {class: "primaire", onclick: () => { dlg.close(); rendreSolo(); }}, t("solo.nouvelle_campagne"))));
   dlg.append(box); dlg.showModal();
 }
 
 function panneauPalmares(d) {
-  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Palmarès"));
-  if (d.titres?.length) p.append(el("div", {class: "titres"}, ...d.titres.map(t => el("span", {class: "titre-gagne"}, `🏆 ${t}`))));
-  if (!d.palmares?.length) { p.append(el("p", {class: "compteur"}, "Aucune campagne terminée.")); return p; }
+  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, t("solo.palmares")));
+  if (d.titres?.length) p.append(el("div", {class: "titres"}, ...d.titres.map(x => el("span", {class: "titre-gagne"}, `🏆 ${x}`))));
+  if (!d.palmares?.length) { p.append(el("p", {class: "compteur"}, t("solo.aucune_campagne"))); return p; }
   for (const c of d.palmares)
     p.append(el("div", {class: "ligne simple"},
-      el("div", {class: "qui"}, el("div", {class: "nom"}, c.competition),
-        el("div", {class: "sous"}, c.libelle + (c.rang ? ` · ${c.rang}${c.rang === 1 ? "er" : "e"} sur ${c.sur}` : c.tour ? ` · ${c.tour}` : ""))),
+      el("div", {class: "qui"}, el("div", {class: "nom"}, nomCompetition(c.cle, c.competition)),
+        el("div", {class: "sous"}, recompenseTxt(c) + (c.rang ? ` · ${t("solo.rang_sur", {rang: ordinal(c.rang), sur: c.sur})}` : ""))),
       el("b", {class: "num"}, fM(c.credits || 0)),
-      el("span", {class: "compteur"}, Object.entries(c.packs || {}).map(([t, n]) => `${n} ${TIER_TXT[t]}`).join(", ") || "—")));
+      el("span", {class: "compteur"}, Object.entries(c.packs || {}).map(([tier, n]) => `${n} ${TIER_TXT[tier]}`).join(", ") || "—")));
   return p;
 }
 
@@ -2274,20 +2342,13 @@ function jouerPhase(t, ph, moi) {
 const PHASE_ICONE = {faute: "🟡", carton: "🟨", horsjeu: "🚩", corner: "⛳", but: "⚽", blessure: "🚑", penalty: "⚠"};
 const ARRETS_LOURDS = new Set(["but", "blessure", "carton", "penalty"]);
 const ARRETS_JEU = new Set(["faute", "horsjeu", "but", "blessure", "carton", "penalty"]);
-const PHASE_TXT = {
-  relance: "Relance", passe: "Passe", conduite: "Il perce", tir: "Frappe !", but: "BUT",
-  arret: "Arrêt du gardien", rate: "À côté", degagement: "Dégagement", perte: "Perte de balle",
-  duel: "Duel", faute: "Faute — coup de sifflet", carton: "Carton", coupfranc: "Coup franc",
-  corner: "Corner", centre: "Centre", horsjeu: "Hors-jeu", engagement: "Engagement",
-  blessure: "Blessure — le jeu est arrêté", circulation: "Ça circule", ouverture: "Renversement",
-  retrait: "En retrait", recuperation: "Récupération", penalty: "Penalty",
-};
+const PHASE_TXT = tableT("phase2d.");
 
 function annoncer(t, evt) {
   const bandeau = t.querySelector(".t2d-bandeau");
   if (!evt) { bandeau.hidden = true; return; }
   bandeau.replaceChildren(el("span", {class: "ico"}, EVT_ICONE[evt.type] || "•"),
-    el("span", {class: "txt"}, evt.texte));
+    el("span", {class: "txt"}, texteEvt(evt)));
   bandeau.className = "t2d-bandeau " + evt.type;
   bandeau.hidden = false;
 }
@@ -2295,17 +2356,17 @@ function annoncer(t, evt) {
 // Un but, un rouge, un penalty : ça se voit en plein terrain, pas dans
 // un bandeau de bas de page.
 const DUREE_POPUP = 3800;
-function surgir(t, evt, moi) {
-  const p = t.querySelector(".t2d-popup");
+function surgir(terr, evt, moi) {
+  const p = terr.querySelector(".t2d-popup");
   if (!p) return;
   moi = moi === "b" || moi === 1 ? 1 : 0;                 // T2D.moi est « a » ou « b »
   const mien = evt.cote === "AB"[moi];
   let titre, sous, classe = evt.type;
   if (evt.type === "but") {
-    titre = evt.penalty ? "PENALTY TRANSFORMÉ" : "BUT !";
-    sous = (evt.nom || "") + (evt.passeur && !evt.penalty ? ` · servi par ${(evt.passeur || "").split(" ").slice(-1)[0]}` : "");
-  } else if (evt.type === "rouge") { titre = "CARTON ROUGE"; sous = evt.texte; }
-  else if (evt.type === "penalty_manque") { titre = "PENALTY MANQUÉ"; sous = evt.texte; }
+    titre = evt.penalty ? t("popup.penalty_transforme") : t("popup.but");
+    sous = (evt.nom || "") + (evt.passeur && !evt.penalty ? ` · ${t("popup.servi_par", {nom: (evt.passeur || "").split(" ").slice(-1)[0]})}` : "");
+  } else if (evt.type === "rouge") { titre = t("popup.rouge"); sous = texteEvt(evt); }
+  else if (evt.type === "penalty_manque") { titre = t("popup.penalty_manque"); sous = texteEvt(evt); }
   else return;
   // Le minuteur ne s'annule qu'ici, une fois sûr qu'une pop-up remplace
   // l'autre : l'annuler pour un événement sans pop-up (la faute qui suit
@@ -2462,8 +2523,8 @@ function majTete() {
   const s = scoreVu(m), min = minuteVue(m);
   h.score.textContent = `${s[moi]} – ${s[lui]}`;
   const lib = libMin(min, m);
-  h.min.textContent = m.fini ? "Terminé"
-    : m.pause ? `${lib}' — ${{"mi-temps": "mi-temps", "blessure": "blessure"}[m.motif_pause] || "arrêté"}`
+  h.min.textContent = m.fini ? t("match.termine")
+    : m.pause ? `${lib}' — ${{"mi-temps": t("pause.mi_temps"), "blessure": t("pause.blessure")}[m.motif_pause] || t("pause.arrete")}`
     : `${lib}'`;
   h.horloge.style.width = Math.round(100 * min / (m.total || (h.minutes || 90) + 7)) + "%";
 }
@@ -2493,7 +2554,7 @@ function panneauTerrainB(d, moi) {
     TB.rid = m.rencontre_id;
     const p = el("div", {class: "panneau terrain-live"});
     p.append(el("div", {class: "t2d-legende"},
-      el("span", {class: "lg mien"}, "Ton équipe"), el("span", {class: "lg adverse"}, "L'adversaire"),
+      el("span", {class: "lg mien"}, t("terrain.ton_equipe")), el("span", {class: "lg adverse"}, t("terrain.adversaire")),
       el("span", {class: "t2d-action"}, "")));
     const boite = el("div", {class: "terrain2d terrain-b"});
     const canvas = el("canvas", {class: "terrain-b-canvas", width: 1050, height: 680});
@@ -2564,31 +2625,31 @@ function panneauTerrain(d, moi) {
     // temps de retard sur le serveur) valent moins qu'une seule.
     p = el("div", {class: "panneau terrain-live"});
     p.append(el("div", {class: "t2d-legende"},
-      el("span", {class: "lg mien"}, "Ton équipe"),
-      el("span", {class: "lg adverse"}, "L'adversaire"),
+      el("span", {class: "lg mien"}, t("terrain.ton_equipe")),
+      el("span", {class: "lg adverse"}, t("terrain.adversaire")),
       el("span", {class: "t2d-action"}, "")));
-    const t = terrain2d();
-    p.append(t);
-    peuplerTerrain(t, m, moi);
+    const terr = terrain2d();
+    p.append(terr);
+    peuplerTerrain(terr, m, moi);
     T2D.noeud = p; T2D.cle = cle;
     if (T2D.m > m.minute) T2D.m = Math.max(0, m.minute - 1);
-    if (window.SIM) SIM.init(t, moi);
+    if (window.SIM) SIM.init(terr, moi);
   }
-  const t = p.querySelector(".terrain2d");
+  const terr = p.querySelector(".terrain2d");
   // le panneau revient à l'écran après un détour par un autre onglet :
   // la simulation, qui s'était endormie, repart
-  if (window.SIM && SIM.t === t && !SIM.timer) { SIM.actif = true; SIM.start(); }
+  if (window.SIM && SIM.t === terr && !SIM.timer) { SIM.actif = true; SIM.start(); }
   T2D.fil = m.fil || [];
   T2D.cible = m.minute;
   T2D.evts = m.evenements || [];
-  T2D.t = t; T2D.moi = moi;
+  T2D.t = terr; T2D.moi = moi;
   T2D.consignes = m.tactique || {};
   T2D.pas = Math.max(900, (d.duree * 1000) / (d.minutes || 90));
   if (T2D.m === 0 || !T2D.score) { if (T2D.m === 0) T2D.m = Math.max(0, T2D.cible - 1); vusInitiaux(m); }
   if (T2D.m > T2D.cible) T2D.m = T2D.cible;
   jauges(m);
-  reAnnoncer(t);
-  t.classList.toggle("suspendu", !!m.pause);
+  reAnnoncer(terr);
+  terr.classList.toggle("suspendu", !!m.pause);
   // L'horloge d'animation tourne PLUS LENTEMENT que le sondage : la
   // relancer à chaque réponse l'empêchait de se déclencher, et le terrain
   // ne bougeait jamais tout seul.
@@ -2598,7 +2659,7 @@ function panneauTerrain(d, moi) {
     arreterTerrain();
     T2D.m = m.minute;
     const der = T2D.fil[T2D.fil.length - 1];
-    if (der) bougerTerrain(t, der.c, der.z, moi);
+    if (der) bougerTerrain(terr, der.c, der.z, moi);
   }
   return p;
 }
@@ -2708,16 +2769,15 @@ function construireChangements(d, route, rendre) {
   b.append(zoneBlessure);
   if (blesses.length) {
     const bl = el("div", {class: "blessure-stop"},
-      el("div", {class: "titre anton"}, "🚑 " + blesses.map(j => j.nom).join(", ")
-        + (blesses.length > 1 ? " sortent" : " sort") + " sur blessure"),
+      el("div", {class: "titre anton"}, "🚑 " + t("chg.sort_blessure", {noms: blesses.map(j => j.nom).join(", "), n: blesses.length})),
       el("p", {class: "etat"}, ""));
     if (!banc.length || restants <= 0) {
-      bl.append(el("p", {class: "compteur"}, "Plus personne à faire entrer : il faut finir en infériorité."));
+      bl.append(el("p", {class: "compteur"}, t("chg.plus_personne")));
     } else {
       const liste = el("div", {class: "chg-liste"});
       for (const j of banc)
         liste.append(ligneJoueur(j, endu, "bless", async () => {
-          try { await rendre(await api(route, {sortant: blesses[0].pid, entrant: j.pid})); toast(j.nom + " entre"); }
+          try { await rendre(await api(route, {sortant: blesses[0].pid, entrant: j.pid})); toast(t("chg.entre", {nom: j.nom})); }
           catch (e) { toast(e.message); }
         }));
       bl.append(liste);
@@ -2730,8 +2790,7 @@ function construireChangements(d, route, rendre) {
   // joueurs sur le terrain : ils permutent leurs postes — ce n'est pas
   // un changement, ça n'en coûte pas un, et il n'y a pas de limite.
   const compteur = el("div", {class: "etiq"}, "");
-  b.append(compteur, el("p", {class: "compteur"},
-    "Un du terrain et un du banc : il entre à sa place. Deux du terrain : ils échangent leurs postes, sans compter comme un changement."));
+  b.append(compteur, el("p", {class: "compteur"}, t("chg.aide")));
   const choix = el("div", {class: "chg-choix"});
   const maj = () => {
     const s = CHG.sel;
@@ -2741,15 +2800,15 @@ function construireChangements(d, route, rendre) {
     const nom = pid => (surTerrain.concat(banc).find(j => j.pid === pid)?.nom || "").split(" ").slice(-1)[0];
     if (dessus.length === 2) {
       valider.disabled = false;
-      valider.textContent = `Permuter ${nom(dessus[0].pid)} et ${nom(dessus[1].pid)}`;
+      valider.textContent = t("chg.permuter", {un: nom(dessus[0].pid), deux: nom(dessus[1].pid)});
       valider.dataset.mode = "perm";
     } else if (dessus.length === 1 && dedans.length === 1) {
       valider.disabled = restants <= 0;
-      valider.textContent = restants <= 0 ? "Plus de changement possible" : `${nom(dedans[0].pid)} entre pour ${nom(dessus[0].pid)}`;
+      valider.textContent = restants <= 0 ? t("chg.plus_possible") : t("chg.entre_pour", {entrant: nom(dedans[0].pid), sortant: nom(dessus[0].pid)});
       valider.dataset.mode = "chg";
     } else {
       valider.disabled = true;
-      valider.textContent = dessus.length === 1 ? "Choisis qui entre, ou un deuxième joueur du terrain" : "Choisis les joueurs";
+      valider.textContent = dessus.length === 1 ? t("chg.choisis_entrant") : t("chg.choisis");
       valider.dataset.mode = "";
     }
   };
@@ -2773,7 +2832,7 @@ function construireChangements(d, route, rendre) {
   const colonne = (titre, gens, role) => {
     const c = el("div", {}, el("div", {class: "etiq"}, titre));
     for (const j of gens) c.append(ligneJoueur(j, endu, role, () => toucher(j, role)));
-    if (!gens.length) c.append(el("p", {class: "compteur"}, role === "in" ? "Personne sur le banc." : "Personne."));
+    if (!gens.length) c.append(el("p", {class: "compteur"}, role === "in" ? t("chg.personne_banc") : t("chg.personne")));
     return c;
   };
   const valider = el("button", {class: "primaire", disabled: true, onclick: async () => {
@@ -2783,13 +2842,13 @@ function construireChangements(d, route, rendre) {
     try {
       if (mode === "perm") {
         const [x, y] = s.filter(v => v.role === "out");
-        await rendre(await api(routePerm, {un: x.pid, deux: y.pid})); toast("Permutation enregistrée");
+        await rendre(await api(routePerm, {un: x.pid, deux: y.pid})); toast(t("chg.permutation_ok"));
       } else if (mode === "chg") {
         await rendre(await api(route, {sortant: s.find(v => v.role === "out").pid, entrant: s.find(v => v.role === "in").pid}));
-        toast("Changement enregistré");
+        toast(t("chg.changement_ok"));
       }
     } catch (e) { toast(e.message); }
-  }}, "Choisis les joueurs");
+  }}, t("chg.choisis"));
   // Dans l'ordre du terrain lu de l'attaque vers le but : attaquants,
   // milieux, défenseurs, gardien — et dans une ligne, de gauche à droite
   // comme sur la pelouse.  L'ordre est fixé à la construction, pas à
@@ -2797,7 +2856,7 @@ function construireChangements(d, route, rendre) {
   // qu'une liste mal triée.  La fatigue se lit sur la barre.
   const rangLigne = j => ({FWD: 0, MID: 1, DEF: 2, GK: 3}[FAM_POSTE[j.slot || j.poste] || j.fam] ?? 1);
   const parLigne = gens => gens.map((j, i) => [j, i]).sort((x, y) => rangLigne(x[0]) - rangLigne(y[0]) || x[1] - y[1]).map(x => x[0]);
-  choix.append(colonne("Sur le terrain", parLigne([...surTerrain].reverse()), "out"), colonne("Sur le banc", parLigne(banc), "in"));
+  choix.append(colonne(t("chg.sur_le_terrain"), parLigne([...surTerrain].reverse()), "out"), colonne(t("chg.sur_le_banc"), parLigne(banc), "in"));
   b.append(choix, valider);
   CHG.sel = [];
   CHG.maj = maj;
@@ -2810,7 +2869,7 @@ function construireChangements(d, route, rendre) {
 function majCompteur(d, compteur, zoneBlessure, racine) {
   const m = d.match, cote = d.cote === "b" ? "b" : "a";
   const {endu, restants} = gensDuBanc(m, cote);
-  compteur.textContent = `Changements et permutations — ${Math.max(0, restants)} changement${restants > 1 ? "s" : ""} restant${restants > 1 ? "s" : ""}`;
+  compteur.textContent = t("chg.titre", {n: Math.max(0, restants)});
   const postes = m.postes?.[cote] || {};
   racine.querySelectorAll(".chg-j").forEach(n => {
     const j = n.querySelector(".endu");
@@ -2822,9 +2881,7 @@ function majCompteur(d, compteur, zoneBlessure, racine) {
     if (p && badge) badge.textContent = POSTE_ABBR[p.slot] || badge.textContent;
   });
   const etat = zoneBlessure.querySelector(".etat");
-  if (etat) etat.textContent = m.pause
-    ? "Le match est arrêté : choisis qui entre."
-    : "Tu joues en infériorité tant que personne n'entre.";
+  if (etat) etat.textContent = m.pause ? t("chg.arrete_choisis") : t("chg.inferiorite");
 }
 
 // Le panneau tactique du match : les trois axes, la formation, la pause
@@ -2855,8 +2912,8 @@ function blocAjuster(d, routeTac, routePause, rendre) {
 }
 
 function construireAjuster(d, routeTac, routePause, rendre) {
-  const p = el("div", {class: "panneau interne"}, el("h3", {class: "anton"}, "Ajuster"),
-    el("p", {class: "compteur"}, "Un changement prend effet à la minute suivante : il ne touche jamais ce qui est déjà joué."));
+  const p = el("div", {class: "panneau interne"}, el("h3", {class: "anton"}, t("ajuster.titre")),
+    el("p", {class: "compteur"}, t("ajuster.texte")));
   const tac = AJU.tac;
   const envoyer = async () => {
     // Un ajustement prend effet à la MINUTE SUIVANTE : d'ici là le
@@ -2891,16 +2948,13 @@ function construireAjuster(d, routeTac, routePause, rendre) {
   // terrain, on les redistribue sur les postes de la nouvelle forme
   // comme le fait le meilleur onze, et ceux qui se retrouvent hors de
   // leur poste le paient.
-  const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, "Formation"));
+  const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, t("ajuster.formation")));
   for (const f of Object.keys(RANGS))
     g.append(el("button", {class: "tac", "data-form": f,
       onclick: () => { tac.formation = f; envoyer(); }}, nomFormation(f)));
   p.append(el("div", {class: "tactiques"}, g));
-  p.append(depliant("match", "Consignes aux lignes",
-    el("p", {class: "compteur"},
-      "Ce que tu demandes à chaque ligne. Chacune est un échange, jamais un bonus, "
-      + "et elle se voit sur le terrain : un latéral qui reste derrière ne monte plus, "
-      + "un ailier qui repique quitte le couloir."),
+  p.append(depliant("match", t("consignes.titre"),
+    el("p", {class: "compteur"}, t("consignes.texte_match")),
     selecteurConsignes(tac, envoyer)));
   // Museler un joueur d'en face.  C'est la seule consigne qui regarde
   // l'autre équipe, et elle est légitime : son onze est sur le terrain,
@@ -2917,16 +2971,17 @@ function construireAjuster(d, routeTac, routePause, rendre) {
 // La boîte de dialogue : ce que tu dis, ce que le coach en fait.
 function boiteDialogue(route, tac, rendre) {
   const fil = el("div", {class: "dialogue-fil"});
-  const champ = el("input", {type: "text", maxlength: "160",
-    placeholder: "« on presse haut », « Hakimi, reste derrière », « Kolo Muani remplace Dembélé »…"});
+  const champ = el("input", {type: "text", maxlength: "160", placeholder: t("dialogue.exemples")});
   const dire = async () => {
     const texte = champ.value.trim();
     if (!texte) return;
     champ.value = "";
     fil.append(el("div", {class: "dit toi"}, texte));
     try {
-      const rep = await api(route, {texte, tactique: {...tac}});
-      fil.append(el("div", {class: "dit coach" + (rep.compris ? "" : " non")}, rep.reponse));
+      const rep = await api(route, {texte, tactique: {...tac}, langue: LANGUE === "xx" ? "fr" : LANGUE});
+      // une règle du match qui refuse : traduite ici, comme une erreur de l'API
+      const reponse = rep.code && existeT("err." + rep.code) ? t("err." + rep.code, rep.params) : rep.reponse;
+      fil.append(el("div", {class: "dit coach" + (rep.compris ? "" : " non")}, reponse));
       if (rep.compris && rep.tactique) { Object.assign(tac, rep.tactique); AJU.attendu = {...tac}; }
       if (rep.etat) await rendre(rep.etat);
     } catch (e) { fil.append(el("div", {class: "dit coach non"}, e.message)); }
@@ -2935,17 +2990,13 @@ function boiteDialogue(route, tac, rendre) {
   };
   champ.addEventListener("keydown", ev => { if (ev.key === "Enter") { ev.preventDefault(); dire(); } });
   return el("div", {class: "dialogue"},
-    el("div", {class: "etiq"}, "🗣 Parle à ton équipe"),
+    el("div", {class: "etiq"}, "🗣 " + t("dialogue.titre")),
     fil,
-    el("div", {class: "dialogue-saisie"}, champ, el("button", {onclick: dire}, "Dire")));
+    el("div", {class: "dialogue-saisie"}, champ, el("button", {onclick: dire}, t("dialogue.dire"))));
 }
 
 // La causerie : seulement à la mi-temps, et seulement une fois.
-const CAUSERIE_TXT = {
-  secouer: ["Les secouer", "De l'urgence, moins de sang-froid. Ça porte surtout quand on est mené."],
-  rassurer: ["Les rassurer", "Du sang-froid, moins d'élan. Ça tient un résultat, ça n'en renverse pas."],
-  feliciter: ["Les féliciter", "Ça porte quand ça va bien. Quand ça va mal, c'est hors sujet et ça endort."],
-};
+const CAUSERIES = ["secouer", "rassurer", "feliciter"];
 
 function majCauserie(d, routeTac, rendre) {
   const m = d.match, cote = d.cote === "b" ? "b" : "a";
@@ -2954,25 +3005,22 @@ function majCauserie(d, routeTac, rendre) {
   const dite = m.causerie?.[cote];
   const cest = m.pause && m.motif_pause === "mi-temps";
   if (dite && dite !== "rien") {
-    z.replaceChildren(el("div", {class: "causerie dite"},
-      `À la pause, tu les as ${{"secouer": "secoués", "rassurer": "rassurés", "feliciter": "félicités"}[dite] || "laissés"}.`));
+    z.replaceChildren(el("div", {class: "causerie dite"}, t(CAUSERIES.includes(dite) ? "causerie.dite." + dite : "causerie.dite.rien")));
     return;
   }
   if (!cest) { z.replaceChildren(); return; }
   const route = routeTac.replace("tactique", "causerie");
   const b = el("div", {class: "causerie"},
-    el("div", {class: "etiq"}, "🗣 Mi-temps — tu leur dis quoi ?"),
-    el("p", {class: "compteur"},
-      `Ce que tu dis ne vaut pas la même chose selon le score. L'effet dure ${G.saison?.duree_causerie ?? 20} minutes, `
-      + "et tu ne parles qu'une fois."));
+    el("div", {class: "etiq"}, "🗣 " + t("causerie.titre")),
+    el("p", {class: "compteur"}, t("causerie.texte", {n: G.saison?.duree_causerie ?? 20})));
   const choix = el("div", {class: "tac-groupe"});
-  for (const [cle, [lib, aide]] of Object.entries(CAUSERIE_TXT))
-    choix.append(el("button", {class: "tac", title: aide, onclick: async () => {
+  for (const cle of CAUSERIES)
+    choix.append(el("button", {class: "tac", title: t("causerie." + cle + ".aide"), onclick: async () => {
       try { await rendre(await api(route, {causerie: cle})); } catch (e) { toast(e.message); }
-    }}, lib));
+    }}, t("causerie." + cle)));
   choix.append(el("button", {class: "tac discret", onclick: async () => {
     try { await rendre(await api(route, {causerie: "rien"})); } catch (e) { toast(e.message); }
-  }}, "Ne rien dire"));
+  }}, t("causerie.rien")));
   b.append(choix);
   z.replaceChildren(b);
 }
@@ -2985,23 +3033,21 @@ function majMarquage(d, routeTac, rendre) {
   const sur = (m.sur_le_terrain?.[adv] || []).map(pid => tous.find(j => j.pid === pid)).filter(Boolean);
   const actuel = AJU.tac.marquage || 0;
   const paire = m.marquage?.[cote];
-  const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, "Marquage"));
+  const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, t("marquage.titre")));
   g.append(el("button", {class: "tac" + (!actuel ? " actif" : ""),
-    onclick: () => { AJU.tac.marquage = 0; envoyerTac(d, routeTac, rendre); }}, "Personne"));
+    onclick: () => { AJU.tac.marquage = 0; envoyerTac(d, routeTac, rendre); }}, t("marquage.personne")));
   for (const j of sur.filter(x => x.fam !== "GK").slice(0, 10))
     g.append(el("button", {class: "tac" + (actuel === j.pid ? " actif" : ""),
       title: `${j.nom} · ${j.slot || j.poste} · OVR ${j.ovr}`,
       onclick: () => { AJU.tac.marquage = j.pid; envoyerTac(d, routeTac, rendre); }},
       (j.nom || "").split(" ").slice(-1)[0]));
   z.replaceChildren(
-    el("p", {class: "compteur"},
-      "Coller un homme sur l'un des leurs. Il pèse moins — d'autant moins qu'il est fort — "
-      + "mais celui qui le suit passe son match à le suivre. Ça ne se justifie que contre un vrai danger."),
+    el("p", {class: "compteur"}, t("marquage.texte")),
     el("div", {class: "tactiques"}, g));
   if (paire) {
     const nom = pid => (tous.find(x => x.pid === pid)?.nom
       || [...(m.onze?.[cote] || []), ...(m.banc?.[cote] || [])].find(x => x.pid === pid)?.nom || "?");
-    z.append(el("div", {class: "compteur"}, `${nom(paire.garde)} suit ${nom(paire.cible)}.`));
+    z.append(el("div", {class: "compteur"}, t("marquage.suit", {garde: nom(paire.garde), cible: nom(paire.cible)})));
   }
 }
 
@@ -3011,12 +3057,11 @@ function majMarquage(d, routeTac, rendre) {
 function majTireurs(d) {
   const m = d.match, cote = d.cote === "b" ? "b" : "a";
   if (!AJU.tireurs) return;
-  const t = m.tireurs?.[cote];
-  if (!t) { AJU.tireurs.replaceChildren(); return; }
+  const tir = m.tireurs?.[cote];
+  if (!tir) { AJU.tireurs.replaceChildren(); return; }
   const tous = [...(m.onze?.[cote] || []), ...(m.banc?.[cote] || [])];
   const nom = pid => (tous.find(x => x.pid === pid)?.nom || "—").split(" ").slice(-1)[0];
-  AJU.tireurs.textContent =
-    `Penaltys : ${nom(t.penalty)} · corners : ${nom(t.corner)} — le meilleur finisseur et le meilleur créateur de ton onze.`;
+  AJU.tireurs.textContent = t("tireurs.texte", {penalty: nom(tir.penalty), corner: nom(tir.corner)});
 }
 
 function envoyerTac(d, routeTac, rendre) {
@@ -3056,7 +3101,7 @@ function majAjuster(d, routePause, rendre) {
     n.classList.toggle("attente", choisi && enAttente && serveur[n.dataset.consigne] !== n.dataset.valeur);
   });
   if (AJU.boutonPause) {
-    AJU.boutonPause.textContent = m.pause ? "▶ Reprendre" : "⏸ Mettre en pause";
+    AJU.boutonPause.textContent = m.pause ? "▶ " + t("pause.reprendre") : "⏸ " + t("pause.mettre");
     AJU.boutonPause.className = m.pause ? "primaire" : "";
   }
 }
@@ -3064,12 +3109,12 @@ function majAjuster(d, routePause, rendre) {
 const SM_MAX_CHG = 5;
 
 function panneauHistorique(d) {
-  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, "Tes derniers matchs classés"));
-  if (!d.historique?.length) { p.append(el("p", {class: "compteur"}, "Aucun match joué.")); return p; }
+  const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, t("historique.titre")));
+  if (!d.historique?.length) { p.append(el("p", {class: "compteur"}, t("historique.aucun"))); return p; }
   for (const h of d.historique)
     p.append(el("div", {class: "ligne simple"},
       el("span", {class: "res " + h.resultat}, h.resultat),
-      el("div", {class: "qui"}, el("div", {class: "nom"}, h.adversaire), el("div", {class: "sous"}, h.defi ? "défi" : "classé")),
+      el("div", {class: "qui"}, el("div", {class: "nom"}, h.adversaire), el("div", {class: "sous"}, h.defi ? t("historique.defi") : t("historique.classe"))),
       el("b", {class: "num"}, `${h.score[0]} – ${h.score[1]}`),
       el("span", {class: "compteur"}, h.elo === null ? "—" : (h.elo > 0 ? "+" : "") + h.elo)));
   return p;
@@ -3081,17 +3126,17 @@ function panneauHistorique(d) {
 // journée calculée, et la révélation de la semaine.  Une journée pas encore vue met un
 // point sur l'onglet (mémorisé dans le navigateur).
 function panneauSaisonVivante(v) {
-  if (!v || !v.journee) return el("div", {class: "panneau vivante"}, el("h2", {class: "anton"}, "La journée"),
-    el("p", {class: "compteur"}, "Aucune journée calculée : tes cartes bougeront avec les vrais matchs dès la première journée."));
+  if (!v || !v.journee) return el("div", {class: "panneau vivante"}, el("h2", {class: "anton"}, t("journee.titre")),
+    el("p", {class: "compteur"}, t("journee.aucune")));
   const j = v.journee, c = v.club;
   const p = el("div", {class: "panneau vivante"});
-  p.append(el("div", {class: "tete"}, el("h2", {class: "anton"}, `La journée ${j.numero}`), el("span", {class: "compteur"}, `vrais matchs du ${j.du} au ${j.au}`)));
+  p.append(el("div", {class: "tete"}, el("h2", {class: "anton"}, t("journee.la_journee_n", {n: j.numero})), el("span", {class: "compteur"}, t("journee.vrais_matchs_du", {du: dateFr(j.du), au: dateFr(j.au)}))));
   const chip = d => d === null || d === undefined ? el("span", {class: "delta nul"}, "—") : el("span", {class: "delta " + (d > 0 ? "plus" : d < 0 ? "moins" : "nul")}, d > 0 ? `+${d}` : String(d));
   p.append(el("div", {class: "recap"},
-    el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Ton club"), el("b", {class: "num"}, (c.total > 0 ? "+" : "") + c.total + " OVR")),
-    el("div", {class: "tuile"}, el("div", {class: "etiq"}, "En hausse"), el("b", {class: "num"}, String(c.hausses))),
-    el("div", {class: "tuile"}, el("div", {class: "etiq"}, "En baisse"), el("b", {class: "num"}, String(c.baisses))),
-    el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Vrais matchs joués"), el("b", {class: "num"}, String(c.matchs)))));
+    el("div", {class: "tuile"}, el("div", {class: "etiq"}, t("journee.ton_club")), el("b", {class: "num"}, (c.total > 0 ? "+" : "") + c.total + " OVR")),
+    el("div", {class: "tuile"}, el("div", {class: "etiq"}, t("journee.en_hausse")), el("b", {class: "num"}, String(c.hausses))),
+    el("div", {class: "tuile"}, el("div", {class: "etiq"}, t("journee.en_baisse")), el("b", {class: "num"}, String(c.baisses))),
+    el("div", {class: "tuile"}, el("div", {class: "etiq"}, t("journee.vrais_matchs")), el("b", {class: "num"}, String(c.matchs)))));
   const bouge = c.cartes.filter(x => x.delta || x.matchs.length).sort((a, b) => (b.delta || 0) - (a.delta || 0));
   const l = el("div", {class: "vivante-liste"});
   for (const x of bouge) {
@@ -3099,16 +3144,16 @@ function panneauSaisonVivante(v) {
       chip(x.delta),
       el("div", {class: "qui"}, el("b", {}, x.nom), el("span", {class: "compteur"}, ` · ${x.club || ""} · ${x.ovr_avant ?? "?"} → ${x.ovr ?? "?"}`)),
       el("div", {class: "notes"}, ...x.matchs.map(m => el("span", {class: "note " + (m.note >= 7 ? "b" : m.note < 5 ? "m" : ""), title: `${m.competition || ""} · ${m.date || ""}`},
-        `${m.note == null ? "—" : f1(m.note)} · ${m.minutes}'${m.entrant ? " (entré)" : ""}`)))));
+        `${m.note == null ? "—" : f1(m.note)} · ${m.minutes}'${m.entrant ? " (" + t("journee.entre") + ")" : ""}`)))));
   }
-  p.append(l.children.length ? l : el("p", {class: "compteur"}, "Aucune de tes cartes n'a joué cette semaine."));
+  p.append(l.children.length ? l : el("p", {class: "compteur"}, t("journee.personne_joue")));
   if (v.revelations.length) {
-    p.append(el("div", {class: "etiq", style: "margin-top:12px"}, "La révélation de la semaine"));
+    p.append(el("div", {class: "etiq", style: "margin-top:12px"}, t("journee.revelation")));
     p.append(el("div", {class: "vivante-liste"}, ...v.revelations.map(x => el("div", {class: "vivante-ligne", onclick: () => ouvrirFiche(x.player_id)}, chip(x.delta),
       el("div", {class: "qui"}, el("b", {}, x.nom), el("span", {class: "compteur"}, ` · ${x.club || ""} · ${x.ovr_avant} → ${x.ovr}`))))));
   }
   if (v.chutes.length) {
-    p.append(el("div", {class: "etiq", style: "margin-top:12px"}, "Les chutes"));
+    p.append(el("div", {class: "etiq", style: "margin-top:12px"}, t("journee.chutes")));
     p.append(el("div", {class: "vivante-liste"}, ...v.chutes.map(x => el("div", {class: "vivante-ligne", onclick: () => ouvrirFiche(x.player_id)}, chip(x.delta),
       el("div", {class: "qui"}, el("b", {}, x.nom), el("span", {class: "compteur"}, ` · ${x.club || ""} · ${x.ovr_avant} → ${x.ovr}`))))));
   }
@@ -3129,34 +3174,34 @@ async function rendreJournee() {
   const dernier = d && res.find(r => r.journee === d.numero);
   if (d && dernier) {
     const det = await api("/resultats/" + d.numero);
-    P.append(el("div", {class: "tete"}, el("h2", {class: "anton"}, `Journée ${d.numero}`), el("span", {class: "compteur"}, `${det.participants} équipes classées`)),
+    P.append(el("div", {class: "tete"}, el("h2", {class: "anton"}, t("journee.journee_n", {n: d.numero})), el("span", {class: "compteur"}, t("journee.equipes_classees", {n: det.participants}))),
       el("div", {class: "gros num"}, f1(det.score)),
       el("div", {class: "recap"},
-        el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Rang de la journée"), el("b", {class: "num"}, `${det.rang}/${det.participants}`)),
-        el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Gain"), el("b", {class: "num"}, fM(det.gain, true))),
-        el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Entrés du banc"), el("b", {class: "num"}, String(det.onze.filter(p => !(det.titulaires || []).includes(p)).length)))));
-    if (det.detail.refusee) P.append(el("div", {class: "avert"}, "Composition refusée : " + det.detail.refusee));
-    const t = el("table"); t.append(el("thead", {}, el("tr", {}, el("th", {}, "Joueur"), el("th", {}, "Matchs (note · min)"), el("th", {class: "num"}, "Points"))));
+        el("div", {class: "tuile"}, el("div", {class: "etiq"}, t("journee.rang_journee")), el("b", {class: "num"}, `${det.rang}/${det.participants}`)),
+        el("div", {class: "tuile"}, el("div", {class: "etiq"}, t("journee.gain")), el("b", {class: "num"}, fM(det.gain, true))),
+        el("div", {class: "tuile"}, el("div", {class: "etiq"}, t("journee.entres_banc")), el("b", {class: "num"}, String(det.onze.filter(p => !(det.titulaires || []).includes(p)).length)))));
+    if (det.detail.refusee) P.append(el("div", {class: "avert"}, t("journee.compo_refusee") + " " + det.detail.refusee));
+    const tb0 = el("table"); tb0.append(el("thead", {}, el("tr", {}, el("th", {}, t("journee.joueur")), el("th", {}, t("journee.matchs_note_min")), el("th", {class: "num"}, t("statut.points")))));
     const tb = el("tbody");
     const lignes = det.onze.map(pid => ({pid, p: det.detail[String(pid)] ?? 0})).sort((a, b) => b.p - a.p);
     for (const {pid, p} of lignes) {
       const c = carte(pid); const pres = det.prestations[String(pid)] || [];
       tb.append(el("tr", {}, el("td", {}, el("b", {}, (c ? c.nom : "#" + pid))),
-        el("td", {}, pres.length ? el("div", {class: "notes"}, ...pres.map(x => el("span", {class: "note " + (x.note >= 7 ? "b" : x.note < 5 ? "m" : ""), title: x.competition}, `${f1(x.note)} · ${Math.round(x.minutes)}'`))) : el("span", {class: "compteur"}, "n'a pas joué")),
+        el("td", {}, pres.length ? el("div", {class: "notes"}, ...pres.map(x => el("span", {class: "note " + (x.note >= 7 ? "b" : x.note < 5 ? "m" : ""), title: x.competition}, `${f1(x.note)} · ${Math.round(x.minutes)}'`))) : el("span", {class: "compteur"}, t("journee.pas_joue"))),
         el("td", {class: "num"}, f1(p))));
     }
-    t.append(tb); P.append(el("div", {class: "tableau"}, t), el("hr", {style: "border:0;border-top:1px solid var(--ligne);margin:14px 0"}));
+    tb0.append(tb); P.append(el("div", {class: "tableau"}, tb0), el("hr", {style: "border:0;border-top:1px solid var(--ligne);margin:14px 0"}));
   } else if (d) {
-    P.append(el("p", {class: "info"}, `Journée ${d.numero} calculée ; tu n'avais pas d'équipe ou pas de composition.`));
+    P.append(el("p", {class: "info"}, t("journee.calculee_sans_equipe", {n: d.numero})));
   }
   if (j) {
-    P.append(el("div", {class: "tete"}, el("h2", {class: "anton"}, `Journée ${j.numero}`), el("span", {class: "compteur"}, `du ${j.du} au ${j.au}`)));
+    P.append(el("div", {class: "tete"}, el("h2", {class: "anton"}, t("journee.journee_n", {n: j.numero})), el("span", {class: "compteur"}, t("journee.du_au", {du: dateFr(j.du), au: dateFr(j.au)}))));
     P.append(el("p", {class: "info"}, j.verrouillee
-      ? el("span", {}, el("b", {}, "Verrouillée."), " Les matchs se jouent ; le score arrive quand l'administrateur clôture la journée.")
-      : el("span", {}, "Verrouillage au premier coup d'envoi : ", el("b", {}, new Date(j.cloture).toLocaleString("fr-FR")), ". ", G.equipe.composition ? "Composition envoyée." : "Pas de composition envoyée : va sur Équipe.")));
-  } else P.append(el("p", {class: "info"}, "Saison terminée."));
+      ? el("span", {}, el("b", {}, t("journee.verrouillee")), " " + t("journee.verrouillee_texte"))
+      : el("span", {}, t("journee.verrouillage") + " ", el("b", {}, new Date(j.cloture).toLocaleString(LOCALE)), ". ", G.equipe.composition ? t("journee.compo_envoyee") : t("journee.pas_de_compo"))));
+  } else P.append(el("p", {class: "info"}, t("compo.saison_terminee")));
   const tb = $("#histo tbody"); tb.replaceChildren();
-  for (const r of res) tb.append(el("tr", {}, el("td", {}, "J" + r.journee), el("td", {class: "num"}, f1(r.score)), el("td", {class: "num"}, fM(r.gain, true)), el("td", {class: "num"}, String(r.rang))));
+  for (const r of res) tb.append(el("tr", {}, el("td", {}, t("journee.j") + r.journee), el("td", {class: "num"}, f1(r.score)), el("td", {class: "num"}, fM(r.gain, true)), el("td", {class: "num"}, String(r.rang))));
 }
 
 // ---- classement et ligues ----
@@ -3165,44 +3210,81 @@ async function rendreClassement() {
   for (const r of cl) tb.append(el("tr", {class: r.equipe_id === G.equipe.equipe_id ? "moi" : ""}, el("td", {class: r.rang <= 3 ? "podium p" + r.rang : ""}, String(r.rang)), el("td", {}, r.equipe), el("td", {}, r.pseudo), el("td", {class: "num"}, f1(r.points)), el("td", {class: "num"}, r.derniere == null ? "—" : f1(r.derniere)), el("td", {class: "num"}, fM(r.patrimoine))));
   const L = $("#ligues"); L.replaceChildren();
   for (const l of await api("/ligues")) {
-    const box = el("div", {class: "ligue"}, el("div", {class: "tete"}, el("h3", {class: "anton"}, l.nom), el("span", {class: "compteur"}, "code ", el("span", {class: "code"}, l.code))));
-    const t = el("table"); const b = el("tbody");
+    const box = el("div", {class: "ligue"}, el("div", {class: "tete"}, el("h3", {class: "anton"}, l.nom), el("span", {class: "compteur"}, t("ligues.code_court") + " ", el("span", {class: "code"}, l.code))));
+    const tab = el("table"); const b = el("tbody");
     for (const r of l.classement) b.append(el("tr", {class: r.equipe_id === G.equipe.equipe_id ? "moi" : ""}, el("td", {}, String(r.rang)), el("td", {}, r.equipe), el("td", {class: "num"}, f1(r.points))));
-    t.append(b); box.append(el("div", {class: "tableau"}, t)); L.append(box);
+    tab.append(b); box.append(el("div", {class: "tableau"}, tab)); L.append(box);
   }
 }
-$("#btn-creer-ligue").addEventListener("click", async () => { try { const r = await api("/ligues", {nom: $("#ligue-nom").value}); toast(`Ligue créée, code ${r.code}`); $("#ligue-nom").value = ""; rendreClassement(); } catch (e) { toast(e.message); } });
-$("#btn-rejoindre-ligue").addEventListener("click", async () => { try { const r = await api("/ligues/rejoindre", {code: $("#ligue-code").value}); toast(`Tu as rejoint ${r.nom}`); $("#ligue-code").value = ""; rendreClassement(); } catch (e) { toast(e.message); } });
+$("#btn-creer-ligue").addEventListener("click", async () => { try { const r = await api("/ligues", {nom: $("#ligue-nom").value}); toast(t("ligues.creee", {code: r.code})); $("#ligue-nom").value = ""; rendreClassement(); } catch (e) { toast(e.message); } });
+$("#btn-rejoindre-ligue").addEventListener("click", async () => { try { const r = await api("/ligues/rejoindre", {code: $("#ligue-code").value}); toast(t("ligues.rejointe", {nom: r.nom})); $("#ligue-code").value = ""; rendreClassement(); } catch (e) { toast(e.message); } });
+
+// ---- le compte : le palier, ses limites, la boutique (PLAN § 5) ----
+async function rendreCompte() {
+  const P = $("#compte-pan"), B = $("#compte-boutique"); P.replaceChildren(); B.replaceChildren();
+  const c = await api("/compte");
+  const premium = c.palier === "premium";
+  P.append(el("h2", {class: "anton"}, t("compte.titre")),
+    el("div", {class: "recap"},
+      el("div", {class: "tuile"}, el("div", {class: "etiq"}, t("compte.palier")), el("b", {class: "num"}, premium ? t("compte.premium") : t("compte.gratuit"))),
+      el("div", {class: "tuile"}, el("div", {class: "etiq"}, t("compte.matchs_jour")), el("b", {class: "num"}, c.limites ? `${c.matchs_joues} / ${c.matchs_jour === null ? "∞" : c.matchs_jour}` : "∞")),
+      el("div", {class: "tuile"}, el("div", {class: "etiq"}, t("compte.encheres")), el("b", {class: "num"}, c.limites ? `${c.encheres_en_cours} / ${c.encheres}` : "∞")),
+      el("div", {class: "tuile"}, el("div", {class: "etiq"}, t("compte.packs_jour")), el("b", {class: "num"}, c.packs_jour.map(x => tierTxt(x)).join(" + ")))));
+  if (premium && c.premium_jusqua) P.append(el("p", {class: "info"}, t("compte.premium_jusqua", {date: new Date(c.premium_jusqua).toLocaleDateString(LOCALE)})));
+  P.append(el("p", {class: "compteur"}, c.limites ? t("compte.limites_texte") : t("compte.sans_limites")));
+  P.append(el("p", {class: "compteur"}, t("compte.email_texte", {email: c.email || t("compte.aucun_email")})));
+  if (c.mineur) P.append(el("p", {class: "avert"}, t("compte.mineur")));
+  B.append(el("h2", {class: "anton"}, t("boutique.titre")),
+    el("p", {class: "compteur"}, t("boutique.texte")));
+  if (c.paiement === "manuel") B.append(el("p", {class: "info"}, t("boutique.fermee")));
+  const L = el("div", {class: "offerts-liste"});
+  for (const p of c.catalogue) {
+    L.append(el("div", {class: "offert " + (p.type === "premium" ? "or" : "argent")},
+      el("b", {class: "anton"}, p.type === "premium" ? t("produit." + p.produit) : t("produit." + p.produit)),
+      el("span", {class: "compteur"}, p.prix.toLocaleString(LOCALE, {style: "currency", currency: "EUR"})),
+      el("button", {class: "primaire", disabled: c.paiement === "manuel" || c.mineur, onclick: async () => {
+        try { const r = await api("/paiement/session", {produit: p.produit}); if (r.url) location.href = r.url; } catch (e) { toast(e.message); }
+      }}, t("boutique.acheter"))));
+  }
+  B.append(L);
+  if (c.achats?.length) {
+    B.append(el("div", {class: "etiq", style: "margin-top:12px"}, t("boutique.achats")));
+    for (const a of c.achats) B.append(el("div", {class: "ligne simple"}, el("div", {class: "qui"}, el("div", {class: "nom"}, t("produit." + a.produit)), el("div", {class: "sous"}, new Date(a.le).toLocaleString(LOCALE))),
+      el("b", {class: "num"}, a.montant.toLocaleString(LOCALE, {style: "currency", currency: "EUR"}))));
+  }
+  const q = new URLSearchParams(location.search).get("paiement");
+  if (q) { toast(q === "ok" ? t("boutique.merci") : t("boutique.annule")); history.replaceState(null, "", location.pathname + location.hash); }
+}
 
 // ---- admin ----
 async function rendreAdmin() {
   const A = $("#admin-etat"); A.replaceChildren();
   const e = await api("/admin/etat");
   const cour = G.saison.courante;
-  A.append(el("p", {class: "info"}, `${e.cartes} cartes · ${e.equipes} équipes · OVR sur le barème de saison : ${e.bareme?.reguliers ?? "?"} réguliers, cloche ${e.bareme?.mu ?? 65} ± ${e.bareme?.sigma ?? 10}, borne ±${e.bareme?.borne ?? 10}`));
+  A.append(el("p", {class: "info"}, t("admin.etat", {cartes: e.cartes, equipes: e.equipes, reguliers: e.bareme?.reguliers ?? "?", mu: e.bareme?.mu ?? 65, sigma: e.bareme?.sigma ?? 10, borne: e.bareme?.borne ?? 10})));
   const js = el("div", {class: "journees"});
-  for (const j of e.journees.filter(x => x.numero >= 1)) js.append(el("span", {class: j.calculee ? "ok" : (cour && cour.numero === j.numero ? "cour" : ""), title: `${j.du} → ${j.au}`}, "J" + j.numero));
+  for (const j of e.journees.filter(x => x.numero >= 1)) js.append(el("span", {class: j.calculee ? "ok" : (cour && cour.numero === j.numero ? "cour" : ""), title: `${j.du} → ${j.au}`}, t("journee.j") + j.numero));
   A.append(js);
-  if (!cour) { A.append(el("p", {class: "info"}, "Toutes les journées sont calculées.")); return; }
-  A.append(el("h3", {class: "anton", style: "margin-top:14px"}, `Journée ${cour.numero} · ${cour.verrouillee ? "verrouillée" : "ouverte"}`),
-    el("p", {class: "compteur"}, `Fenêtre ${cour.du} → ${cour.au}. Clôture : ${new Date(cour.cloture).toLocaleString("fr-FR")}.`));
+  if (!cour) { A.append(el("p", {class: "info"}, t("admin.toutes_calculees"))); return; }
+  A.append(el("h3", {class: "anton", style: "margin-top:14px"}, `${t("journee.journee_n", {n: cour.numero})} · ${cour.verrouillee ? t("admin.verrouillee") : t("admin.ouverte")}`),
+    el("p", {class: "compteur"}, t("admin.fenetre", {du: cour.du, au: cour.au, cloture: new Date(cour.cloture).toLocaleString(LOCALE)})));
   const acts = el("div", {class: "admin-actions"});
-  acts.append(el("button", {onclick: async () => { await api(`/admin/journee/${cour.numero}/verrouiller`, {}); toast("Journée verrouillée"); montrer("admin"); }}, "Verrouiller maintenant"));
-  acts.append(el("button", {onclick: async () => { await api(`/admin/journee/${cour.numero}/ouvrir`, {}); toast("Journée rouverte 7 jours"); montrer("admin"); }}, "Rouvrir 7 jours"));
+  acts.append(el("button", {onclick: async () => { await api(`/admin/journee/${cour.numero}/verrouiller`, {}); toast(t("admin.verrouillee_toast")); montrer("admin"); }}, t("admin.verrouiller")));
+  acts.append(el("button", {onclick: async () => { await api(`/admin/journee/${cour.numero}/ouvrir`, {}); toast(t("admin.rouverte_toast")); montrer("admin"); }}, t("admin.rouvrir")));
   const fichier = el("input", {type: "file", accept: ".json"});
-  acts.append(el("label", {class: "case"}, "Prestations notées (JSON) : ", fichier),
+  acts.append(el("label", {class: "case"}, t("admin.prestations_json") + " ", fichier),
     el("button", {onclick: async () => {
-      if (!fichier.files[0]) { toast("Choisis le fichier exporté par jeu.exporter_journee"); return; }
+      if (!fichier.files[0]) { toast(t("admin.choisis_fichier")); return; }
       const fd = new FormData(); fd.append("fichier", fichier.files[0]);
       const r = await fetch(`/api/admin/journee/${cour.numero}/prestations`, {method: "POST", body: fd});
-      const d = await r.json(); toast(r.ok ? `${d.prestations} prestations chargées` : (d.detail || "échec"));
-    }}, "Charger les prestations"));
+      const d = await r.json(); toast(r.ok ? t("admin.prestations_chargees", {n: d.prestations}) : ((d.detail && d.detail.message) || d.detail || t("admin.echec")));
+    }}, t("admin.charger")));
   acts.append(el("button", {class: "primaire", onclick: async () => {
-      if (!confirm(`Clôturer la journée ${cour.numero} ? Les scores seront calculés et les cartes mises à jour.`)) return;
-      try { const r = await api(`/admin/journee/${cour.numero}/calculer`, {}); toast(`Journée ${cour.numero} calculée : ${r.equipes} équipes, ${r.cartes_bougees} cartes bougées`); await montrer("admin"); }
+      if (!confirm(t("admin.cloturer_confirmer", {n: cour.numero}))) return;
+      try { const r = await api(`/admin/journee/${cour.numero}/calculer`, {}); toast(t("admin.calculee_toast", {n: cour.numero, equipes: r.equipes, cartes: r.cartes_bougees})); await montrer("admin"); }
       catch (err) { toast(err.message); }
-    }}, `Clôturer la journée ${cour.numero}`));
-  A.append(acts, el("p", {class: "compteur"}, "Ordre normal : la journée se verrouille au premier coup d'envoi ; après le dernier match, charger les prestations exportées localement (jeu.exporter_journee) puis clôturer. En démo, les prestations sont déjà en base : clôturer suffit."));
+    }}, t("admin.cloturer", {n: cour.numero})));
+  A.append(acts, el("p", {class: "compteur"}, t("admin.ordre_normal")));
 }
 
 // ---- démarrage ----
@@ -3236,25 +3318,19 @@ function blocProfil(d) {
   const b = el("div", {class: "profil-bloc"});
   const lu = lectureProfil(d.profil, d.postes?.[0] || d.poste);
   if (!lu.aise.length && !lu.gene.length) {
-    b.append(el("div", {class: "etiq"}, "Profil de jeu"),
-      el("p", {class: "compteur"},
-        "Aucune préférence marquée : il est également à l'aise partout, ce qui est "
-        + "la marque d'un joueur complet — et ce qui veut dire qu'aucune tactique ne "
-        + "le fera jouer au-dessus de lui-même."));
+    b.append(el("div", {class: "etiq"}, t("profil.titre")),
+      el("p", {class: "compteur"}, t("profil.aucune_preference")));
     return b;
   }
-  b.append(el("div", {class: "etiq"}, "Profil de jeu"));
-  b.append(el("p", {class: "compteur"},
-    "Lu dans ses attributs, comparés à ceux de sa ligne : ce qu'il fait mieux que "
-    + "les autres à son poste, pas son niveau. Une tactique qui lui va le fait jouer "
-    + `jusqu'à ${Math.round(AISE.max * 100)} % au-dessus de lui-même ; une qui le dessert, autant en dessous.`));
+  b.append(el("div", {class: "etiq"}, t("profil.titre")));
+  b.append(el("p", {class: "compteur"}, t("profil.texte", {pct: Math.round(AISE.max * 100)})));
   const l = el("div", {class: "profil-listes"});
   if (lu.aise.length) l.append(el("div", {class: "profil-col aise"},
-    el("div", {class: "t"}, "À l'aise dans"),
+    el("div", {class: "t"}, t("profil.a_laise")),
     ...lu.aise.map(x => el("div", {class: "profil-item"}, el("span", {}, x.texte),
       el("b", {}, (x.score > 0 ? "+" : "") + x.score.toFixed(1))))));
   if (lu.gene.length) l.append(el("div", {class: "profil-col gene"},
-    el("div", {class: "t"}, "Moins à l'aise dans"),
+    el("div", {class: "t"}, t("profil.moins_a_laise")),
     ...lu.gene.map(x => el("div", {class: "profil-item"}, el("span", {}, x.texte),
       el("b", {}, x.score.toFixed(1))))));
   b.append(l);
@@ -3263,10 +3339,8 @@ function blocProfil(d) {
     const a = aiseDe(d.profil, d.postes?.[0] || d.poste, LOBBY.tac);
     const pct = AISE.max * Math.max(-1, Math.min(1, a / AISE.z)) * 100;
     b.append(el("div", {class: "profil-tien " + (pct > 1 ? "bon" : pct < -1 ? "mauvais" : "")},
-      Math.abs(pct) < 1
-        ? "Avec ta tactique de départ, il joue à son niveau."
-        : `Avec ta tactique de départ, il joue ${pct > 0 ? "au-dessus" : "en dessous"} de lui-même `
-          + `(${pct > 0 ? "+" : ""}${pct.toFixed(0)} % sur ses attributs).`));
+      Math.abs(pct) < 1 ? t("profil.a_son_niveau")
+        : t(pct > 0 ? "profil.au_dessus" : "profil.en_dessous", {pct: (pct > 0 ? "+" : "") + pct.toFixed(0)})));
   }
   return b;
 }
@@ -3275,33 +3349,33 @@ async function ouvrirFiche(id) {
   let d; try { d = await api("/cartes/" + id); } catch (e) { toast(e.message); return; }
   const dlg = $("#fiche"); dlg.replaceChildren();
   const box = el("div", {class: "fiche fiche-carte"});
-  const img = el("img", {class: "carte-img", src: `/images/cartes/${id}.png?ovr=${d.ovr}`, alt: `Carte de ${d.nom}`});
+  const img = el("img", {class: "carte-img", src: `/images/cartes/${id}.png?ovr=${d.ovr}`, alt: t("fiche.carte_de", {nom: d.nom})});
   img.addEventListener("error", () => img.remove());
   const cote = el("div", {class: "fiche-cote"});
   cote.append(el("div", {class: "etiq"}, `${d.club} · ${d.ligue}`), el("h3", {class: "anton"}, d.nom),
-    el("div", {class: "fiche-ligne"}, el("span", {class: "fam " + d.fam}, POSTE_ABBR[d.poste] || FAM_COURT[d.fam]), el("span", {}, `${POSTE_COURT[d.poste] || d.poste} · a tenu ${codesDe(d)}`), d.age ? el("span", {title: d.naissance ? "Né le " + dateFr(d.naissance) : ""}, `· ${d.age} ans${d.naissance ? " (" + dateFr(d.naissance) + ")" : ""}`) : null, d.pays ? el("span", {title: d.pays}, `· ${drapeau(d.pays)} ${d.pays}`) : null, d.numero ? el("span", {}, `· n° ${d.numero}`) : null,
+    el("div", {class: "fiche-ligne"}, el("span", {class: "fam " + d.fam}, POSTE_ABBR[d.poste] || FAM_COURT[d.fam]), el("span", {}, `${POSTE_COURT[d.poste] || d.poste} · ${t("slot.a_tenu", {codes: codesDe(d)})}`), d.age ? el("span", {title: d.naissance ? t("fiche.ne_le", {date: dateFr(d.naissance)}) : ""}, `· ${ageTxt(d)}${d.naissance ? " (" + dateFr(d.naissance) + ")" : ""}`) : null, d.pays ? el("span", {title: d.pays}, `· ${drapeau(d.pays)} ${d.pays}`) : null, d.numero ? el("span", {}, `· n° ${d.numero}`) : null,
       el("span", {}, "·"), piedsDe(d)),
-    el("div", {class: "compteur"}, `${d.matchs} matchs, ${d.minutes} min cette saison · ${Math.round(d.part * 100)} % des équipes`),
+    el("div", {class: "compteur"}, `${t("fiche.matchs_min", {matchs: d.matchs, minutes: d.minutes})} · ${t("carte.part_equipes", {pct: Math.round(d.part * 100)})}`),
     el("div", {style: "display:flex;gap:14px;align-items:baseline;margin-top:6px"}, el("div", {class: "ovr num" + (d.ovr >= 80 ? " haut" : ""), style: "font-size:40px"}, String(d.ovr), tendance(d)), el("div", {class: "prix num", style: "font-size:22px"}, fM(d.prix)),
-      d.potentiel ? el("div", {class: "potentiel", title: "Ce que la carte peut atteindre cette saison : son départ plus ce que son âge lui laisse gagner (les jeunes montent plus haut, les anciens descendent plus bas)"}, el("span", {class: "etiq"}, "Potentiel"), el("b", {class: "num"}, String(d.potentiel))) : null));
-  const dep = d.valeur_base != null ? `${fM(d.valeur_base)} à OVR ${d.ovr_base}` : "—";
-  cote.append(el("div", {class: "compteur", style: "margin-top:6px"}, `Départ de saison : ${dep}`),
-    el("div", {class: "compteur"}, d.valeur_marche != null ? `Valeur marchande réelle (FotMob) : ${fM(d.valeur_marche)}` : "Valeur marchande réelle inconnue : prix estimé d'après l'OVR"),
-    el("div", {class: "compteur"}, `L'OVR est la qualité sur la saison, borné à ±10 du départ. Le prix double tous les +8 OVR, et monte avec la part des équipes qui possèdent la carte.`));
+      d.potentiel ? el("div", {class: "potentiel", title: t("fiche.potentiel_titre")}, el("span", {class: "etiq"}, t("fiche.potentiel")), el("b", {class: "num"}, String(d.potentiel))) : null));
+  const dep = d.valeur_base != null ? t("fiche.a_ovr", {valeur: fM(d.valeur_base), ovr: d.ovr_base}) : "—";
+  cote.append(el("div", {class: "compteur", style: "margin-top:6px"}, `${t("fiche.depart_saison")} ${dep}`),
+    el("div", {class: "compteur"}, d.valeur_marche != null ? t("fiche.valeur_marche", {valeur: fM(d.valeur_marche)}) : t("fiche.valeur_inconnue")),
+    el("div", {class: "compteur"}, t("fiche.ovr_texte")));
   box.append(el("div", {class: "fiche-haut"}, img, cote));
   const axes = d.fam === "GK" ? AXES.gardien : AXES.champ; const A = el("div", {class: "attrs"});
   for (const ax of axes) { const val = d.attributs[ax] ?? 40; A.append(el("div", {class: "attr"}, el("span", {}, (d.poste === "Gardien" && ATTR_NOMS_GARDIEN[ax]) || ATTR_NOMS[ax]), el("div", {class: "jauge"}, el("i", {class: val >= 80 ? "haut" : "", style: `width:${(val - 40) / 59 * 100}%`})), el("b", {class: "num"}, String(val)))); }
-  box.append(el("div", {class: "etiq"}, "Attributs de la saison"), A);
+  box.append(el("div", {class: "etiq"}, t("fiche.attributs")), A);
   box.append(blocPhysique(d));
   box.append(blocProfil(d));
-  box.append(el("div", {class: "etiq"}, "Dernières prestations"), el("div", {class: "notes"}, ...(d.prestations.length ? d.prestations.slice(0, 8).map(p => el("span", {class: "note " + (p.note >= 7 ? "b" : p.note < 5 ? "m" : ""), title: `J${p.numero} · ${p.competition}`}, `${f1(p.note)} · ${Math.round(p.minutes)}'${faits(p)}`)) : [el("span", {class: "compteur"}, "aucun match noté cette saison")])));
-  if (d.historique.length > 1) box.append(el("div", {class: "etiq", style: "margin-top:10px"}, "Prix par journée"), sparkline(d.historique.map(h => h.prix), fM));
+  box.append(el("div", {class: "etiq"}, t("fiche.prestations")), el("div", {class: "notes"}, ...(d.prestations.length ? d.prestations.slice(0, 8).map(p => el("span", {class: "note " + (p.note >= 7 ? "b" : p.note < 5 ? "m" : ""), title: `${t("journee.j")}${p.numero} · ${p.competition}`}, `${f1(p.note)} · ${Math.round(p.minutes)}'${faits(p)}`)) : [el("span", {class: "compteur"}, t("fiche.aucun_match"))])));
+  if (d.historique.length > 1) box.append(el("div", {class: "etiq", style: "margin-top:10px"}, t("fiche.prix_journee")), sparkline(d.historique.map(h => h.prix), fM));
   const acts = el("div", {class: "actions"});
   const nv = ventesDe(id).length;
-  if (G.equipe.effectif[id]) { const dl = d.prix - G.equipe.effectif[id]; acts.append(el("span", {class: "compteur", style: "margin-right:auto"}, `dans ton effectif · acheté ${fM(G.equipe.effectif[id])} · ${fM(dl, true)}`)); }
-  acts.append(el("button", {class: "achat" + (nv ? " primaire" : ""), disabled: !nv, onclick: () => { dlg.close(); allerAuxVentes(id); }}, nv ? `${nv} vente${nv > 1 ? "s" : ""} en cours` : "Aucune vente en cours"));
-  acts.append(el("button", {onclick: () => { dlg.close(); ouvrirDetail(id); }}, "Détail des stats"));
-  acts.append(el("button", {class: "discret", onclick: () => dlg.close()}, "Fermer"));
+  if (G.equipe.effectif[id]) { const dl = d.prix - G.equipe.effectif[id]; acts.append(el("span", {class: "compteur", style: "margin-right:auto"}, `${t("fiche.dans_effectif")} · ${t("carte.achete")} ${fM(G.equipe.effectif[id])} · ${fM(dl, true)}`)); }
+  acts.append(el("button", {class: "achat" + (nv ? " primaire" : ""), disabled: !nv, onclick: () => { dlg.close(); allerAuxVentes(id); }}, nv ? t("vente.en_cours_n", {n: nv}) : t("vente.aucune_en_cours")));
+  acts.append(el("button", {onclick: () => { dlg.close(); ouvrirDetail(id); }}, t("fiche.detail_stats")));
+  acts.append(el("button", {class: "discret", onclick: () => dlg.close()}, t("fermer")));
   box.append(acts); dlg.append(box); dlg.showModal();
 }
 
@@ -3311,11 +3385,11 @@ async function ouvrirFiche(id) {
 // its six attributes are the last line of each chain, not a second opinion.
 // ---------------------------------------------------------------------------
 const pc = v => Math.round(v * 100) + " %";
-const f2 = v => (Math.round(v * 100) / 100).toLocaleString("fr-FR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const f2 = v => (Math.round(v * 100) / 100).toLocaleString(LOCALE, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 // "100 %" reads as if he were the only one; the place says it better.
 function place(rang, n) {
   const k = Math.max(1, Math.round((1 - rang) * n));
-  return `≈ ${k}${k === 1 ? "er" : "e"} sur ${n}`;
+  return `≈ ${t("solo.rang_sur", {rang: ordinal(k), sur: n})}`;
 }
 function etape(lib, val, note) {
   return el("div", {class: "etape"}, el("span", {class: "lib"}, lib),
@@ -3326,37 +3400,37 @@ async function ouvrirDetail(id) {
   const dlg = $("#fiche"); dlg.replaceChildren();
   const gk = d.poste === "Gardien";
   const box = el("div", {class: "fiche detail"});
-  box.append(el("h3", {class: "anton"}, `${d.nom} — d'où viennent ses stats`),
-    el("p", {class: "compteur"}, `Tout vient du barème « Ballon d'or » du moteur : chaque action de chaque match, pondérée par la compétition, le tour et l'adversaire, lue par 90 minutes. Rien n'est tiré au sort.`));
+  box.append(el("h3", {class: "anton"}, t("detail.titre", {nom: d.nom})),
+    el("p", {class: "compteur"}, t("detail.texte")));
 
   // --- the OVR ---
   const dep = d.depart, sa = d.saison;
   const o = el("div", {class: "chaine"});
-  o.append(el("div", {class: "etiq"}, `1. Le départ de saison${d.source ? " — barème " + d.source : ""}`));
-  o.append(etape("Barème brut", `${f2(dep.terrain.points)} pts`, `sur ${Math.round(dep.terrain.minutes)} min`));
-  o.append(etape("Par 90 minutes", f2(dep.terrain.par90)));
-  o.append(etape("Ramené vers la médiane du poste", f2(dep.terrain.retreci),
-    `médiane ${f2(dep.terrain.prior)} · ton échantillon pèse ${pc(dep.terrain.poids)} (${dep.terrain.k} min de référence)`));
-  o.append(etape("Corrigé du rôle", f2(dep.terrain.s),
-    `${Math.round(dep.terrain.titularisations)} titularisations sur ${Math.round(dep.terrain.feuilles)} feuilles → ${pc(dep.terrain.part_role)}, contre ${pc(dep.terrain.role_ref)} pour un titulaire type`));
-  o.append(etape("Total Ballon d'or", f2(dep.t),
-    `${pc(dep.part_terrain)} terrain (${f2(dep.t_terrain)}) + ${pc(1 - dep.part_terrain)} palmarès (${f2(dep.t_palmares)})`));
-  o.append(etape("OVR de départ", String(dep.ovr), `${place(dep.rang, d.reguliers)} joueurs réguliers de la saison`));
-  o.append(el("div", {class: "etiq"}, "2. Ce que la saison en cours en fait"));
+  o.append(el("div", {class: "etiq"}, t("detail.1_depart") + (d.source ? " — " + t("detail.bareme") + " " + d.source : "")));
+  o.append(etape(t("detail.bareme_brut"), `${f2(dep.terrain.points)} pts`, t("detail.sur_min", {n: Math.round(dep.terrain.minutes)})));
+  o.append(etape(t("detail.par_90"), f2(dep.terrain.par90)));
+  o.append(etape(t("detail.mediane_poste"), f2(dep.terrain.retreci),
+    t("detail.mediane_note", {mediane: f2(dep.terrain.prior), poids: pc(dep.terrain.poids), k: dep.terrain.k})));
+  o.append(etape(t("detail.corrige_role"), f2(dep.terrain.s),
+    t("detail.role_note", {tit: Math.round(dep.terrain.titularisations), feuilles: Math.round(dep.terrain.feuilles), part: pc(dep.terrain.part_role), ref: pc(dep.terrain.role_ref)})));
+  o.append(etape(t("detail.total"), f2(dep.t),
+    t("detail.total_note", {pt: pc(dep.part_terrain), t: f2(dep.t_terrain), pp: pc(1 - dep.part_terrain), p: f2(dep.t_palmares)})));
+  o.append(etape(t("detail.ovr_depart"), String(dep.ovr), `${place(dep.rang, d.reguliers)} ${t("detail.reguliers")}`));
+  o.append(el("div", {class: "etiq"}, t("detail.2_saison")));
   if (!sa.terrain.minutes || sa.fenetre.min === 0)
-    o.append(el("p", {class: "compteur"}, "Aucune journée jouée depuis le départ : la carte est encore à son OVR de départ."));
+    o.append(el("p", {class: "compteur"}, t("detail.aucune_journee")));
   else
-    o.append(etape("Barème de la saison", `${f2(sa.fenetre.pts)} pts`,
-      `sur ${Math.round(sa.fenetre.min)} min, ${Math.round(sa.fenetre.tit)} titularisations · la saison passée compte encore pour ${pc(sa.poids_passe)}`));
-  o.append(etape("Niveau lu aujourd'hui", f2(sa.lecture), `contre ${f2(sa.lecture_depart)} au départ`));
-  o.append(etape("Mouvement", (sa.mouvement > 0 ? "+" : "") + f2(sa.mouvement),
-    Math.abs(sa.mouvement_brut) > sa.borne ? `ramené dans la limite de ±${sa.borne} points` : `limite ±${sa.borne} points`));
-  o.append(etape("OVR de la carte", String(sa.ovr), null));
+    o.append(etape(t("detail.bareme_saison"), `${f2(sa.fenetre.pts)} pts`,
+      t("detail.saison_note", {min: Math.round(sa.fenetre.min), tit: Math.round(sa.fenetre.tit), poids: pc(sa.poids_passe)})));
+  o.append(etape(t("detail.niveau_lu"), f2(sa.lecture), t("detail.contre_depart", {valeur: f2(sa.lecture_depart)})));
+  o.append(etape(t("detail.mouvement"), (sa.mouvement > 0 ? "+" : "") + f2(sa.mouvement),
+    Math.abs(sa.mouvement_brut) > sa.borne ? t("detail.ramene_limite", {n: sa.borne}) : t("detail.limite", {n: sa.borne})));
+  o.append(etape(t("detail.ovr_carte"), String(sa.ovr), null));
   box.append(o);
 
   // --- the six attributes ---
-  box.append(el("div", {class: "etiq", style: "margin-top:14px"}, "3. Les six attributs"),
-    el("p", {class: "compteur"}, "Chaque axe est la somme des points que le barème donne à ses actions, par 90 minutes, classée parmi TOUS les joueurs de champ réguliers — le dribble d'un défenseur est comparé à celui d'un ailier, pas aux autres défenseurs."));
+  box.append(el("div", {class: "etiq", style: "margin-top:14px"}, t("detail.3_attributs")),
+    el("p", {class: "compteur"}, t("detail.attributs_texte")));
   for (const a of d.axes) {
     const nom = (gk && ATTR_NOMS_GARDIEN[a.axe]) || ATTR_NOMS[a.axe];
     const det = el("details", {class: "axe-detail"});
@@ -3365,26 +3439,26 @@ async function ouvrirDetail(id) {
       el("div", {class: "jauge"}, el("i", {class: a.valeur >= 80 ? "haut" : "", style: `width:${(a.valeur - 40) / 59 * 100}%`})),
       el("b", {class: "num"}, String(a.valeur))));
     const c = el("div", {class: "chaine interne"});
-    c.append(etape("Points de l'axe", f2(a.points), `soit ${f2(a.par90)} par 90 min`));
-    c.append(etape("Ramené vers la médiane du poste", f2(a.retreci),
-      `médiane ${f2(a.prior)} · ton échantillon pèse ${pc(a.poids)}`));
-    c.append(etape("Classement", place(a.rang, d.reguliers), `parmi les réguliers de la saison, tous postes confondus → ${a.valeur}`));
+    c.append(etape(t("detail.points_axe"), f2(a.points), t("detail.soit_par_90", {n: f2(a.par90)})));
+    c.append(etape(t("detail.mediane_poste"), f2(a.retreci),
+      t("detail.mediane_note_court", {mediane: f2(a.prior), poids: pc(a.poids)})));
+    c.append(etape(t("detail.classement"), place(a.rang, d.reguliers), t("detail.parmi_reguliers", {valeur: a.valeur})));
     if (a.actions.length) {
-      c.append(el("div", {class: "etiq"}, "Les actions comptées cette saison"));
-      const t = el("div", {class: "actions-axe"});
+      c.append(el("div", {class: "etiq"}, t("detail.actions_comptees")));
+      const tab = el("div", {class: "actions-axe"});
       for (const ac of a.actions)
-        t.append(el("div", {}, el("span", {}, ac.nom),
+        tab.append(el("div", {}, el("span", {}, ac.nom),
           el("b", {class: "num"}, Number.isInteger(ac.total) ? String(ac.total) : f2(ac.total)),
           el("span", {class: "compteur"}, f2(ac.par90) + " / 90")));
-      c.append(t);
+      c.append(tab);
     }
-    c.append(el("p", {class: "compteur"}, "Lignes du barème : " + a.cles.join(", ")));
+    c.append(el("p", {class: "compteur"}, t("detail.lignes_bareme") + " " + a.cles.join(", ")));
     det.append(c);
     box.append(det);
   }
   const acts = el("div", {class: "actions"});
-  acts.append(el("button", {onclick: () => { dlg.close(); ouvrirFiche(id); }}, "Retour à la fiche"),
-    el("button", {class: "discret", onclick: () => dlg.close()}, "Fermer"));
+  acts.append(el("button", {onclick: () => { dlg.close(); ouvrirFiche(id); }}, t("detail.retour_fiche")),
+    el("button", {class: "discret", onclick: () => dlg.close()}, t("fermer")));
   box.append(acts); dlg.append(box); dlg.showModal();
 }
 function sparkline(vals, fmt = f1) {
@@ -3396,6 +3470,8 @@ function sparkline(vals, fmt = f1) {
 }
 
 (async () => {
+  await chargerLangue(langueChoisie());
+  appliquerLangue();
   try {
     const s = await api("/saison"); TAILLE = s.taille_effectif; BANC_MAX = s.taille_banc ?? BANC_MAX;
     FORMATIONS = s.formations; LIMITES = s.limites;
@@ -3414,8 +3490,10 @@ function sparkline(vals, fmt = f1) {
     if (s.aise) AISE = s.aise;
     const moi = await api("/moi"); connecte(moi);
     if (moi.cadeau) toast(moi.cadeau.bonus
-      ? `Pack du jour offert, et un pack ${TIER_TXT[moi.cadeau.bonus]} pour ${moi.cadeau.serie} jours d'affilée !`
-      : `Pack ${TIER_TXT[moi.cadeau.pack]} du jour offert${moi.cadeau.serie > 1 ? ` (${moi.cadeau.serie}e jour d'affilée)` : ""} : ouvre-le dans Packs.`);
-    if (moi.connecte) { const h = location.hash.replace("#", ""); await montrer(["packs", "encheres", "marche", "equipe", "lobby", "solo", "journee", "classement", "admin"].includes(h) ? h : (idsEffectif().length ? "equipe" : "packs")); }
-  } catch (e) { toast("Serveur injoignable : " + e.message); }
+      ? t("cadeau.serie", {tier: tierTxt(moi.cadeau.bonus), n: moi.cadeau.serie})
+      : (moi.cadeau.packs || []).length > 1 ? t("cadeau.premium", {packs: moi.cadeau.packs.map(x => tierTxt(x)).join(" + ")})
+      : t(moi.cadeau.serie > 1 ? "cadeau.jour_serie" : "cadeau.jour", {tier: tierTxt(moi.cadeau.pack), n: moi.cadeau.serie}));
+    if (moi.connecte) { const h = location.hash.replace("#", ""); await montrer(["packs", "encheres", "marche", "equipe", "lobby", "solo", "journee", "classement", "compte", "admin"].includes(h) ? h : (idsEffectif().length ? "equipe" : "packs")); }
+    else await remiseDepuisLien();
+  } catch (e) { toast(t("serveur_injoignable", {detail: e.message})); }
 })();

@@ -174,7 +174,7 @@ def ecusson(im, larg: int, couleur: str):
 def dessiner(d: dict, larg: int = 420):
     im = CD.carte(d["pid"], d["nom"], d["note"], d["couleur"], d["competition"],
                   POSTE_COURT.get(d["poste"], d["poste"]), d["minutes"], d["attributs"],
-                  larg, d["team_id"], d.get("pied"))
+                  larg, d["team_id"], d.get("pied"), portrait=d.get("portrait"), logo=d.get("logo"))
     return _globaux(ecusson(im, larg, d["couleur"]), larg, d)
 
 

@@ -148,6 +148,92 @@ VOCABULAIRE: dict[str, dict] = {
     },
 }
 
+# -- English: the pivot language (PLAN.md § 3). Same shape as French: patterns on the
+# normalised sentence (lower case, no accents, no punctuation), one lever per match.
+VOCABULAIRE["en"] = {
+    "equipe": [
+        (r"\b(press(es|ing)?|push up|go and get them|get after them|high (block|line|press)|higher|squeeze)\b", {"bloc": "haut"}),
+        (r"\b(sit (back|deep|deeper)|drop (back|deep|deeper|off)|low block|deeper|park the bus|stay compact|fall back)\b", {"bloc": "bas"}),
+        (r"\b(mid|middle|normal) block\b|\bmedium block\b", {"bloc": "median"}),
+        (r"\b(keep (the )?ball|possession|keep it(?! (up|going))|pass it around|take (your|our) time|slow it down|patient)\b", {"tempo": "possession"}),
+        (r"\b(play (it )?(direct|quick|quicker|fast|faster|long)|direct|go long|long ball|verticali\w*|quickly forward|hit them early)\b", {"tempo": "direct"}),
+        (r"\b(normal|balanced) tempo\b", {"tempo": "equilibre"}),
+        (r"\b(attack|all out|everyone forward|go for it|push for (a|the) (goal|winner)|open (it|the game) up|take risks|be bold|offensive)\b", {"risque": "offensif"}),
+        (r"\b(close (it|the game) (down|up|out)|shut (it|up) shop|hold (on|the result|the score|the lead)|see it out|no risks?|careful|cautious|tighten up|sit on (it|the lead))\b", {"risque": "prudent"}),
+        (r"\b(normal|balanced) (risk|game)\b", {"risque": "equilibre"}),
+    ],
+    "lignes": {
+        "lateraux": (r"\b(full ?backs?|wing ?backs?|right back|left back)\b",
+                     [(r"\b(stay (back|home|deep)|hold|do(n t| not) (go|push|overlap)|no overlap\w*|sit)\b", "bas"),
+                      (r"\b(inside|tuck|invert\w*|narrow|into the middle|in the middle)\b", "axe"),
+                      (r"\b(overlap\w*|push (up|on|forward)|get forward|bomb on|wide|free|flank|wing)\b", "couloir")]),
+        "ailiers": (r"\b(wingers?|wide (men|players?|forwards?))\b",
+                    [(r"\b(stay wide|wide|touchline|hug|stretch|width|chalk)\b", "ligne"),
+                     (r"\b(cut (in|inside)|come (in|inside|narrow)|inside|narrow|invert\w*|tuck)\b", "interieur"),
+                     (r"\b(normal|balanced|free)\b", "equilibre")]),
+        "milieux": (r"\b(midfield\w*|middle of the park|engine room)\b",
+                    [(r"\b(get forward|push (up|on|forward)|join (the )?attack|burst|late runs?|into the box|support the attack)\b", "projection"),
+                     (r"\b(sit|stay (back|deep)|hold|protect|shield|screen|cover)\b", "bas"),
+                     (r"\b(wide|out wide|to the wings?|flanks?|spread (it|the play))\b", "lateral"),
+                     (r"\b(normal|balanced|free)\b", "equilibre")]),
+        "attaquants": (r"\b(strikers?|forwards?|front ?(men|line|two|three)|number nine|attackers?)\b",
+                       [(r"\b(in behind|run\w* (in behind|behind|deep)|depth|stretch|over the top|get in behind)\b", "profondeur"),
+                        (r"\b(hold (it|the ball) up|hold up|target man|back to goal|drop (deep|off|in)|link|lay ?offs?|come short)\b", "pivot"),
+                        (r"\b(normal|balanced|free)\b", "equilibre")]),
+        "relance": (r"\b(build ?up|play out|from the back|goal ?kicks?|keeper|goalkeeper|distribution)\b",
+                    [(r"\b(short|on the ground|from the back|play out|through the lines|feet)\b", "courte"),
+                     (r"\b(long|clear|launch|kick it long|go long|over the top|skip the midfield)\b", "longue"),
+                     (r"\b(normal|balanced|free)\b", "equilibre")]),
+    },
+    "joueur": VOCABULAIRE["fr"]["joueur"],
+    "marquage": r"\b(mark\w*|man ?mark\w*|stick (to|on|with)|tight on|pick up|track|follow|shadow|stay (on|with)|do(n t| not) (let|leave)|watch|keep an eye|neutrali\w*|nullif\w*|close down|get tight)\b",
+    "demarquage": r"\b(drop|stop|end|no more|forget|release|lift|cancel|off)\b.*\b(mark\w*)\b|\b(mark\w*)\b.*\b(off|over|done)\b|\bno (more )?mark\w*\b|\bzonal\b",
+    "changement": r"\b(replace\w*|for|instead of|in place of|comes? (on|in|off)|bring (on|in|off)|sub\w*|take (off|out)|swap in|on for|off for|goes off|come off|hook)\b",
+    "permutation": r"\b(swap|switch|swop|exchange|interchange|change (sides?|flanks?|positions?|wings?)|rotate)\b",
+    "causerie": [
+        (r"\b(wake up|shake|come on|wake|move|get going|more (energy|effort|intensity)|not good enough|sleeping|asleep|pick it up|step it up|get into them|let s go|fire up)\b", "secouer"),
+        (r"\b(calm|relax|composure|composed|settle|breathe|no panic|do(n t| not) panic|keep (your|our) heads?|stay (calm|focused|composed)|easy|steady|patient)\b", "rassurer"),
+        (r"\b(well done|good job|great|brilliant|superb|excellent|keep (it|this) (up|going)|proud|more of the same|fantastic|perfect|nice|lovely|that s it)\b", "feliciter"),
+        (r"\b(nothing|say nothing|no talk|silence|leave (them|it))\b", "rien"),
+    ],
+    "impossible": [
+        (r"\b(look for|find|feed|pass to|play (in|to)|link (up )?with|give it to|target)\b", "chercher"),
+        (r"\b(shoot\w*|shots?|have a go|from distance|long range|take a shot)\b", "tirer"),
+        (r"\b(cross\w*|deliver\w*|whip)\b", "centrer"),
+    ],
+    "textes": {
+        "bloc": {"haut": "we press high", "median": "the block goes back to mid", "bas": "we drop into a low block"},
+        "tempo": {"possession": "we keep the ball", "equilibre": "the tempo goes back to normal", "direct": "we play direct"},
+        "risque": {"offensif": "we attack", "equilibre": "we play normally again", "prudent": "we close the game down"},
+        "lateraux": {"couloir": "the full-backs overlap down their flank", "bas": "the full-backs stay back", "axe": "the full-backs tuck inside"},
+        "ailiers": {"equilibre": "the wingers play normally", "ligne": "the wingers hug the touchline", "interieur": "the wingers cut inside"},
+        "milieux": {"equilibre": "the midfielders play normally", "projection": "the midfielders get forward", "bas": "the midfielders stay back", "lateral": "the midfielders play it wide"},
+        "attaquants": {"equilibre": "the forwards play normally", "profondeur": "the forwards run in behind", "pivot": "the forwards hold it up, back to goal"},
+        "relance": {"equilibre": "we build up normally", "courte": "we play out from the back", "longue": "we go long"},
+        "formation": "we switch to a {formation}",
+        "marquage": "{qui} will be marked tightly",
+        "demarquage": "we drop the marking",
+        "changement": "{entrant} comes on for {sortant} at the next stoppage",
+        "permutation": "{un} and {deux} swap positions",
+        "causerie": {"secouer": "you shake them up", "rassurer": "you reassure them", "feliciter": "you praise them", "rien": "you say nothing"},
+        "joueur": "{nom} and his line: {texte}",
+        "chercher": "The engine cannot yet ask a player to look for another one: tell him where to play instead (\"{nom}, cut inside\", \"{nom}, run in behind\").",
+        "tirer": "The shots are theirs to decide: you can ask them to attack (\"attack\") or to play direct.",
+        "centrer": "Crosses come from wingers who hug the touchline (\"wingers stay wide\") and from full-backs who overlap.",
+        "incompris": "I did not understand. Try for instance: {exemples}.",
+        "deja": "That is already what they do.",
+        "qui": "I do not know who you mean: {noms}.",
+        "banc": "{nom} is not on your bench.",
+        "terrain": "{nom} is not on the pitch.",
+        "adversaire": "{nom} is not playing for them.",
+        "permutation_deux": "For a swap I need two players on the pitch.",
+        "changement_deux": "For a substitution I need one player on the pitch and one on the bench.",
+        "pas_mi_temps": "You talk to your team at half-time; for now, give them an instruction.",
+    },
+    "exemples": ["press high", "full-backs stay back", "{adv}, mark him", "{banc} replaces {terrain}", "switch to a 4-4-2", "keep the ball"],
+    "guillemets": ("“", "”"),
+}
+
 LANGUE_DEFAUT = "fr"
 
 
@@ -313,7 +399,8 @@ def comprendre(texte: str, contexte: dict, langue: str = LANGUE_DEFAUT) -> dict:
             else:
                 deja = True
         elif connues:
-            return {"action": None, "confirmation": T["incompris"].format(exemples=", ".join("« on passe en %s »" % f for f in connues[:3]))}
+            g = V.get("guillemets", ("« ", " »"))
+            return {"action": None, "confirmation": T["incompris"].format(exemples=", ".join(g[0] + T["formation"].format(formation=f) + g[1] for f in connues[:3]))}
     for motif, levier in V["equipe"]:
         if re.search(motif, reste):
             for k, v in levier.items():
@@ -378,7 +465,8 @@ def _incompris(V: dict, contexte: dict) -> dict:
     noms = {"adv": adv[-1]["nom"] if adv else "Mbappé", "banc": banc[0]["nom"] if banc else "Kolo Muani",
             "terrain": terrain[-1]["nom"] if terrain else "Dembélé"}
     exemples = [e.format(**noms) for e in V["exemples"]]
-    return {"action": None, "confirmation": V["textes"]["incompris"].format(exemples=", ".join("« %s »" % e for e in exemples[:4]))}
+    g = V.get("guillemets", ("« ", " »"))
+    return {"action": None, "confirmation": V["textes"]["incompris"].format(exemples=", ".join(g[0] + e + g[1] for e in exemples[:4]))}
 
 
 def exemples(contexte: dict, langue: str = LANGUE_DEFAUT) -> list[str]:

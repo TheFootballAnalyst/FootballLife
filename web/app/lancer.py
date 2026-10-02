@@ -24,6 +24,11 @@ def main():
     ap.add_argument("--saison", default=os.environ.get("FL_SAISON", "2025/26"))
     ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8000")))
     ap.add_argument("--hote", default="127.0.0.1")
+    g = ap.add_mutually_exclusive_group()
+    g.add_argument("--fictif", action="store_true", help="le monde fictif : noms générés, clubs par ville, mods de mods/ (jeu/fictif.py)")
+    g.add_argument("--reel", action="store_true", help="les vrais noms (le monde réel)")
+    ap.add_argument("--limites", action="store_true",
+                    help="les limites du gratuit et le premium (jeu/comptes.py) : la version en ligne ; sans, aucune limite")
     ap.add_argument("--copies", type=int, default=None,
                     help="exemplaires au plus d'une même carte dans la ligue (0 = sans limite) ; "
                          "sur la base de démo, sans limite par défaut")
@@ -45,6 +50,17 @@ def main():
     os.environ["FL_SAISON"] = a.saison
 
     c = sqlite3.connect(jeu)
+    if a.fictif or a.reel:
+        sys.path.insert(0, str(RACINE))
+        from jeu import fictif as FI
+        r = FI.appliquer(c, a.saison, "fictif" if a.fictif else "reel")
+        print(("Monde fictif" if a.fictif else "Monde réel") + f" : {r['joueurs']} joueurs, {r['clubs']} clubs"
+              + (f", {r['mods']} lignes de mods" if r["mods"] else ""))
+    if a.limites:
+        sys.path.insert(0, str(RACINE))
+        from jeu import comptes as CO
+        CO.migrer(c); CO.activer_limites(c, a.saison)
+        print("Limites du gratuit actives (premium : jeu/comptes.py)")
     n_cartes = c.execute("SELECT COUNT(*) FROM carte WHERE saison=?", (a.saison,)).fetchone()[0]
     cour = c.execute("SELECT numero, cloture FROM journee WHERE saison=? AND numero>=1 AND calculee=0 ORDER BY numero LIMIT 1",
                      (a.saison,)).fetchone()

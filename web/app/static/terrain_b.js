@@ -210,14 +210,16 @@ class TerrainB {
     this.ballon(sx(bx), sy(by) - bz * 6, 6 + bz * 0.8, this.rot_ballon || 0);
     for (const g of gestes) if (g.k === "but") this.filets(g, t);
     if (this.phases) {
+      // le nom de la phase dans la langue de l'écran (app.js, clés phaseb.*) ; le bac n'a pas t()
       const LIBP = {construction: "construction", progression: "progression", finition: "finition", contre: "contre-attaque",
         pressing: "pressing", bloc_median: "bloc médian", bloc_bas: "bloc bas", contre_pressing: "contre-pressing", relance: "relance"};
+      const lib = k => (typeof t === "function" && typeof existeT === "function" && existeT("phaseb." + k)) ? t("phaseb." + k) : (LIBP[k] || "");
       const f0 = this.trace[Math.floor(this.i)];
       const g = this.miroir ? [f0[6], f0[5]] : [f0[5], f0[6]];
       ctx.font = "bold 15px Barlow Condensed, sans-serif"; ctx.textAlign = "left"; ctx.fillStyle = "#7cb3ff";
-      ctx.fillText(LIBP[this.phases[g[0]]] || "", 12, 22);
+      ctx.fillText(lib(this.phases[g[0]]), 12, 22);
       ctx.textAlign = "right"; ctx.fillStyle = "#ff8f8f";
-      ctx.fillText(LIBP[this.phases[g[1]]] || "", c.width - 12, 22);
+      ctx.fillText(lib(this.phases[g[1]]), c.width - 12, 22);
     }
     return {t, score: this.scoreA(t), arret: this.trace[Math.floor(this.i)][4] === 1};
   }

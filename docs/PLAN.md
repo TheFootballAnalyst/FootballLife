@@ -171,7 +171,23 @@ saison vivante au lieu de la servir.
 **[toi]** : l'ordre entre 2.4 et 2.5 ; la coupe entre amis maintenant ou
 avec le chantier 5.
 
-## 3. Les langues (5 jours, puis 1 jour par langue)
+## 3. Les langues (5 jours, puis 1 jour par langue) — Fait, français et anglais
+
+**Fait** : le dictionnaire par langue (`web/app/static/lang/fr.json`,
+`en.json`, ~800 clés), `t("cle", {param})` et les formes du pluriel,
+`index.html` par attributs `data-t`, le sélecteur dans la barre (le choix
+dans le navigateur, sinon sa langue), les erreurs du serveur et des règles
+en codes (`jeu/messages.py`, `{"code", "params", "message"}`), le
+commentaire du moteur B par gabarits (`direct._gabarit`), le style, la
+lecture de l'adversaire, les objectifs, les récompenses et les phases en
+codes à côté du français, la boîte de dialogue en anglais
+(`VOCABULAIRE["en"]`), la pseudo-traduction (`fl_langue = "xx"`), le test
+de cohérence des dictionnaires (`jeu/tests/test_langues.py`) et un passage
+dans Chromium sur chaque écran dans les trois langues. Le guide pour une
+langue de plus : `docs/LANGUES.md`. Reste : le commentaire du moteur A
+(jusqu'à son retrait), les titres gagnés déjà écrits en base, et une
+relecture par un joueur natif pour l'anglais.
+
 
 **L'état.** Tout est en français, et dans le code : 336 textes dans
 l'écran (`app.js`), 28 lignes dans `index.html`, 49 messages d'erreur du
@@ -220,7 +236,16 @@ débordent.
 **[toi]** : la liste des langues et l'ordre ; trouver un relecteur par
 langue.
 
-## 4. Les droits et les mods (8 jours)
+## 4. Les droits et les mods (8 jours) — Fait, sauf les données sous contrat
+
+**Fait** (`docs/MODS.md`) : le générateur de noms par nationalité
+(`jeu/fictif.py`, 30 groupes, un nom composé une fois sur quatre, jamais
+un vrai nom de la base, jamais deux cartes du même nom), les clubs au nom
+de leur ville et de leur année quand il le faut, les compétitions au nom
+du pays (traduit par l'écran), les avatars et les blasons dessinés
+(`jeu/avatar.py`), le monde comme paramètre de la base, réversible
+(`lancer.py --fictif / --reel`), le chargeur de mods (`mods/noms.csv`,
+`clubs.csv`, `competitions.csv`, `portraits/`, `logos/`). Reste le point 5.
 
 Détaillé dans `docs/ECONOMIE.md` § 5. Dans l'ordre :
 1. **Le générateur de noms** fictifs, déterministe, par nationalité, sans
@@ -242,7 +267,15 @@ version mise en ligne part fictive.
 **[toi]** : le fournisseur de données (et son coût mensuel) ; un avis
 juridique avant la mise en ligne.
 
-## 5. En ligne (10 jours)
+## 5. En ligne (10 jours) — Fait, sauf le test fermé
+
+**Fait** (`docs/EN_LIGNE.md`) : les comptes avec courriel et date de
+naissance, le mot de passe oublié par lien (courriel ou journal), les
+mineurs sans achat ; les limites du gratuit et le premium
+(`jeu/comptes.py`, actifs par `--limites`) ; le paiement par Stripe
+Checkout avec webhook signé, ou manuel pour un test fermé
+(`jeu/paiement.py`) ; les sauvegardes (`outils/sauvegarde.py`) et la
+marche à suivre serveur. Reste le point 5, qui est un mois de jeu.
 
 Détaillé dans `docs/ECONOMIE.md` § 6.
 1. **Les comptes** : inscription par courriel, mot de passe oublié (on

@@ -34,6 +34,7 @@ import random
 from datetime import datetime, timedelta, timezone
 
 from jeu import scoring as S
+from jeu.messages import ErreurJeu
 
 # The matchday squad: eleven and seven.  The quotas add up to more than
 # eighteen on purpose — they exist to stop a squad of eight strikers, not
@@ -73,7 +74,7 @@ DUREES_H = (6, 12, 24, 48)
 OFFRE_MIN_PAS = 0.05          # a bid beats the previous one by 5 % at least
 
 
-class ErreurMarche(Exception):
+class ErreurMarche(ErreurJeu):
     pass
 
 
@@ -175,23 +176,23 @@ def ouvrir_pack(jeu, saison: str, equipe_id: int, type_pack: str, fam: str | Non
     the same pool as a bought one, and its price (which is what the cards
     are booked at) is the price of the pack it stands for."""
     if type_pack not in PACKS:
-        raise ErreurMarche("Pack inconnu")
+        raise ErreurMarche("pack_inconnu")
     if fam not in (None, "GK", "DEF", "MID", "FWD"):
-        raise ErreurMarche("Poste inconnu")
+        raise ErreurMarche("poste_inconnu")
     p = PACKS[type_pack]
     prix = round(p["prix"] * (1 + SUPPLEMENT_POSTE if fam else 1), 1)
     budget, lid = _un(jeu, "SELECT budget, ligue_jeu_id FROM equipe WHERE equipe_id=?", (equipe_id,))
     offerts = packs_offerts(jeu, equipe_id)
     if offert:
         if fam:
-            raise ErreurMarche("Un pack offert est un pack simple, sans poste choisi")
+            raise ErreurMarche("pack_offert_simple")
         if offerts.get(type_pack, 0) < 1:
-            raise ErreurMarche("Tu n'as pas de pack de ce type offert")
+            raise ErreurMarche("pack_pas_offert")
     elif budget + 1e-9 < prix:
-        raise ErreurMarche(f"Budget insuffisant : le pack coûte {prix:.1f} M€")
+        raise ErreurMarche("budget_pack", prix=f"{prix:.1f}")
     reserve = _un(jeu, "SELECT COUNT(*) FROM exemplaire WHERE equipe_id=? AND detruit=0 AND dans_effectif=0", (equipe_id,))[0]
     if RESERVE_MAX is not None and reserve + taille_pack(type_pack) > RESERVE_MAX:
-        raise ErreurMarche(f"Réserve pleine ({RESERVE_MAX} cartes) : vends ou aligne avant d'ouvrir")
+        raise ErreurMarche("reserve_pleine_pack", n=RESERVE_MAX)
     rng = rng or random.SystemRandom()
     plafond = plafond_copies(jeu, lid)
     source = _cartes_tirables(jeu, saison, plafond)
@@ -200,7 +201,7 @@ def ouvrir_pack(jeu, saison: str, equipe_id: int, type_pack: str, fam: str | Non
     for tier in p["tirages"]:
         cands = [c for c in eligibles(jeu, saison, tier, fam, plafond, source) if c[0] not in pris]
         if not cands:
-            raise ErreurMarche("Plus assez de cartes disponibles pour ce pack")
+            raise ErreurMarche("pack_epuise")
         c = rng.choice(cands)
         pris.add(c[0])
         tirage.append(c)
@@ -256,20 +257,20 @@ def aligner(jeu, equipe_id: int, exemplaire_id: int, dans_effectif: bool) -> Non
     """Move a copy between the reserve and the squad, within the quotas."""
     row = _un(jeu, "SELECT player_id, equipe_id, dans_effectif, detruit FROM exemplaire WHERE exemplaire_id=?", (exemplaire_id,))
     if not row or row[1] != equipe_id or row[3]:
-        raise ErreurMarche("Cette carte n'est pas à toi")
+        raise ErreurMarche("pas_ta_carte")
     pid = row[0]
     if _un(jeu, "SELECT 1 FROM enchere WHERE exemplaire_id=? AND statut='ouverte'", (exemplaire_id,)):
-        raise ErreurMarche("Cette carte est en vente")
+        raise ErreurMarche("carte_en_vente")
     if dans_effectif:
         eff = effectif_ids(jeu, equipe_id)
         if pid in eff:
-            raise ErreurMarche("Ce joueur est déjà dans ton effectif")
+            raise ErreurMarche("deja_effectif")
         if len(eff) >= TAILLE_EFFECTIF:
-            raise ErreurMarche(f"Effectif complet ({TAILLE_EFFECTIF})")
+            raise ErreurMarche("effectif_complet", n=TAILLE_EFFECTIF)
     else:
         reserve = _un(jeu, "SELECT COUNT(*) FROM exemplaire WHERE equipe_id=? AND detruit=0 AND dans_effectif=0", (equipe_id,))[0]
         if RESERVE_MAX is not None and reserve >= RESERVE_MAX:
-            raise ErreurMarche(f"Réserve pleine ({RESERVE_MAX})")
+            raise ErreurMarche("reserve_pleine", n=RESERVE_MAX)
         retirer_de_la_composition(jeu, equipe_id, pid)
     jeu.execute("UPDATE exemplaire SET dans_effectif=? WHERE exemplaire_id=?", (1 if dans_effectif else 0, exemplaire_id))
     jeu.commit()
@@ -284,9 +285,9 @@ def vendre_banque(jeu, saison: str, equipe_id: int, exemplaire_id: int) -> float
     """Sell a copy back to the bank at RACHAT_BANQUE of its cote; it is destroyed."""
     row = _un(jeu, "SELECT player_id, equipe_id, dans_effectif, detruit FROM exemplaire WHERE exemplaire_id=?", (exemplaire_id,))
     if not row or row[1] != equipe_id or row[3]:
-        raise ErreurMarche("Cette carte n'est pas à toi")
+        raise ErreurMarche("pas_ta_carte")
     if _un(jeu, "SELECT 1 FROM enchere WHERE exemplaire_id=? AND statut='ouverte'", (exemplaire_id,)):
-        raise ErreurMarche("Cette carte est en vente : annule d'abord")
+        raise ErreurMarche("carte_en_vente_annule")
     montant = round(RACHAT_BANQUE * cote_de(jeu, saison, row[0]), 2)
     if row[2]:
         retirer_de_la_composition(jeu, equipe_id, row[0])
@@ -306,18 +307,18 @@ def mettre_en_vente(jeu, equipe_id: int, exemplaire_id: int, prix_depart: float,
                     prix_immediat: float | None, duree_h: int) -> int:
     row = _un(jeu, "SELECT player_id, equipe_id, dans_effectif, detruit FROM exemplaire WHERE exemplaire_id=?", (exemplaire_id,))
     if not row or row[1] != equipe_id or row[3]:
-        raise ErreurMarche("Cette carte n'est pas à toi")
+        raise ErreurMarche("pas_ta_carte")
     if _un(jeu, "SELECT 1 FROM enchere WHERE exemplaire_id=? AND statut='ouverte'", (exemplaire_id,)):
-        raise ErreurMarche("Cette carte est déjà en vente")
+        raise ErreurMarche("carte_deja_en_vente")
     if duree_h not in DUREES_H:
-        raise ErreurMarche(f"Durée : {', '.join(str(d) for d in DUREES_H)} heures")
+        raise ErreurMarche("duree_vente", durees=", ".join(str(d) for d in DUREES_H))
     prix_depart = round(float(prix_depart), 2)
     if prix_depart < 0.1:
-        raise ErreurMarche("Prix de départ : 100 k€ au moins")
+        raise ErreurMarche("prix_depart_min")
     if prix_immediat is not None:
         prix_immediat = round(float(prix_immediat), 2)
         if prix_immediat < prix_depart:
-            raise ErreurMarche("Le prix d'achat immédiat doit dépasser le prix de départ")
+            raise ErreurMarche("achat_immediat_prix")
     if row[2]:                                    # a listed card leaves the squad
         retirer_de_la_composition(jeu, equipe_id, row[0])
         jeu.execute("UPDATE exemplaire SET dans_effectif=0 WHERE exemplaire_id=?", (exemplaire_id,))
@@ -332,7 +333,7 @@ def _enchere(jeu, enchere_id):
     row = _un(jeu, """SELECT enchere_id, exemplaire_id, vendeur_id, prix_depart, prix_immediat, fin, meilleur_offrant,
                       meilleure_offre, statut FROM enchere WHERE enchere_id=?""", (enchere_id,))
     if not row:
-        raise ErreurMarche("Vente inconnue")
+        raise ErreurMarche("vente_inconnue")
     return dict(zip(("enchere_id", "exemplaire_id", "vendeur_id", "prix_depart", "prix_immediat", "fin",
                      "meilleur_offrant", "meilleure_offre", "statut"), row))
 
@@ -360,19 +361,19 @@ def encherir(jeu, equipe_id: int, enchere_id: int, montant: float) -> float:
     resoudre_encheres(jeu)
     e = _enchere(jeu, enchere_id)
     if e["statut"] != "ouverte":
-        raise ErreurMarche("Cette vente est terminée")
+        raise ErreurMarche("vente_terminee")
     if e["vendeur_id"] == equipe_id:
-        raise ErreurMarche("C'est ta propre vente")
+        raise ErreurMarche("ta_vente")
     montant = round(float(montant), 2)
     mini = e["prix_depart"] if e["meilleure_offre"] is None else round(e["meilleure_offre"] * (1 + OFFRE_MIN_PAS) + 0.005, 2)
     if montant < mini:
-        raise ErreurMarche(f"Offre minimale : {mini:.2f} M€")
+        raise ErreurMarche("offre_min", montant=f"{mini:.2f}")
     if e["prix_immediat"] is not None and montant >= e["prix_immediat"]:
         return acheter_immediat(jeu, equipe_id, enchere_id)
     budget = _un(jeu, "SELECT budget FROM equipe WHERE equipe_id=?", (equipe_id,))[0]
     deja = e["meilleure_offre"] if e["meilleur_offrant"] == equipe_id else 0.0
     if budget + deja + 1e-9 < montant:
-        raise ErreurMarche("Budget insuffisant pour cette offre")
+        raise ErreurMarche("budget_offre")
     _rembourser(jeu, e)
     jeu.execute("UPDATE equipe SET budget = ROUND(budget - ?, 2) WHERE equipe_id=?", (montant, equipe_id))
     jeu.execute("UPDATE enchere SET meilleur_offrant=?, meilleure_offre=? WHERE enchere_id=?", (equipe_id, montant, enchere_id))
@@ -384,16 +385,16 @@ def acheter_immediat(jeu, equipe_id: int, enchere_id: int) -> float:
     resoudre_encheres(jeu)
     e = _enchere(jeu, enchere_id)
     if e["statut"] != "ouverte":
-        raise ErreurMarche("Cette vente est terminée")
+        raise ErreurMarche("vente_terminee")
     if e["prix_immediat"] is None:
-        raise ErreurMarche("Pas d'achat immédiat sur cette vente")
+        raise ErreurMarche("pas_achat_immediat")
     if e["vendeur_id"] == equipe_id:
-        raise ErreurMarche("C'est ta propre vente")
+        raise ErreurMarche("ta_vente")
     prix = e["prix_immediat"]
     budget = _un(jeu, "SELECT budget FROM equipe WHERE equipe_id=?", (equipe_id,))[0]
     deja = e["meilleure_offre"] if e["meilleur_offrant"] == equipe_id else 0.0
     if budget + deja + 1e-9 < prix:
-        raise ErreurMarche("Budget insuffisant")
+        raise ErreurMarche("budget")
     _rembourser(jeu, e)
     jeu.execute("UPDATE equipe SET budget = ROUND(budget - ?, 2) WHERE equipe_id=?", (prix, equipe_id))
     _transferer(jeu, e, equipe_id, prix, maintenant())
@@ -404,11 +405,11 @@ def acheter_immediat(jeu, equipe_id: int, enchere_id: int) -> float:
 def annuler_vente(jeu, equipe_id: int, enchere_id: int) -> None:
     e = _enchere(jeu, enchere_id)
     if e["vendeur_id"] != equipe_id:
-        raise ErreurMarche("Ce n'est pas ta vente")
+        raise ErreurMarche("pas_ta_vente")
     if e["statut"] != "ouverte":
-        raise ErreurMarche("Cette vente est terminée")
+        raise ErreurMarche("vente_terminee")
     if e["meilleur_offrant"] is not None:
-        raise ErreurMarche("Une offre a été faite : la vente ira à son terme")
+        raise ErreurMarche("offre_faite")
     jeu.execute("UPDATE enchere SET statut='annulee', conclue_le=? WHERE enchere_id=?", (maintenant(), enchere_id))
     jeu.commit()
 
@@ -481,10 +482,11 @@ PACK_DU_JOUR = "bronze"       # one free bronze pack per day one shows up ...
 PACK_SERIE = ("argent", 7)    # ... and a silver one every seventh day in a row
 
 
-def pack_du_jour(jeu, equipe_id: int, aujourdhui: str | None = None) -> dict | None:
+def pack_du_jour(jeu, equipe_id: int, aujourdhui: str | None = None, packs: list[str] | None = None) -> dict | None:
     """Give the team its daily pack if it has not had today's: a bronze pack,
     and a silver one on every seventh consecutive day.  Returns what was
-    given ({"pack": ..., "serie": n}) or None when today's is already taken."""
+    given ({"pack": ..., "serie": n}) or None when today's is already taken.
+    `packs` : les packs du jour du palier (jeu/comptes : un premium en a trois)."""
     from datetime import date, timedelta
     jour = aujourdhui or date.today().isoformat()
     row = _un(jeu, "SELECT jour_pack, serie_jours FROM equipe WHERE equipe_id=?", (equipe_id,))
@@ -493,8 +495,9 @@ def pack_du_jour(jeu, equipe_id: int, aujourdhui: str | None = None) -> dict | N
     hier = (date.fromisoformat(jour) - timedelta(days=1)).isoformat()
     serie = (row[1] or 0) + 1 if row[0] == hier else 1
     offerts = packs_offerts(jeu, equipe_id)
-    offerts[PACK_DU_JOUR] = offerts.get(PACK_DU_JOUR, 0) + 1
-    cadeau = {"pack": PACK_DU_JOUR, "serie": serie, "bonus": None}
+    for p in (packs or [PACK_DU_JOUR]):
+        offerts[p] = offerts.get(p, 0) + 1
+    cadeau = {"pack": PACK_DU_JOUR, "serie": serie, "bonus": None, "packs": list(packs or [PACK_DU_JOUR])}
     if serie % PACK_SERIE[1] == 0:
         offerts[PACK_SERIE[0]] = offerts.get(PACK_SERIE[0], 0) + 1
         cadeau["bonus"] = PACK_SERIE[0]

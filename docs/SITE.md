@@ -705,6 +705,26 @@ reconduite telle quelle sur la journée suivante (`pipeline.reconduire_compositi
 un manager qui oublie de la renvoyer garde son onze, et peut la modifier
 jusqu'au verrouillage.
 
+## Les comptes en ligne, le monde fictif
+
+La version en ligne se lance avec les limites du gratuit et le premium
+(`lancer.py --limites`, `docs/EN_LIGNE.md` : comptes, mot de passe
+oublié, mineurs, paiement par Stripe, sauvegardes) et dans le monde fictif
+(`lancer.py --fictif`, `docs/MODS.md` : noms générés, clubs par ville,
+avatars dessinés, mods). Le jeu local garde les vrais noms et aucune
+limite.
+
+## Les langues
+
+Le site se joue en français ou en anglais (le sélecteur dans la barre ;
+sans choix, la langue du navigateur). Tout ce que l'écran dit passe par
+un dictionnaire par langue (`static/lang/<code>.json`), le serveur parle
+en codes et l'écran traduit — les erreurs, le commentaire du match, le
+style d'un onze, les objectifs. La boîte de dialogue comprend l'anglais
+(« press high », « Hakimi, stay back », « bring on Kolo Muani for
+Dembélé »). Ajouter une langue est un fichier et une table, pas du code :
+`docs/LANGUES.md`.
+
 ## Design
 
 Une seule ambiance, la nuit de stade : fond bleu nuit, surfaces en verre

@@ -78,7 +78,7 @@ def test_a_duplicate_is_marked_and_cannot_be_lined_up():
 
 def test_the_daily_pack_and_the_streak():
     jeu = base_marche()
-    assert MA.pack_du_jour(jeu, 1, "2026-10-01") == {"pack": "bronze", "serie": 1, "bonus": None}
+    assert MA.pack_du_jour(jeu, 1, "2026-10-01") == {"pack": "bronze", "serie": 1, "bonus": None, "packs": ["bronze"]}
     assert MA.pack_du_jour(jeu, 1, "2026-10-01") is None                  # once a day
     for d in range(2, 7):
         assert MA.pack_du_jour(jeu, 1, f"2026-10-{d:02d}")["serie"] == d

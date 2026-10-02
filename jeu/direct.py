@@ -309,6 +309,42 @@ def _texte(e: dict, noms: dict[int, str]) -> str:
     return k
 
 
+def _gabarit(e: dict, noms: dict[int, str]) -> dict:
+    """Le commentaire par gabarit (PLAN.md § 3) : la clé et ses paramètres, que
+    l'écran met en phrase dans sa langue (`evt.<clé>` dans static/lang/*.json).
+    `texte` reste le français, pour un client sans dictionnaire."""
+    n = lambda pid: noms.get(pid, "?")
+    k = e["k"]
+    sc = f"{e['score'][0]}-{e['score'][1]}" if e.get("score") else ""
+    if k == "but":
+        return {"k": ("but_csc" if e.get("csc") else "but") + ("_de" if e.get("de") is not None else ""),
+                "nom": n(e.get("de")), "score": sc}
+    if k == "tir":
+        return {"k": "tir_tete" if e.get("tete") else "tir", "nom": n(e["de"]), "xg": f"{e.get('xg', 0):.2f}"}
+    if k == "arret":
+        return {"k": "arret", "nom": n(e["de"])}
+    if k == "faute":
+        return {"k": "faute_" + e["carton"] if e.get("carton") else "faute", "nom": n(e["de"])}
+    if k == "remplacement":
+        return {"k": "remplacement", "entrant": e.get("nom", n(e["entrant"])), "sortant": n(e["sortant"])}
+    if k == "permutation":
+        return {"k": "permutation", "un": n(e["un"]), "deux": n(e["deux"])}
+    if k == "tactique":
+        t = e.get("tactique") or {}
+        return {"k": "tactique", "detail": ", ".join(f"{k_} {v}" for k_, v in t.items() if v)}
+    if k == "additionnel":
+        return {"k": "additionnel", "n": e["minutes"]}
+    if k == "penalty":
+        return {"k": "penalty_sur", "nom": n(e.get("sur"))} if e.get("sur") else {"k": "penalty"}
+    if k == "horsjeu":
+        return {"k": "horsjeu", "nom": n(e["de"])}
+    if k == "blessure":
+        return {"k": "blessure", "nom": noms.get(e.get("de"), e.get("nom", "?"))}
+    if k in ("mi_temps", "fin"):
+        return {"k": k, "score": sc}
+    return {"k": k}
+
+
 def _evenements(res: dict, noms: dict[int, str]) -> list[dict]:
     out = []
     for e in res["evenements"]:
@@ -319,7 +355,7 @@ def _evenements(res: dict, noms: dict[int, str]) -> list[dict]:
             t = e["carton"]
         out.append({"minute": e["minute"], "lib": e.get("lib", str(e["minute"])),
                     "cote": "AB"[e["camp"]] if e.get("camp") in (0, 1) else None,
-                    "type": t, "texte": _texte(e, noms), "pid": e.get("de"),
+                    "type": t, "texte": _texte(e, noms), "gab": _gabarit(e, noms), "pid": e.get("de"),
                     "xg": e.get("xg"), "t": e.get("t"), "score": e.get("score")})
     return out
 

@@ -100,3 +100,21 @@ def test_names_are_matched_by_surname_without_accents_and_the_longest_wins():
     assert [j["pid"] for _, j, _ in DI.trouver_noms(DI.normaliser("De Silvestri et Trejo"), joueurs)] == [1, 2]
     assert [j["pid"] for _, j, _ in DI.trouver_noms(DI.normaliser("oscar trejo"), joueurs)] == [2]
     assert [j["pid"] for _, j, _ in DI.trouver_noms(DI.normaliser("J10 remplace J1"), joueurs)] == [4, 3]
+
+
+def test_english_is_a_second_vocabulary_with_the_same_levers():
+    c = ctx()
+    r = DI.comprendre("Press high and play direct!", c, "en")
+    assert r["action"] == "tactique" and r["tactique"]["bloc"] == "haut" and r["tactique"]["tempo"] == "direct" and r["confirmation"] == "We press high, we play direct."
+    assert DI.comprendre("Hakimi, stay back", c, "en")["tactique"]["lateraux"] == "bas"
+    assert DI.comprendre("Dembélé, hold it up", c, "en")["tactique"]["attaquants"] == "pivot"
+    assert DI.comprendre("Mark Mbappé", c, "en")["tactique"]["marquage"] == 20
+    r = DI.comprendre("bring on Kolo Muani for Dembélé", c, "en")
+    assert r["action"] == "changement" and (r["sortant"], r["entrant"]) == (6, 8)
+    assert DI.comprendre("Hakimi and Mendes swap", c, "en")["action"] == "permutation"
+    assert DI.comprendre("switch to a 4-4-2", c, "en")["tactique"]["formation"] == "4-4-2"
+    r = DI.comprendre("blah", c, "en")
+    assert r["action"] is None and "press high" in r["confirmation"] and "«" not in r["confirmation"]
+    assert DI.comprendre("well done, keep it up", ctx(mi_temps=True), "en")["causerie"] == "feliciter"
+    assert DI.comprendre("wake up", ctx(mi_temps=True), "en")["causerie"] == "secouer"
+    assert "half-time" in DI.comprendre("wake up", c, "en")["confirmation"]

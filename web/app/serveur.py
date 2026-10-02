@@ -44,6 +44,17 @@ from jeu import pipeline as P  # noqa: E402
 from jeu import scoring as S  # noqa: E402
 from jeu import simulation as SM  # noqa: E402
 from jeu import solo as SO  # noqa: E402
+from jeu import messages as MSG  # noqa: E402
+from jeu import fictif as FI  # noqa: E402
+from jeu import avatar as AVATAR  # noqa: E402
+from jeu import comptes as CO  # noqa: E402
+from jeu import paiement as PA  # noqa: E402
+
+
+def erreur(statut: int, code: str, **params) -> HTTPException:
+    """Une erreur de l'API : un code et ses paramètres, que l'écran traduit
+    (static/lang/<langue>.json, clés err.<code>), et le français de secours."""
+    return HTTPException(statut, MSG.ErreurJeu(code, **params).detail())
 try:
     from jeu import cartes as CARTES  # noqa: E402  (needs Pillow and the fonts in moteur/)
 except Exception:  # noqa: BLE001
@@ -179,13 +190,13 @@ def utilisateur_courant(request: Request, jeu=Depends(bd)):
 
 def exiger(u=Depends(utilisateur_courant)):
     if u is None:
-        raise HTTPException(401, "Connecte-toi d'abord")
+        raise erreur(401, "connecte_toi")
     return u
 
 
 def exiger_admin(u=Depends(exiger)):
     if not u["est_admin"]:
-        raise HTTPException(403, "Réservé à l'administrateur")
+        raise erreur(403, "admin")
     return u
 
 
@@ -198,6 +209,8 @@ class Identifiants(BaseModel):
     pseudo: str
     mot_de_passe: str
     equipe: Optional[str] = None
+    email: Optional[str] = None          # pour le mot de passe oublié (jeu/comptes)
+    naissance: Optional[str] = None      # AAAA-MM-JJ ; un mineur joue, n'achète pas
 
 
 def poser_session(reponse: Response, uid: int):
@@ -209,16 +222,23 @@ def poser_session(reponse: Response, uid: int):
 def inscription(ident: Identifiants, reponse: Response, jeu=Depends(bd)):
     pseudo = ident.pseudo.strip()
     if not (2 <= len(pseudo) <= 24) or not pseudo.replace("_", "").replace("-", "").isalnum():
-        raise HTTPException(400, "Pseudo : 2 à 24 lettres, chiffres, - ou _")
+        raise erreur(400, "pseudo_forme")
     if len(ident.mot_de_passe) < 6:
-        raise HTTPException(400, "Mot de passe : 6 caractères au moins")
+        raise erreur(400, "mdp_court")
     if jeu.execute("SELECT 1 FROM utilisateur WHERE lower(pseudo)=lower(?)", (pseudo,)).fetchone():
-        raise HTTPException(409, "Ce pseudo est déjà pris")
+        raise erreur(409, "pseudo_pris")
+    try:
+        email = CO.verifier_email(ident.email)
+        naissance = CO.verifier_naissance(ident.naissance)
+    except CO.ErreurCompte as err:
+        raise HTTPException(400, err.detail())
+    if email and jeu.execute("SELECT 1 FROM utilisateur WHERE lower(email)=?", (email,)).fetchone():
+        raise erreur(409, "email_pris")
     sel = secrets.token_hex(8)
     premier = jeu.execute("SELECT COUNT(*) FROM utilisateur").fetchone()[0] == 0
     admin = 1 if (premier or pseudo in ADMINS) else 0
-    cur = jeu.execute("INSERT INTO utilisateur(pseudo, cree_le, mdp_hash, mdp_sel, est_admin) VALUES (?,?,?,?,?)",
-                      (pseudo, P.maintenant(), hacher(ident.mot_de_passe, sel), sel, admin))
+    cur = jeu.execute("INSERT INTO utilisateur(pseudo, email, naissance, cree_le, mdp_hash, mdp_sel, est_admin) VALUES (?,?,?,?,?,?,?)",
+                      (pseudo, email, naissance, P.maintenant(), hacher(ident.mot_de_passe, sel), sel, admin))
     uid = cur.lastrowid
     lm = ligue_monde(jeu)
     budget = jeu.execute("SELECT budget_initial FROM ligue_jeu WHERE ligue_jeu_id=?", (lm,)).fetchone()[0]
@@ -241,7 +261,7 @@ def inscription(ident: Identifiants, reponse: Response, jeu=Depends(bd)):
 def connexion(ident: Identifiants, reponse: Response, jeu=Depends(bd)):
     u = jeu.execute("SELECT * FROM utilisateur WHERE lower(pseudo)=lower(?)", (ident.pseudo.strip(),)).fetchone()
     if not u or not u["mdp_sel"] or not hmac.compare_digest(u["mdp_hash"], hacher(ident.mot_de_passe, u["mdp_sel"])):
-        raise HTTPException(401, "Pseudo ou mot de passe incorrect")
+        raise erreur(401, "identifiants")
     poser_session(reponse, u["utilisateur_id"])
     return {"pseudo": u["pseudo"], "admin": bool(u["est_admin"])}
 
@@ -252,14 +272,88 @@ def deconnexion(reponse: Response):
     return {"ok": True}
 
 
+class Oubli(BaseModel):
+    qui: str                              # pseudo ou courriel
+
+
+class Remise(BaseModel):
+    jeton: str
+    mot_de_passe: str
+
+
+@app.post("/api/mdp/oublie")
+def mdp_oublie(o: Oubli, jeu=Depends(bd)):
+    """Un lien de remise par courriel (ou dans le journal du serveur, sans SMTP) ;
+    la réponse ne dit pas si le compte existe."""
+    return CO.mot_de_passe_oublie(jeu, o.qui)
+
+
+@app.post("/api/mdp/remettre")
+def mdp_remettre(r: Remise, reponse: Response, jeu=Depends(bd)):
+    try:
+        pseudo = CO.remettre_par_jeton(jeu, r.jeton, r.mot_de_passe)
+    except CO.ErreurCompte as err:
+        raise HTTPException(400, err.detail())
+    u = jeu.execute("SELECT utilisateur_id, est_admin FROM utilisateur WHERE pseudo=?", (pseudo,)).fetchone()
+    poser_session(reponse, u["utilisateur_id"])
+    return {"pseudo": pseudo, "admin": bool(u["est_admin"])}
+
+
+@app.get("/api/compte")
+def compte(u=Depends(exiger), jeu=Depends(bd)):
+    """Le compte : le palier (gratuit, premium), ses limites et où on en est, le catalogue."""
+    e = equipe_de(jeu, u)
+    return CO.etat(jeu, SAISON, u["utilisateur_id"], e["equipe_id"] if e else None) | {
+        "paiement": PA.fournisseur(), "catalogue": PA.catalogue(), "achats": PA.achats(jeu, u["utilisateur_id"])}
+
+
+class Achat(BaseModel):
+    produit: str
+
+
+@app.post("/api/paiement/session")
+def paiement_session(a: Achat, request: Request, u=Depends(exiger), jeu=Depends(bd)):
+    """Une session de paiement chez le fournisseur ; l'écran y envoie le joueur."""
+    retour = str(request.headers.get("referer") or os.environ.get("FL_URL", "http://127.0.0.1:8000/")).split("#")[0]
+    try:
+        return PA.creer_session(jeu, u["utilisateur_id"], a.produit, retour)
+    except PA.ErreurPaiement as err:
+        raise HTTPException(409, err.detail())
+
+
+@app.post("/api/paiement/stripe")
+async def paiement_stripe(request: Request, jeu=Depends(bd)):
+    """Le webhook de Stripe : la livraison, une fois, sur signature."""
+    corps = await request.body()
+    try:
+        return PA.webhook(jeu, corps, request.headers.get("stripe-signature", ""))
+    except PA.ErreurPaiement as err:
+        raise HTTPException(400, err.detail())
+
+
+class Premium(BaseModel):
+    pseudo: str
+    duree: str = "mois"
+
+
+@app.post("/api/admin/premium")
+def admin_premium(p: Premium, u=Depends(exiger_admin), jeu=Depends(bd)):
+    """Accorder le premium à la main (le test fermé, un geste commercial)."""
+    cible = jeu.execute("SELECT utilisateur_id FROM utilisateur WHERE lower(pseudo)=lower(?)", (p.pseudo.strip(),)).fetchone()
+    if not cible:
+        raise erreur(404, "compte_inconnu")
+    return PA.livrer(jeu, cible["utilisateur_id"], "premium_an" if p.duree == "an" else "premium_mois", "manuel")
+
+
 @app.get("/api/moi")
 def moi(u=Depends(utilisateur_courant), jeu=Depends(bd)):
     if u is None:
         return {"connecte": False}
     e = equipe_de(jeu, u)
-    cadeau = MA.pack_du_jour(jeu, e["equipe_id"]) if e else None      # le pack du jour, à la première visite du jour
+    cadeau = MA.pack_du_jour(jeu, e["equipe_id"], packs=CO.packs_du_jour(jeu, SAISON, e["equipe_id"])) if e else None      # le pack du jour, à la première visite du jour
     return {"connecte": True, "pseudo": u["pseudo"], "admin": bool(u["est_admin"]),
-            "equipe": e["nom"] if e else None, "cadeau": cadeau}
+            "equipe": e["nom"] if e else None, "cadeau": cadeau,
+            "palier": CO.regles(jeu, u["utilisateur_id"])["nom"], "limites": CO.limites_actives(jeu, SAISON)}
 
 
 # --------------------------------------------------------------------------
@@ -276,6 +370,8 @@ def saison(jeu=Depends(bd)):
     n_equipes = jeu.execute("SELECT COUNT(*) FROM equipe WHERE ligue_jeu_id=?", (ligue_monde(jeu),)).fetchone()[0]
     return {
         "saison": SAISON, "maintenant": P.maintenant(),
+        # le monde de la base : « reel » (les vrais noms) ou « fictif » (jeu/fictif, les mods)
+        "monde": FI.monde(jeu, SAISON),
         "courante": dict(j) | {"verrouillee": verrouillee(j)} if j else None,
         "derniere": dict(d) if d else None,
         "economie": eco, "bareme": ech, "equipes": n_equipes,
@@ -403,7 +499,7 @@ def vitrine(jeu=Depends(bd)):
 def carte(pid: int, jeu=Depends(bd)):
     c = next((x for x in cartes_toutes(jeu) if x["id"] == pid), None)
     if not c:
-        raise HTTPException(404, "Carte inconnue")
+        raise erreur(404, "carte_inconnue")
     hist = [dict(r) for r in jeu.execute("""
         SELECT j.numero, ch.ovr, ch.prix, ch.part FROM carte_historique ch
         JOIN journee j ON j.journee_id = ch.journee_id WHERE ch.player_id=? AND j.saison=? ORDER BY j.numero""",
@@ -456,10 +552,10 @@ def carte_detail(pid: int, jeu=Depends(bd)):
                          FROM carte c JOIN joueur j ON j.player_id = c.player_id
                          WHERE c.player_id=? AND c.saison=?""", (pid, SAISON)).fetchone()
     if not row:
-        raise HTTPException(404, "Carte inconnue")
+        raise erreur(404, "carte_inconnue")
     params = P.parametre(jeu, SAISON, "bareme")
     if not params or not row["bareme"]:
-        raise HTTPException(409, "Le détail n'est pas disponible : cette base n'a pas de barème.")
+        raise erreur(409, "detail_sans_bareme")
     # carte.sommes is the season-to-date window the card was LAST computed
     # from.  Re-summing bareme_journee here would answer a different
     # question (every gameweek in the base, calculated or not) and the
@@ -598,7 +694,7 @@ def marche_ou_409(fn, *args):
     try:
         return fn(*args)
     except MA.ErreurMarche as e:
-        raise HTTPException(409, str(e))
+        raise HTTPException(409, e.detail())
 
 
 def exemplaire_json(jeu, x):
@@ -637,7 +733,7 @@ def mon_club(u=Depends(exiger), jeu=Depends(bd)):
 def aligner(al: Alignement, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     if al.dans_effectif and not marche_ouvert(jeu):
-        raise HTTPException(409, "Journée verrouillée : l'effectif ne bouge plus jusqu'à la clôture")
+        raise erreur(409, "journee_verrouillee_effectif")
     marche_ou_409(MA.aligner, jeu, e["equipe_id"], al.exemplaire_id, al.dans_effectif)
     return {"ok": True}
 
@@ -663,6 +759,10 @@ def marche(player_id: Optional[int] = None, u=Depends(exiger), jeu=Depends(bd)):
 @app.post("/api/marche/vendre")
 def mettre_en_vente(m: MiseEnVente, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
+    try:
+        CO.verifier_enchere(jeu, SAISON, e["equipe_id"])
+    except CO.ErreurCompte as err:
+        raise HTTPException(409, err.detail())
     eid = marche_ou_409(MA.mettre_en_vente, jeu, e["equipe_id"], m.exemplaire_id, m.prix_depart, m.prix_immediat, m.duree_h)
     return {"ok": True, "enchere_id": eid}
 
@@ -671,7 +771,7 @@ def mettre_en_vente(m: MiseEnVente, u=Depends(exiger), jeu=Depends(bd)):
 def encherir(o: Offre, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     if o.montant is None:
-        raise HTTPException(400, "Montant manquant")
+        raise erreur(400, "montant_manquant")
     montant = marche_ou_409(MA.encherir, jeu, e["equipe_id"], o.enchere_id, o.montant)
     return {"ok": True, "montant": montant, "budget": round(equipe_de(jeu, u)["budget"], 2)}
 
@@ -695,24 +795,24 @@ def composition(c: Compo, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     j = journee_courante(jeu)
     if j is None:
-        raise HTTPException(409, "Saison terminée")
+        raise erreur(409, "saison_terminee")
     if verrouillee(j):
-        raise HTTPException(409, f"Journée {j['numero']} verrouillée depuis le coup d'envoi")
+        raise erreur(409, "journee_verrouillee", n=j["numero"])
     if c.formation not in S.FORMATIONS:
-        raise HTTPException(400, "Formation inconnue")
+        raise erreur(400, "formation_inconnue")
     eff = effectif_de(jeu, e["equipe_id"])
     ids = c.titulaires + c.banc
     if len(set(ids)) != len(ids) or any(p not in eff for p in ids):
-        raise HTTPException(400, "Composition : joueurs en double ou pas dans l'effectif")
+        raise erreur(400, "compo_doublons")
     if c.capitaine is not None and c.capitaine not in c.titulaires:
-        raise HTTPException(400, "Le capitaine doit être titulaire")
+        raise erreur(400, "capitaine_titulaire")
     if len(c.banc) > S.TAILLE_BANC:
-        raise HTTPException(400, f"{S.TAILLE_BANC} remplaçants au plus sur la feuille")
+        raise erreur(400, "banc_max_feuille", n=S.TAILLE_BANC)
     # Anyone may play anywhere: the formation gives eleven slots, the
     # manager fills them as he likes, and a card away from what it held
     # pays for it in the match (scoring.malus_poste), not here.
     if len(c.titulaires) != S.TAILLE_ONZE:
-        raise HTTPException(400, "Il faut onze titulaires")
+        raise erreur(400, "onze_titulaires")
     jeu.execute("INSERT OR REPLACE INTO composition VALUES (?,?,?,?,?,?,?)",
                 (e["equipe_id"], j["journee_id"], c.formation, json.dumps(c.titulaires), json.dumps(c.banc),
                  c.capitaine, P.maintenant()))
@@ -788,7 +888,7 @@ def resultat_journee(numero: int, u=Depends(exiger), jeu=Depends(bd)):
     jid = P.journee_id(jeu, SAISON, numero)
     r = jeu.execute("SELECT * FROM resultat WHERE equipe_id=? AND journee_id=?", (e["equipe_id"], jid)).fetchone()
     if not r:
-        raise HTTPException(404, "Pas de résultat pour cette journée")
+        raise erreur(404, "pas_de_resultat")
     detail = json.loads(r["detail"])
     prestas = {}
     for pid in json.loads(r["onze"]):
@@ -883,7 +983,7 @@ def equipe_tactique(t: TactiqueClub, u=Depends(exiger), jeu=Depends(bd)):
     try:
         valide = SM.Tactique(**brut).valide()
     except TypeError:
-        raise HTTPException(400, "Réglage tactique inconnu")
+        raise erreur(400, "reglage_inconnu")
     d = vars(valide).copy()
     for cle in ("formation", "marquage"):
         d.pop(cle, None)
@@ -906,9 +1006,9 @@ def equipe_maillot(m: MaillotClub, u=Depends(exiger), jeu=Depends(bd)):
     import re as _re
     e = equipe_de(jeu, u)
     if not all(_re.fullmatch(r"#[0-9a-fA-F]{6}", c) for c in (m.base, m.second)):
-        raise HTTPException(400, "Couleur attendue en #rrggbb")
+        raise erreur(400, "couleur")
     if m.motif not in ("uni", "bande", "rayures", "cercle", "moitie", "echarpe"):
-        raise HTTPException(400, "Motif inconnu")
+        raise erreur(400, "motif_inconnu")
     d = {"base": m.base.lower(), "second": m.second.lower(), "motif": m.motif}
     jeu.execute("UPDATE equipe SET maillot=? WHERE equipe_id=?", (json.dumps(d), e["equipe_id"]))
     jeu.commit()
@@ -919,10 +1019,12 @@ def equipe_maillot(m: MaillotClub, u=Depends(exiger), jeu=Depends(bd)):
 def lobby_rejoindre(c: EntreeLobby, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     try:
+        if c.defi:
+            CO.verifier_match(jeu, SAISON, e["equipe_id"])          # le classé n'est jamais limité
         rid = LB.rejoindre(jeu, SAISON, e["equipe_id"], c.onze, c.tactique, c.formation, c.defi, banc=c.banc,
                            duree=c.duree, vitesse=c.vitesse)
-    except LB.ErreurLobby as err:
-        raise HTTPException(400, str(err))
+    except (LB.ErreurLobby, CO.ErreurCompte) as err:
+        raise HTTPException(400, err.detail())
     return {"rencontre_id": rid} | LB.etat(jeu, SAISON, e["equipe_id"])
 
 
@@ -932,7 +1034,7 @@ def lobby_tactique(a: Ajustement, u=Depends(exiger), jeu=Depends(bd)):
     try:
         minute = LB.ajuster(jeu, SAISON, e["equipe_id"], a.tactique)
     except LB.ErreurLobby as err:
-        raise HTTPException(409, str(err))
+        raise HTTPException(409, err.detail())
     return {"minute": minute} | LB.etat(jeu, SAISON, e["equipe_id"])
 
 
@@ -942,7 +1044,7 @@ def lobby_changement(c: Changement, u=Depends(exiger), jeu=Depends(bd)):
     try:
         minute = LB.changer(jeu, SAISON, e["equipe_id"], c.sortant, c.entrant)
     except LB.ErreurLobby as err:
-        raise HTTPException(409, str(err))
+        raise HTTPException(409, err.detail())
     return {"minute": minute} | LB.etat(jeu, SAISON, e["equipe_id"])
 
 
@@ -953,7 +1055,7 @@ def lobby_permutation(c: Permutation, u=Depends(exiger), jeu=Depends(bd)):
     try:
         minute = LB.permuter(jeu, SAISON, e["equipe_id"], c.un, c.deux)
     except LB.ErreurLobby as err:
-        raise HTTPException(409, str(err))
+        raise HTTPException(409, err.detail())
     return {"minute": minute} | LB.etat(jeu, SAISON, e["equipe_id"])
 
 
@@ -968,9 +1070,9 @@ def lobby_pause(c: Pause, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     r = LB.en_cours(jeu, SAISON, e["equipe_id"])
     if r is None or not r["debut"]:
-        raise HTTPException(409, "Aucun match en cours")
+        raise erreur(409, "aucun_match")
     if not LB.solitaire(r):
-        raise HTTPException(409, "On ne met pas un match classé en pause")
+        raise erreur(409, "pause_classe")
     LB.suspendre(jeu, r, c.pause)
     return LB.etat(jeu, SAISON, e["equipe_id"])
 
@@ -985,13 +1087,14 @@ def lobby_causerie(c: Causerie, u=Depends(exiger), jeu=Depends(bd)):
     try:
         LB.causer(jeu, SAISON, e["equipe_id"], c.causerie)
     except LB.ErreurLobby as err:
-        raise HTTPException(409, str(err))
+        raise HTTPException(409, err.detail())
     return LB.etat(jeu, SAISON, e["equipe_id"])
 
 
 class Parole(BaseModel):
     texte: str
     tactique: dict | None = None
+    langue: str = "fr"
 
 
 @app.post("/api/lobby/dire")
@@ -999,9 +1102,9 @@ def lobby_dire(p: Parole, u=Depends(exiger), jeu=Depends(bd)):
     """La boîte de dialogue : une phrase à son équipe, traduite en levier (jeu/dialogue.py)."""
     e = equipe_de(jeu, u)
     try:
-        rep = LB.dire(jeu, SAISON, e["equipe_id"], p.texte, p.tactique)
+        rep = LB.dire(jeu, SAISON, e["equipe_id"], p.texte, p.tactique, langue=p.langue)
     except LB.ErreurLobby as err:
-        raise HTTPException(409, str(err))
+        raise HTTPException(409, err.detail())
     return rep | {"etat": LB.etat(jeu, SAISON, e["equipe_id"])}
 
 
@@ -1009,7 +1112,7 @@ def lobby_dire(p: Parole, u=Depends(exiger), jeu=Depends(bd)):
 def lobby_quitter(u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     if not LB.quitter(jeu, SAISON, e["equipe_id"]):
-        raise HTTPException(409, "Rien à quitter : le match a déjà commencé")
+        raise erreur(409, "rien_a_quitter")
     return LB.etat(jeu, SAISON, e["equipe_id"])
 
 
@@ -1046,9 +1149,9 @@ def solo_clubs(cle: str, u=Depends(exiger), jeu=Depends(bd)):
     try:
         clubs = SO.clubs_competition(jeu, SAISON, cle)
     except SO.ErreurSolo as err:
-        raise HTTPException(404, str(err))
+        raise HTTPException(404, err.detail())
     comp = SO.COMPETITIONS[cle]
-    return {"cle": cle, "nom": comp["nom"], "format": comp["format"], "clubs": clubs}
+    return {"cle": cle, "nom": SO.nom_competition(jeu, SAISON, cle), "format": comp["format"], "clubs": clubs}
 
 
 @app.post("/api/solo/demarrer")
@@ -1057,7 +1160,7 @@ def solo_demarrer(d: DemarrageSolo, u=Depends(exiger), jeu=Depends(bd)):
     try:
         SO.demarrer(jeu, SAISON, e["equipe_id"], d.cle, d.club)
     except SO.ErreurSolo as err:
-        raise HTTPException(400, str(err))
+        raise HTTPException(400, err.detail())
     return SO.etat(jeu, SAISON, e["equipe_id"])
 
 
@@ -1067,12 +1170,13 @@ def solo_jouer(t: TourSolo, u=Depends(exiger), jeu=Depends(bd)):
     to kick off, so it is played straight through."""
     e = equipe_de(jeu, u)
     try:
+        CO.verifier_match(jeu, SAISON, e["equipe_id"])
         rid = SO.lancer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique, t.formation, banc=t.banc, duree=t.duree,
                              vitesse=t.vitesse)
         r = None if rid else SO.jouer_tour(jeu, SAISON, e["equipe_id"], t.onze, t.tactique,
                                            t.formation, banc=t.banc)
-    except (SO.ErreurSolo, LB.ErreurLobby) as err:
-        raise HTTPException(400, str(err))
+    except (SO.ErreurSolo, LB.ErreurLobby, CO.ErreurCompte) as err:
+        raise HTTPException(400, err.detail())
     return {"tour_joue": r} | SO.etat(jeu, SAISON, e["equipe_id"])
 
 
@@ -1080,7 +1184,7 @@ def _match_solo(jeu, equipe_id: int):
     camp = SO.en_cours(jeu, SAISON, equipe_id)
     r = SO.match_en_cours(jeu, camp)
     if r is None:
-        raise HTTPException(409, "Aucun match de campagne en cours")
+        raise erreur(409, "aucun_match_campagne")
     return r
 
 
@@ -1097,7 +1201,7 @@ def solo_causerie(c: Causerie, u=Depends(exiger), jeu=Depends(bd)):
     try:
         LB.causer(jeu, SAISON, e["equipe_id"], c.causerie, _match_solo(jeu, e["equipe_id"]))
     except LB.ErreurLobby as err:
-        raise HTTPException(409, str(err))
+        raise HTTPException(409, err.detail())
     return SO.etat(jeu, SAISON, e["equipe_id"])
 
 
@@ -1107,7 +1211,7 @@ def solo_tactique(a: Ajustement, u=Depends(exiger), jeu=Depends(bd)):
     try:
         minute = LB.ajuster(jeu, SAISON, e["equipe_id"], a.tactique, _match_solo(jeu, e["equipe_id"]))
     except LB.ErreurLobby as err:
-        raise HTTPException(409, str(err))
+        raise HTTPException(409, err.detail())
     return {"minute": minute} | SO.etat(jeu, SAISON, e["equipe_id"])
 
 
@@ -1117,7 +1221,7 @@ def solo_changement(c: Changement, u=Depends(exiger), jeu=Depends(bd)):
     try:
         minute = LB.changer(jeu, SAISON, e["equipe_id"], c.sortant, c.entrant, _match_solo(jeu, e["equipe_id"]))
     except LB.ErreurLobby as err:
-        raise HTTPException(409, str(err))
+        raise HTTPException(409, err.detail())
     return {"minute": minute} | SO.etat(jeu, SAISON, e["equipe_id"])
 
 
@@ -1127,7 +1231,7 @@ def solo_permutation(c: Permutation, u=Depends(exiger), jeu=Depends(bd)):
     try:
         minute = LB.permuter(jeu, SAISON, e["equipe_id"], c.un, c.deux, _match_solo(jeu, e["equipe_id"]))
     except LB.ErreurLobby as err:
-        raise HTTPException(409, str(err))
+        raise HTTPException(409, err.detail())
     return {"minute": minute} | SO.etat(jeu, SAISON, e["equipe_id"])
 
 
@@ -1135,9 +1239,9 @@ def solo_permutation(c: Permutation, u=Depends(exiger), jeu=Depends(bd)):
 def solo_dire(p: Parole, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     try:
-        rep = LB.dire(jeu, SAISON, e["equipe_id"], p.texte, p.tactique, _match_solo(jeu, e["equipe_id"]))
+        rep = LB.dire(jeu, SAISON, e["equipe_id"], p.texte, p.tactique, _match_solo(jeu, e["equipe_id"]), langue=p.langue)
     except LB.ErreurLobby as err:
-        raise HTTPException(409, str(err))
+        raise HTTPException(409, err.detail())
     return rep | {"etat": SO.etat(jeu, SAISON, e["equipe_id"])}
 
 
@@ -1145,7 +1249,7 @@ def solo_dire(p: Parole, u=Depends(exiger), jeu=Depends(bd)):
 def solo_abandonner(u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     if not SO.abandonner(jeu, SAISON, e["equipe_id"]):
-        raise HTTPException(409, "Aucune campagne en cours")
+        raise erreur(409, "aucune_campagne")
     return SO.etat(jeu, SAISON, e["equipe_id"])
 
 
@@ -1174,7 +1278,7 @@ def creer_ligue(l: LigueCreation, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     nom = l.nom.strip()[:40]
     if len(nom) < 2:
-        raise HTTPException(400, "Nom de ligue trop court")
+        raise erreur(400, "ligue_nom_court")
     code = secrets.token_hex(3).upper()
     cur = jeu.execute("INSERT INTO ligue_privee(nom, code, saison, cree_par, cree_le) VALUES (?,?,?,?,?)",
                       (nom, code, SAISON, e["equipe_id"], P.maintenant()))
@@ -1188,7 +1292,7 @@ def rejoindre_ligue(l: LigueCode, u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     row = jeu.execute("SELECT ligue_privee_id, nom FROM ligue_privee WHERE code=? AND saison=?", (l.code.strip().upper(), SAISON)).fetchone()
     if not row:
-        raise HTTPException(404, "Code inconnu")
+        raise erreur(404, "code_inconnu")
     jeu.execute("INSERT OR IGNORE INTO ligue_privee_membre VALUES (?,?,?)", (row[0], e["equipe_id"], P.maintenant()))
     jeu.commit()
     return {"id": row[0], "nom": row[1]}
@@ -1243,8 +1347,48 @@ def admin_ouvrir(numero: int, u=Depends(exiger_admin), jeu=Depends(bd)):
 # Static: front-end and images
 # --------------------------------------------------------------------------
 
+# Le monde fictif (jeu/fictif) : les portraits et les écussons ne viennent jamais
+# des photos ni des logos réels.  Un mod en apporte (mods/portraits, mods/logos),
+# sinon le jeu dessine un avatar et un blason (jeu/avatar), mis en cache.
+CACHE_FICTIF = CACHE_CARTES.parent / "fictif"
+
+
+def portrait_fictif(jeu, pid: int) -> pathlib.Path | None:
+    m = FI.mods()
+    if m["portraits"] and (m["portraits"] / f"{pid}.png").exists():
+        return m["portraits"] / f"{pid}.png"
+    row = jeu.execute("SELECT j.pays, COALESCE(cl.couleur, '#14161E') FROM joueur j LEFT JOIN club cl ON cl.team_id = j.team_id WHERE j.player_id=?",
+                      (pid,)).fetchone()
+    if not row:
+        return None
+    f = CACHE_FICTIF / "joueurs" / f"{pid}.png"
+    if not f.exists():
+        f.parent.mkdir(parents=True, exist_ok=True)
+        AVATAR.portrait(pid, FI.GROUPE_PAYS.get((row[0] or "").upper(), "monde"), row[1]).save(f)
+    return f
+
+
+def logo_fictif(jeu, tid: int) -> pathlib.Path | None:
+    m = FI.mods()
+    if m["logos"] and (m["logos"] / f"{tid}.png").exists():
+        return m["logos"] / f"{tid}.png"
+    row = jeu.execute("SELECT nom, couleur FROM club WHERE team_id=?", (tid,)).fetchone()
+    if not row:
+        return None
+    f = CACHE_FICTIF / "logos" / f"{tid}_{row[1].lstrip('#')}_{FI.normaliser(row[0]).replace(' ', '_')[:24]}.png"
+    if not f.exists():
+        f.parent.mkdir(parents=True, exist_ok=True)
+        AVATAR.ecusson(tid, row[0], row[1]).save(f)
+    return f
+
+
 @app.get("/images/joueurs/{pid}.png")
-def portrait(pid: int):
+def portrait(pid: int, jeu=Depends(bd)):
+    if FI.monde(jeu, SAISON) == "fictif":
+        f = portrait_fictif(jeu, pid)
+        if f is None:
+            raise HTTPException(404)
+        return FileResponse(f, headers={"Cache-Control": "public, max-age=86400"})
     f = IMAGES / "joueurs" / f"{pid}.png"
     if not f.exists():
         raise HTTPException(404)
@@ -1284,16 +1428,22 @@ def carte_dessinee(jeu, pid: int, largeur: int = 420) -> pathlib.Path | None:
         comps[comp] = comps.get(comp, 0) + 1
     competition = max(comps, key=comps.get) if comps else "Ligue 1"
     largeur = largeur if largeur in LARGEURS_CARTE else 420
-    cle = f"{pid}_{ovr}_{sum(attributs.values())}_{pied or 'x'}_{S.CODE_POSTE.get(poste, 'x').replace('/', '')}_s4_{largeur}"   # s4: side on the position
+    fictif = FI.monde(jeu, SAISON) == "fictif"
+    # le nom est dessiné sur la carte : le monde (et le nom lui-même, un mod peut le changer) fait partie de la clé
+    monde = ("f" + hashlib.sha1(nom.encode("utf-8")).hexdigest()[:6]) if fictif else "r"
+    cle = f"{pid}_{ovr}_{sum(attributs.values())}_{pied or 'x'}_{S.CODE_POSTE.get(poste, 'x').replace('/', '')}_s4_{monde}_{largeur}"   # s4: side on the position
     CACHE_CARTES.mkdir(parents=True, exist_ok=True)
     f = CACHE_CARTES / f"{cle}.png"
     if not f.exists():
-        etat = f"{ovr}_{sum(attributs.values())}_{pied or 'x'}_{S.CODE_POSTE.get(poste, 'x').replace('/', '')}_s4"
+        etat = f"{ovr}_{sum(attributs.values())}_{pied or 'x'}_{S.CODE_POSTE.get(poste, 'x').replace('/', '')}_s4_{monde}"
         for vieux in CACHE_CARTES.glob(f"{pid}_*.png"):       # the card changed: every width is stale
             if not vieux.name.startswith(f"{pid}_{etat}_"):
                 vieux.unlink()
         d = dict(pid=pid, nom=nom, note=int(ovr), ovr=int(ovr), attributs=attributs, poste=poste,
                  minutes=None, competition=competition, couleur=couleur, team_id=tid, pied=pied)
+        if fictif:
+            d["portrait"] = str(portrait_fictif(jeu, pid) or "")
+            d["logo"] = str(logo_fictif(jeu, tid) or "") if tid else ""
         CARTES.dessiner(d, largeur).save(f)
     return f
 
@@ -1302,7 +1452,7 @@ def carte_dessinee(jeu, pid: int, largeur: int = 420) -> pathlib.Path | None:
 def image_carte(pid: int, l: int = 420, jeu=Depends(bd)):
     f = carte_dessinee(jeu, pid, l)
     if f is None:
-        raise HTTPException(404, "Carte indisponible")
+        raise erreur(404, "carte_indisponible")
     return FileResponse(f, headers={"Cache-Control": "public, max-age=3600"})
 
 
@@ -1315,7 +1465,12 @@ def logo_ligue(nom: str):
 
 
 @app.get("/images/logos/{tid}.png")
-def logo(tid: int):
+def logo(tid: int, jeu=Depends(bd)):
+    if FI.monde(jeu, SAISON) == "fictif":
+        f = logo_fictif(jeu, tid)
+        if f is None:
+            raise HTTPException(404)
+        return FileResponse(f, headers={"Cache-Control": "public, max-age=86400"})
     f = IMAGES / "logos" / f"{tid}.png"
     if not f.exists():
         raise HTTPException(404)
@@ -1357,18 +1512,18 @@ def bac_match(a: int, b: int, graine: int = 1, minutes: int = 90, formation: str
     from jeu import emergent as EM
     minutes = max(5, min(90, minutes))
     if formation not in S.FORMATIONS_RANGS:
-        raise HTTPException(400, "Formation inconnue")
+        raise erreur(400, "formation_inconnue")
     tacs = ({"bloc": bloc_a, "tempo": tempo_a, "risque": risque_a, "relance": relance_a},
             {"bloc": bloc_b, "tempo": tempo_b, "risque": risque_b, "relance": relance_b})
     for t in tacs:
         if t["bloc"] not in SM.BLOC or t["tempo"] not in SM.TEMPO or t["risque"] not in SM.RISQUE or t["relance"] not in ("mixte", "courte", "longue"):
-            raise HTTPException(400, "Tactique inconnue")
+            raise erreur(400, "tactique_inconnue")
     cle = f"{a}:{b}:{graine}:{minutes}:{formation}:{tacs}:{collectif_a}:{collectif_b}"
     if cle in _BAC:
         return _BAC[cle]
     sa, sb = SO.onze_club(jeu, SAISON, a, formation), SO.onze_club(jeu, SAISON, b, formation)
     if len(sa) < 11 or len(sb) < 11:
-        raise HTTPException(400, "Un des deux clubs n'a pas onze cartes")
+        raise erreur(400, "club_sans_onze")
     noms = tuple((jeu.execute("SELECT nom FROM club WHERE team_id=?", (t,)).fetchone() or ["?"])[0] for t in (a, b))
     coll = (collectif_a if collectif_a is not None else EM.collectif_de(jeu, a, [j["pid"] for j in sa]),
             collectif_b if collectif_b is not None else EM.collectif_de(jeu, b, [j["pid"] for j in sb]))

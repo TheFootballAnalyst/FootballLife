@@ -940,3 +940,8 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 .dialogue .dit.coach.non{color:#e9b5a0}
 .dialogue-saisie{display:flex;gap:6px}
 .dialogue-saisie input{flex:1;min-width:0;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:inherit;padding:6px 8px;font-size:13px}
+
+/* Le choix de langue, dans la barre (PLAN § 3) */
+nav select#langue{background:transparent;border:1px solid transparent;color:var(--sourd);font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:12.5px;padding:4px 6px;border-radius:9px;cursor:pointer}
+nav select#langue:hover{color:var(--encre);background:rgba(255,255,255,.05)}
+nav select#langue option{background:var(--surface3,#141a2a);color:var(--encre,#eee);text-transform:none}

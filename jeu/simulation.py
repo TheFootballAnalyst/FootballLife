@@ -1787,15 +1787,22 @@ def style(joueurs: list[dict]) -> str:
     "garde le ballon, casse les lignes, crée beaucoup, finit froidement,
     verrouille derrière" — which tells a manager nothing about either.
     """
+    codes = style_codes(joueurs)
+    bouts = [DITS[c[:-1]][0 if c.endswith("+") else 1] for c in codes]
+    return ", ".join(bouts) or "équipe équilibrée, sans trait dominant"
+
+
+def style_codes(joueurs: list[dict]) -> list[str]:
+    """Le style en codes (« controle+ », « defense- »), que l'écran met en mots dans
+    sa langue (static/lang, clés style.<code>) ; `style` en est le français."""
     t = traits(joueurs)
     ecarts = sorted(((v - REPERE[k], k) for k, v in t.items() if k in REPERE), key=lambda x: -x[0])
-    forces = [DITS[k][0] for d, k in ecarts[:TRAITS_DITS - 1] if d >= ECART_STYLE]
+    forces = [k + "+" for d, k in ecarts[:TRAITS_DITS - 1] if d >= ECART_STYLE]
     # always name the worst flaw too: an eleven that leaks is what an
     # opponent most needs to read, and it never wins a magnitude contest
     # against three strengths at once.
-    faible = next((DITS[k][1] for d, k in reversed(ecarts) if d <= -ECART_STYLE), None)
-    bouts = forces + ([faible] if faible else [])
-    return ", ".join(bouts) or "équipe équilibrée, sans trait dominant"
+    faible = next((k + "-" for d, k in reversed(ecarts) if d <= -ECART_STYLE), None)
+    return forces + ([faible] if faible else [])
 
 
 # --------------------------------------------------------------------------
@@ -1833,6 +1840,15 @@ def lecture_adverse(f: dict, cote: str) -> list[str]:
     """Ce qu'un manager peut honnêtement dire de l'autre équipe, à cette
     minute.  Déduit du MATCH, jamais des réglages : c'est donc parfois
     faux, exactement comme une vraie lecture depuis le banc."""
+    return [LECTURES[c] for c in lecture_adverse_codes(f, cote)]
+
+
+LECTURES = {"gardent": "ils gardent le ballon", "laissent": "ils te laissent le ballon", "ouvert": "le match est ouvert",
+            "ferme": "le match est fermé", "poussent": "ils poussent", "decouvrent_pas": "ils ne se découvrent pas", "dur": "ils jouent dur"}
+
+
+def lecture_adverse_codes(f: dict, cote: str) -> list[str]:
+    """La lecture en codes (clés lecture.<code> de l'écran) ; `lecture_adverse` en est le français."""
     i = 0 if cote == "a" else 1
     adv = 1 - i
     m = f.get("minute", 0)
@@ -1842,22 +1858,22 @@ def lecture_adverse(f: dict, cote: str) -> list[str]:
     dits = []
     poss = (f.get("possession") or [50, 50])[adv]
     if poss >= 55:
-        dits.append("ils gardent le ballon")
+        dits.append("gardent")
     elif poss <= 45:
-        dits.append("ils te laissent le ballon")
+        dits.append("laissent")
     tirs = f.get("tirs") or [0, 0]
     total = par90(tirs[0] + tirs[1])
     if total >= 26:
-        dits.append("le match est ouvert")
+        dits.append("ouvert")
     elif total <= 20:
-        dits.append("le match est fermé")
+        dits.append("ferme")
     leurs = par90(tirs[adv])
     if leurs >= 13.5:
-        dits.append("ils poussent")
+        dits.append("poussent")
     elif leurs <= 10:
-        dits.append("ils ne se découvrent pas")
+        dits.append("decouvrent_pas")
     if par90((f.get("fautes") or [0, 0])[adv]) >= 12.7:
-        dits.append("ils jouent dur")
+        dits.append("dur")
     return dits[:3]
 
 

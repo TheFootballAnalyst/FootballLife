@@ -45,6 +45,7 @@ import random
 from datetime import datetime, timezone
 
 from jeu import scoring as S
+from jeu.messages import ErreurJeu
 from jeu import simulation as SM
 
 # The competitions you can take a place in.  `cid` is the competition_id of
@@ -123,21 +124,23 @@ def tirer_objectifs(cle: str, clubs: list[dict], place: int, ma_force: float, rn
         tour = (["vainqueur", "F", "2"], ["4", "8", "8"], ["8", "barrage", "barrage"])[tiers][0]
         libelle = {"vainqueur": "Gagner la coupe", "F": "Atteindre la finale", "2": "Atteindre les demi-finales",
                    "4": "Atteindre les quarts de finale", "8": "Atteindre les huitièmes", "barrage": "Passer la phase de ligue"}[tour]
-        out.append({"cle": "tour", "libelle": libelle, "cible": tour, "niveau": 2})
+        out.append({"cle": "tour", "libelle": libelle, "cible": tour, "niveau": 2, "code": "tour_" + tour, "params": {}})
     else:
         matchs = 2 * (n - 1)
         if tiers == 0:
-            cible, libelle = (1, "Être champion") if rang == 1 else (3, "Finir sur le podium")
+            cible, libelle, code = (1, "Être champion", "champion") if rang == 1 else (3, "Finir sur le podium", "podium")
         elif tiers == 1:
-            cible, libelle = max(4, round(0.30 * n)), "Se qualifier pour l'Europe"
+            cible, libelle, code = max(4, round(0.30 * n)), "Se qualifier pour l'Europe", "europe"
         else:
-            cible, libelle = (n // 2, "Finir dans la première moitié") if rang <= 2 * n // 3 else (n - 3, "Se maintenir")
-        out.append({"cle": "classement", "libelle": libelle, "cible": cible, "niveau": 2})
-        out.append({"cle": "domicile", "libelle": f"Ne pas perdre plus de {DOMICILE_DEFAITES} match à domicile", "cible": DOMICILE_DEFAITES, "niveau": 1})
+            cible, libelle, code = (n // 2, "Finir dans la première moitié", "moitie") if rang <= 2 * n // 3 else (n - 3, "Se maintenir", "maintien")
+        out.append({"cle": "classement", "libelle": libelle, "cible": cible, "niveau": 2, "code": code, "params": {}})
+        out.append({"cle": "domicile", "libelle": f"Ne pas perdre plus de {DOMICILE_DEFAITES} match à domicile", "cible": DOMICILE_DEFAITES, "niveau": 1,
+                    "code": "domicile", "params": {"n": DOMICILE_DEFAITES}})
     buts = round(matchs * BUTS_PAR_MATCH[2 - tiers])
-    out.append({"cle": "buts", "libelle": f"Marquer {buts} buts", "cible": buts, "niveau": 0 if europe else 0})
+    out.append({"cle": "buts", "libelle": f"Marquer {buts} buts", "cible": buts, "niveau": 0 if europe else 0, "code": "buts", "params": {"n": buts}})
     if europe:
-        out.append({"cle": "domicile", "libelle": f"Ne pas perdre plus de {DOMICILE_DEFAITES} match à domicile", "cible": DOMICILE_DEFAITES, "niveau": 1})
+        out.append({"cle": "domicile", "libelle": f"Ne pas perdre plus de {DOMICILE_DEFAITES} match à domicile", "cible": DOMICILE_DEFAITES, "niveau": 1,
+                    "code": "domicile", "params": {"n": DOMICILE_DEFAITES}})
     for o in out:
         o["credits"] = OBJECTIF_CREDITS[o["niveau"]]
         o["pack"] = OBJECTIF_PACKS[o["niveau"]]
@@ -194,7 +197,7 @@ RECOMPENSES_EUROPE = {
 }
 
 
-class ErreurSolo(Exception):
+class ErreurSolo(ErreurJeu):
     pass
 
 
@@ -249,10 +252,23 @@ def _fiches_clubs(jeu, saison: str, tids, forces: dict[int, float] | None = None
     return out
 
 
+def nom_competition(jeu, saison: str, cle: str) -> str:
+    """Le nom d'une compétition du solo dans le monde de la base : le vrai, ou le
+    fictif (jeu/fictif), ou celui d'un mod (la table competition fait foi)."""
+    from jeu import fictif as FI
+    comp = COMPETITIONS.get(cle)
+    if not comp:
+        return cle
+    if FI.monde(jeu, saison) != "fictif":
+        return comp["nom"]
+    row = jeu.execute("SELECT nom FROM competition WHERE competition_id=?", (comp["cid"],)).fetchone()
+    return row[0] if row else FI.COMPETITIONS_FICTIVES.get(comp["cid"], (comp["nom"],))[0]
+
+
 def clubs_competition(jeu, saison: str, cle: str) -> list[dict]:
     """The clubs of a competition, strongest squad first."""
     if cle not in COMPETITIONS:
-        raise ErreurSolo("Compétition inconnue")
+        raise ErreurSolo("competition_inconnue")
     comp = COMPETITIONS[cle]
     tids = [r[0] for r in jeu.execute(
         """SELECT DISTINCT home_team_id FROM match WHERE competition_id=?
@@ -552,10 +568,10 @@ def demarrer(jeu, saison: str, equipe_id: int, cle: str, club_remplace: int,
              graine: int | None = None) -> int:
     """Take a club's place in a competition.  Returns the campagne_id."""
     if en_cours(jeu, saison, equipe_id):
-        raise ErreurSolo("Tu as déjà une campagne en cours")
+        raise ErreurSolo("deja_campagne")
     clubs = clubs_competition(jeu, saison, cle)
     if club_remplace not in {c["team_id"] for c in clubs}:
-        raise ErreurSolo("Ce club ne joue pas cette compétition")
+        raise ErreurSolo("club_hors_competition")
     graine = graine if graine is not None else random.SystemRandom().randrange(1, 10 ** 9)
     place = next(i for i, c in enumerate(clubs) if c["team_id"] == club_remplace)
     tids = [c["team_id"] for c in clubs]
@@ -760,13 +776,13 @@ def lancer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dic
     from jeu import lobby as LB
     camp = en_cours(jeu, saison, equipe_id)
     if not camp:
-        raise ErreurSolo("Aucune campagne en cours")
+        raise ErreurSolo("aucune_campagne")
     if match_en_cours(jeu, camp):
-        raise ErreurSolo("Ton match est déjà en cours")
+        raise ErreurSolo("match_deja_en_cours")
     cal = json.loads(camp["calendrier"])
     tour = camp["tour"]
     if tour >= len(cal):
-        raise ErreurSolo("La campagne est terminée")
+        raise ErreurSolo("campagne_terminee")
     onze = LB.verifier_onze(jeu, saison, equipe_id, onze, formation)
     banc = LB.verifier_banc(jeu, saison, equipe_id, onze, banc)
     moi = camp["place"]
@@ -816,7 +832,7 @@ def jouer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict
     from jeu import lobby as LB
     camp = en_cours(jeu, saison, equipe_id)
     if not camp:
-        raise ErreurSolo("Aucune campagne en cours")
+        raise ErreurSolo("aucune_campagne")
     if verifier:
         onze = LB.verifier_onze(jeu, saison, equipe_id, onze, formation)
         banc = LB.verifier_banc(jeu, saison, equipe_id, onze, banc)
@@ -825,7 +841,7 @@ def jouer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict
     cal = json.loads(camp["calendrier"])
     tour = camp["tour"]
     if tour >= len(cal):
-        raise ErreurSolo("La campagne est terminée")
+        raise ErreurSolo("campagne_terminee")
     clubs = _clubs_du(jeu, saison, camp)
     moi = camp["place"]
     equipes: dict[int, SM.Equipe] = {}
@@ -975,24 +991,28 @@ def classement(camp, clubs: list[dict], phase: str | None = None) -> list[dict]:
                  "toi": bool(clubs[l["place"]].get("toi"))} for l in lignes]
 
 
+def cle_championnat(rang: int, n: int) -> str:
+    """La bande d'une place finale : le titre, le podium, l'Europe, la moitié haute,
+    le maintien, la relégation — à l'échelle du champ."""
+    if rang == 1:
+        return "champion"
+    if rang <= 3:
+        return "podium"
+    if rang <= max(4, round(0.30 * n)):
+        return "europe"
+    if rang <= n / 2:
+        return "moitie"
+    if rang <= n - 3:
+        return "maintenu"
+    return "relegue"
+
+
 def recompense_championnat(rang: int, n: int) -> tuple[str, float, dict]:
     """What a final position pays.  The bands are the ones a league really
     has: the title, the podium, Europe, the top half, staying up, going
     down — scaled to the size of the field so an 18-club league and a
     20-club one read the same."""
-    if rang == 1:
-        cle = "champion"
-    elif rang <= 3:
-        cle = "podium"
-    elif rang <= max(4, round(0.30 * n)):
-        cle = "europe"
-    elif rang <= n / 2:
-        cle = "moitie"
-    elif rang <= n - 3:
-        cle = "maintenu"
-    else:
-        cle = "relegue"
-    libelle, credits, packs = RECOMPENSES_CHAMPIONNAT[cle]
+    libelle, credits, packs = RECOMPENSES_CHAMPIONNAT[cle_championnat(rang, n)]
     return libelle, credits, dict(packs)
 
 
@@ -1021,7 +1041,7 @@ def cloturer(jeu, saison: str, campagne_id: int) -> dict:
     """Close a finished campaign and pay it.  Closing twice pays once."""
     camp = jeu.execute("SELECT * FROM campagne WHERE campagne_id=?", (campagne_id,)).fetchone()
     if camp is None:
-        raise ErreurSolo("Campagne inconnue")
+        raise ErreurSolo("campagne_inconnue")
     if camp["statut"] == "fini":
         return json.loads(camp["recompenses"] or "{}")
     clubs = json.loads(camp["clubs"])
@@ -1035,13 +1055,13 @@ def cloturer(jeu, saison: str, campagne_id: int) -> dict:
         table = _table(camp, resultats, "championnat", len(clubs))
         rang = next(l["rang"] for l in table if l["place"] == moi)
         libelle, credits, packs = recompense_championnat(rang, len(clubs))
-        detail = {"rang": rang, "sur": len(clubs)}
+        detail = {"rang": rang, "sur": len(clubs), "code": cle_championnat(rang, len(clubs))}
     else:
         cle = _sortie_europe(camp, resultats, cal, moi)
         libelle, credits, packs = RECOMPENSES_EUROPE[cle]
         table = _table(camp, resultats, "ligue", len(clubs))
         rang = next((l["rang"] for l in table if l["place"] == moi), None)
-        detail = {"tour": libelle, "rang_ligue": rang, "sur": len(clubs)}
+        detail = {"tour": libelle, "rang_ligue": rang, "sur": len(clubs), "code": cle}
     from jeu import lobby as LB
     forces = [c.get("force", 60.0) for c in clubs if isinstance(c, dict)]
     champ = max(FORCE_CHAMP[1], min(FORCE_CHAMP[2], (sum(forces) / len(forces)) / FORCE_CHAMP[0])) if forces else 1.0
@@ -1069,7 +1089,7 @@ def cloturer(jeu, saison: str, campagne_id: int) -> dict:
     gains_obj = round(gains_obj, 1)
     titre = None
     if mesures and all(o["reussi"] for o in mesures):
-        titre = f"Objectifs remplis · {COMPETITIONS[camp['cle']]['nom']} {saison}"
+        titre = f"Objectifs remplis · {nom_competition(jeu, saison, camp['cle'])} {saison}"
         try:
             titres = json.loads(jeu.execute("SELECT COALESCE(titres,'[]') FROM equipe WHERE equipe_id=?", (camp["equipe_id"],)).fetchone()[0])
         except (TypeError, json.JSONDecodeError):
@@ -1117,7 +1137,7 @@ def etat(jeu, saison: str, equipe_id: int, depuis: float | None = None) -> dict:
     base = {"packs_offerts": offerts, "palmares": palmares(jeu, saison, equipe_id), "titres": titres(jeu, equipe_id)}
     if not camp:
         return base | {"campagne": None,
-                       "competitions": [{"cle": k, "nom": v["nom"], "format": v["format"]}
+                       "competitions": [{"cle": k, "nom": nom_competition(jeu, saison, k), "format": v["format"]}
                                         for k, v in COMPETITIONS.items()]}
     # A live match whose ninety minutes are up closes the round HERE, before
     # anything else is read: otherwise the screen shows last round's fixture
@@ -1150,7 +1170,7 @@ def etat(jeu, saison: str, equipe_id: int, depuis: float | None = None) -> dict:
                              "aller": (dict(zip(("moi", "lui"),
                                                 (cumul["buts"].get(camp["place"], 0), cumul["buts"].get(adv, 0))))
                                        if cumul and t["manche"] == 2 else None)}
-    c = {"campagne_id": camp["campagne_id"], "cle": camp["cle"], "nom": comp["nom"], "format": comp["format"],
+    c = {"campagne_id": camp["campagne_id"], "cle": camp["cle"], "nom": nom_competition(jeu, saison, camp["cle"]), "format": comp["format"],
          "match": live,
          "club_remplace": (jeu.execute("SELECT nom FROM club WHERE team_id=?",
                                        (camp["club_remplace"],)).fetchone() or [""])[0],
@@ -1210,6 +1230,6 @@ def palmares(jeu, saison: str, equipe_id: int) -> list[dict]:
         except (TypeError, json.JSONDecodeError):
             continue
         if isinstance(bilan, dict):
-            out.append({"competition": COMPETITIONS.get(r[0], {}).get("nom", r[0]),
+            out.append({"competition": nom_competition(jeu, saison, r[0]), "cle": r[0],
                         "fini_le": r[2]} | bilan)
     return out

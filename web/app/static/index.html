@@ -13,24 +13,26 @@
   <div class="barre">
     <div class="marque"><h1 class="anton">FOOTBALL<span>LIFE</span></h1><small id="marque-sous">saison</small></div>
     <nav id="nav" hidden>
-      <button data-ecran="packs">Packs</button>
-      <button data-ecran="encheres">Enchères</button>
-      <button data-ecran="marche">Cartes</button>
-      <button data-ecran="equipe">Équipe</button>
-      <button data-ecran="lobby">Lobby</button>
-      <button data-ecran="solo">Solo</button>
-      <button data-ecran="journee">Journée</button>
-      <button data-ecran="classement">Classement</button>
-      <button data-ecran="admin" id="nav-admin" hidden>Admin</button>
-      <button class="discret" id="btn-deconnexion" title="Se déconnecter">↩</button>
+      <button data-ecran="packs" data-t="nav.packs">Packs</button>
+      <button data-ecran="encheres" data-t="nav.encheres">Enchères</button>
+      <button data-ecran="marche" data-t="nav.marche">Cartes</button>
+      <button data-ecran="equipe" data-t="nav.equipe">Équipe</button>
+      <button data-ecran="lobby" data-t="nav.lobby">Lobby</button>
+      <button data-ecran="solo" data-t="nav.solo">Solo</button>
+      <button data-ecran="journee" data-t="nav.journee">Journée</button>
+      <button data-ecran="classement" data-t="nav.classement">Classement</button>
+      <button data-ecran="compte" data-t="nav.compte">Compte</button>
+      <button data-ecran="admin" id="nav-admin" hidden data-t="nav.admin">Admin</button>
+      <select id="langue" class="discret" aria-label="Langue"></select>
+      <button class="discret" id="btn-deconnexion" data-t-title="nav.deconnexion" title="Se déconnecter">↩</button>
     </nav>
     <div class="statut" id="statut" hidden>
-      <div><span>Journée</span><b id="st-j" class="num">—</b></div>
-      <div><span>Budget</span><b id="st-cash" class="num">—</b></div>
-      <div><span>Patrimoine</span><b id="st-val" class="num">—</b></div>
-      <div><span>Points</span><b id="st-pts" class="num">—</b></div>
-      <div><span>Rang</span><b id="st-rang" class="num">—</b></div>
-      <div><span>Elo classé</span><b id="st-elo" class="num">—</b></div>
+      <div><span data-t="statut.journee">Journée</span><b id="st-j" class="num">—</b></div>
+      <div><span data-t="statut.budget">Budget</span><b id="st-cash" class="num">—</b></div>
+      <div><span data-t="statut.patrimoine">Patrimoine</span><b id="st-val" class="num">—</b></div>
+      <div><span data-t="statut.points">Points</span><b id="st-pts" class="num">—</b></div>
+      <div><span data-t="statut.rang">Rang</span><b id="st-rang" class="num">—</b></div>
+      <div><span data-t="statut.elo">Elo classé</span><b id="st-elo" class="num">—</b></div>
     </div>
   </div>
 </header>
@@ -38,104 +40,107 @@
 <main>
   <section id="ecran-connexion" class="accueil">
     <div class="hero">
-      <h2 class="anton">Les points viennent des <em>vrais matchs</em>.</h2>
-      <p>Chaque carte est un joueur des cinq grands championnats. Sa note à chaque journée est calculée sur le match qu'il a réellement joué. Sa cote part de la valeur marchande réelle du joueur et suit ses performances ; son prix, c'est vous qui le faites, sur le marché.</p>
+      <h2 class="anton" data-t="accueil.titre">Les points viennent des vrais matchs.</h2>
+      <p data-t="accueil.texte">Chaque carte est un joueur des cinq grands championnats. Sa note à chaque journée est calculée sur le match qu'il a réellement joué. Sa cote part de la valeur marchande réelle du joueur et suit ses performances ; son prix, c'est vous qui le faites, sur le marché.</p>
       <ol>
-        <li><i>1</i><span><b>Ouvre des packs</b> avec tes 100 M€, aligne 15 cartes : 2 gardiens, 5 défenseurs, 5 milieux, 3 attaquants au plus. Chaque carte n'existe qu'en quelques exemplaires.</span></li>
-        <li><i>2</i><span><b>Négocie sur le marché</b> : vends aux enchères les cartes qui montent, achète celles que les autres sous-estiment.</span></li>
-        <li><i>3</i><span><b>Ton équipe joue</b> chaque journée contre un manager de ton niveau, sur les vraies actions de vos onze. Le barème note, l'Elo bouge.</span></li>
+        <li><i>1</i><span data-t="accueil.1">Ouvre des packs avec tes 30 M€ et ton effectif de départ. Chaque carte n'existe qu'en quelques exemplaires.</span></li>
+        <li><i>2</i><span data-t="accueil.2">Négocie sur le marché : vends aux enchères les cartes qui montent, achète celles que les autres sous-estiment.</span></li>
+        <li><i>3</i><span data-t="accueil.3">Ton équipe joue en direct contre un manager de ton niveau, ou une campagne dans une vraie compétition, avec les attributs de tes cartes.</span></li>
       </ol>
       <div class="vitrine" id="vitrine" aria-hidden="true"></div>
     </div>
     <div class="pan connexion-pan">
-      <h3 class="anton">Entre dans le vestiaire</h3>
-      <div class="onglets"><button data-mode="connexion" aria-current="page">Connexion</button><button data-mode="inscription">Créer un compte</button></div>
+      <h3 class="anton" data-t="accueil.vestiaire">Entre dans le vestiaire</h3>
+      <div class="onglets"><button data-mode="connexion" aria-current="page" data-t="auth.connexion">Connexion</button><button data-mode="inscription" data-t="auth.inscription">Créer un compte</button></div>
       <form id="form-auth">
-        <label>Pseudo<input name="pseudo" autocomplete="username" required minlength="2" maxlength="24"></label>
-        <label>Mot de passe<input name="mot_de_passe" type="password" autocomplete="current-password" required minlength="6"></label>
-        <label id="champ-equipe" hidden>Nom de l'équipe<input name="equipe" maxlength="40" placeholder="facultatif"></label>
+        <label><span data-t="auth.pseudo">Pseudo</span><input name="pseudo" autocomplete="username" required minlength="2" maxlength="24"></label>
+        <label><span data-t="auth.mdp">Mot de passe</span><input name="mot_de_passe" type="password" autocomplete="current-password" required minlength="6"></label>
+        <label id="champ-equipe" hidden><span data-t="auth.equipe">Nom de l'équipe</span><input name="equipe" maxlength="40" data-t-placeholder="auth.facultatif" placeholder="facultatif"></label>
+        <label id="champ-email" hidden><span data-t="auth.email">Courriel</span><input name="email" type="email" maxlength="120" autocomplete="email" data-t-placeholder="auth.email_aide" placeholder="facultatif, pour un mot de passe oublié"></label>
+        <label id="champ-naissance" hidden><span data-t="auth.naissance">Date de naissance</span><input name="naissance" type="date" autocomplete="bday" data-t-title="auth.naissance_aide" title="Un mineur joue, n'achète pas"></label>
         <div class="erreur" id="auth-erreur"></div>
-        <button class="primaire" type="submit" id="auth-bouton">Se connecter</button>
+        <button class="primaire" type="submit" id="auth-bouton" data-t="auth.se_connecter">Se connecter</button>
+        <button type="button" class="discret" id="btn-oublie" data-t="auth.oublie">Mot de passe oublié ?</button>
       </form>
     </div>
   </section>
 
   <section id="ecran-packs" hidden>
-    <div class="tete"><h2 class="anton">Packs</h2><span class="compteur" id="packs-info"></span></div>
+    <div class="tete"><h2 class="anton" data-t="packs.titre">Packs</h2><span class="compteur" id="packs-info"></span></div>
     <div class="packs-grille" id="packs-liste"></div>
   </section>
 
   <section id="ecran-encheres" hidden>
-    <div class="tete"><h2 class="anton">Hôtel des ventes</h2><span class="compteur" id="encheres-compteur"></span></div>
+    <div class="tete"><h2 class="anton" data-t="encheres.titre">Hôtel des ventes</h2><span class="compteur" id="encheres-compteur"></span></div>
     <div class="filtres">
-      <input type="search" id="e-nom" placeholder="Nom de joueur ou de club">
-      <select id="e-fam"><option value="">Tous les postes</option><option value="GK">Gardiens</option><option value="DEF">Défenseurs</option><option value="MID">Milieux</option><option value="FWD">Attaquants</option></select>
-      <select id="e-tri"><option value="fin">Tri : fin proche</option><option value="prix">Tri : prix</option><option value="ovr">Tri : OVR</option><option value="cote">Tri : cote</option></select>
-      <label class="case"><input type="checkbox" id="e-miennes"> mes ventes et mes offres</label>
+      <input type="search" id="e-nom" data-t-placeholder="filtre.nom" placeholder="Nom de joueur ou de club">
+      <select id="e-fam"><option value="" data-t="filtre.tous_postes">Tous les postes</option><option value="GK" data-t="filtre.gardiens">Gardiens</option><option value="DEF" data-t="filtre.defenseurs">Défenseurs</option><option value="MID" data-t="filtre.milieux">Milieux</option><option value="FWD" data-t="filtre.attaquants">Attaquants</option></select>
+      <select id="e-tri"><option value="fin" data-t="tri.fin">Tri : fin proche</option><option value="prix" data-t="tri.prix">Tri : prix</option><option value="ovr" data-t="tri.ovr">Tri : OVR</option><option value="cote" data-t="tri.cote">Tri : cote</option></select>
+      <label class="case"><input type="checkbox" id="e-miennes"> <span data-t="encheres.miennes">mes ventes et mes offres</span></label>
     </div>
     <div class="ventes" id="encheres-liste"></div>
   </section>
 
   <section id="ecran-marche" hidden>
-    <div class="tete"><h2 class="anton">Toutes les cartes</h2><span class="compteur" id="marche-compteur"></span>
+    <div class="tete"><h2 class="anton" data-t="marche.titre">Toutes les cartes</h2><span class="compteur" id="marche-compteur"></span>
       <div class="droite marche-effectif" id="marche-effectif"></div></div>
     <div id="marche-ferme" class="avert" hidden></div>
     <div class="filtres">
-      <input type="search" id="f-nom" placeholder="Nom de joueur ou de club">
+      <input type="search" id="f-nom" data-t-placeholder="filtre.nom" placeholder="Nom de joueur ou de club">
       <div class="pills" id="pills-fam" role="group" aria-label="Poste">
-        <button data-fam="" aria-current="page">Tous</button><button data-fam="GK">GB</button><button data-fam="DEF">DÉF</button><button data-fam="MID">MIL</button><button data-fam="FWD">ATT</button>
+        <button data-fam="" aria-current="page" data-t="marche.tous">Tous</button><button data-fam="GK">GB</button><button data-fam="DEF">DÉF</button><button data-fam="MID">MIL</button><button data-fam="FWD">ATT</button>
       </div>
-      <select id="f-fam" hidden><option value="">Tous les postes</option><option value="GK">Gardiens</option><option value="DEF">Défenseurs</option><option value="MID">Milieux</option><option value="FWD">Attaquants</option></select>
-      <select id="f-ligue"><option value="">Toutes les ligues</option><option>Premier League</option><option>LaLiga</option><option>Serie A</option><option>Bundesliga</option><option>Ligue 1</option></select>
-      <select id="f-tri"><option value="ovr">Tri : OVR</option><option value="prix">Tri : prix</option><option value="rapport">Tri : OVR par M€</option><option value="forme">Tri : forme récente</option><option value="age">Tri : âge</option><option value="part">Tri : popularité</option><option value="nom">Tri : nom</option></select>
-      <label class="case"><input type="checkbox" id="f-abord"> en vente</label>
-      <label class="case"><input type="checkbox" id="f-miens"> mon effectif</label>
-      <div class="vue" role="group" aria-label="Affichage"><button data-vue="cartes" aria-current="page" title="Cartes">▦ Cartes</button><button data-vue="liste" title="Liste">☰ Liste</button></div>
+      <select id="f-fam" hidden><option value="" data-t="filtre.tous_postes">Tous les postes</option><option value="GK" data-t="filtre.gardiens">Gardiens</option><option value="DEF" data-t="filtre.defenseurs">Défenseurs</option><option value="MID" data-t="filtre.milieux">Milieux</option><option value="FWD" data-t="filtre.attaquants">Attaquants</option></select>
+      <select id="f-ligue"><option value="" data-t="filtre.toutes_ligues">Toutes les ligues</option></select>
+      <select id="f-tri"><option value="ovr" data-t="tri.ovr">Tri : OVR</option><option value="prix" data-t="tri.prix">Tri : prix</option><option value="rapport" data-t="tri.rapport">Tri : OVR par M€</option><option value="forme" data-t="tri.forme">Tri : forme récente</option><option value="age" data-t="tri.age">Tri : âge</option><option value="part" data-t="tri.part">Tri : popularité</option><option value="nom" data-t="tri.nom">Tri : nom</option></select>
+      <label class="case"><input type="checkbox" id="f-abord"> <span data-t="marche.en_vente">en vente</span></label>
+      <label class="case"><input type="checkbox" id="f-miens"> <span data-t="marche.mon_effectif">mon effectif</span></label>
+      <div class="vue" role="group" aria-label="Affichage"><button data-vue="cartes" aria-current="page" data-t="marche.cartes">▦ Cartes</button><button data-vue="liste" data-t="marche.liste">☰ Liste</button></div>
     </div>
     <div class="cartes-grille" id="marche-liste"></div>
-    <button id="marche-plus">Afficher plus</button>
+    <button id="marche-plus" data-t="marche.plus">Afficher plus</button>
   </section>
 
   <section id="ecran-equipe" hidden>
     <div class="grille2">
       <div>
-        <div class="tete"><h2 class="anton">Composition</h2>
+        <div class="tete"><h2 class="anton" data-t="equipe.composition">Composition</h2>
           <div class="droite">
             <select id="formation"></select>
-            <button id="btn-auto">Meilleur onze</button>
-            <button class="primaire" id="btn-envoyer">Envoyer la composition</button>
+            <button id="btn-auto" data-t="equipe.meilleur_onze">Meilleur onze</button>
+            <button class="primaire" id="btn-envoyer" data-t="equipe.envoyer">Envoyer la composition</button>
           </div></div>
         <div id="avert-compo"></div>
         <div class="terrain" id="terrain"></div>
         <p class="info" id="compo-etat"></p>
         <div class="pan" style="margin-top:20px">
-          <div class="tete"><h2 class="anton">Mon club</h2><span class="compteur" id="club-compteur"></span>
+          <div class="tete"><h2 class="anton" data-t="equipe.mon_club">Mon club</h2><span class="compteur" id="club-compteur"></span>
             <div class="droite filtres-club">
-              <select id="club-poste"><option value="">Tous les postes</option></select>
-              <select id="club-tri"><option value="ovr">Tri : OVR</option><option value="tendance">Tri : évolution</option><option value="cote">Tri : cote</option><option value="achat">Tri : prix d'achat</option><option value="plus">Tri : plus-value</option><option value="nom">Tri : nom</option></select>
+              <select id="club-poste"><option value="" data-t="filtre.tous_postes">Tous les postes</option></select>
+              <select id="club-tri"><option value="ovr" data-t="tri.ovr">Tri : OVR</option><option value="tendance" data-t="tri.tendance">Tri : évolution</option><option value="cote" data-t="tri.cote">Tri : cote</option><option value="achat" data-t="tri.achat">Tri : prix d'achat</option><option value="plus" data-t="tri.plus">Tri : plus-value</option><option value="nom" data-t="tri.nom">Tri : nom</option></select>
             </div></div>
-          <p class="compteur">La recherche par nom, au-dessus du banc, filtre aussi cette liste.</p>
+          <p class="compteur" data-t="equipe.recherche_club">La recherche par nom, au-dessus du banc, filtre aussi cette liste.</p>
           <div class="club" id="club-liste"></div>
         </div>
       </div>
       <div>
         <div class="pan">
-          <div class="tete"><h2 class="anton">Banc</h2>
-            <input type="search" id="eq-nom" class="droite" placeholder="Chercher un joueur" autocomplete="off"></div>
-          <p class="compteur">Ordre d'entrée : le premier qui a joué remplace un titulaire absent.</p>
+          <div class="tete"><h2 class="anton" data-t="equipe.banc">Banc</h2>
+            <input type="search" id="eq-nom" class="droite" data-t-placeholder="equipe.chercher" placeholder="Chercher un joueur" autocomplete="off"></div>
+          <p class="compteur" data-t="equipe.ordre_banc">Ordre d'entrée : le premier qui a joué remplace un titulaire absent.</p>
           <div class="banc" id="banc"></div>
         </div>
         <div class="pan" style="margin-top:20px">
-          <div class="tete"><h2 class="anton">Tactique de départ</h2>
+          <div class="tete"><h2 class="anton" data-t="equipe.tactique">Tactique de départ</h2>
             <span class="compteur" id="tac-etat"></span></div>
-          <p class="compteur">Comme la composition : tu la règles une fois, et tous tes
+          <p class="compteur" data-t="equipe.tactique_texte">Comme la composition : tu la règles une fois, et tous tes
             matchs — classés, défis, campagnes — commencent comme ça. Tu peux toujours en
             changer en direct pendant un match.</p>
           <div id="tac-club"></div>
         </div>
         <div class="pan" style="margin-top:20px">
-          <div class="tete"><h2 class="anton">Maillot</h2><span class="compteur" id="maillot-etat"></span></div>
-          <p class="compteur">Les couleurs de ton club sur le terrain : une couleur, une seconde couleur, un motif.</p>
+          <div class="tete"><h2 class="anton" data-t="equipe.maillot">Maillot</h2><span class="compteur" id="maillot-etat"></span></div>
+          <p class="compteur" data-t="equipe.maillot_texte">Les couleurs de ton club sur le terrain : une couleur, une seconde couleur, un motif.</p>
           <div id="maillot-club" class="maillot-choix"></div>
         </div>
       </div>
@@ -143,12 +148,12 @@
   </section>
 
   <section id="ecran-lobby" hidden>
-    <div class="tete"><h2 class="anton">Lobby classé</h2><span class="compteur" id="lobby-info"></span></div>
+    <div class="tete"><h2 class="anton" data-t="lobby.titre">Lobby classé</h2><span class="compteur" id="lobby-info"></span></div>
     <div id="lobby-corps"></div>
   </section>
 
   <section id="ecran-solo" hidden>
-    <div class="tete"><h2 class="anton">Mode solo</h2><span class="compteur" id="solo-info"></span></div>
+    <div class="tete"><h2 class="anton" data-t="solo.titre">Mode solo</h2><span class="compteur" id="solo-info"></span></div>
     <div id="solo-corps"></div>
   </section>
 
@@ -156,8 +161,8 @@
     <div class="grille2">
       <div class="pan" id="journee-pan"></div>
       <div class="pan">
-        <h2 class="anton">Mes journées</h2>
-        <div class="tableau"><table id="histo"><thead><tr><th>J</th><th class="num">Score</th><th class="num">Gain</th><th class="num">Rang</th></tr></thead><tbody></tbody></table></div>
+        <h2 class="anton" data-t="journee.mes_journees">Mes journées</h2>
+        <div class="tableau"><table id="histo"><thead><tr><th data-t="journee.j">J</th><th class="num" data-t="journee.score">Score</th><th class="num" data-t="journee.gain">Gain</th><th class="num" data-t="journee.rang">Rang</th></tr></thead><tbody></tbody></table></div>
       </div>
     </div>
   </section>
@@ -165,22 +170,29 @@
   <section id="ecran-classement" hidden>
     <div class="grille2">
       <div class="pan">
-        <h2 class="anton">Classement mondial</h2>
-        <div class="tableau"><table id="classement"><thead><tr><th>#</th><th>Équipe</th><th>Manager</th><th class="num">Points</th><th class="num">Dernière J</th><th class="num">Patrimoine</th></tr></thead><tbody></tbody></table></div>
+        <h2 class="anton" data-t="classement.titre">Classement mondial</h2>
+        <div class="tableau"><table id="classement"><thead><tr><th>#</th><th data-t="classement.equipe">Équipe</th><th data-t="classement.manager">Manager</th><th class="num" data-t="classement.points">Points</th><th class="num" data-t="classement.derniere">Dernière J</th><th class="num" data-t="classement.patrimoine">Patrimoine</th></tr></thead><tbody></tbody></table></div>
       </div>
       <div class="pan">
-        <h2 class="anton">Ligues privées</h2>
-        <p class="compteur">Un classement entre amis, sur le même marché.</p>
-        <div class="rangee"><input id="ligue-nom" placeholder="Nom de la ligue" maxlength="40"><button id="btn-creer-ligue">Créer</button></div>
-        <div class="rangee"><input id="ligue-code" placeholder="Code d'invitation" maxlength="8"><button id="btn-rejoindre-ligue">Rejoindre</button></div>
+        <h2 class="anton" data-t="ligues.titre">Ligues privées</h2>
+        <p class="compteur" data-t="ligues.texte">Un classement entre amis, sur le même marché.</p>
+        <div class="rangee"><input id="ligue-nom" data-t-placeholder="ligues.nom" placeholder="Nom de la ligue" maxlength="40"><button id="btn-creer-ligue" data-t="ligues.creer">Créer</button></div>
+        <div class="rangee"><input id="ligue-code" data-t-placeholder="ligues.code" placeholder="Code d'invitation" maxlength="8"><button id="btn-rejoindre-ligue" data-t="ligues.rejoindre">Rejoindre</button></div>
         <div id="ligues"></div>
       </div>
     </div>
   </section>
 
+  <section id="ecran-compte" hidden>
+    <div class="grille2">
+      <div class="pan" id="compte-pan"></div>
+      <div class="pan" id="compte-boutique"></div>
+    </div>
+  </section>
+
   <section id="ecran-admin" hidden>
     <div class="pan">
-      <h2 class="anton">Administration de la saison</h2>
+      <h2 class="anton" data-t="admin.titre">Administration de la saison</h2>
       <div id="admin-etat"></div>
     </div>
   </section>
@@ -188,8 +200,8 @@
 
 <dialog id="fiche"></dialog>
 <div class="toast" id="toast"></div>
-<script src="/static/terrain_b.js?v=2"></script>
+<script src="/static/terrain_b.js?v=3"></script>
 <script src="/static/sim2d.js"></script>
-<script src="/static/app.js?v=8"></script>
+<script src="/static/app.js?v=11"></script>
 </body>
 </html>
