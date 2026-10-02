@@ -895,6 +895,15 @@ Banc général de 48 matchs : 3,44 buts, 25,2 tirs, 9,7 cadrés (avant 3,35,
 Les règles : `outils/renversements_ref.py`, `outils/renversements_moteur.py`,
 `outils/longues_ref.py`, `outils/longues_moteur.py`.
 
+**La géométrie du duel (TACTIQUE.md § 30, « les paires défensives
+serrées, reprises »).** Mesurée, pas changée : le presseur contient à
+`PRESSE_DISTANCE` du porteur (2,5 m ; réel 360 à l'instant de la passe :
+3,3 m, 3,4 au milieu, 2,2 près du but — à 3,5 m le banc de 48 matchs
+monte à 3,75 buts, la pression du moteur étant calibrée sur 2,5), et le
+marquage des options du porteur essayé et retiré. Les règles de mesure :
+`outils/duel_ref.py`, `outils/duel_moteur.py` (les options du porteur
+et leur couverture, les paires serrées avec leurs vitesses).
+
 **La forme et la cohésion du jeu (PLAN.md § 2.3).** Un onze du jeu
 arrive sur le terrain avec la forme de ses cartes (trois bons vrais
 matchs d'affilée : +2 sur chaque attribut, `simulation.FORME_POINTS` ;

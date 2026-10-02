@@ -313,8 +313,13 @@ Tu me fais confiance là-dessus ; voilà ma liste, par ordre :
    57 % de réussis (réel 87), le receveur de 3,7 à 5,9 m du premier
    défenseur (réel 10,7). La borne du côté opposé à 10 m ne change
    rien au receveur : elle reste à 14.
-3. **Les paires défensives serrées** : la géométrie du duel, avec les
-   vitesses.
+3. ~~Les paires défensives serrées~~ (TACTIQUE § 30, « reprises », fait) :
+   la géométrie du duel mesurée aux passes, réel contre moteur ; les
+   paires sont des croisements trois fois sur quatre. Deux leviers essayés
+   et retirés, le banc de 48 matchs tranchant : le presseur qui contient à
+   3,5 m comme en vrai (plus de buts : la pression du moteur est calibrée
+   sur 2,5), le marquage des options du porteur (plus de buts, pas plus de
+   couverture). La suite serait le marqueur qui arrive, pas la cible.
 4. ~~La boîte de dialogue~~ (chantier 2.5, fait) ; la suite, c'est une consigne
    joueur-vers-joueur dans le moteur (« cherche Dembélé dans l'axe »).
 5. Et tout ce que tu vois dans le bac : chaque remarque devient une

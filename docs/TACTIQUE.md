@@ -1535,6 +1535,46 @@ suivant, si on y revient : la géométrie du duel (le presseur à 1,8 m du
 porteur, le marqueur du receveur le plus proche à 1,5 m de son homme,
 et le receveur à trois mètres du porteur), à mesurer avec les vitesses.
 
+**Les paires défensives serrées, reprises** (PLAN § 6.3 ;
+`outils/duel_ref.py` sur 80 matchs 360, `outils/duel_moteur.py` sur 6
+matchs, aux passes du jeu courant). La géométrie du duel à l'instant de
+la passe, réel contre moteur : le presseur à 3,3 m du porteur contre 2,2
+(3,4 au milieu contre 2,2 ; 2,2 dans les trente derniers mètres du
+défenseur contre 2,0) ; le receveur le plus proche à 8,2 m du porteur
+contre 7,8 ; l'adversaire le plus proche de ce receveur à 4,4 m contre
+5,3. Et chaque option du porteur (un coéquipier à moins de 25 m), par
+rang de proximité : en vrai un adversaire à 4,4 / 4,8 / 5,1 / 5,1 m, dans
+le moteur 5,3 / 6,0 / 6,3 / 6,5 ; par rang de danger (la plus près du
+but) 3,3 / 4,1 / 4,9 contre 3,6 / 4,7 / 5,8. Le moteur tient l'homme
+dangereux comme le réel et laisse les autres options un mètre plus
+libres ; l'image 360 ne voyant que les joueurs filmés, le réel est
+encore un peu plus serré que ça. Les paires elles-mêmes, avec les
+vitesses : trois sur quatre sont des **croisements** (vitesse relative
+de plus de 3 m/s), le reste deux hommes qui vont dans le même sens ;
+presque jamais deux hommes sur la même cible (1 %) ni deux hommes
+immobiles (1 %). Ce ne sont pas des positions, ce sont des trajets, ce
+que les trois règles retirées plus haut disaient déjà.
+
+Deux leviers essayés, **tous deux retirés**. **Le presseur contient**
+(`PRESSE_DISTANCE`, 3,5 m loin de son but, 2,5 dans ses trente derniers
+mètres ; 2,5 partout avant) : c'est le réel en géométrie, mais le banc de
+48 matchs monte à 3,75 buts et 27,1 tirs (3,44 et 25,2 avant ; réel
+2,9–3,2 et 26) : le porteur moins pressé en fait trop, la pression du
+moteur (`_pression`, six mètres) est calibrée sur un presseur à deux
+mètres et demi, et changer les deux ensemble serait régler deux boutons
+sur un chiffre. Resté à 2,5, la constante garde la mesure. **Le marquage
+des options** (chaque
+option du porteur prise d'abord, un homme à plus de 35 m du ballon
+lâché, le marqueur à 3 m au lieu de 4) : l'option la plus proche restait
+sans marqueur deux fois sur trois (les milieux ont déjà un homme, souvent
+loin, gardé huit secondes) et son marqueur à 6 m (il n'arrive pas : la
+cible bouge, il change d'homme), pour un banc de 24 matchs à 3,83 buts et
+27 tirs contre 3,33 et 24 : retiré. La raison est la même que pour les
+paires : c'est une affaire de trajets, pas de cibles. Le chantier
+suivant, si on y revient, c'est le marqueur qui *arrive* : son homme
+anticipé, la cible lissée, un homme gardé jusqu'à ce qu'un autre soit
+vraiment libre.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

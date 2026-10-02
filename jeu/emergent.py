@@ -157,6 +157,12 @@ TIR_MINIMUM = 0.05                           # sous cet xG, une frappe est « po
 TIR_LOIN = 0.9                               # l'envie de frapper de loin quand le bloc est bas et l'axe s'ouvre (réel : un tir sur trois hors de la surface ; 0,3 n'en donnait qu'un sur huit)
 TIR_LOIN_PRESSION = 0.6                      # ... tant que le vis-à-vis est à plus de deux mètres et demi (réel : à 2,8 m du passeur dans le dernier tiers)
 TIR_LOIN_AXE = 0.3                           # ... et que l'axe s'entrouvre (le bonus grandit avec l'ouverture)
+PRESSE_DISTANCE = (2.5, 2.5, 30.0)           # le presseur contient à tant du porteur : loin de son but, dans ses trente derniers mètres.
+                                             # Réel 360, à l'instant de la passe : 3,3 m en médiane (3,4 au milieu, 2,2 dans les trente
+                                             # derniers mètres) ; le moteur, 2,2.  À 3,5 m loin du but, le banc de 48 matchs monte à
+                                             # 3,75 buts et 27,1 tirs (3,44 et 25,2 à 2,5 ; réel 2,9-3,2 et 26) : le porteur moins
+                                             # pressé en fait trop — la pression du moteur est calibrée sur un presseur à deux mètres
+                                             # et demi.  Gardé à 2,5 (TACTIQUE § 30, « les paires défensives serrées, reprises »).
 RECEPTION_AERIENNE = True                    # le receveur d'un ballon en l'air va à son point de chute (avant : là où il roulerait, comme au sol)
 BALLON_AERIEN = True                         # sur un ballon en l'air, le défenseur le plus proche du point de chute va l'attaquer (l'attaquant, lui, l'attend)
 CHASSE_AERIEN = (6.0, 0.5, 6.0)              # ... s'il peut y être avant le ballon (six mètres par seconde, après une demi-seconde de lecture),
@@ -2137,7 +2143,7 @@ class Match:
         elif phase == "bloc_bas":
             contient = 3.5 if bxd > 40 else 2.2
         else:
-            contient = 2.5
+            contient = PRESSE_DISTANCE[0] if bxd >= PRESSE_DISTANCE[2] else PRESSE_DISTANCE[1]
         contient *= 1.25 - 0.5 * p.pressing
         # un bloc bas ne sort pas chercher le ballon au-delà de sa moitié
         if not (phase == "bloc_bas" and bxd > 55.0 and porteur is not None):

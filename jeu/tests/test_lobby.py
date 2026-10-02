@@ -221,7 +221,7 @@ def test_a_bench_is_checked_against_the_squad():
 
 def test_a_challenge_gets_a_bench_too():
     jeu = base_avec_equipes(1)
-    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True, banc=BANC)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True, banc=BANC, graine=1)   # (a seed: an injury in the first five minutes puts a bench man on the pitch)
     r = LB.en_cours(jeu, "2025/26", 1)
     f = LB.feuille(jeu, "2025/26", r, 5)
     assert len(f["banc"]["b"]) >= 1 and not set(j["pid"] for j in f["banc"]["b"]) & set(f["sur_le_terrain"]["b"])
