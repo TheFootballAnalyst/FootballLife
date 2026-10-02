@@ -416,6 +416,14 @@ function formeBadge(c) {
     title: c.forme > 0 ? "En forme : trois bons matchs d'affilée en vrai. +1 d'OVR tant que ça dure." : "Méforme : trois mauvais matchs d'affilée en vrai. -1 d'OVR tant que ça dure."},
     c.forme > 0 ? "✦ en forme" : "▾ méforme");
 }
+// L'état d'une carte entre deux matchs : suspendue, blessée (en matchs), ou la fatigue reportée.
+function etatBadge(x) {
+  const e = x && x.etat; if (!e) return null;
+  if (e.suspension > 0) return el("span", {class: "etat suspendu", title: "Un rouge ou trois jaunes : il manque le match suivant."}, `suspendu · ${e.suspension} match${e.suspension > 1 ? "s" : ""}`);
+  if (e.blessure > 0) return el("span", {class: "etat blesse", title: "Sorti sur blessure : il manque un à trois matchs."}, `blessé · ${e.blessure} match${e.blessure > 1 ? "s" : ""}`);
+  if (e.fatigue > 0.04) return el("span", {class: "etat fatigue", title: "Il a joué le dernier match : il repart avec un peu moins de jus. Un match sans jouer, et il est frais."}, `${Math.round(100 - e.fatigue * 100)} % de jus`);
+  return null;
+}
 function tendance(c, compact = false) {
   if (c.ovr_base == null || c.ovr == null) return null;
   const d = c.ovr - c.ovr_base;
@@ -815,7 +823,7 @@ async function rendreClub() {
     const c = x.carte; const l = el("div", {class: "ligne club-ligne" + (x.enchere_id ? " en-vente" : "")}); l.style.setProperty("--clubc", c.couleur);
     const delta = (x.cote || 0) - x.prix_achat;
     l.append(carteDessinee(c, 120), el("div", {class: "qui", tabindex: "0", onclick: () => ouvrirFiche(c.id)}, el("div", {class: "nom"}, c.nom, el("span", {class: "compteur"}, ` n° ${x.numero}`)), el("div", {class: "sous"}, el("b", {}, codesDe(c)), ` · ${c.club} · acheté ${fM(x.prix_achat)} · cote ${fM(x.cote)} `, el("span", {class: "delta " + (delta >= 0 ? "plus" : "moins")}, fM(delta, true)))),
-      el("span", {class: "fam " + c.fam}, POSTE_ABBR[c.poste] || FAM_COURT[c.fam]), el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr), tendance(c), formeBadge(c)));
+      el("span", {class: "fam " + c.fam}, POSTE_ABBR[c.poste] || FAM_COURT[c.fam]), el("div", {class: "ovr num" + (c.ovr >= 80 ? " haut" : "")}, String(c.ovr), tendance(c), formeBadge(c), etatBadge(x)));
     const acts = el("div", {class: "club-actions"});
     if (x.enchere_id) acts.append(el("span", {class: "compteur"}, "en vente"), el("button", {onclick: () => montrer("encheres")}, "Voir"));
     else {
@@ -2875,6 +2883,9 @@ function construireAjuster(d, routeTac, routePause, rendre) {
   }
   AJU.causerie = el("div", {});
   p.append(AJU.causerie);
+  // La boîte de dialogue (PLAN § 2.5) : parler à son équipe en français, la
+  // phrase est traduite en un levier qu'on a déjà, et le coach confirme.
+  p.append(boiteDialogue(routeTac.replace("tactique", "dire"), tac, rendre));
   p.append(selecteurTactique(tac, envoyer));
   // La formation change EN COURS DE MATCH : les onze restent sur le
   // terrain, on les redistribue sur les postes de la nouvelle forme
@@ -2901,6 +2912,32 @@ function construireAjuster(d, routeTac, routePause, rendre) {
   AJU.corps = el("div", {});
   p.append(AJU.corps);
   return p;
+}
+
+// La boîte de dialogue : ce que tu dis, ce que le coach en fait.
+function boiteDialogue(route, tac, rendre) {
+  const fil = el("div", {class: "dialogue-fil"});
+  const champ = el("input", {type: "text", maxlength: "160",
+    placeholder: "« on presse haut », « Hakimi, reste derrière », « Kolo Muani remplace Dembélé »…"});
+  const dire = async () => {
+    const texte = champ.value.trim();
+    if (!texte) return;
+    champ.value = "";
+    fil.append(el("div", {class: "dit toi"}, texte));
+    try {
+      const rep = await api(route, {texte, tactique: {...tac}});
+      fil.append(el("div", {class: "dit coach" + (rep.compris ? "" : " non")}, rep.reponse));
+      if (rep.compris && rep.tactique) { Object.assign(tac, rep.tactique); AJU.attendu = {...tac}; }
+      if (rep.etat) await rendre(rep.etat);
+    } catch (e) { fil.append(el("div", {class: "dit coach non"}, e.message)); }
+    while (fil.childElementCount > 12) fil.removeChild(fil.firstChild);
+    fil.scrollTop = fil.scrollHeight;
+  };
+  champ.addEventListener("keydown", ev => { if (ev.key === "Enter") { ev.preventDefault(); dire(); } });
+  return el("div", {class: "dialogue"},
+    el("div", {class: "etiq"}, "🗣 Parle à ton équipe"),
+    fil,
+    el("div", {class: "dialogue-saisie"}, champ, el("button", {onclick: dire}, "Dire")));
 }
 
 // La causerie : seulement à la mi-temps, et seulement une fois.

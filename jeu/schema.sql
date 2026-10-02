@@ -251,6 +251,18 @@ CREATE TABLE IF NOT EXISTS campagne (
 );
 CREATE INDEX IF NOT EXISTS ix_campagne_equipe ON campagne(equipe_id, saison, statut);
 
+-- L'état d'une carte entre deux matchs du jeu (lobby.noter_etat_cartes, à chaque clôture) :
+-- les jaunes cumulés, les matchs de suspension et de blessure qui restent, la fatigue reportée.
+CREATE TABLE IF NOT EXISTS etat_carte (
+    equipe_id        INTEGER NOT NULL REFERENCES equipe(equipe_id),
+    player_id        INTEGER NOT NULL,
+    jaunes           INTEGER NOT NULL DEFAULT 0,
+    suspension       INTEGER NOT NULL DEFAULT 0,
+    blessure         INTEGER NOT NULL DEFAULT 0,
+    fatigue          REAL NOT NULL DEFAULT 0,       -- 0 frais, 1 vidé : ce qu'il reste au coup d'envoi suivant
+    PRIMARY KEY (equipe_id, player_id)
+);
+
 -- La cohésion gagnée dans le jeu : les minutes que deux cartes ont jouées ensemble
 -- sous tes couleurs (lobby.cloturer), comptées comme les vraies (emergent.cohesion).
 CREATE TABLE IF NOT EXISTS cohesion_jeu (

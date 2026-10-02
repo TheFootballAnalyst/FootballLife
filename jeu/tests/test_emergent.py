@@ -246,3 +246,21 @@ def test_a_full_back_keeps_his_own_side_whichever_camp_he_plays_in():
     assert all(len(v) > 50 for v in exts.values())
     assert all(m < EM.LATERAL_OPPOSE[0] + 3.0 for m in med.values()), med
     assert abs(med[0] - med[1]) < 2.5, med
+
+
+def test_an_injury_stops_play_sends_the_man_off_and_a_substitute_can_take_his_place(monkeypatch):
+    monkeypatch.setattr(EM, "BLESSURE_PAR_MATCH", 60.0)          # one every minute and a half: the test must see one
+    m = EM.Match(onze(0), onze(1), graine=3, minutes=90, trace=False)
+    m.jouer_jusqua(6)
+    ev = [e for e in m.evenements if e["k"] == "blessure"]
+    assert ev, "no injury in six minutes at that rate"
+    pid, camp = ev[0]["de"], ev[0]["camp"]
+    assert pid not in {j.pid for j in m.actifs(camp)} and (pid in m.blesses or any(c == camp and s == pid for c, s, _ in m.remplacements))
+    r = m.resume()
+    assert isinstance(r["blesses"], dict)
+    # the man can be replaced even though he is no longer on the pitch
+    if pid in m.blesses:
+        fiche = dict(onze(camp)[5], pid=900 + camp, nom="Entrant")
+        assert m.remplacer(camp, pid, fiche)
+        m.jouer_jusqua(m.t / 60.0 + 3.0)
+        assert pid not in m.blesses and 900 + camp in {j.pid for j in m.actifs(camp)}

@@ -103,8 +103,8 @@ deux : un onze qu'on garde se rode, et le collectif fait des buts —
 mesuré au § 22). Résultat : on a envie de garder ses joueurs, pas
 seulement d'en acheter de meilleurs.
 
-**2.4 Blessures, suspensions, fatigue d'un match à l'autre (3 j).** Le
-moteur B n'a pas de blessures (le moteur A les garde). Il faut : les
+**2.4 Blessures, suspensions, fatigue d'un match à l'autre (3 j). — Fait.**
+Le moteur B n'avait pas de blessures (le moteur A les garde). Il fallait : les
 blessures en match (une par match et demi en vrai, avec l'arrêt du jeu
 qu'on a déjà), les **suspensions** (deux jaunes, un rouge : le joueur
 manque le match suivant), et la **fatigue qui reste** : un joueur qui a
@@ -124,9 +124,14 @@ jaunes suspendent pour le match suivant, une blessure prive de un à
 trois matchs, et la fatigue de fin de match se reporte pour un tiers au
 coup d'envoi suivant (un joueur qui a tout joué repart à 85 %), remise à
 zéro par un match sans jouer. Le onze refuse un suspendu ou un blessé en
-le nommant ; le club les montre.
+le nommant ; le club les montre (badges « susp. », « blessé », « fatigué »).
+Constantes : `emergent.BLESSURE_PAR_MATCH` (0,3 par match : un peu
+moins que le réel, parce qu'un onze du jeu n'a que sept remplaçants),
+`lobby.JAUNES_SUSPENSION`, `lobby.BLESSURE_MATCHS`, `lobby.FATIGUE_REPORT`.
+Un blessé est repéré par (camp, carte) dans le moteur : deux clubs
+peuvent aligner la même carte l'un contre l'autre.
 
-**2.5 La boîte de dialogue (3 j).** Le point 2 du plan précédent : parler
+**2.5 La boîte de dialogue (3 j). — Fait.** Le point 2 du plan précédent : parler
 à ses joueurs pendant le match en français (« Hakimi, cherche Dembélé
 dans l'axe », « on presse haut », « Dembélé, décroche »), traduit en
 leviers du moteur avec une confirmation (« Hakimi cherchera Dembélé
@@ -134,6 +139,22 @@ dans l'axe »), sans intelligence artificielle en ligne (le jeu marche
 hors ligne). C'est l'identité d'entraîneur du jeu, et c'est ce qu'on
 montre en vidéo. (Et c'est le premier écran à penser multilingue, voir
 le chantier 3.)
+
+Le dessin retenu : `jeu/dialogue.py`, des règles et un vocabulaire par
+langue (`VOCABULAIRE["fr"]`, une autre langue est une autre table). Une
+phrase est traduite en un levier QUE LE MOTEUR A DÉJÀ — les trois axes
+(« on presse haut », « on joue direct », « on ferme »), les consignes
+par ligne (« les latéraux restent derrière »), un joueur nommé qui
+parle pour sa ligne (« Hakimi, reste derrière » → les latéraux, et la
+confirmation le dit), le marquage (« marquez Mbappé »), un changement
+(« Kolo Muani remplace Dembélé »), une permutation (« Hakimi et Mendes
+permutent »), la formation (« on passe en 4-4-2 »), la causerie à la
+pause (« réveillez-vous »). Ce que le moteur ne sait pas faire est dit
+(« cherche Dembélé dans l'axe » : pas de consigne joueur-vers-joueur),
+et une phrase incomprise reçoit quatre exemples pris dans la situation.
+`lobby.dire` applique le levier comme un clic (mêmes règles, mêmes
+refus en clair), routes `/api/lobby/dire` et `/api/solo/dire`, la boîte
+est en tête du panneau Ajuster du match.
 
 **2.6 Jouer avec les autres (en option, 2 j).** Les ligues privées
 existent déjà pour le fantasy ; les ouvrir au classé : une **coupe
@@ -244,8 +265,8 @@ société (la loi sur les packs en dépend).
 ## 6. Le terrain, en continu
 
 Tu me fais confiance là-dessus ; voilà ma liste, par ordre :
-1. **Les blessures et suspensions dans le moteur B** (chantier 2.4), puis
-   **le retrait du moteur A** : un seul moteur, un seul commentaire à
+1. ~~Les blessures et suspensions dans le moteur B~~ (chantier 2.4, fait),
+   puis **le retrait du moteur A** : un seul moteur, un seul commentaire à
    traduire.
 2. **Les renversements** (TACTIQUE § 30) : le moteur renverse deux fois
    moins que le réel mais convertit deux fois plus derrière ; c'est la
@@ -253,7 +274,8 @@ Tu me fais confiance là-dessus ; voilà ma liste, par ordre :
    opposé peut descendre à 10 m comme en vrai.
 3. **Les paires défensives serrées** : la géométrie du duel, avec les
    vitesses.
-4. **La boîte de dialogue** (chantier 2.5).
+4. ~~La boîte de dialogue~~ (chantier 2.5, fait) ; la suite, c'est une consigne
+   joueur-vers-joueur dans le moteur (« cherche Dembélé dans l'axe »).
 5. Et tout ce que tu vois dans le bac : chaque remarque devient une
    mesure avant d'être une règle, comme jusqu'ici.
 

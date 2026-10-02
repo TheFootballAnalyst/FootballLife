@@ -923,3 +923,20 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 .forme{display:inline-block;margin-left:6px;font-size:11px;padding:1px 6px;border-radius:999px;vertical-align:middle}
 .forme.bonne{color:#ffd166;background:rgba(255,209,102,.15)}
 .forme.mauvaise{color:#ff9c9c;background:rgba(220,80,80,.15)}
+
+.etat{display:inline-block;margin-left:6px;font-size:11px;padding:1px 6px;border-radius:999px;vertical-align:middle}
+.etat.suspendu{color:#ff9c9c;background:rgba(220,80,80,.18)}
+.etat.blesse{color:#ffb347;background:rgba(255,179,71,.15)}
+.etat.fatigue{color:#9ec5ff;background:rgba(120,170,255,.15)}
+
+/* La boîte de dialogue (PLAN § 2.5) */
+.dialogue{border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 10px;margin:6px 0 10px;background:rgba(255,255,255,.03)}
+.dialogue .etiq{font-size:13px;color:var(--or2);margin-bottom:4px}
+.dialogue-fil{max-height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
+.dialogue-fil:empty{display:none}
+.dialogue .dit{font-size:13px;padding:4px 8px;border-radius:10px;max-width:92%}
+.dialogue .dit.toi{align-self:flex-end;background:rgba(216,180,90,.18)}
+.dialogue .dit.coach{align-self:flex-start;background:rgba(255,255,255,.08)}
+.dialogue .dit.coach.non{color:#e9b5a0}
+.dialogue-saisie{display:flex;gap:6px}
+.dialogue-saisie input{flex:1;min-width:0;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:inherit;padding:6px 8px;font-size:13px}

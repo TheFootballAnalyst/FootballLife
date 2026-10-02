@@ -57,6 +57,7 @@ class Vivant:
         self.banc = ({j["pid"]: j for j in a.banc}, {j["pid"]: j for j in b.banc})
         self.entres: list[list[int]] = [[], []]
         self.vitesse = float(r["vitesse"]) if "vitesse" in r.keys() and r["vitesse"] else 2.0
+        self.blesses_vus: set[tuple[int, int]] = set()        # les blessures déjà traitées (la machine remplace, l'humain nomme)
         # la tactique dans le vocabulaire du jeu (simulation.Tactique), celle que l'écran
         # affiche et renvoie : le moteur B a la sienne (_tac_b), qui n'est pas la même
         self.tac_jeu: list[SM.Tactique] = [a.tactique.valide(), b.tactique.valide()]
@@ -69,9 +70,11 @@ class Vivant:
         tacs = (_tac_b(a.tactique), _tac_b(b.tactique))
         aff = (EM.affinite_de(jeu, [j["pid"] for j in a.joueurs], tacs[0]["tempo"]),
                EM.affinite_de(jeu, [j["pid"] for j in b.joueurs], tacs[1]["tempo"]))
+        # qui remplace un blessé : un humain nomme l'entrant, la machine prend sur son banc
+        bancs = tuple("humain" if eid else [dict(f) for f in e.banc] for e, eid in zip((a, b), eids))
         self.match = EM.Match(a.joueurs, b.joueurs, a.formation or "4-3-3", b.formation or "4-3-3",
                               graine=self.graine, minutes=90, noms=(a.nom, b.nom), trace=True,
-                              tactiques=tacs, collectif=coll, affinite=aff)
+                              tactiques=tacs, collectif=coll, affinite=aff, bancs=bancs)
 
     # -- la chronologie ------------------------------------------------------------------
     def appliquer(self, r, jusqua: int):
@@ -139,10 +142,25 @@ class Vivant:
         borne = min(float(minute), float(SM.MINUTES_MAX))
         self.appliquer(r, int(m.t // 60))                  # ce qui est dû à la minute où l'on est
         for mn in range(int(m.t // 60) + 1, int(borne) + 1):
-            if m.jouer_jusqua(mn):
+            fini = m.jouer_tant_que(lambda: m.t < mn * 60.0 and not (m.blesses - self.blesses_vus))
+            self._remplacer_blesses(r)
+            if m.t < mn * 60.0 and not fini:
+                fini = m.jouer_jusqua(mn)
+            if fini:
                 return True
             self.appliquer(r, mn)
-        return m.jouer_jusqua(borne)
+        fini = m.jouer_tant_que(lambda: m.t < borne * 60.0 and not (m.blesses - self.blesses_vus))
+        self._remplacer_blesses(r)
+        return m.jouer_jusqua(borne) if not fini else fini
+
+    def _remplacer_blesses(self, r):
+        """Le camp de la machine fait entrer un remplaçant pour chaque blessé, à son poste
+        (le premier du banc de la même famille, sinon le premier) ; un humain nomme le sien."""
+        m = self.match
+        self.blesses_vus |= set(m.blesses)
+        for camp, _sortant, entrant in m.remplacements:          # ce que le moteur a fait entrer pour la machine
+            if entrant not in self.entres[camp]:
+                self.entres[camp].append(entrant)
 
     def avancer_affiche(self, r, budget: float) -> bool:
         """Avance jusqu'à ce que le temps affiché couvre `budget` (les
@@ -154,7 +172,8 @@ class Vivant:
         self.appliquer(r, int(m.t // 60))
         while not m.fini and (m.affiche < cible or m.arret):
             prochain = (int(m.t // 60) + 1) * 60.0
-            m.jouer_tant_que(lambda: m.t < prochain and (m.affiche < cible or m.arret))
+            m.jouer_tant_que(lambda: m.t < prochain and (m.affiche < cible or m.arret) and not (m.blesses - self.blesses_vus))
+            self._remplacer_blesses(r)
             if m.t >= prochain - 1e-9:
                 self.appliquer(r, int(m.t // 60))
         return m.fini
@@ -248,7 +267,8 @@ def oublier(r):
 # -- la feuille ------------------------------------------------------------------------
 _TYPES = {"but": "but", "arret": "arret", "tir": "occasion", "corner": "corner", "faute": "faute", "horsjeu": "horsjeu",
           "remplacement": "changement", "permutation": "permutation", "tactique": "tactique", "additionnel": "additionnel",
-          "penalty": "penalty", "mi_temps": "mi_temps", "fin": "fin", "causerie": "causerie", "formation": "formation"}
+          "penalty": "penalty", "mi_temps": "mi_temps", "fin": "fin", "causerie": "causerie", "formation": "formation",
+          "blessure": "blessure"}
 
 
 def _texte(e: dict, noms: dict[int, str]) -> str:
@@ -284,6 +304,8 @@ def _texte(e: dict, noms: dict[int, str]) -> str:
         return f"Coup de sifflet final ({e['score'][0]}-{e['score'][1]})"
     if k == "causerie":
         return "Causerie"
+    if k == "blessure":
+        return f"{noms.get(e.get('de'), e.get('nom', '?'))} sort sur blessure"
     return k
 
 
@@ -378,7 +400,8 @@ def feuille(jeu, saison: str, r, minute: float | None = None, depuis: float | No
                     for c in (0, 1)},
         "entres": {"a": list(v.entres[0]), "b": list(v.entres[1])},
         "endurance": {"ab"[c]: {j.pid: round(100 * (1 - j.fatigue)) for j in m.actifs(c)} for c in (0, 1)},
-        "attente": {"a": [], "b": []},
+        # les blessés pas encore remplacés : un humain nomme l'entrant (lobby.changer), la machine l'a déjà fait
+        "attente": {"a": list(res["blesses"].get(0, [])), "b": list(res["blesses"].get(1, []))},
         "formation": {"a": m.formations[0], "b": m.formations[1]},
         "postes": {"ab"[c]: ({j["pid"]: {"slot": j.get("slot"), "hors_poste": bool(j.get("hors_poste")),
                                          "malus": int(j.get("malus", 0)), "aise": 1.0}

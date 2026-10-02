@@ -631,8 +631,7 @@ de ballon vivant, 27 tirs et 2,8 buts sur 36 matchs.
 
 **Le temps additionnel** (docs/TACTIQUE.md § 15). À la 45e et à la
 90e, l'arbitre affiche ce que les faits de la période valent (buts,
-cartons, penaltys ici ; remplacements et blessures aussi dans le moteur
-A), avec la règle mesurée sur 200 matchs réels (`simulation.additionnel`).
+cartons, penaltys, remplacements, blessures), avec la règle mesurée sur 200 matchs réels (`simulation.additionnel`).
 Le match dure 90 + n minutes, les événements portent `lib` (« 45+2 »,
 « 90+4 ») à côté de leur minute brute, et les délais de reprise sont à
 leur vraie valeur (`DELAIS`) : 94,5 minutes de match, 57,4 de ballon
@@ -839,9 +838,26 @@ joueurs viennent des compteurs du moteur B avec le barème du moteur A
 du bac (`web/app/static/terrain_b.js`, partagé avec le bac), à la
 vitesse de l'horloge, ton équipe attaquant toujours vers la droite ; le
 bandeau suit ce que le terrain montre. Ce que le moteur B n'a pas
-encore : les blessures (le moteur A les garde, `MOTEUR = "A"` y
-revient), et une formation changée en cours de match replace les
+encore : une formation changée en cours de match replace les
 joueurs sans les faire changer de poste réel.
+
+**Les blessures (plan, chantier 2.4).** Une blessure est un tirage par
+pas de temps (`BLESSURE_PAR_MATCH`, 0,3 par match ; réel 0,3 à 0,4) :
+un joueur de champ au hasard sort, le jeu s'arrête pour les soins
+(`DELAIS["blessure"]`, 75 s affichées comme un arrêt du bac), et le
+camp qui avait le ballon reprend par un coup franc. Le blessé est
+repéré par (camp, carte) — deux clubs du jeu peuvent aligner la même
+carte — et reste dans le onze mais pas sur le terrain, jusqu'au
+remplacement : le camp de la machine fait entrer le premier de son
+banc de la même famille (`Match(bancs=...)`, une liste de fiches), un
+camp sans banc (le bac, les bancs de mesure) fait entrer le double du
+blessé pour rester à onze contre onze, et le camp d'un humain joue à
+dix tant qu'il n'a pas nommé l'entrant (`"humain"` ; la feuille le
+montre dans `attente`, l'écran solo s'arrête comme avec le moteur A).
+Le temps additionnel compte les remplacements et les blessures de la
+période, comme le moteur A. Entre deux matchs, le lobby tient l'état
+des cartes (table `etat_carte` : jaunes cumulés, suspension, blessure,
+fatigue reportée) et le onze refuse un suspendu ou un blessé.
 
 **Les latéraux et les amas (TACTIQUE.md § 30).** Le côté d'un latéral
 se lit en absolu (sa place de repos est dans son repère, inversé pour le
@@ -976,8 +992,8 @@ Par ordre d'importance pour basculer un jour :
    score n'est pas mesuré), et l'avantage du terrain.
 2. **Les consignes** du manager (tempo, bloc, pressing, les cinq
    consignes par ligne) : la forme et les rôles les ignorent encore.
-3. **Les remplacements, les blessures, la causerie** : le match est joué
-   à onze fixes.
+3. **La causerie** : les remplacements et les blessures y sont, la
+   causerie de mi-temps du moteur A n'a pas d'équivalent.
 4. **Le pied** : une frappe ou un centre du mauvais pied devrait coûter
    en précision (la fiche EA donne la qualité du mauvais pied).
 5. **Le rendu** : le bac dessine des ronds sur un canvas ; brancher la

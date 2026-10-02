@@ -419,6 +419,7 @@ def test_a_live_campaign_match_never_touches_the_ranked_ladder():
     from jeu import lobby as LB
     jeu = base_solo()
     SO.demarrer(jeu, "2025/26", 1, "ligue1", 11, graine=33)
+    jeu.execute("DELETE FROM etat_carte")              # the same eleven again: no suspension carried here (tested in the lobby)
     SO.lancer_tour(jeu, "2025/26", 1, ONZE, None)
     _reculer(jeu, 40 * 60)
     SO.etat(jeu, "2025/26", 1)
@@ -439,10 +440,11 @@ def test_an_exempt_round_has_nothing_to_kick_off():
     if not exempts:
         pytest.skip("ce champ ne laisse personne au repos")
     for _ in range(exempts[0]):
+        jeu.execute("DELETE FROM etat_carte")          # the same eleven every round: no suspension carried here
         SO.lancer_tour(jeu, "2025/26", 1, ONZE, None)
-        from jeu import lobby as LB
         _reculer(jeu, 40 * 60)                       # un match complet à x2 dure une demi-heure réelle
         SO.etat(jeu, "2025/26", 1)
+    jeu.execute("DELETE FROM etat_carte")
     assert SO.lancer_tour(jeu, "2025/26", 1, ONZE, None) == 0
 
 
@@ -522,3 +524,19 @@ def test_a_campaign_poll_never_rebuilds_the_field(monkeypatch):
     e = SO.etat(jeu, "2025/26", 1)["campagne"]
     assert e["match"] and e["club_remplace"] == "Club 1"
     assert len(e["classement"]) == 6 and {c["nom"] for c in e["classement"]} >= {"Mon FC"}
+
+
+def test_a_man_suspended_in_the_live_match_does_not_stop_the_round_from_closing():
+    """The card state is written when the live match closes; the rest of the
+    round is then played with the eleven that just played, and must not be
+    refused because of it.  The NEXT line-up is."""
+    from jeu import lobby as LB
+    jeu = base_solo()
+    SO.demarrer(jeu, "2025/26", 1, "ligue1", 11, graine=33)
+    SO.lancer_tour(jeu, "2025/26", 1, ONZE, None)
+    jeu.execute("INSERT INTO etat_carte(equipe_id, player_id, jaunes, suspension, blessure, fatigue) VALUES (1, ?, 0, 2, 0, 0)", (ONZE[3],))
+    _reculer(jeu, 40 * 60)
+    e = SO.etat(jeu, "2025/26", 1)                                   # closes the round: no error
+    assert SO.en_cours(jeu, "2025/26", 1)["tour"] == 1
+    with pytest.raises(LB.ErreurLobby, match="suspendu"):
+        SO.lancer_tour(jeu, "2025/26", 1, ONZE, None)

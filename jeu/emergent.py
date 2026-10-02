@@ -186,7 +186,9 @@ MARQUAGE_SURFACE = True                      # dans les vingt-deux mètres, un d
 # dure 97 minutes et n'a le ballon vivant que 55 à 58 ; le moteur, à 9 s par touche et 14 par
 # sortie de but, jouait 70 minutes de ballon vivant en 90 — vingt pour cent de passes, de
 # possessions et de tirs en trop (docs/TACTIQUE.md § 14)
-DELAIS = {"touche": 24.0, "sortie_but": 36.0, "corner": 45.0, "coup_franc": 40.0, "relance": 12.0, "penalty": 40.0, "but": 60.0}
+DELAIS = {"touche": 24.0, "sortie_but": 36.0, "corner": 45.0, "coup_franc": 40.0, "relance": 12.0, "penalty": 40.0, "but": 60.0,
+          "blessure": 75.0}                  # les soins ; la reprise est un coup franc pour le camp qui avait le ballon
+BLESSURE_PAR_MATCH = 0.3                     # une blessure qui fait sortir, tous les trois matchs environ (réel : 0,3 à 0,4 par match)
 # (plus longs que les vrais arrêts un par un, parce que le moteur en a moins : 19 touches contre 32, 17 coups
 #  francs contre 22 — ce qui compte, c'est le ballon vivant : 55 à 58 minutes sur 97)
 # ... et le temps additionnel de chaque période, sur les faits (simulation.additionnel : la même règle que le
@@ -372,6 +374,10 @@ def joueur_de(j: dict, camp: int, i: int, place: tuple[float, float]) -> Joueur:
                     home=(px * LONG, py * LARG), vmax=vitesse_max(vit), amax=acceleration_max(acc),
                     endurance_ea=float(ph.get("end", ph.get("endurance", 70)) or 70))
         jo.travail_def, jo.travail_att = travail_de(j, "def"), travail_de(j, "att")
+        try:
+            jo.fatigue = max(0.0, min(0.6, float(j.get("fatigue_depart") or 0.0)))     # la fatigue reportée du match d'avant
+        except (TypeError, ValueError):
+            jo.fatigue = 0.0
         jo.pied = "gauche" if str(j.get("pied") or "").lower().startswith("g") else "droit"
         try:
             jo.pied_faible = max(1, min(5, int(j.get("pied_faible") or 3)))
@@ -615,8 +621,13 @@ class Match:
                  noms: tuple[str, str] = ("A", "B"), trace: bool = True,
                  tactiques: tuple[dict | None, dict | None] = (None, None),
                  collectif: tuple[float, float] = (0.6, 0.6),
-                 capitaines: tuple[int | None, int | None] = (None, None), affinite: tuple[float, float] = (0.0, 0.0)):
+                 capitaines: tuple[int | None, int | None] = (None, None), affinite: tuple[float, float] = (0.0, 0.0),
+                 bancs: tuple = (None, None)):
         self.rs = random.Random(graine)
+        # qui remplace un blessé : une liste de fiches (le banc : le premier de la même famille entre),
+        # None (le bac et les bancs de mesure : son double entre, le match reste à onze contre onze),
+        # ou "humain" (le manager nomme l'entrant lui-même : jeu/direct.py, il joue à dix en attendant)
+        self.bancs = [list(b) if isinstance(b, (list, tuple)) else b for b in bancs]
         self.tac = [dict(TACTIQUE_DEFAUT) | (tactiques[0] or {}), dict(TACTIQUE_DEFAUT) | (tactiques[1] or {})]
         self.collectif = list(collectif)
         self.affinite = list(affinite)                    # ce que le style d'origine des joueurs apporte au tempo choisi
@@ -653,6 +664,8 @@ class Match:
             j.bonus = {k: d for k in COLLECTIF_ATTRIBUTS}
         self.camp = [[j for j in self.joueurs if j.camp == 0], [j for j in self.joueurs if j.camp == 1]]
         self.exclus = set()
+        self.blesses: set[tuple[int, int]] = set()   # (camp, pid) sortis sur blessure, pas encore remplacés (dans le onze, pas sur le terrain)
+                                                     # — par camp : deux clubs du jeu peuvent aligner la même carte
         for j in self.joueurs:
             j.role_tac = self._role_tac(j)
         # le capitaine : celui de la compo, sinon le joueur de champ le mieux noté
@@ -699,7 +712,41 @@ class Match:
         return (LONG, LARG / 2) if camp == 0 else (0.0, LARG / 2)
 
     def actifs(self, camp: int) -> list[Joueur]:
-        return [j for j in self.camp[camp] if j.pid not in self.exclus]
+        return [j for j in self.camp[camp] if j.pid not in self.exclus and (camp, j.pid) not in self.blesses]
+
+    def _blesser(self):
+        """Une blessure : un joueur de champ au hasard sort, le jeu s'arrête (les soins),
+        et le camp qui avait le ballon reprend par un coup franc.  Le blessé reste à
+        remplacer : le camp de la machine le fait tout de suite (jeu/direct.py), un
+        humain quand il nomme l'entrant — en attendant, il joue à dix."""
+        b = self.ballon
+        camp = self.rs.randrange(2)
+        cands = [j for j in self.actifs(camp) if not j.gk]
+        if not cands:
+            return
+        j = self.rs.choice(cands)
+        self.blesses.add((camp, j.pid))
+        j.minutes_sorti = round(self.t / 60)
+        reprend = b.porteur.camp if b.porteur is not None else (b.dernier_camp if b.dernier_camp is not None else 1 - camp)
+        if b.porteur is j:
+            b.porteur = None
+        x, y = max(2.0, min(LONG - 2.0, b.x)), max(2.0, min(LARG - 2.0, b.y))
+        self.evt("blessure", de=j.pid, camp=camp, nom=j.nom)
+        self._arret("blessure", reprend, x, y, DELAIS["blessure"])
+        banc = self.bancs[camp] if camp < len(self.bancs) else None
+        if isinstance(banc, list) and not banc:
+            banc = None                            # un camp sans banc du tout (une base de test) : comme le bac
+        if isinstance(banc, list):
+            deja = {e for _, _, e in self.remplacements} | {f["pid"] for _, _, f in self.a_remplacer}
+            libres = [f for f in banc if f["pid"] not in deja]
+            fiche = next((f for f in libres if f.get("fam") == j.fam), libres[0] if libres else None)
+            if fiche is not None:
+                self.remplacer(camp, j.pid, fiche)
+        elif banc is None:
+            # pas de banc : son double entre (le bac, les bancs de mesure restent à onze contre onze)
+            double = {"pid": -j.pid, "nom": j.nom + " (r.)", "poste": j.poste, "fam": j.fam, "attributs": dict(j.attributs),
+                      "physique": dict(j.physique), "pied": j.pied, "pied_faible": j.pied_faible}
+            self.remplacer(camp, j.pid, double)
 
     def libelle(self) -> str:
         """La minute affichée : 45+2, 90+4 (l'index brut reste dans `minute`)."""
@@ -711,14 +758,16 @@ class Match:
 
     def _afficher_additionnel(self, periode: int):
         """L'arbitre lève le panneau : les faits de la période (buts, cartons,
-        penaltys) décident, avec la même règle que le moteur A."""
+        penaltys, remplacements, blessures) décident, avec la même règle que le moteur A."""
         from jeu import simulation as SM
         debut = 0.0 if periode == 1 else self.mi_temps
         ev = [e for e in self.evenements if e["t"] >= debut]
         buts = sum(1 for e in ev if e["k"] == "but")
         cartons = sum(1 for e in ev if e["k"] == "faute" and e.get("carton"))
-        n = SM.additionnel(periode, 0, buts, 0, cartons + sum(1 for e in ev if e["k"] == "penalty"),
-                           self.rs)
+        remplacements = sum(1 for e in ev if e["k"] == "remplacement")
+        blessures = sum(1 for e in ev if e["k"] == "blessure")
+        n = SM.additionnel(periode, remplacements, buts, blessures,
+                           cartons + sum(1 for e in ev if e["k"] == "penalty"), self.rs)
         self.additionnel[periode - 1] = n
         if periode == 1:
             self.mi_temps += n * 60.0
@@ -849,7 +898,7 @@ class Match:
             tireur = next((j for j in self.actifs(camp) if j.gk), None)
         elif k == "relance":
             tireur = next((j for j in self.actifs(camp) if j.gk), None)
-        elif k == "coup_franc":
+        elif k in ("coup_franc", "blessure"):
             mx, my = self.but_de(1 - camp)
             if abs(x - mx) < SURFACE_X + 4.0 and abs(y - my) < SURFACE_Y:
                 tireur = next((j for j in self.actifs(camp) if j.gk), None)   # dans sa surface : le gardien joue
@@ -870,7 +919,7 @@ class Match:
         franc proche : le mur (jusqu'à cinq dans l'axe, deux excentré),
         la ligne, les attaquants au bord de la surface.  Penalty : tout
         le monde hors de la surface, prêt à bondir."""
-        k, camp = a["k"], a["camp"]
+        k, camp = ("coup_franc" if a["k"] == "blessure" else a["k"]), a["camp"]
         if k not in ("corner", "coup_franc", "penalty"):
             return
         df = 1 - camp
@@ -957,7 +1006,7 @@ class Match:
         self.affiche += SAUT_ARRET           # l'écran montre les deux dernières secondes de l'arrêt
         camp = a["camp"]
         b = self.ballon
-        k = a["k"]
+        k = "coup_franc" if a["k"] == "blessure" else a["k"]
         if k == "engagement":
             j, _ = self.plus_proche(camp, b.x, b.y, gk=False)
             if j:
@@ -1054,7 +1103,7 @@ class Match:
         if sum(1 for c, _, _ in self.remplacements if c == camp) >= REMPLACEMENTS_MAX:
             return False
         if not any(j.pid == sortant and j.pid not in self.exclus for j in self.camp[camp]):
-            return False
+            return False                      # (un blessé est encore dans son camp, pas sur le terrain : il se remplace)
         if any(c == camp and s_ == sortant for c, s_, _ in self.a_remplacer):
             return False
         self.a_remplacer.append((camp, sortant, fiche))
@@ -1076,6 +1125,7 @@ class Match:
             self.joueurs[k] = neuf
             self.camp[camp] = [neuf if j is vieux else j for j in self.camp[camp]]
             self.sortis.append(vieux)
+            self.blesses.discard((camp, sortant))
             self.remplacements.append((camp, sortant, neuf.pid))
             if self.ballon.porteur is vieux:
                 self.ballon.porteur = neuf
@@ -1137,6 +1187,8 @@ class Match:
         self.t += DT
         if not self.arret:
             self.affiche += DT
+            if BLESSURE_PAR_MATCH and self.rs.random() < BLESSURE_PAR_MATCH * DT / (90.0 * 60.0):
+                self._blesser()
         # le temps additionnel, affiché à la 45e et à la 90e sur les faits de la période
         if self.plein and self.additionnel[0] is None and self.t >= MI_TEMPS:
             self._afficher_additionnel(1)
@@ -3024,8 +3076,8 @@ class Match:
     def _bouger_joueurs(self, decision: bool, gel: bool = False):
         b = self.ballon
         for j in self.joueurs:
-            if j.pid in self.exclus:
-                # un exclu sort du terrain au pas, par la touche la plus proche, et n'y revient pas
+            if j.pid in self.exclus or (j.camp, j.pid) in self.blesses:
+                # un exclu (ou un blessé) sort du terrain au pas, par la touche la plus proche, et n'y revient pas
                 if -2.2 < j.y < LARG + 2.2:
                     j.y += (-2.0 if j.y < LARG / 2 else 2.0) * DT
                 j.vx = j.vy = 0.0
@@ -3697,7 +3749,8 @@ class Match:
                             "vmax_ea": j.physique.get("vit"), "touches": j.touches, "passes": j.passes, "passes_ok": j.passes_ok,
                             "tirs": j.tirs, "cadres": j.tirs_cadres, "buts": j.buts, "tacles": j.tacles,
                             "interceptions": j.interceptions, "fautes": j.fautes, "arrets": j.arrets,
-                            "fatigue": round(j.fatigue, 2), "exclu": j.pid in self.exclus, "capitaine": j.capitaine,
+                            "fatigue": round(j.fatigue, 2), "exclu": j.pid in self.exclus, "blesse": (j.camp, j.pid) in self.blesses,
+                            "capitaine": j.capitaine,
                             "travail": [round(j.volume, 2), round(j.pressing, 2), round(j.recup, 2)]})
         for j in self.sortis:
             joueurs.append({"pid": j.pid, "nom": j.nom, "camp": j.camp, "poste": j.poste, "sorti": j.minutes_sorti,
@@ -3709,6 +3762,7 @@ class Match:
                             "travail": [round(j.volume, 2), round(j.pressing, 2), round(j.recup, 2)]})
         return {"score": list(self.score), "noms": list(self.noms), "minutes": round(self.duree / 60), "fini": self.fini,
                 "remplacements": [list(r) for r in self.remplacements],
+                "blesses": {c: [j.pid for j in self.camp[c] if (c, j.pid) in self.blesses] for c in (0, 1)},
                 "additionnel": list(self.additionnel),
                 "collectif": list(self.collectif), "affinite": list(self.affinite), "tactiques": [dict(t) for t in self.tac],
                 "possession": [round(self.possession[0] / tot, 3), round(self.possession[1] / tot, 3)],

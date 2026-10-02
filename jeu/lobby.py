@@ -42,6 +42,7 @@ from jeu import scoring as S
 from jeu import simulation as SM
 from jeu import direct as DIRECT
 from jeu import emergent as EM
+from jeu import dialogue as DI
 
 # Six real minutes for the ninety, not four.  Four left no room to make
 # a substitution: picking who comes off and who comes on took longer than
@@ -231,6 +232,70 @@ class ErreurLobby(Exception):
 # An eleven, checked and loaded
 # --------------------------------------------------------------------------
 
+# L'état d'une carte entre deux matchs (PLAN.md § 2.4) : un rouge ou trois jaunes suspendent
+# pour le match suivant, une blessure prive de un à trois matchs, et la fatigue de fin de
+# match se reporte pour un tiers au coup d'envoi suivant (un joueur qui a tout joué repart
+# à 85 %), remise à zéro par un match sans jouer.
+JAUNES_SUSPENSION = 3
+BLESSURE_MATCHS = (1, 3)
+FATIGUE_REPORT = 0.33
+
+
+def etat_cartes_equipe(jeu, equipe_id: int) -> dict[int, dict]:
+    return {r[0]: {"jaunes": r[1], "suspension": r[2], "blessure": r[3], "fatigue": r[4]}
+            for r in jeu.execute("SELECT player_id, jaunes, suspension, blessure, fatigue FROM etat_carte WHERE equipe_id=?", (equipe_id,))}
+
+
+def noter_etat_cartes(jeu, equipe_id: int, cote: str, f: dict, graine: int = 0) -> None:
+    """À la clôture d'un match de l'équipe : les suspensions et blessures en cours
+    comptent un match de moins, les cartons et les blessures du match s'ajoutent,
+    et la fatigue de ceux qui ont joué se reporte."""
+    jeu.execute("UPDATE etat_carte SET suspension = MAX(0, suspension - 1), blessure = MAX(0, blessure - 1) WHERE equipe_id=?",
+                (equipe_id,))
+    etat = etat_cartes_equipe(jeu, equipe_id)
+    def ligne(pid):
+        return etat.setdefault(pid, {"jaunes": 0, "suspension": 0, "blessure": 0, "fatigue": 0.0})
+    cote_ev = cote.upper()
+    for e in f.get("evenements", []):
+        if e.get("cote") != cote_ev or not e.get("pid"):
+            continue
+        if e.get("type") == "jaune":
+            d = ligne(e["pid"])
+            d["jaunes"] += 1
+            if d["jaunes"] >= JAUNES_SUSPENSION:
+                d["jaunes"], d["suspension"] = 0, max(d["suspension"], 1)
+        elif e.get("type") == "rouge":
+            d = ligne(e["pid"])
+            d["jaunes"], d["suspension"] = 0, max(d["suspension"], 1)
+        elif e.get("type") == "blessure":
+            d = ligne(e["pid"])
+            d["blessure"] = max(d["blessure"], BLESSURE_MATCHS[0] + (int(graine) + int(e["pid"])) % (BLESSURE_MATCHS[1] - BLESSURE_MATCHS[0] + 1))
+    joue = {int(pid): float(end) for pid, end in (f.get("endurance", {}).get(cote) or {}).items()}
+    for pid, d in etat.items():
+        d["fatigue"] = round((1.0 - joue[pid] / 100.0) * FATIGUE_REPORT, 3) if pid in joue else 0.0
+    for pid, end in joue.items():
+        ligne(pid)["fatigue"] = round((1.0 - end / 100.0) * FATIGUE_REPORT, 3)
+    for pid, d in etat.items():
+        jeu.execute("""INSERT INTO etat_carte(equipe_id, player_id, jaunes, suspension, blessure, fatigue) VALUES (?,?,?,?,?,?)
+                       ON CONFLICT(equipe_id, player_id) DO UPDATE SET jaunes=excluded.jaunes, suspension=excluded.suspension,
+                       blessure=excluded.blessure, fatigue=excluded.fatigue""",
+                    (equipe_id, pid, d["jaunes"], d["suspension"], d["blessure"], d["fatigue"]))
+
+
+def _indisponible(jeu, equipe_id: int, pids: list[int]) -> str | None:
+    """Le premier joueur suspendu ou blessé parmi `pids`, dit en clair ; None sinon."""
+    etat = etat_cartes_equipe(jeu, equipe_id)
+    for pid in pids:
+        d = etat.get(pid)
+        if not d or (d["suspension"] <= 0 and d["blessure"] <= 0):
+            continue
+        nom = (jeu.execute("SELECT nom FROM joueur WHERE player_id=?", (pid,)).fetchone() or ["?"])[0]
+        if d["suspension"] > 0:
+            return f"{nom} est suspendu (encore {d['suspension']} match{'s' if d['suspension'] > 1 else ''})"
+        return f"{nom} est blessé (encore {d['blessure']} match{'s' if d['blessure'] > 1 else ''})"
+    return None
+
+
 def verifier_onze(jeu, saison: str, equipe_id: int, onze: list[int], formation: str = "4-3-3") -> list[int]:
     """The eleven a manager sends: eleven distinct cards of his squad.
     Anyone may play anywhere — the slot's distance from what he really
@@ -247,6 +312,9 @@ def verifier_onze(jeu, saison: str, equipe_id: int, onze: list[int], formation: 
     for pid in onze:
         if not jeu.execute("SELECT 1 FROM joueur WHERE player_id=?", (pid,)).fetchone():
             raise ErreurLobby("Joueur inconnu")
+    indispo = _indisponible(jeu, equipe_id, onze)
+    if indispo:
+        raise ErreurLobby(indispo)
     return list(onze)
 
 
@@ -272,6 +340,9 @@ def verifier_banc(jeu, saison: str, equipe_id: int, onze: list[int], banc: list[
         raise ErreurLobby("Un remplaçant est en double, ou déjà titulaire")
     if len(banc) > S.TAILLE_BANC:
         raise ErreurLobby(f"{S.TAILLE_BANC} remplaçants au plus")
+    indispo = _indisponible(jeu, equipe_id, banc)
+    if indispo:
+        raise ErreurLobby(indispo)
     effectif = {r[0] for r in jeu.execute(
         "SELECT player_id FROM exemplaire WHERE equipe_id=? AND saison=? AND detruit=0 AND dans_effectif=1",
         (equipe_id, saison))}
@@ -281,11 +352,15 @@ def verifier_banc(jeu, saison: str, equipe_id: int, onze: list[int], banc: list[
 
 
 def equipe_simulation(jeu, saison: str, onze: list[int], nom: str, tactique: dict | None,
-                      banc: list[int] | None = None, formation: str = "4-3-3") -> SM.Equipe:
+                      banc: list[int] | None = None, formation: str = "4-3-3", equipe_id: int | None = None) -> SM.Equipe:
     e = SM.onze_depuis_cartes(jeu, saison, onze, nom, S.postes_formation(formation))
     e.tactique = SM.Tactique(**(tactique or {})).valide()
     e.banc = SM.onze_depuis_cartes(jeu, saison, banc or [], nom).joueurs
     e.formation = formation
+    if equipe_id:                                   # la fatigue reportée du match d'avant (etat_carte)
+        etat = etat_cartes_equipe(jeu, equipe_id)
+        for j in e.joueurs + e.banc:
+            j["fatigue_depart"] = etat.get(j["pid"], {}).get("fatigue", 0.0)
     return e
 
 
@@ -462,10 +537,10 @@ def _cotes(jeu, saison: str, r) -> tuple[SM.Equipe, SM.Equipe]:
         except (TypeError, KeyError, json.JSONDecodeError):
             return []
     a = equipe_simulation(jeu, saison, json.loads(r["onze_a"]), noms["a"], json.loads(r["tactique_a"]),
-                          banc_de("a"), formation_de(r, "a"))
+                          banc_de("a"), formation_de(r, "a"), equipe_id=r["equipe_a"])
     b = equipe_simulation(jeu, saison, json.loads(r["onze_b"] or "[]"), noms["b"],
                           json.loads(r["tactique_b"]) if r["tactique_b"] else None, banc_de("b"),
-                          formation_de(r, "b"))
+                          formation_de(r, "b"), equipe_id=_champ(r, "equipe_b"))
     return a, b
 
 
@@ -605,6 +680,51 @@ def changer(jeu, saison: str, equipe_id: int, sortant: int, entrant: int, r=None
     return int(cle)
 
 
+def dire(jeu, saison: str, equipe_id: int, texte: str, tactique: dict | None, r=None, langue: str = "fr") -> dict:
+    """Parler à son équipe pendant le match (jeu/dialogue.py, PLAN.md § 2.5) :
+    la phrase est traduite en un levier qu'on a déjà — la tactique, une consigne
+    de ligne, le marquage, un changement, une permutation, la causerie — et
+    appliquée comme si on avait cliqué.  `tactique` est la tactique telle que
+    l'écran la tient (celle que les boutons envoient).  Rend {"compris", "reponse",
+    "action", "minute"} ; une phrase comprise mais refusée par les règles du match
+    (plus de changements, pas la mi-temps...) rend la raison en clair."""
+    r = r if r is not None else en_cours(jeu, saison, equipe_id)
+    if not r or not r["debut"]:
+        raise ErreurLobby("Aucun match en cours")
+    m = minute_de(r, jeu=jeu, saison=saison)
+    f = feuille(jeu, saison, r, m)
+    cote = "a" if r["equipe_a"] == equipe_id else "b"
+    adv = "b" if cote == "a" else "a"
+    def fiches(liste, dessus):
+        return [{"pid": j["pid"], "nom": j["nom"], "poste": j.get("poste"), "fam": j.get("fam")} for j in liste if (j["pid"] in dessus) == True]
+    sur = set(f["sur_le_terrain"][cote]) | set(f["attente"][cote])
+    entres = set(f["entres"][cote]) | {e for paire in _remplacements(r).values() for _s, e in paire[0 if cote == "a" else 1]}
+    tous = f["onze"][cote] + f["banc"][cote]
+    terrain = fiches(tous, sur)
+    banc = [j for j in fiches(f["banc"][cote], {j["pid"] for j in f["banc"][cote]}) if j["pid"] not in sur and j["pid"] not in entres]
+    adversaires = fiches(f["onze"][adv] + f["banc"][adv], set(f["sur_le_terrain"][adv]))
+    mt = f.get("mi_temps") or MI_TEMPS
+    mi_temps = mt <= m < mt + SM.DUREE_CAUSERIE and not _champ(r, f"causerie_{cote}")
+    tac = vars(SM.Tactique(**(tactique or {})).valide()) if tactique is not None else dict(f.get("tactique", {}).get(cote) or {})
+    ctx = {"terrain": terrain, "banc": banc, "adversaires": adversaires, "tactique": tac,
+           "formations": list(S.FORMATIONS), "mi_temps": mi_temps}
+    c = DI.comprendre(texte, ctx, langue)
+    out = {"compris": c["action"] is not None, "reponse": c["confirmation"], "action": c["action"], "minute": None}
+    try:
+        if c["action"] == "tactique":
+            out["minute"] = ajuster(jeu, saison, equipe_id, c["tactique"], r)
+            out["tactique"] = c["tactique"]
+        elif c["action"] == "changement":
+            out["minute"] = changer(jeu, saison, equipe_id, c["sortant"], c["entrant"], r)
+        elif c["action"] == "permutation":
+            out["minute"] = permuter(jeu, saison, equipe_id, c["un"], c["deux"], r)
+        elif c["action"] == "causerie":
+            causer(jeu, saison, equipe_id, c["causerie"], r)
+    except ErreurLobby as err:
+        out.update(compris=False, reponse=str(err), action=None)
+    return out
+
+
 def permuter(jeu, saison: str, equipe_id: int, un: int, deux: int, r=None) -> int:
     """Record a position swap between two men on the pitch, at the
     clock's minute: the full-back goes into midfield and the midfielder
@@ -661,6 +781,10 @@ def cloturer(jeu, saison: str, r) -> dict | None:
         ea, eb = ELO.elo_maj(ra, rb, f["resultat"], K_CLASSE)
         jeu.execute("UPDATE equipe SET elo_classe=?, classees=classees+1 WHERE equipe_id=?", (ea, r["equipe_a"]))
         jeu.execute("UPDATE equipe SET elo_classe=?, classees=classees+1 WHERE equipe_id=?", (eb, r["equipe_b"]))
+    # l'état des cartes : suspensions, blessures, fatigue reportée (noter_etat_cartes)
+    for eid, cote in ((r["equipe_a"], "a"), (_champ(r, "equipe_b"), "b")):
+        if eid:
+            noter_etat_cartes(jeu, eid, cote, f, int(r["graine"] or 0))
     # la cohésion gagnée dans le jeu : le onze aligné a joué le match ensemble (emergent.cohesion_jeu)
     for eid, onze in ((r["equipe_a"], r["onze_a"]), (_champ(r, "equipe_b"), _champ(r, "onze_b"))):
         if eid and onze:

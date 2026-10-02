@@ -628,7 +628,8 @@ def ouvrir_pack(pk: Pack, u=Depends(exiger), jeu=Depends(bd)):
 def mon_club(u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     MA.resoudre_encheres(jeu)
-    return {"cartes": [exemplaire_json(jeu, x) for x in MA.club(jeu, SAISON, e["equipe_id"])],
+    etat = LB.etat_cartes_equipe(jeu, e["equipe_id"])
+    return {"cartes": [exemplaire_json(jeu, x) | {"etat": etat.get(x["player_id"])} for x in MA.club(jeu, SAISON, e["equipe_id"])],
             "effectif_max": TAILLE_EFFECTIF, "reserve_max": MA.RESERVE_MAX, "quotas": QUOTA}
 
 
@@ -988,6 +989,22 @@ def lobby_causerie(c: Causerie, u=Depends(exiger), jeu=Depends(bd)):
     return LB.etat(jeu, SAISON, e["equipe_id"])
 
 
+class Parole(BaseModel):
+    texte: str
+    tactique: dict | None = None
+
+
+@app.post("/api/lobby/dire")
+def lobby_dire(p: Parole, u=Depends(exiger), jeu=Depends(bd)):
+    """La boîte de dialogue : une phrase à son équipe, traduite en levier (jeu/dialogue.py)."""
+    e = equipe_de(jeu, u)
+    try:
+        rep = LB.dire(jeu, SAISON, e["equipe_id"], p.texte, p.tactique)
+    except LB.ErreurLobby as err:
+        raise HTTPException(409, str(err))
+    return rep | {"etat": LB.etat(jeu, SAISON, e["equipe_id"])}
+
+
 @app.post("/api/lobby/quitter")
 def lobby_quitter(u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
@@ -1112,6 +1129,16 @@ def solo_permutation(c: Permutation, u=Depends(exiger), jeu=Depends(bd)):
     except LB.ErreurLobby as err:
         raise HTTPException(409, str(err))
     return {"minute": minute} | SO.etat(jeu, SAISON, e["equipe_id"])
+
+
+@app.post("/api/solo/dire")
+def solo_dire(p: Parole, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    try:
+        rep = LB.dire(jeu, SAISON, e["equipe_id"], p.texte, p.tactique, _match_solo(jeu, e["equipe_id"]))
+    except LB.ErreurLobby as err:
+        raise HTTPException(409, str(err))
+    return rep | {"etat": SO.etat(jeu, SAISON, e["equipe_id"])}
 
 
 @app.post("/api/solo/abandonner")

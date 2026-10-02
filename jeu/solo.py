@@ -803,18 +803,25 @@ def lancer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dic
 
 
 def jouer_tour(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict | None,
-               formation: str = "4-3-3", banc: list[int] | None = None) -> dict:
+               formation: str = "4-3-3", banc: list[int] | None = None, verifier: bool = True) -> dict:
     """Play your next match, and with it the rest of the round.
 
     Your opponents' matches are played too: a table nobody else fills is
     not a table.  Everything of the round is written at once, so a refresh
-    never gives a second draw of the same fixtures."""
+    never gives a second draw of the same fixtures.
+
+    `verifier=False` when the eleven has ALREADY played (cloturer_tour): a
+    man suspended or hurt in that very match must not stop the round from
+    closing — he is refused for the next one, not for this one."""
     from jeu import lobby as LB
     camp = en_cours(jeu, saison, equipe_id)
     if not camp:
         raise ErreurSolo("Aucune campagne en cours")
-    onze = LB.verifier_onze(jeu, saison, equipe_id, onze, formation)
-    banc = LB.verifier_banc(jeu, saison, equipe_id, onze, banc)
+    if verifier:
+        onze = LB.verifier_onze(jeu, saison, equipe_id, onze, formation)
+        banc = LB.verifier_banc(jeu, saison, equipe_id, onze, banc)
+    else:
+        onze, banc = list(onze), list(banc or [])
     cal = json.loads(camp["calendrier"])
     tour = camp["tour"]
     if tour >= len(cal):
@@ -913,7 +920,7 @@ def cloturer_tour(jeu, saison: str, equipe_id: int) -> dict | None:
         return None
     LB.cloturer(jeu, saison, r)
     onze, banc, tac = json.loads(r["onze_a"]), json.loads(r["banc_a"] or "[]"), json.loads(r["tactique_a"])
-    return jouer_tour(jeu, saison, equipe_id, onze, tac, banc=banc)
+    return jouer_tour(jeu, saison, equipe_id, onze, tac, banc=banc, verifier=False)
 
 
 def _encore_en_lice(camp, resultats: list[dict], cal: list[dict], moi: int, tour: int) -> bool:

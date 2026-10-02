@@ -229,6 +229,20 @@ le dernier tiers est parfois une faute **dans la surface** : il en tombe
 À mon premier chiffre il en tombait 0,56 et le score montait de 1,29 à
 1,50 but par camp — c'est pour ça qu'on mesure.
 
+**Parle à ton équipe.** En tête du panneau Ajuster, une boîte où tu
+écris ce que tu dirais du bord du terrain : « on presse haut », « les
+latéraux restent derrière », « Hakimi, reste derrière », « marquez
+Mbappé », « Kolo Muani remplace Dembélé », « Hakimi et Mendes
+permutent », « on passe en 4-4-2 », et à la pause « réveillez-vous ».
+Le coach répond ce qu'il en fait (« Achraf Hakimi et sa ligne : les
+latéraux restent derrière. ») et le levier s'applique comme un clic,
+avec les mêmes règles et les mêmes refus en clair. Une consigne à un
+joueur vaut pour sa ligne, et la réponse le dit ; ce que le moteur ne
+sait pas faire est dit aussi, et une phrase incomprise reçoit quatre
+exemples pris dans la situation. Des règles et un vocabulaire
+(`jeu/dialogue.py`), pas d'intelligence artificielle en ligne : le jeu
+marche hors ligne, et une autre langue est une autre table.
+
 **La causerie de mi-temps.** Tu leur parles une fois, et ce que tu dis
 ne vaut pas la même chose selon le score : secouer une équipe menée
 n'est pas secouer une équipe qui mène. L'effet dure vingt minutes.

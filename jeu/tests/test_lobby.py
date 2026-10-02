@@ -623,7 +623,86 @@ def test_cohesion_is_earned_in_the_game_by_playing_together():
         r = LB.en_cours(jeu, "2025/26", 1)
         r = _reculer(jeu, r, 40 * 60)                                   # the whole match has been shown
         assert LB.cloturer(jeu, "2025/26", r) is not None
+        jeu.execute("DELETE FROM etat_carte")                           # the same eleven again: no suspension carried here
     n = jeu.execute("SELECT COUNT(*), MIN(minutes), MAX(minutes) FROM cohesion_jeu WHERE equipe_id=1").fetchone()
     assert n[0] == 55 and n[1] == n[2] and n[1] >= 3 * 90                 # every pair of the eleven, three matches
     assert EM.cohesion_jeu(jeu, 1, ONZE) == 1.0                           # the same eleven every match: fully run in
     assert 0.0 < EM.cohesion_jeu(jeu, 1, ONZE[:6] + BANC[:5]) < 1.0       # half the men never played together here
+
+
+def test_the_b_engine_handles_an_injury_the_human_names_the_substitute_the_machine_replaces_at_once(monkeypatch):
+    from jeu import direct as DIRECT
+    from jeu import emergent as EM
+    monkeypatch.setattr(EM, "BLESSURE_PAR_MATCH", 80.0)
+    jeu = base_avec_equipes(1)
+    # a fixed seed: the generated eleven shares pids with ours in this small base, which
+    # is exactly the case two clubs owning the same card would make in the real game
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True, banc=BANC, graine=2)
+    r = LB.en_cours(jeu, "2025/26", 1)
+    f = LB.feuille(jeu, "2025/26", r, 8, trace=False)
+    blesses = [e for e in f["evenements"] if e["type"] == "blessure"]
+    assert blesses, "no injury in eight minutes at that rate"
+    # the machine's injured men are replaced at once: nothing waits on side B, a change is counted
+    assert f["attente"]["b"] == []
+    if any(e["cote"] == "B" for e in blesses):
+        assert f["changements"][1] >= 1
+    # the human's injured man waits for a name, and the solo referee stops the match
+    if f["attente"]["a"]:
+        pid = f["attente"]["a"][0]
+        assert pid not in f["sur_le_terrain"]["a"]
+        r = _reculer(jeu, r, LB.reel_pour(jeu, "2025/26", r, 9))
+        f2 = LB.arbitrer(jeu, r, LB.feuille(jeu, "2025/26", r))
+        assert f2["pause"] is True and f2["motif_pause"] == "blessure"
+        r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+        LB.changer(jeu, "2025/26", 1, pid, BANC[0], r)
+        r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
+        assert not LB.en_pause(r)
+        f3 = LB.feuille(jeu, "2025/26", r, 20, trace=False)
+        assert BANC[0] in f3["sur_le_terrain"]["a"] and pid not in f3["attente"]["a"]
+
+
+def test_cards_carry_suspensions_injuries_and_fatigue_between_matches():
+    jeu = base_avec_equipes(1)
+    f = {"evenements": [{"type": "jaune", "cote": "A", "pid": 2}, {"type": "jaune", "cote": "A", "pid": 2},
+                        {"type": "rouge", "cote": "A", "pid": 3}, {"type": "blessure", "cote": "A", "pid": 4},
+                        {"type": "jaune", "cote": "B", "pid": 5}],
+         "endurance": {"a": {1: 100, 2: 40, 3: 70}, "b": {}}}
+    LB.noter_etat_cartes(jeu, 1, "a", f, graine=1)
+    e = LB.etat_cartes_equipe(jeu, 1)
+    assert e[2]["jaunes"] == 2 and e[2]["suspension"] == 0 and abs(e[2]["fatigue"] - 0.6 * LB.FATIGUE_REPORT) < 1e-6
+    assert e[3]["suspension"] == 1 and e[3]["jaunes"] == 0
+    assert LB.BLESSURE_MATCHS[0] <= e[4]["blessure"] <= LB.BLESSURE_MATCHS[1]
+    assert 5 not in e                                                     # the other side's card is not ours
+    # the eleven refuses a suspended or injured man, by name
+    with pytest.raises(LB.ErreurLobby, match="suspendu"):
+        LB.verifier_onze(jeu, "2025/26", 1, ONZE)
+    with pytest.raises(LB.ErreurLobby, match="blessé"):
+        LB.verifier_banc(jeu, "2025/26", 1, [1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13], [4])
+    # the carried fatigue is read at kick-off
+    eq = LB.equipe_simulation(jeu, "2025/26", [1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13], "A", None, [], "4-3-3", equipe_id=1)
+    assert next(j for j in eq.joueurs if j["pid"] == 2)["fatigue_depart"] > 0 and next(j for j in eq.joueurs if j["pid"] == 1)["fatigue_depart"] == 0
+    # a third yellow suspends; a match played serves the suspension; a match without playing resets the fatigue
+    LB.noter_etat_cartes(jeu, 1, "a", {"evenements": [{"type": "jaune", "cote": "A", "pid": 2}], "endurance": {"a": {}, "b": {}}}, graine=2)
+    e = LB.etat_cartes_equipe(jeu, 1)
+    assert e[2]["suspension"] == 1 and e[2]["jaunes"] == 0 and e[2]["fatigue"] == 0.0 and e[3]["suspension"] == 0
+
+
+def test_talking_to_the_team_applies_the_lever_or_says_why_not():
+    jeu = base_avec_equipes(1)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True, banc=BANC, graine=3)
+    r = LB.en_cours(jeu, "2025/26", 1)
+    tac = vars(SM.Tactique().valide())
+    rep = LB.dire(jeu, "2025/26", 1, "On presse haut", tac, r)
+    assert rep["compris"] and rep["action"] == "tactique" and rep["tactique"]["bloc"] == "haut" and rep["minute"] >= 1
+    r = LB.en_cours(jeu, "2025/26", 1)
+    rep = LB.dire(jeu, "2025/26", 1, "J15 remplace J10", tac, r)
+    assert rep["compris"] and rep["action"] == "changement" and "J15" in rep["reponse"]
+    r = LB.en_cours(jeu, "2025/26", 1)
+    f = LB.feuille(jeu, "2025/26", r, 90, trace=False)       # (read once, after the orders: a by-minute read is final here)
+    assert f["tactique"]["a"]["bloc"] == "haut" and 15 in f["sur_le_terrain"]["a"]
+    rep = LB.dire(jeu, "2025/26", 1, "J15 remplace J9", tac, r)             # both on the pitch now (J15 is also in the défi eleven)
+    assert not rep["compris"] and "sur le banc" in rep["reponse"]
+    rep = LB.dire(jeu, "2025/26", 1, "n'importe quoi", tac, r)
+    assert not rep["compris"] and "on presse haut" in rep["reponse"]
+    rep = LB.dire(jeu, "2025/26", 1, "réveillez-vous", tac, r)
+    assert not rep["compris"] and "mi-temps" in rep["reponse"]
