@@ -717,6 +717,56 @@ def composition(c: Compo, u=Depends(exiger), jeu=Depends(bd)):
     return {"ok": True, "journee": j["numero"]}
 
 
+@app.get("/api/journee/club")
+def journee_club(u=Depends(exiger), jeu=Depends(bd)):
+    """La saison vivante : ce qui a bougé dans ton club à la dernière journée
+    calculée — l'OVR et la cote de chacune de tes cartes avant et après, les
+    vrais matchs de la semaine (note, minutes, compétition), et la révélation
+    de la semaine (les plus grosses hausses du jeu).  Les cartes bougent avec
+    les vrais matchs : c'est l'événement de la semaine (docs/PLAN.md § 2.1)."""
+    e = equipe_de(jeu, u)
+    derniere = jeu.execute("""SELECT j.journee_id, j.numero, j.du, j.au FROM journee j
+                              WHERE j.saison=? AND j.numero>=1 AND j.calculee=1
+                                AND EXISTS (SELECT 1 FROM carte_historique h WHERE h.journee_id=j.journee_id)
+                              ORDER BY j.numero DESC LIMIT 1""", (SAISON,)).fetchone()
+    if derniere is None:
+        return {"journee": None}
+    precedente = jeu.execute("""SELECT j.journee_id, j.numero FROM journee j
+                                WHERE j.saison=? AND j.numero<? AND EXISTS (SELECT 1 FROM carte_historique h WHERE h.journee_id=j.journee_id)
+                                ORDER BY j.numero DESC LIMIT 1""", (SAISON, derniere["numero"])).fetchone()
+    apres = {pid: (ovr, prix) for pid, ovr, prix in jeu.execute(
+        "SELECT player_id, ovr, prix FROM carte_historique WHERE journee_id=?", (derniere["journee_id"],))}
+    avant = {pid: (ovr, prix) for pid, ovr, prix in jeu.execute(
+        "SELECT player_id, ovr, prix FROM carte_historique WHERE journee_id=?", (precedente["journee_id"],))} if precedente else {}
+    prestas: dict[int, list] = {}
+    for pid, note, minutes, entrant, comp, date in jeu.execute("""
+            SELECT p.player_id, p.note, p.minutes, p.entrant, cp.nom, m.date_utc FROM prestation p
+            JOIN match m ON m.match_id = p.match_id LEFT JOIN competition cp ON cp.competition_id = m.competition_id
+            WHERE m.journee_id=? ORDER BY m.date_utc""", (derniere["journee_id"],)):
+        prestas.setdefault(pid, []).append({"note": note, "minutes": round(minutes or 0), "entrant": bool(entrant),
+                                            "competition": comp, "date": date[:10] if date else None})
+    noms = {c["id"]: c for c in cartes_toutes(jeu)}
+    def fiche(pid):
+        c = noms.get(pid) or {}
+        o1, p1 = apres.get(pid, (None, None))
+        o0, p0 = avant.get(pid, (None, None))
+        return {"player_id": pid, "nom": c.get("nom", f"#{pid}"), "club": c.get("club"), "fam": c.get("fam"), "poste": c.get("poste"),
+                "ovr": o1, "ovr_avant": o0, "delta": (o1 - o0) if (o1 is not None and o0 is not None) else None,
+                "prix": p1, "prix_avant": p0, "matchs": prestas.get(pid, [])}
+    miens = [r[0] for r in jeu.execute("""SELECT DISTINCT player_id FROM exemplaire WHERE equipe_id=? AND saison=? AND detruit=0
+                                           ORDER BY dans_effectif DESC, exemplaire_id""", (e["equipe_id"], SAISON))]
+    cartes = [fiche(pid) for pid in miens]
+    deltas = [c["delta"] for c in cartes if c["delta"] is not None]
+    # la révélation de la semaine : les plus grosses hausses du jeu, et les chutes
+    bouge = sorted(((apres[pid][0] - avant[pid][0], pid) for pid in apres if pid in avant), reverse=True) if avant else []
+    return {"journee": {"numero": derniere["numero"], "du": derniere["du"], "au": derniere["au"],
+                        "precedente": precedente["numero"] if precedente else None},
+            "club": {"cartes": cartes, "total": sum(deltas), "hausses": sum(1 for d in deltas if d > 0),
+                     "baisses": sum(1 for d in deltas if d < 0), "matchs": sum(len(c["matchs"]) for c in cartes)},
+            "revelations": [fiche(pid) for d, pid in bouge[:5] if d > 0],
+            "chutes": [fiche(pid) for d, pid in bouge[-3:][::-1] if d < 0]}
+
+
 @app.get("/api/resultats")
 def resultats(u=Depends(exiger), jeu=Depends(bd)):
     e = equipe_de(jeu, u)

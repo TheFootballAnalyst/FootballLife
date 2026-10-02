@@ -162,6 +162,7 @@ const formeMoy = c => { const r = (c.notes || []).slice(-5); const w = r.reduce(
 // ---- chargement ----
 async function rafraichir(tout) {
   G.saison = await api("/saison");
+  majBadgeJournee(G.saison.derniere ? G.saison.derniere.numero : 0);
   if (tout || !G.cartes.length) { G.cartes = await api("/cartes"); G.idx = new Map(G.cartes.map(c => [c.id, c])); }
   G.equipe = await api("/equipe");
   G.compo = G.equipe.composition || compoVide();
@@ -3010,9 +3011,55 @@ function panneauHistorique(d) {
 }
 
 // ---- journée ----
+// La saison vivante : tes cartes sont de vrais joueurs, elles bougent avec leurs vrais
+// matchs chaque semaine.  Ce panneau montre ce qui a bougé dans ton club à la dernière
+// journée calculée, et la révélation de la semaine.  Une journée pas encore vue met un
+// point sur l'onglet (mémorisé dans le navigateur).
+function panneauSaisonVivante(v) {
+  if (!v || !v.journee) return el("div", {class: "panneau vivante"}, el("h2", {class: "anton"}, "La journée"),
+    el("p", {class: "compteur"}, "Aucune journée calculée : tes cartes bougeront avec les vrais matchs dès la première journée."));
+  const j = v.journee, c = v.club;
+  const p = el("div", {class: "panneau vivante"});
+  p.append(el("div", {class: "tete"}, el("h2", {class: "anton"}, `La journée ${j.numero}`), el("span", {class: "compteur"}, `vrais matchs du ${j.du} au ${j.au}`)));
+  const chip = d => d === null || d === undefined ? el("span", {class: "delta nul"}, "—") : el("span", {class: "delta " + (d > 0 ? "plus" : d < 0 ? "moins" : "nul")}, d > 0 ? `+${d}` : String(d));
+  p.append(el("div", {class: "recap"},
+    el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Ton club"), el("b", {class: "num"}, (c.total > 0 ? "+" : "") + c.total + " OVR")),
+    el("div", {class: "tuile"}, el("div", {class: "etiq"}, "En hausse"), el("b", {class: "num"}, String(c.hausses))),
+    el("div", {class: "tuile"}, el("div", {class: "etiq"}, "En baisse"), el("b", {class: "num"}, String(c.baisses))),
+    el("div", {class: "tuile"}, el("div", {class: "etiq"}, "Vrais matchs joués"), el("b", {class: "num"}, String(c.matchs)))));
+  const bouge = c.cartes.filter(x => x.delta || x.matchs.length).sort((a, b) => (b.delta || 0) - (a.delta || 0));
+  const l = el("div", {class: "vivante-liste"});
+  for (const x of bouge) {
+    l.append(el("div", {class: "vivante-ligne", onclick: () => ouvrirFiche(x.player_id)},
+      chip(x.delta),
+      el("div", {class: "qui"}, el("b", {}, x.nom), el("span", {class: "compteur"}, ` · ${x.club || ""} · ${x.ovr_avant ?? "?"} → ${x.ovr ?? "?"}`)),
+      el("div", {class: "notes"}, ...x.matchs.map(m => el("span", {class: "note " + (m.note >= 7 ? "b" : m.note < 5 ? "m" : ""), title: `${m.competition || ""} · ${m.date || ""}`},
+        `${m.note == null ? "—" : f1(m.note)} · ${m.minutes}'${m.entrant ? " (entré)" : ""}`)))));
+  }
+  p.append(l.children.length ? l : el("p", {class: "compteur"}, "Aucune de tes cartes n'a joué cette semaine."));
+  if (v.revelations.length) {
+    p.append(el("div", {class: "etiq", style: "margin-top:12px"}, "La révélation de la semaine"));
+    p.append(el("div", {class: "vivante-liste"}, ...v.revelations.map(x => el("div", {class: "vivante-ligne", onclick: () => ouvrirFiche(x.player_id)}, chip(x.delta),
+      el("div", {class: "qui"}, el("b", {}, x.nom), el("span", {class: "compteur"}, ` · ${x.club || ""} · ${x.ovr_avant} → ${x.ovr}`))))));
+  }
+  if (v.chutes.length) {
+    p.append(el("div", {class: "etiq", style: "margin-top:12px"}, "Les chutes"));
+    p.append(el("div", {class: "vivante-liste"}, ...v.chutes.map(x => el("div", {class: "vivante-ligne", onclick: () => ouvrirFiche(x.player_id)}, chip(x.delta),
+      el("div", {class: "qui"}, el("b", {}, x.nom), el("span", {class: "compteur"}, ` · ${x.club || ""} · ${x.ovr_avant} → ${x.ovr}`))))));
+  }
+  try { localStorage.setItem("fl_journee_vue", String(j.numero)); } catch (e) {}
+  majBadgeJournee(j.numero);
+  return p;
+}
+function majBadgeJournee(numero) {
+  const b = document.querySelector('#nav button[data-ecran="journee"]'); if (!b) return;
+  let vue = 0; try { vue = +localStorage.getItem("fl_journee_vue") || 0; } catch (e) {}
+  b.classList.toggle("nouveau", !!numero && numero > vue);
+}
 async function rendreJournee() {
   const P = $("#journee-pan"); P.replaceChildren();
   const j = G.saison.courante, d = G.saison.derniere;
+  try { P.append(panneauSaisonVivante(await api("/journee/club"))); } catch (e) {}
   const res = await api("/resultats");
   const dernier = d && res.find(r => r.journee === d.numero);
   if (d && dernier) {

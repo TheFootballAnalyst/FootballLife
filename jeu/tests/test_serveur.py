@@ -229,6 +229,12 @@ def test_admin_close_and_standings(client):
     res = client.get("/api/resultats/1").json()
     assert res["score"] == 80.5 and res["participants"] == 1 and len(res["prestations"][str(1)] if "1" in res["prestations"] else res["prestations"][1]) == 1
     assert client.get("/api/saison").json()["courante"] is None      # only one gameweek in the fixture
+    # the living season: what moved in the club at gameweek 1 (the seed is gameweek 0), the week's matches, the revelation
+    v = client.get("/api/journee/club").json()
+    assert v["journee"]["numero"] == 1 and v["journee"]["precedente"] == 0
+    assert v["club"]["cartes"] and all(x["delta"] is not None for x in v["club"]["cartes"] if x["ovr_avant"] is not None)
+    assert any(x["matchs"] and x["matchs"][0]["note"] == 7.0 and x["matchs"][0]["minutes"] == 90 for x in v["club"]["cartes"])
+    assert v["club"]["matchs"] >= 1 and isinstance(v["revelations"], list) and isinstance(v["chutes"], list)
     # card detail after a computed gameweek
     d = client.get("/api/cartes/1").json()
     assert set(d["attributs"]) == {"ARR", "EVI", "SOR", "REL", "BUT", "PRO"} and len(d["historique"]) == 2 and d["prestations"][0]["note"] == 7.0
