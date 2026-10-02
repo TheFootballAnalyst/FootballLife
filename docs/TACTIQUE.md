@@ -1421,8 +1421,9 @@ marquait son ailier à la touche, puis l'ailier de forme. Trois choses :
   receveur est bien moins libre — mais ce qu'il en tire se convertit
   deux fois plus en but. Le chantier n'est pas la fréquence : c'est la
   finition après le renversement (un centre ou une frappe du côté
-  rentré). À reprendre. En attendant, quatorze : dans la fourchette
-  réelle de buts, et un côté opposé un peu moins large. En possession, une place de
+  rentré). Repris ensuite, voir « Les renversements, repris » ci-dessous :
+  le « deux fois plus de buts » était le bruit de six matchs. Quatorze reste :
+  dans la fourchette réelle de buts, et un côté opposé un peu moins large. En possession, une place de
   forme qui s'éloigne du ballon se rejoint au trot (`FORME_ELOIGNE`,
   2,5 m/s ; sans effet sur les buts) : le latéral opposé ne sprinte plus
   vers sa touche quand le ballon revient au centre.
@@ -1438,6 +1439,65 @@ cadrés, 19,9 fautes (réel : 2,9–3,2 buts, 26 tirs, 9,7 cadrés, 24
 fautes). Ce qui reste est le latéral qui marque son
 ailier avec un ballon central, ce que le réel fait aussi (21 m de
 l'axe) : une course réelle, pas une erreur.
+
+**Les renversements, repris** (PLAN § 6.2 ; `outils/renversements_ref.py`
+sur 80 matchs 360, `outils/renversements_moteur.py` sur 24 matchs,
+`outils/longues_ref.py` et `outils/longues_moteur.py` pour toutes les
+passes de plus de 30 m). D'abord la mesure, en comptant les centres comme
+des passes (le réel le fait) : les « renversements » sont deux gestes
+différents. Le **renversement de construction** (réception à plus de 25 m
+du but) : 24,6 par match en vrai, réussi à 87 %, le receveur à 10,7 m du
+premier défenseur quand le ballon arrive, et presque jamais un tir
+derrière (1,9 % dans les dix secondes). La **diagonale vers la surface**
+(réception à moins de 25 m du but, un centre une fois sur deux) : 14,2
+par match, réussie à 47 %, le receveur tenu à 3,7 m, un tir dans les dix
+secondes 34 % du temps, un but 3,4 % — la moitié de ces tirs sont des
+têtes à 10 m, en 3 s. La finition du moteur derrière une diagonale est
+dans le réel (37 % de tirs, un défenseur à 2,7 m) ; sur 24 matchs, un
+but après renversement 0,8 % du temps contre 0,9 en vrai : ce n'était pas
+le chantier. Le chantier, c'était le renversement de construction : 43 %
+de réussis et le receveur tenu à 3,7 m. Trois causes trouvées, en
+instrumentant chaque échec :
+
+- **Le receveur courait au mauvais endroit.** Sur un ballon en l'air il
+  visait le point où le ballon *roulerait* au sol (la règle de la passe
+  au sol), venait au-devant d'un lob qui lui passait au-dessus et
+  retombait dix mètres derrière lui : 62 des 103 passes « coupées »
+  l'étaient au-delà du receveur. `RECEPTION_AERIENNE` : il va au point de
+  chute (`_chute_aerienne`, le point à hauteur de tête et dans combien de
+  secondes), et roule derrière s'il ne peut pas y être à temps. 43 → 55 %.
+- **Le défenseur opposé courait sous tous les lobs.** `BALLON_AERIEN`
+  envoyait le plus proche du point de chute attaquer chaque ballon en
+  l'air, même à 8 m pendant deux secondes de vol, même quand il retombait
+  devant lui : le receveur était tenu à la réception. `CHASSE_AERIEN` =
+  (6 m/s, 0,5 s, 6 m) : il attaque un ballon qui retombe entre lui et son
+  but ou à sa hauteur s'il peut y être (six mètres par seconde après une
+  demi-seconde de lecture) ; un ballon qui retombe six mètres devant lui
+  se garde, on presse après le contrôle. 55 → 62 %, le receveur à 5,6 m.
+- **La longue vers l'avant y gagnait trop** (41 → 56 %, réel 38) : le
+  receveur sous le ballon le prenait seul. Deux règles : celui qui voit
+  venir le ballon (il descend vers son but) a l'avantage du duel de la tête
+  partout, pas seulement dans sa surface (`AERIEN_FACE`, 0,12), et un
+  adversaire à moins de 3,5 m d'un ballon en l'air monte dessus lui aussi
+  (`DUEL_AERIEN`, 2,5 avant). 56 → 46 %.
+
+Les deux autres leviers essayés ne bougent rien : la borne du côté opposé
+à 10 m (le défenseur se tient bien à 10 m de l'axe au lieu de 13, mais le
+receveur n'est pas plus libre), l'ailier opposé qui coulisse moitié moins
+(`AILIER_GLISSE`, gardé : il reste la sortie du renversement, réel 23,4 m
+de l'axe à la réception). Le malus de ratage des passes de plus de 30 m
+(`RATE_LONGUE`) et la marge visée par rapport aux lignes (`VISE_MARGE`)
+sont des constantes maintenant, inchangées : sans malus ni avec marge le
+renversement ne réussit pas plus — les sorties sont pour deux tiers des
+passes ratées, pas des passes propres mal visées. Le tout, règles arrêtées, sur 24
+matchs : le renversement de construction réussi à 57 % contre 87 en vrai
+(43 au départ), le receveur à 5,9 m du premier défenseur contre 10,7 (3,7
+au départ ; une partie de l'écart est la mesure, l'image 360 ne voit que
+les joueurs filmés), la diagonale vers la surface réussie à 32 % contre
+47, un but derrière 4,2 % contre 3,4. Le banc général sur 48 matchs :
+3,44 buts, 25,2 tirs, 9,7 cadrés, 18,9 fautes (avant : 3,35, 23,2, 9,4,
+18,5 ; réel : 2,9–3,2, 26, 9,7, 24) — les tirs rejoignent le réel, les
+buts restent dans le bruit du banc (± 0,25).
 
 **Les amas.** À l'instant des passes, hors passeur et gardiens :
 

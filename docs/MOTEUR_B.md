@@ -865,8 +865,8 @@ camp 1 : l'équipe B marquait l'ailier de l'autre côté). Sans le ballon,
 latéral et ailier du côté opposé au ballon visent quatorze mètres de
 l'axe au plus (`LATERAL_OPPOSE` ; réel 360 : 10-12 m en médiane, 21 avec
 un ballon central, où le moteur était déjà juste ; dix mètres comme en
-vrai coûtait 0,6 but par match, le renversement de jeu est un chantier à
-part), en bloc bas le latéral
+vrai coûtait 0,6 but par match ; le renversement a été repris ensuite,
+voir ci-dessous), en bloc bas le latéral
 opposé se tient six mètres plus large que son central
 (`LATERAL_BAS_ECART`), en possession une place qui s'éloigne du ballon
 se rejoint au trot (`FORME_ELOIGNE`), et un coureur suivi par un
@@ -874,6 +874,26 @@ défenseur de la ligne n'a pas de second marqueur. Les amas mesurés aux
 passes ne dépassent pas le réel, sauf les paires défensives serrées
 (croisements brefs pour l'essentiel) : trois règles essayées, aucune ne
 les desserre, toutes retirées.
+
+**Les ballons en l'air et le renversement (TACTIQUE.md § 30, « repris »).**
+Le receveur d'une passe en l'air va à son point de chute
+(`RECEPTION_AERIENNE`, `_chute_aerienne` : le point à hauteur de tête et
+dans combien de secondes), plus là où le ballon roulerait. Un défenseur
+n'attaque un ballon aérien adverse que s'il retombe entre lui et son but
+ou à sa hauteur, et s'il peut y être à six mètres par seconde après une
+demi-seconde de lecture (`CHASSE_AERIEN`) ; un ballon qui retombe six
+mètres devant lui se garde, on presse après le contrôle. Dans le duel de
+la tête, celui qui voit venir le ballon a l'avantage partout
+(`AERIEN_FACE`), et un adversaire à moins de 3,5 m du ballon monte dessus
+(`DUEL_AERIEN`). L'ailier opposé au ballon coulisse moitié moins
+(`AILIER_GLISSE`) : il reste la sortie du renversement. Mesuré sur 24
+matchs contre 80 matchs réels : le renversement de construction passe de
+43 à 57 % de réussis (réel 87), le receveur de 3,7 à 5,9 m du premier
+défenseur (réel 10,7) ; la longue vers l'avant reste à 46 % (réel 38).
+Banc général de 48 matchs : 3,44 buts, 25,2 tirs, 9,7 cadrés (avant 3,35,
+23,2, 9,4 ; réel 2,9–3,2, 26, 9,7).
+Les règles : `outils/renversements_ref.py`, `outils/renversements_moteur.py`,
+`outils/longues_ref.py`, `outils/longues_moteur.py`.
 
 **La forme et la cohésion du jeu (PLAN.md § 2.3).** Un onze du jeu
 arrive sur le terrain avec la forme de ses cartes (trois bons vrais

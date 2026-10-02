@@ -304,10 +304,15 @@ Tu me fais confiance là-dessus ; voilà ma liste, par ordre :
    l'écran, le bandeau et la pop-up passés au terrain B ; le moteur A ne
    joue plus que les matchs d'une journée de campagne qu'on ne regarde
    pas, en une seconde).
-2. **Les renversements** (TACTIQUE § 30) : le moteur renverse deux fois
-   moins que le réel mais convertit deux fois plus derrière ; c'est la
-   finition après renversement à mesurer et régler, puis la borne du côté
-   opposé peut descendre à 10 m comme en vrai.
+2. ~~Les renversements~~ (TACTIQUE § 30, « Les renversements, repris »,
+   fait) : le « deux fois plus de buts » était le bruit de six matchs ; la
+   finition est dans le réel. Trois causes réglées : le receveur d'un
+   ballon en l'air va à son point de chute, le défenseur n'attaque que le
+   ballon qu'il peut avoir et qui ne retombe pas devant lui, et le duel de
+   la tête se gagne de face. Le renversement de construction passe de 43 à
+   57 % de réussis (réel 87), le receveur de 3,7 à 5,9 m du premier
+   défenseur (réel 10,7). La borne du côté opposé à 10 m ne change
+   rien au receveur : elle reste à 14.
 3. **Les paires défensives serrées** : la géométrie du duel, avec les
    vitesses.
 4. ~~La boîte de dialogue~~ (chantier 2.5, fait) ; la suite, c'est une consigne

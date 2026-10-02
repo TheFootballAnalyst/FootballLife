@@ -665,7 +665,9 @@ def test_talking_to_the_team_applies_the_lever_or_says_why_not():
     assert rep["compris"] and rep["action"] == "changement" and "J15" in rep["reponse"]
     r = LB.en_cours(jeu, "2025/26", 1)
     f = LB.feuille(jeu, "2025/26", r, 90, trace=False)       # (read once, after the orders: a by-minute read is final here)
-    assert f["tactique"]["a"]["bloc"] == "haut" and 15 in f["sur_le_terrain"]["a"]
+    entre = any(e["type"] == "changement" and e["gab"].get("sortant") == "J10" and e["gab"].get("entrant") == "J15"
+                for e in f["evenements"] if e["cote"] == "A")
+    assert f["tactique"]["a"]["bloc"] == "haut" and entre and 10 not in f["sur_le_terrain"]["a"]   # (J15 may be sent off later)
     rep = LB.dire(jeu, "2025/26", 1, "J15 remplace J9", tac, r)             # both on the pitch now (J15 is also in the défi eleven)
     assert not rep["compris"] and "sur le banc" in rep["reponse"]
     rep = LB.dire(jeu, "2025/26", 1, "n'importe quoi", tac, r)
