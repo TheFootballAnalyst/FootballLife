@@ -177,9 +177,9 @@ rythme au coup d'envoi : ×2 (une demi-heure), ×4 (un quart d'heure) ou
 celle de la rencontre (`rencontre.vitesse`), et l'horloge du match est
 le match lui-même : la minute affichée est celle que le match a
 atteinte, pas une règle de trois sur l'heure (docs/MOTEUR_B.md, « Le
-moteur B dans le jeu »). Avec l'ancien moteur A (`direct.MOTEUR = "A"`),
-l'horloge reste linéaire : 6, 12 ou 18 minutes réelles pour 90
-(`rencontre.duree`).
+moteur B dans le jeu »). L'ancien moteur A n'est plus dans le direct
+(chantier 6) : il ne joue plus que les autres matchs d'une journée de
+campagne, ceux qu'on ne regarde pas.
 
 ## L'écran de match
 
@@ -301,85 +301,25 @@ souffler.
 
 ## Le terrain
 
-Le match se regarde, action par action, comme depuis le banc. Vingt-deux
-**jetons** — pas des cartes, une carte se lit de près, un terrain se lit
-en positions — ronds, **bleus pour les tiens, rouges pour eux**, le poste
-tenu dedans, le nom dessous, l'endurance en dessous, le porteur du
-ballon cerclé d'or ; un vrai ballon dessiné, qui roule pendant le
-trajet et dont l'ombre suit ; des cages avec leurs filets, qui
-**ondulent quand ça rentre**. Le gardien ferme l'angle sur la droite
-entre le ballon et son but, avance quand le ballon est loin, va au
-point visé sur une frappe, l'a dans les gants sur un arrêt, part du
-mauvais côté sur un but. Chaque minute se joue vraiment : la relance du gardien, les passes qui
-montent, la conduite dans la surface, **la frappe qui part du pied vers
-un point du but**, l'arrêt, le ballon qui file à côté, la perte de
-balle, le coup de sifflet sur une faute — les vingt-deux s'arrêtent et
-attendent la reprise.
+Le match se regarde comme depuis le banc, sur le terrain du moteur B
+(`web/app/static/terrain_b.js`, partagé avec le bac) : vingt-deux
+**jetons** — bleus pour les tiens, rouges pour eux, le poste dedans, le
+nom dessous, le porteur cerclé — un vrai ballon avec son ombre et sa
+trajectoire en l'air, des cages dont les filets ondulent quand ça
+rentre, le gardien qui ferme l'angle. Ce qui bouge est ce que le moteur
+a calculé pas à pas (docs/MOTEUR_B.md, « Le moteur B dans le jeu ») : les
+images de positions arrivent du serveur à chaque sondage et le terrain
+les joue derrière, à la vitesse de la rencontre, sans jamais inventer
+une course. Le ballon vivant se joue en entier, chaque arrêt de jeu se
+saute jusqu'à ses deux dernières secondes.
 
-**Le ballon a une position, et le match une continuité.** Chaque phase
-porte une profondeur et une largeur ; le ballon est dessiné là, il y va
-en un temps qui dépend de la distance, et le porteur *vient* au ballon.
-Une minute repart d'où la précédente s'est arrêtée : une récupération
-se fait là où le ballon a été perdu, une équipe qui garde le ballon
-haut le garde haut — c'est ce qui fait qu'un siège se voit, avec le
-bloc adverse tassé devant sa surface et les latéraux montés. Les
-receveurs sont choisis par proximité : le latéral gauche reçoit à
-gauche, une passe qui traverse le terrain est un *renversement*. Les
-deux blocs coulissent vers le ballon, celui qui défend davantage ; un
-coéquipier se propose en soutien, l'adversaire le plus proche vient au
-contact ; chacun garde un léger écart qui lui est propre, fixe pour tout
-le match, si bien que personne n'est aligné au laser et personne ne
-tremble. Un arrêt de jeu ne se marque que quand il pèse — but, carton,
-blessure, penalty ; une faute est un coup de sifflet et un coup franc
-joué dans la foulée, pas une pause. Tout ça est du dessin : le score
-vient des dés du moteur et rien de tout ceci ne les touche.
-
-**L'écran suit l'animation, pas le serveur.** Le serveur a une minute
-d'avance sur ce que le terrain montre. Le score, l'horloge, le fil du
-direct et le bandeau attendent donc que la phase se joue : le but entre
-au tableau quand le ballon entre dans le but, la faute au coup de
-sifflet. Et un but, un rouge, un penalty s'affichent **en plein
-terrain**, quelques secondes, avec le buteur, le passeur et le score.
-
-**Le commentaire.** Chaque phase a sa phrase — « Ça repart de Van Dijk »,
-« Szoboszlai casse une ligne », « Yamal enroule ! », « AU FOND ! » —
-tirée du même générateur que la séquence : rejouer un match redonne mot
-pour mot le même récit. Et un but dit d'où il vient : *3 passes, parti
-de Courtois*, ou *action directe*.
-
-**Les onze bougent, pas deux blocs.** Pendant chaque phase, chacun se
-déplace selon son poste : le latéral déborde, l'ailier tient la largeur
-ou rentre, le milieu se projette, les centraux se resserrent sans jamais
-se marcher dessus, et sur une frappe les attaquants rentrent dans la
-surface pendant que la défense adverse couvre son but. Les consignes du
-manager changent ces courses.
-
-**Les jetons vivent entre deux phases** (`web/app/static/sim2d.js`).
-Chaque jeton est un agent : une position, une vitesse, une place dans
-la forme de son équipe, et vingt-cinq fois par seconde il choisit où
-aller — puis il y court à la vitesse d'un joueur, pas d'un curseur. Le
-bloc en possession monte avec le ballon (une équipe fait quarante
-mètres de long), le bloc qui défend se tasse vers lui ; le porteur
-vient au ballon et le conduit ; celui qui va recevoir la passe
-suivante est déjà en route avant qu'elle parte ; deux coéquipiers se
-proposent en soutien, les attaquants font des appels dans le dos de la
-ligne en restant en jeu ; l'adversaire le plus proche presse, le second
-coupe la ligne de passe vers le prochain receveur, le voisin du
-presseur vient couvrir sa place ; deux jetons ne se marchent jamais
-dessus ; le ballon voyage à sa vitesse — une ouverture met plus
-longtemps qu'une remise, une frappe file, une conduite colle au pied ;
-sur un but, les coéquipiers courent vers le buteur. Le moteur décide
-toujours de tout ce qui compte (qui a le ballon, où, ce qu'il en fait,
-ce que ça donne) : la simulation ne fait que rendre visible ce qu'il
-raconte, et le rythme choisi (6, 12 ou 18 minutes) règle la vitesse
-des courses.
-
-Rien n'est inventé par la page : le moteur rend `fil`, une ligne par
-minute (quel camp a le ballon, dans quelle zone, quel joueur le porte,
-quel événement) et, dans chaque ligne, `s` — **les phases** de cette
-minute. Elles tirent leur propre dé, séparé de celui du match : ajouter
-une passe au dessin ne déplace jamais un but. L'horloge reste celle du
-serveur.
+**L'écran suit le terrain, pas le serveur.** Le serveur a quelques
+secondes d'avance ; le score, la minute, le fil du direct, le bandeau
+d'action et la pop-up d'un but ou d'un rouge ne s'affichent que quand le
+terrain a montré l'action — lire le but avant de le voir, c'est le
+décalage que tout le monde remarque. Le nom de la phase en cours
+(construction, pressing, bloc bas…) est écrit aux deux coins du terrain,
+dans la langue de l'écran.
 
 **L'endurance.** Chacun s'use minute après minute, selon la ligne où il
 joue et selon la façon dont tu le fais jouer : presser haut et jouer

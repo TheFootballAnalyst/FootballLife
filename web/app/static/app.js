@@ -1246,29 +1246,10 @@ function selecteurTactique(tac, onChange) {
 
 // Le rythme d'un match contre la machine : six minutes pour quatre-vingt-dix
 // est un résumé, douze ou dix-huit un match qu'on suit du banc.  Mémorisé.
-let RYTHME = 720;
-try { RYTHME = +localStorage.getItem("fl_rythme") || 720; } catch (e) {}
-// Avec le moteur B, le rythme est une VITESSE du ballon vivant (les arrêts de jeu
-// se sautent) : ×2, c'est le football à un rythme normal, une demi-heure réelle
-// pour un match complet ; ×4 un quart d'heure ; ×8 un résumé de neuf minutes.
+// Le rythme d'un match contre la machine est une VITESSE du ballon vivant (moteur B) :
 let VITESSE = 2;
 try { VITESSE = +localStorage.getItem("fl_vitesse") || 2; } catch (e) {}
 const DUREE_VITESSE = v => Math.round(29 * 2 / v);          // minutes réelles, mesurées : 52 min de ballon vivant, 77 arrêts
-function moteurB() { return (G.saison?.moteur || "B") === "B"; }
-function selecteurRythme(d) {
-  if (moteurB()) return selecteurVitesse(d);
-  const choix = (d.durees || G.saison?.durees_match || [360, 720, 1080]);
-  if (!choix.includes(RYTHME)) RYTHME = choix[Math.min(1, choix.length - 1)];
-  const g = el("div", {class: "tac-groupe"}, el("span", {class: "tac-titre"}, t("rythme.titre")));
-  const maj = () => g.querySelectorAll("button").forEach(b => b.classList.toggle("actif", +b.dataset.d === RYTHME));
-  for (const s of choix)
-    g.append(el("button", {class: "tac", "data-d": String(s), title: t("rythme.minutes_reelles", {n: Math.round(s / 60)}),
-      onclick: () => { RYTHME = s; try { localStorage.setItem("fl_rythme", String(s)); } catch (e) {} maj(); }},
-      `${Math.round(s / 60)} min`));
-  maj();
-  return el("div", {class: "tactiques rythme"}, g,
-    el("span", {class: "compteur"}, t("rythme.classe_six")));
-}
 function selecteurVitesse(d) {
   const choix = (d.vitesses || G.saison?.vitesses_match || [2, 4, 8]);
   if (!choix.includes(VITESSE)) VITESSE = choix[0];
@@ -1286,7 +1267,7 @@ function selecteurVitesse(d) {
 function panneauEntree(d) {
   const p = el("div", {class: "panneau"}, el("h3", {class: "anton"}, t("lobby.lance")));
   p.append(el("p", {class: "compteur"},
-    moteurB() ? t("lobby.texte_b", {v: d.vitesse || 2}) : t("lobby.texte_a", {n: Math.round(d.duree / 60)})));
+    t("lobby.texte_b", {v: d.vitesse || 2})));
   const onze = C.slots.every(x => x !== null) ? C.slots.slice() : null;
   if (!onze) {
     p.append(el("div", {class: "avert"}, t("lobby.onze_incomplet")));
@@ -1311,7 +1292,7 @@ function panneauEntree(d) {
     selecteurConsignes(LOBBY.tac, maj)));
   p.append(el("p", {class: "compteur"}, t("lobby.tactique_une_fois")));
   const acts = el("div", {class: "actions", style: "justify-content:flex-start"});
-  p.append(selecteurRythme(d));
+  p.append(selecteurVitesse(d));
   acts.append(el("button", {class: "primaire", onclick: () => entrerLobby(onze, false)}, t("lobby.chercher")),
     el("button", {onclick: () => entrerLobby(onze, true)}, t("lobby.defi")));
   p.append(acts);
@@ -1320,7 +1301,7 @@ function panneauEntree(d) {
 }
 
 async function entrerLobby(onze, defi) {
-  try { await rendreLobby(await api("/lobby/rejoindre", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac, defi, duree: defi ? RYTHME : null, vitesse: defi ? VITESSE : null})); }
+  try { await rendreLobby(await api("/lobby/rejoindre", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac, defi, vitesse: defi ? VITESSE : null})); }
   catch (e) { toast(e.message); }
 }
 
@@ -1680,7 +1661,7 @@ function panneauCampagne(d) {
             + (c.prochain.aller ? ` · ${t("solo.aller").toLowerCase()} ${c.prochain.aller.moi} – ${c.prochain.aller.lui}` : ""))));
       p.append(ligne);
       p.append(selecteurTactique(LOBBY.tac, () => {}));
-      p.append(selecteurRythme({durees: G.saison?.durees_match, vitesses: G.saison?.vitesses_match}));
+      p.append(selecteurVitesse({vitesses: G.saison?.vitesses_match}));
       p.append(el("div", {class: "actions"},
         el("button", {class: "primaire", onclick: () => jouerSolo(onze)},
           c.prochain.manche === 2 ? t("solo.jouer_retour") : t("solo.jouer"))));
@@ -1773,7 +1754,7 @@ async function jouerSolo(onze) {
   // a victory.
   const place = SOLO.d?.campagne?.place;
   let r;
-  try { r = await api("/solo/jouer", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac, duree: RYTHME, vitesse: VITESSE}); }
+  try { r = await api("/solo/jouer", {formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac, vitesse: VITESSE}); }
   catch (e) { toast(e.message); return; }
   await rafraichir(false);
   await rendreSolo(r);
@@ -1891,461 +1872,19 @@ function panneauPalmares(d) {
 }
 
 // ---------------------------------------------------------------------------
-// Le terrain 2D : les vingt-deux cartes jouent le match.
-//
-// Le moteur donne `fil`, une ligne par minute, et dans chaque ligne `s` :
-// les PHASES de cette minute — la relance, les passes, la conduite, le
-// tir, le sifflet, la perte de balle.  Le terrain ne devine donc rien du
-// tout : il rejoue ces phases une à une, déplace le ballon sur celui qui
-// l'a, fait partir le tir vers le but, arrête les joueurs au coup de
-// sifflet et les relance après.  L'horloge est celle du serveur : on
-// avance d'une minute toutes les `duree / 90` secondes, réparties entre
-// les phases, et on se recale à chaque réponse.
+// Le terrain : les vingt-deux cartes jouent le match (terrain_b.js, le moteur B).
+// Le bandeau et le fil suivent ce que le terrain a montré, pas le serveur.
 // ---------------------------------------------------------------------------
-const T2D = {timer: null, m: 0, fil: [], evts: [], cle: null, cible: 0, noeud: null,
-             dernier: null, phases: [], i: 0, pas: 2700, arret: false,
-             vus: new Set(), score: null, attente: null, rid: null, tete: null, delais: []};
-
-// Le placement d'un onze sur le terrain, ligne par ligne, à partir de la
-// formation réelle : x = profondeur (0 = sa propre ligne de but), y en
-// largeur.  Le bloc coulisse en x selon la zone de jeu.
-const PROFONDEUR = {GK: 0.05, DEF: 0.20, MID: 0.40, FWD: 0.62};
-const GLISSE_2D = 0.13;        // de combien un bloc avance par zone
-
-function placesDe(joueurs, formation) {
-  // Les rangs de la formation donnent la vraie silhouette : un 3-4-2-1
-  // ne se dessine pas comme un 4-4-2.  Faute de formation connue, on
-  // retombe sur les familles.
-  const rangs = formation && RANGS[formation] ? RANGS[formation] : null;
-  if (rangs && rangs.flat().length === joueurs.length) {
-    // La profondeur d'une ligne vient de son RANG, pas de la famille de
-    // son premier poste : le milieu d'un 4-4-2 commence par un ailier,
-    // donc il se posait à la profondeur des attaquants et les deux
-    // lignes se superposaient.  Le gardien devant son but, les autres
-    // lignes réparties jusqu'au dernier tiers.
-    const n = rangs.length;
-    const out = [];
-    rangs.forEach((rang, r) => {
-      const x = r === 0 ? PROFONDEUR.GK : 0.20 + (0.46 * (r - 1)) / Math.max(1, n - 2);
-      // le pivot derrière ses relayeurs, le meneur devant : le triangle
-      // du milieu se lit sur le terrain
-      rang.forEach((poste, k) => out.push([x + (PROF_POSTE[poste] || 0), (k + 1) / (rang.length + 1)]));
-    });
-    return out;
-  }
-  const pris = {GK: 0, DEF: 0, MID: 0, FWD: 0};
-  const total = {GK: 0, DEF: 0, MID: 0, FWD: 0};
-  for (const j of joueurs) total[PROFONDEUR[j.fam] !== undefined ? j.fam : "MID"]++;
-  return joueurs.map(j => {
-    const fam = PROFONDEUR[j.fam] !== undefined ? j.fam : "MID";
-    const k = pris[fam]++;
-    return [PROFONDEUR[fam], (k + 1) / (total[fam] + 1)];
-  });
+// (l'ancien terrain du moteur A est parti : il ne reste que l'état que le bandeau et
+// le fil lisent, écrit par la boucle du terrain B)
+const T2D = {m: 0, vus: new Set(), score: null, rid: null, tete: null, moi: "a", popupTimer: null, bandeauTimer: null};
+function arreterTerrain(oublier) {
+  if (oublier) { arreterTerrainB(true); T2D.m = 0; T2D.vus = new Set(); T2D.score = null; T2D.rid = null; T2D.tete = null; }
 }
-
-function terrain2d() {
-  const t = el("div", {class: "terrain2d"});
-  t.append(el("div", {class: "t2d-fond"},
-    el("div", {class: "t2d-ligne-mediane"}), el("div", {class: "t2d-rond"}),
-    el("div", {class: "t2d-surface gauche"}), el("div", {class: "t2d-surface droite"}),
-    el("div", {class: "t2d-six gauche"}), el("div", {class: "t2d-six droite"})));
-  // les cages, avec leurs filets : un but les fait onduler
-  for (const c of ["gauche", "droite"]) {
-    const cage = el("div", {class: "t2d-cage " + c});
-    cage.innerHTML = `<svg viewBox="0 0 10 40" preserveAspectRatio="none"><defs><pattern id="filet-${c}" width="2.2" height="2.2" patternUnits="userSpaceOnUse"><path d="M0 0H2.2M0 0V2.2" stroke="rgba(255,255,255,.55)" stroke-width=".35" fill="none"/></pattern></defs><rect class="filet" x="0" y="0" width="10" height="40" fill="url(#filet-${c})"/><rect class="poteaux" x="${c === "gauche" ? 9 : 0}" y="0" width="1" height="40" fill="#fff"/></svg>`;
-    t.append(cage);
-  }
-  const ballon = el("div", {class: "t2d-ballon"});
-  ballon.innerHTML = '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="9.2" fill="#fff" stroke="#1a1a1a" stroke-width="1"/><polygon points="10,5.2 13.6,7.8 12.2,12 7.8,12 6.4,7.8" fill="#1a1a1a"/><polygon points="2.4,7.6 4.9,5.4 6.4,7.8 5,10.6 1.9,10.4" fill="#1a1a1a"/><polygon points="17.6,7.6 15.1,5.4 13.6,7.8 15,10.6 18.1,10.4" fill="#1a1a1a"/><polygon points="6.2,18.4 7.8,12 10,13.6 9.6,18.9" fill="#1a1a1a"/><polygon points="13.8,18.4 12.2,12 10,13.6 10.4,18.9" fill="#1a1a1a"/><polygon points="8.4,1 10,3.6 11.6,1" fill="#1a1a1a"/></svg>';
-  t.append(el("div", {class: "t2d-jeu"}), el("div", {class: "t2d-ombre"}), ballon,
-    el("div", {class: "t2d-bandeau", hidden: true}), el("div", {class: "t2d-popup", hidden: true}));
-  return t;
-}
-
-// Vingt-deux JETONS, pas vingt-deux cartes.  Une carte est faite pour
-// être lue de près ; sur un terrain, ce qu'on lit, c'est une position,
-// un côté, une distance — comme sur la tablette d'un entraîneur.  Le
-// jeton porte le poste tenu, le nom dessous, l'endurance en dessous.
-// Dessinés une fois ; ensuite seule leur position change.
-function peuplerTerrain(t, m, moi) {
-  const jeu = t.querySelector(".t2d-jeu");
-  jeu.replaceChildren();
-  T2D.pions = {};
-  for (const cote of ["a", "b"]) {
-    const tous = [...(m.onze?.[cote] || []), ...(m.banc?.[cote] || [])];
-    const joueurs = (m.sur_le_terrain?.[cote] || []).map(pid => tous.find(j => j.pid === pid)).filter(Boolean);
-    const places = placesDe(joueurs, m.formation?.[cote]);
-    joueurs.forEach((j, i) => {
-      const poste = j.slot || j.poste || "Milieu relayeur";
-      const gk = posteBase(poste) === "Gardien";
-      const p = el("div", {class: "t2d-pion " + (cote === moi ? "mien" : "adverse") + (gk ? " gk" : ""),
-        title: `${j.nom} · ${j.ovr}${j.slot ? " · " + (POSTE_COURT[j.slot] || j.slot) : ""}`});
-      p.append(el("span", {class: "t2d-jeton"}, POSTE_ABBR[poste] || (gk ? "GB" : "")),
-        el("span", {class: "t2d-nom"}, (j.nom || "").split(" ").slice(-1)[0]),
-        el("span", {class: "t2d-jauge"}, el("i", {})));
-      p.dataset.pid = j.pid; p.dataset.cote = cote;
-      p._base = places[i] || [0.4, 0.5];
-      p._poste = poste;
-      p._gk = gk;
-      p._phys = j.physique || null;
-      jeu.append(p);
-      T2D.pions[cote + ":" + j.pid] = p;
-    });
-  }
-}
-
-// Les barres d'endurance : ce que le manager regarde pour décider de
-// sortir quelqu'un.  Le moteur donne l'endurance restante de chacun.
-function jauges(m) {
-  if (!T2D.pions) return;
-  for (const cote of ["a", "b"]) {
-    const e = m.endurance?.[cote] || {};
-    for (const [pid, v] of Object.entries(e)) {
-      const p = T2D.pions[cote + ":" + pid];
-      const i = p && p.querySelector(".t2d-jauge i");
-      if (!i) continue;
-      i.style.width = Math.max(0, Math.min(100, v)) + "%";
-      i.className = v < 35 ? "vide" : v < 60 ? "basse" : "";
-    }
-  }
-}
-
-// Où se trouve un point du terrain À L'ÉCRAN.  Tu attaques toujours vers
-// la droite, quel que soit ton côté de la feuille, donc le camp adverse
-// est dessiné en miroir.
-function ecran(cote, x, y, moi, brut = false) {
-  // Les deux camps jouent la même forme en miroir : sans écart, leurs
-  // milieux se posent exactement au même endroit et les noms se
-  // chevauchent.  On les décale un peu en largeur et en profondeur,
-  // chacun d'un côté, pour que les vingt-deux restent lisibles.  Pas le
-  // gardien ni le ballon (`brut`) : un gardien décalé n'est plus dans
-  // l'axe de son but, et le ballon doit être exactement où il est.
-  const mien = cote === moi;
-  const dx = brut ? 0 : (mien ? -0.012 : 0.012), dy = brut ? 0 : (mien ? -0.035 : 0.035);
-  const xx = Math.max(0.02, Math.min(0.98, x + dx));
-  const gauche = mien ? xx : 1 - xx;
-  const haut = (mien ? y : 1 - y) + dy;
-  return [gauche, Math.max(0.05, Math.min(0.95, haut))];
-}
-
-// Le but qu'attaque un camp, à l'écran.  La cage fait 19 % de la hauteur
-// du terrain : une frappe cadrée tombe ENTRE les poteaux — à 0,30 les
-// frappes au ras du poteau sortaient de la cage et tout ressemblait à
-// un poteau rentrant.
-const LARGEUR_BUT = 0.16;
-function buts(cote, moi, t) {
-  const gauche = cote === moi ? 0.975 : 0.025;
-  return [gauche, 0.5 + ((t === undefined ? 0.5 : t) - 0.5) * LARGEUR_BUT];
-}
-
-// ---------------------------------------------------------------------------
-// Les déplacements sans ballon.
-//
-// Faire coulisser deux blocs rigides ne ressemble pas à du football : un
-// latéral qui monte dépasse son ailier, un ailier qui repique laisse le
-// couloir, les centraux se resserrent quand ils défendent, les
-// attaquants rentrent dans la surface sur une frappe.  Chaque poste a
-// donc sa façon de bouger quand son camp a le ballon et quand il ne
-// l'a pas, et les consignes du manager la modifient — ce qu'il demande
-// à ses latéraux se VOIT.
-//
-// C'est du dessin, pas du moteur : rien ici ne touche au résultat.  Le
-// résultat, lui, écoute les mêmes consignes par les traits d'équipe
-// (simulation.CONSIGNES).
-//
-//   av  — de combien il avance quand son camp attaque (en fraction de
-//         terrain, à pleine progression)
-//   rec — de combien il recule quand son camp défend (négatif)
-//   lar — positif : il s'écarte vers la touche ; négatif : il rentre
-//         dans l'axe.  Nul pour un joueur déjà axial.
-const JEU_POSTE = {
-  "Gardien":           {av: 0.030, rec: 0.000, lar: 0.00, surface: 0.00},
-  "Defenseur central": {av: 0.110, rec: -0.055, lar: -0.12, surface: 0.02},
-  "Lateral":           {av: 0.300, rec: -0.045, lar: 0.10, surface: 0.10},
-  "Milieu defensif":   {av: 0.120, rec: -0.120, lar: -0.18, surface: 0.05},
-  "Milieu relayeur":   {av: 0.210, rec: -0.165, lar: -0.06, surface: 0.20},
-  "Milieu offensif":   {av: 0.235, rec: -0.205, lar: -0.12, surface: 0.35},
-  "Milieu de couloir": {av: 0.240, rec: -0.200, lar: 0.24, surface: 0.28},
-  "Ailier":            {av: 0.200, rec: -0.225, lar: 0.26, surface: 0.40},
-  "Ailier droit":      {av: 0.200, rec: -0.225, lar: 0.26, surface: 0.40},
-  "Ailier gauche":     {av: 0.200, rec: -0.225, lar: 0.26, surface: 0.40},
-  "Buteur":            {av: 0.160, rec: -0.265, lar: -0.16, surface: 0.55},
-};
-const JEU_DEFAUT = {av: 0.18, rec: -0.15, lar: 0.0, surface: 0.2};
-// Ce que les consignes changent au DESSIN, poste par poste.
-const CONSIGNE_JEU = {
-  lateraux:   {poste: ["Lateral"],
-               bas: {av: -0.20, lar: -0.02}, axe: {av: -0.07, lar: -0.26}},
-  ailiers:    {poste: ["Ailier", "Ailier droit", "Ailier gauche", "Milieu de couloir"],
-               ligne: {lar: 0.16}, interieur: {lar: -0.36, av: 0.05, surface: 0.12}},
-  milieux:    {poste: ["Milieu defensif", "Milieu relayeur", "Milieu offensif"],
-               projection: {av: 0.14, surface: 0.18}, bas: {av: -0.11, surface: -0.10},
-               lateral: {lar: 0.24}},
-  attaquants: {poste: ["Buteur"],
-               profondeur: {av: 0.12}, pivot: {av: -0.07, surface: -0.08}},
-  relance:    {poste: ["Gardien", "Defenseur central"],
-               courte: {av: 0.05}, longue: {av: -0.03}},
-};
-
-function consigneDe(poste, tac) {
-  const out = {av: 0, rec: 0, lar: 0, surface: 0};
-  if (!tac) return out;
-  for (const [axe, def] of Object.entries(CONSIGNE_JEU)) {
-    if (!def.poste.includes(poste)) continue;
-    const d = def[tac[axe]];
-    if (d) for (const k of Object.keys(out)) out[k] += d[k] || 0;
-  }
-  return out;
-}
-
-// Où se place un joueur pour CETTE phase, dans son propre repère
-// (x = profondeur vers le but adverse, y = largeur).
-function placeJoueur(p, avecBallon, progression, ph, tac) {
-  const [bx, by] = p._base;
-  const r = JEU_POSTE[posteBase(p._poste)] || JEU_DEFAUT;
-  const c = consigneDe(posteBase(p._poste), tac);
-  const ecart = by - 0.5;
-  const sens = ecart === 0 ? 0 : Math.sign(ecart);
-  // Se resserrer, oui ; se marcher dessus, non.  Deux centraux qui
-  // rentrent finissaient sur la même case : chacun garde au moins la
-  // moitié de son écart de départ à l'axe.
-  const garder = y => ecart >= 0 ? Math.max(0.5 + ecart * 0.55, y) : Math.min(0.5 + ecart * 0.55, y);
-  let x = bx, y = by;
-  if (avecBallon) {
-    x += (r.av + c.av) * progression;
-    y = garder(by + sens * (r.lar + c.lar) * progression * 0.42);
-    // Sur une frappe, ceux qui attaquent rentrent dans la surface : ils
-    // convergent vers le point de penalty au lieu de rester en ligne.
-    if (SUR_LE_BUT.has(ph.k)) {
-      const dans = Math.max(0, Math.min(1, r.surface + c.surface));
-      x += (0.86 - x) * dans;
-      y += (0.5 - y) * dans * 0.55;
-    }
-  } else {
-    x += (r.rec + c.rec * 0.4) * progression;
-    y = garder(by - sens * 0.22 * progression * 0.42);     // le bloc se resserre
-    if (SUR_LE_BUT.has(ph.k)) {
-      // on défend sa surface : la ligne et le gardien couvrent le but
-      const dans = p._poste === "Gardien" ? 0 : Math.max(0, 0.55 - r.surface);
-      x -= (x - 0.13) * dans;
-      y += (0.5 - y) * dans * 0.45;
-    }
-  }
-  return [Math.max(0.02, Math.min(0.96, x)), Math.max(0.04, Math.min(0.96, y))];
-}
-const SUR_LE_BUT = new Set(["tir", "but", "rate", "arret", "corner", "centre"]);
-
-// ---------------------------------------------------------------------------
-// Le ballon a une position, et tout le monde joue par rapport à lui.
-//
-// Avant, le ballon SAUTAIT sur le pion de celui qui l'avait et les deux
-// blocs coulissaient d'un cran par zone : on ne voyait ni d'où venait une
-// passe, ni un côté, ni un siège.  Le moteur donne maintenant à chaque
-// phase une profondeur (z) et une largeur (y) dans le repère du porteur,
-// et chaque minute repart d'où la précédente s'est arrêtée.  Ici :
-//
-//   - le ballon est dessiné À SA POSITION, et il y va en un temps qui
-//     dépend de la distance (une ouverture prend plus de temps qu'une
-//     remise) ;
-//   - le porteur VIENT au ballon, il ne se le fait pas téléporter ;
-//   - les deux blocs coulissent vers le ballon, celui qui défend plus
-//     que celui qui attaque, ce qui fait la compacité d'un bloc et le
-//     dessin d'un siège ;
-//   - deux coéquipiers se proposent en soutien, l'adversaire le plus
-//     proche vient au contact ;
-//   - chacun respire un peu autour de sa place, personne n'est aligné
-//     au laser.
-//
-// Tout ceci est du dessin : le résultat vient du moteur et rien ici ne
-// le touche.
-// ---------------------------------------------------------------------------
-const ZONE_X = {0: 0.07, 1: 0.30, 2: 0.58, 3: 0.84};
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-
-// (x, y) du ballon dans le repère du camp de la phase
-function ballonDe(ph) {
-  return [ZONE_X[ph.z] ?? 0.4, ph.y === undefined ? 0.5 : ph.y];
-}
-
-// Un petit écart propre à chaque joueur, FIXE pour tout le match : les
-// lignes ne sont pas au laser, et personne ne tremble entre deux phases.
-function grain(pid) {
-  let h = (pid * 2654435761) >>> 0;
-  h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995) >>> 0; h ^= h >>> 15;
-  return [((h & 0xffff) / 0xffff - 0.5) * 0.022, (((h >>> 16) & 0xffff) / 0xffff - 0.5) * 0.03];
-}
-
-// Où va le gardien, dans SON repère.  Il ferme l'angle : sur la droite
-// entre le ballon et le milieu de son but, un peu devant sa ligne, plus
-// avancé quand le ballon est loin.  Sur une frappe il va au point
-// visé ; sur un arrêt il y est, le ballon dans les gants ; sur un but
-// il est parti du mauvais côté.
-function placeGardien(sien, phase, xb, yb) {
-  const contre = !sien && (phase.k === "tir" || phase.k === "but" || phase.k === "rate");
-  if (contre) {
-    const t = phase.t === undefined ? (T2D.dernierTir ?? 0.5) : phase.t;
-    const yt = 0.5 + (t - 0.5) * LARGEUR_BUT;
-    if (phase.k === "but") return [0.03, 0.5 + (yt - 0.5) * -0.7];         // battu, parti de l'autre côté
-    return [0.03, 1 - yt];                                                    // le but visé, vu de sa ligne
-  }
-  if (sien && (phase.k === "arret" || phase.k === "relance" || phase.k === "degagement")) return null; // porteur : il est au ballon
-  // Dans l'axe, sur sa ligne, la plupart du temps.  Il ne s'en écarte
-  // qu'un peu, vers le côté du ballon quand celui-ci approche, et il
-  // avance de quelques mètres quand le jeu est loin.
-  const loin = Math.max(0, Math.min(1, xb));                                  // 0 : sur sa ligne, 1 : tout là-bas
-  const x = 0.03 + 0.045 * loin;
-  const y = 0.5 + (yb - 0.5) * (0.06 + 0.16 * (1 - loin));
-  return [x, y];
-}
-
-function bougerTerrain(t, cote, zone, moi, ph, suivant) {
-  if (!T2D.pions) return;
-  const phase = ph || {k: "passe", z: zone, c: cote, y: 0.5, p: null};
-  if (phase.c === undefined || phase.c === null) return;
-  // Avec la simulation (sim2d.js), les jetons ne sont plus POSÉS : ils
-  // reçoivent le contexte de la phase et y courent à chaque tic.
-  if (window.SIM && SIM.actif) { SIM.phaseDe(phase, suivant); return; }
-  // la progression : 0 devant son propre but, 1 dans la surface adverse
-  const progression = clamp(((phase.z === undefined ? 1 : phase.z) - 0.5) / 2.5, 0, 1);
-  const [bx, by] = ballonDe(phase);
-  const camp = "ab"[phase.c];
-  const porteurCle = camp + ":" + phase.p;
-  const places = {};
-  for (const [cle, p] of Object.entries(T2D.pions)) {
-    const c = cle.slice(0, 1);
-    const sien = c === camp;
-    // le ballon vu de CE camp
-    const xb = sien ? bx : 1 - bx, yb = sien ? by : 1 - by;
-    let x, y;
-    if (p._gk) {
-      const g = placeGardien(sien, phase, xb, yb);
-      [x, y] = g || [0.035, 0.5];
-    } else {
-      [x, y] = placeJoueur(p, sien, progression, phase, T2D.consignes?.[c]);
-      // le bloc coulisse vers le ballon, celui qui défend davantage
-      y += (yb - 0.5) * (sien ? 0.12 : 0.22);
-      const g = grain(+p.dataset.pid);
-      x += g[0]; y += g[1];
-    }
-    places[cle] = {x, y, sien, gk: p._gk};
-  }
-  const porteur = places[porteurCle];
-  if (porteur) {
-    // le porteur vient au ballon ; sur une frappe il est déjà là ; sur un
-    // arrêt, le gardien est sur sa ligne, au point visé
-    if (phase._arret) { const [ax, ay] = ballonArret(phase); porteur.x = ax; porteur.y = ay; }
-    else { porteur.x = bx; porteur.y = by; }
-    if (!SUR_LE_BUT.has(phase.k) && !ARRETS_JEU.has(phase.k)) {
-      const dist = v => Math.hypot(v.x - bx, v.y - by);
-      // un soutien se propose
-      const soutien = Object.entries(places)
-        .filter(([cle, v]) => cle !== porteurCle && v.sien && !v.gk)
-        .sort((a, b) => dist(a[1]) - dist(b[1]))[0];
-      if (soutien) { const v = soutien[1]; v.x += (bx - v.x) * 0.18; v.y += (by - v.y) * 0.18; }
-      // et l'adversaire le plus proche vient au contact — dans SON repère
-      // le ballon est en miroir
-      const bxa = 1 - bx, bya = 1 - by;
-      const presseur = Object.entries(places)
-        .filter(([, v]) => !v.sien && !v.gk)
-        .sort((a, b) => Math.hypot(a[1].x - bxa, a[1].y - bya) - Math.hypot(b[1].x - bxa, b[1].y - bya))[0];
-      if (presseur) { const v = presseur[1]; v.x += (bxa - v.x) * 0.35; v.y += (bya - v.y) * 0.35; }
-    }
-  }
-  for (const [cle, p] of Object.entries(T2D.pions)) {
-    const c = cle.slice(0, 1), v = places[cle];
-    const [g, h] = ecran(c, clamp(v.x, 0.02, 0.97), clamp(v.y, 0.04, 0.96), moi, v.gk || cle === porteurCle);
-    p.style.left = (g * 100) + "%";
-    p.style.top = (h * 100) + "%";
-    // le porteur arrive avec le ballon, les autres au rythme du match :
-    // plus la minute est longue, plus les courses sont posées
-    const lent = Math.round(Math.max(700, Math.min(1600, (T2D.dureeBallon || 500) * 1.3)));
-    p.style.transitionDuration = (cle === porteurCle && T2D.dureeBallon ? T2D.dureeBallon : lent) + "ms";
-  }
-}
-
-// Où est le ballon pour un arrêt du gardien : dans ses gants, sur sa
-// ligne, à l'endroit visé par la frappe — pas au milieu de sa surface.
-function ballonArret(ph) {
-  const t = T2D.dernierTir ?? 0.5;
-  return [0.03, 1 - (0.5 + (t - 0.5) * LARGEUR_BUT)];
-}
-
-// Une phase : le ballon va où elle dit, le porteur s'allume, et pour un
-// tir le ballon quitte vraiment le pied pour aller au but.
-function jouerPhase(t, ph, moi) {
-  const b = t.querySelector(".t2d-ballon"), ombre = t.querySelector(".t2d-ombre");
-  const jeu = t.querySelector(".t2d-jeu");
-  if (!ph) { b.hidden = true; ombre.hidden = true; return; }
-  const cote = "ab"[ph.c];
-  if (ph.k === "arret") ph = {...ph, _arret: true};
-  bougerTerrain(t, ph.c, ph.z, moi, ph, T2D.phases[T2D.i] || null);
-  for (const p of Object.values(T2D.pions || {}))
-    p.classList.toggle("ballon", p.dataset.cote === cote && +p.dataset.pid === ph.p);
-  b.classList.toggle("tir", ph.k === "tir" || ph.k === "rate");
-  b.classList.toggle("dedans", ph.k === "but");
-  // Un arrêt de jeu ne se voit que quand il pèse : un but, un carton, une
-  // blessure, un penalty.  Une faute est un coup de sifflet et un coup
-  // franc joué dans la foulée — la montrer comme une pause cassait le
-  // fil du match vingt-cinq fois par mi-temps.
-  T2D.arret = ARRETS_LOURDS.has(ph.k);
-  jeu.classList.toggle("arret", T2D.arret);
-  jeu.classList.toggle("celebre", ph.k === "but");
-  const duree = T2D.dureeBallon || 400;
-  b.style.transitionDuration = duree + "ms";
-  ombre.style.transitionDuration = duree + "ms";
-  let g, h;
-  if (ph.k === "tir" || ph.k === "but" || ph.k === "rate") {
-    // une frappe manquée ne revient pas dans les pieds du tireur : elle
-    // file à côté du but
-    [g, h] = buts(cote, moi, ph.k === "rate" ? (T2D.dernierTir ?? 0.5) : ph.t);
-    const dehors = ph.k === "rate" ? (h < 0.5 ? -0.10 : 0.10) : 0;
-    if (ph.k === "tir") T2D.dernierTir = ph.t;
-    if (ph.k !== "but") { b.style.transitionDuration = "280ms"; ombre.style.transitionDuration = "280ms"; }
-    h += dehors;
-    if (ph.k === "but") {
-      // le filet ondule
-      const cage = t.querySelector(".t2d-cage." + (g > 0.5 ? "droite" : "gauche"));
-      if (cage) { cage.classList.remove("ondule"); void cage.offsetWidth; cage.classList.add("ondule"); }
-    }
-  } else if (ph.k === "arret") {
-    [g, h] = ecran(cote, ...ballonArret(ph), moi, true);
-  } else {
-    const [bx, by] = ballonDe(ph);
-    [g, h] = ecran(cote, bx, by, moi, true);
-  }
-  b.hidden = false; ombre.hidden = false;
-  if (window.SIM && SIM.actif) SIM.envoyer(g, h, ph, duree);   // il y va à sa vitesse
-  else {
-    b.style.left = (g * 100) + "%"; b.style.top = (h * 100) + "%";
-    ombre.style.left = (g * 100) + "%"; ombre.style.top = (h * 100) + "%";
-    // il roule le temps du trajet
-    b.classList.add("en-vol");
-    clearTimeout(T2D.rouleTimer);
-    T2D.rouleTimer = setTimeout(() => b.classList.remove("en-vol"), Math.max(200, duree));
-  }
-  // L'événement de la minute s'annonce QUAND sa phase se joue — le but
-  // quand le ballon entre, la faute au coup de sifflet — jamais avant.
-  if (T2D.attente && ph.k === T2D.attente.k) voir(T2D.attente.idx, T2D.attente.evt);
-  // le libellé d'action vit dans la légende, au-dessus du terrain
-  // Le commentaire vient du moteur (simulation.PHRASES) : il est tiré du
-  // même générateur que la séquence, donc rejouer un match redonne mot
-  // pour mot le même récit.  L'étiquette ne sert que de secours.
-  const nom = T2D.noeud && T2D.noeud.querySelector(".t2d-action");
-  if (nom) {
-    const porteur = T2D.pions?.[cote + ":" + ph.p];
-    const j = porteur ? porteur.getAttribute("title").split(" · ")[0] : "";
-    nom.textContent = (PHASE_ICONE[ph.k] ? PHASE_ICONE[ph.k] + " " : "") + (ph.d || (PHASE_TXT[ph.k] || "") + (j ? " — " + j : ""));
-    nom.className = "t2d-action " + ph.k;
-  }
-}
-
-const PHASE_ICONE = {faute: "🟡", carton: "🟨", horsjeu: "🚩", corner: "⛳", but: "⚽", blessure: "🚑", penalty: "⚠"};
-const ARRETS_LOURDS = new Set(["but", "blessure", "carton", "penalty"]);
-const ARRETS_JEU = new Set(["faute", "horsjeu", "but", "blessure", "carton", "penalty"]);
-const PHASE_TXT = tableT("phase2d.");
 
 function annoncer(t, evt) {
-  const bandeau = t.querySelector(".t2d-bandeau");
+  const bandeau = t && t.querySelector(".t2d-bandeau");
+  if (!bandeau) return;
   if (!evt) { bandeau.hidden = true; return; }
   bandeau.replaceChildren(el("span", {class: "ico"}, EVT_ICONE[evt.type] || "•"),
     el("span", {class: "txt"}, texteEvt(evt)));
@@ -2357,7 +1896,7 @@ function annoncer(t, evt) {
 // un bandeau de bas de page.
 const DUREE_POPUP = 3800;
 function surgir(terr, evt, moi) {
-  const p = terr.querySelector(".t2d-popup");
+  const p = terr && terr.querySelector(".t2d-popup");
   if (!p) return;
   moi = moi === "b" || moi === 1 ? 1 : 0;                 // T2D.moi est « a » ou « b »
   const mien = evt.cote === "AB"[moi];
@@ -2379,117 +1918,6 @@ function surgir(terr, evt, moi) {
   p.className = "t2d-popup on " + classe + (mien ? " mien" : " adverse");
   p.hidden = false;
   T2D.popupTimer = setTimeout(() => { p.classList.remove("on"); p.hidden = true; }, DUREE_POPUP);
-}
-
-// Un événement est VU quand sa phase s'est jouée : c'est là qu'il entre
-// dans le score, dans le fil et dans le bandeau.
-function voir(idx, evt) {
-  T2D.attente = null;
-  if (idx === null || idx === undefined || T2D.vus.has(idx)) return;
-  T2D.vus.add(idx);
-  T2D.dernier = {evt, quand: Date.now()};
-  if (evt.type === "but" && evt.score) T2D.score = evt.score.slice();
-  if (T2D.t) { annoncer(T2D.t, evt); surgir(T2D.t, evt, T2D.moi); }
-  majTete();
-  // le fil du direct, s'il est ouvert, reçoit la ligne tout de suite
-  const fil = document.querySelector(".match-live .fil");
-  if (fil) { fil.querySelector(".compteur")?.remove(); fil.prepend(ligneEvt(evt, T2D.moi === "b" ? 1 : 0)); }
-}
-
-// Le moteur d'animation : une phase à la fois, enchaînées par setTimeout
-// plutôt que par un intervalle fixe — le nombre de phases change d'une
-// minute à l'autre, et un arrêt de jeu dure plus longtemps qu'une passe.
-const POIDS_PHASE = {faute: 1.0, duel: 0.7, horsjeu: 1.1, but: 2.4, blessure: 2.0, carton: 1.4,
-                     tir: 1.2, arret: 1.4, coupfranc: 0.9, corner: 1.2, penalty: 1.8, engagement: 1.1};
-// quelle phase porte l'événement de la minute
-const EVT_PHASE = {but: "but", arret: "arret", occasion: "rate", corner: "corner", faute: "faute",
-                   jaune: "carton", rouge: "carton", horsjeu: "horsjeu", blessure: "blessure",
-                   penalty_manque: "arret"};
-
-// Le temps de chaque phase de la minute : au poids de la phase, plus
-// long quand le ballon voyage loin, le tout ramené à la durée d'une
-// minute pour ne jamais prendre de retard sur l'horloge du serveur.
-function delaisDe(phases) {
-  if (!phases.length) return [];
-  let prev = null;
-  const brut = phases.map(ph => {
-    const [x, y] = ballonDe(ph);
-    const abs = ph.c === 0 ? [x, y] : [1 - x, 1 - y];
-    const d = prev ? Math.hypot(abs[0] - prev[0], abs[1] - prev[1]) : 0.3;
-    prev = abs;
-    return (POIDS_PHASE[ph.k] || 0.9) * (0.65 + 1.2 * Math.min(1, d));
-  });
-  const total = brut.reduce((a, b) => a + b, 0);
-  const budget = T2D.pas * 0.92;
-  return brut.map(w => Math.max(220, budget * w / total));
-}
-
-function chargerMinute() {
-  // une minute qui finit sans avoir montré son événement le montre
-  // quand même : rien ne doit rester dans le score sans passer par le fil
-  if (T2D.attente) voir(T2D.attente.idx, T2D.attente.evt);
-  T2D.m += 1;
-  const ligne = T2D.fil[T2D.m - 1];
-  T2D.phases = (ligne && ligne.s) || [];
-  T2D.delais = delaisDe(T2D.phases);
-  T2D.i = 0;
-  const idx = ligne && ligne.e !== null && ligne.e !== undefined ? ligne.e : null;
-  const evt = idx !== null ? T2D.evts[idx] : null;
-  if (evt) {
-    const k = EVT_PHASE[evt.type];
-    if (k && T2D.phases.some(ph => ph.k === k)) T2D.attente = {idx, evt, k};
-    else voir(idx, evt);                     // un changement, une tactique : dès la minute
-  }
-  majTete();
-  if (!T2D.phases.length && ligne) bougerTerrain(T2D.t, ligne.c, ligne.z, T2D.moi);
-}
-
-function battre() {
-  const t = T2D.t, moi = T2D.moi;
-  if (!t) return 400;
-  if (T2D.i >= T2D.phases.length) {
-    if (T2D.m >= T2D.cible) { reAnnoncer(t); return 400; }
-    // en retard de plus de deux minutes (onglet en arrière-plan, réseau) :
-    // on saute jusqu'à l'avant-dernière minute plutôt que de rejouer tout
-    while (T2D.cible - T2D.m > 2) chargerMinute();
-    chargerMinute();
-    if (!T2D.phases.length) { reAnnoncer(t); return 300; }
-  }
-  const ph = T2D.phases[T2D.i];
-  const delai = T2D.delais[T2D.i] || 400;
-  T2D.i += 1;
-  T2D.dureeBallon = Math.round(delai * 0.7);
-  jouerPhase(t, ph, moi);
-  reAnnoncer(t);
-  return delai;
-}
-
-function programmer(d) {
-  clearTimeout(T2D.timer);
-  T2D.timer = setTimeout(() => { T2D.timer = null; programmer(battre()); }, Math.max(120, d));
-}
-
-function arreterTerrain(oublier) {
-  if (T2D.timer) { clearTimeout(T2D.timer); T2D.timer = null; }
-  if (oublier) arreterTerrainB(true);
-  if (oublier) {
-    if (window.SIM) SIM.stop();
-    T2D.noeud = null; T2D.cle = null; T2D.m = 0; T2D.dernier = null; T2D.phases = []; T2D.i = 0;
-    T2D.vus = new Set(); T2D.score = null; T2D.attente = null; T2D.rid = null; T2D.tete = null;
-  }
-}
-
-// Ce que l'écran a DÉJÀ montré : le score et l'horloge suivent
-// l'animation, pas le serveur, qui a une minute d'avance.  Les
-// événements des minutes déjà passées quand on arrive sont considérés
-// vus, sinon un spectateur en retard verrait tout le match défiler.
-function vusInitiaux(m) {
-  T2D.vus = new Set();
-  // T2D.m est la minute déjà jouée : ses événements sont passés aussi
-  (m.evenements || []).forEach((e, i) => { if (e.minute <= T2D.m) T2D.vus.add(i); });
-  const s = [0, 0];
-  (m.evenements || []).forEach((e, i) => { if (e.type === "but" && T2D.vus.has(i) && e.score) { s[0] = e.score[0]; s[1] = e.score[1]; } });
-  T2D.score = s;
 }
 
 function scoreVu(m) {
@@ -2558,7 +1986,7 @@ function panneauTerrainB(d, moi) {
       el("span", {class: "t2d-action"}, "")));
     const boite = el("div", {class: "terrain2d terrain-b"});
     const canvas = el("canvas", {class: "terrain-b-canvas", width: 1050, height: 680});
-    boite.append(canvas); p.append(boite);
+    boite.append(canvas, el("div", {class: "t2d-bandeau", hidden: true}), el("div", {class: "t2d-popup", hidden: true})); p.append(boite);
     TB.noeud = p; TB.canvas = canvas;
     TB.terrain = new TerrainB(canvas, {miroir: moi === "b"});
     TB.terrain.charger({joueurs: m.cartes || [], trace: [], evenements: [], trace_pas: m.trace_pas || 0.4, phases: m.phases || null,
@@ -2577,11 +2005,13 @@ function panneauTerrainB(d, moi) {
   if (!TB.raf) { TB.derniere = performance.now(); TB.raf = requestAnimationFrame(boucleB); }
   return TB.noeud;
 }
+function boiteDe() { return TB.noeud ? TB.noeud.querySelector(".terrain2d") : null; }
 function boucleB(now) {
   TB.raf = null;
   if (!TB.terrain || !TB.noeud || !TB.noeud.isConnected) return;
   const dt = Math.min(0.5, (now - TB.derniere) / 1000); TB.derniere = now;
   const tr = TB.terrain;
+  const moi = TB.moi;
   if (!TB.pause && tr.trace.length && TB.d >= 0) {
     TB.d = Math.min(tr.affiche, TB.d + dt * TB.vitesse);
     if (tr.affiche - TB.d > 2.5 * margeB()) TB.d = tr.affiche - margeB();   // trop de retard (onglet endormi) : on rattrape
@@ -2595,6 +2025,20 @@ function boucleB(now) {
     T2D.score = r.score;
     const vus = new Set();
     (m.evenements || []).forEach((e, i) => { if (e.t === undefined || e.t === null || e.t <= r.t) vus.add(i); });
+    // un événement que le terrain vient de montrer : le bandeau, la pop-up, la ligne du fil
+    if (T2D.rid === m.rencontre_id && T2D.vus.size && vus.size > T2D.vus.size) {
+      const fil = document.querySelector(".match-live .fil");
+      for (const i of vus) if (!T2D.vus.has(i)) {
+        const evt = m.evenements[i];
+        if (!evt) continue;
+        if (fil) { fil.querySelector(".compteur")?.remove(); fil.prepend(ligneEvt(evt, moi === "b" ? 1 : 0)); }
+        if (["but", "arret", "occasion", "jaune", "rouge", "penalty_manque", "blessure", "changement", "corner"].includes(evt.type)) {
+          annoncer(boiteDe(), evt);
+          clearTimeout(T2D.bandeauTimer); T2D.bandeauTimer = setTimeout(() => annoncer(boiteDe(), null), 5000);
+        }
+        surgir(boiteDe(), evt, moi);
+      }
+    }
     T2D.vus = vus;
     majTete();
   }
@@ -2608,69 +2052,7 @@ function arreterTerrainB(oublier) {
 // Le panneau est RÉUTILISÉ d'un sondage à l'autre, pas reconstruit :
 // redessiner vingt-deux cartes toutes les deux secondes et demie
 // relançait chaque transition CSS et effaçait le bandeau d'événement.
-function panneauTerrain(d, moi) {
-  const m = d.match;
-  if (m.moteur === "B") return panneauTerrainB(d, moi);
-  if (T2D.rid !== m.rencontre_id) {
-    arreterTerrain(true);
-    T2D.rid = m.rencontre_id;
-  }
-  const cle = JSON.stringify([m.rencontre_id, moi, m.sur_le_terrain?.a, m.sur_le_terrain?.b,
-                              m.formation?.a, m.formation?.b]);
-  let p = T2D.noeud;
-  if (!p || T2D.cle !== cle) {
-    arreterTerrain();                       // nouveau match, ou nouveau onze
-    // Pas de score ni d'horloge ici : le bandeau du match les porte, et
-    // deux horloges qui ne disent pas la même minute (l'animation a un
-    // temps de retard sur le serveur) valent moins qu'une seule.
-    p = el("div", {class: "panneau terrain-live"});
-    p.append(el("div", {class: "t2d-legende"},
-      el("span", {class: "lg mien"}, t("terrain.ton_equipe")),
-      el("span", {class: "lg adverse"}, t("terrain.adversaire")),
-      el("span", {class: "t2d-action"}, "")));
-    const terr = terrain2d();
-    p.append(terr);
-    peuplerTerrain(terr, m, moi);
-    T2D.noeud = p; T2D.cle = cle;
-    if (T2D.m > m.minute) T2D.m = Math.max(0, m.minute - 1);
-    if (window.SIM) SIM.init(terr, moi);
-  }
-  const terr = p.querySelector(".terrain2d");
-  // le panneau revient à l'écran après un détour par un autre onglet :
-  // la simulation, qui s'était endormie, repart
-  if (window.SIM && SIM.t === terr && !SIM.timer) { SIM.actif = true; SIM.start(); }
-  T2D.fil = m.fil || [];
-  T2D.cible = m.minute;
-  T2D.evts = m.evenements || [];
-  T2D.t = terr; T2D.moi = moi;
-  T2D.consignes = m.tactique || {};
-  T2D.pas = Math.max(900, (d.duree * 1000) / (d.minutes || 90));
-  if (T2D.m === 0 || !T2D.score) { if (T2D.m === 0) T2D.m = Math.max(0, T2D.cible - 1); vusInitiaux(m); }
-  if (T2D.m > T2D.cible) T2D.m = T2D.cible;
-  jauges(m);
-  reAnnoncer(terr);
-  terr.classList.toggle("suspendu", !!m.pause);
-  // L'horloge d'animation tourne PLUS LENTEMENT que le sondage : la
-  // relancer à chaque réponse l'empêchait de se déclencher, et le terrain
-  // ne bougeait jamais tout seul.
-  if (!m.fini && !m.pause && !T2D.timer) programmer(200);
-  if (m.pause) arreterTerrain();
-  if (m.fini) {
-    arreterTerrain();
-    T2D.m = m.minute;
-    const der = T2D.fil[T2D.fil.length - 1];
-    if (der) bougerTerrain(terr, der.c, der.z, moi);
-  }
-  return p;
-}
-
-// Une annonce reste affichée quelques secondes, d'un sondage à l'autre.
-const DUREE_BANDEAU = 5000;
-function reAnnoncer(t) {
-  const e = T2D.dernier;
-  if (e && Date.now() - e.quand < DUREE_BANDEAU) annoncer(t, e.evt);
-  else annoncer(t, null);
-}
+function panneauTerrain(d, moi) { return panneauTerrainB(d, moi); }
 
 // Five changes over three stoppages, like the laws.  The rules themselves
 // live in the simulation — it is the only place that knows who is still on

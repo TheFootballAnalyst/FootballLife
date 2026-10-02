@@ -299,8 +299,11 @@ société (la loi sur les packs en dépend).
 
 Tu me fais confiance là-dessus ; voilà ma liste, par ordre :
 1. ~~Les blessures et suspensions dans le moteur B~~ (chantier 2.4, fait),
-   puis **le retrait du moteur A** : un seul moteur, un seul commentaire à
-   traduire.
+   puis ~~le retrait du moteur A du direct~~ (fait : un seul moteur du
+   direct, l'ancien terrain 2D et sa simulation de jetons retirés de
+   l'écran, le bandeau et la pop-up passés au terrain B ; le moteur A ne
+   joue plus que les matchs d'une journée de campagne qu'on ne regarde
+   pas, en une seconde).
 2. **Les renversements** (TACTIQUE § 30) : le moteur renverse deux fois
    moins que le réel mais convertit deux fois plus derrière ; c'est la
    finition après renversement à mesurer et régler, puis la borne du côté

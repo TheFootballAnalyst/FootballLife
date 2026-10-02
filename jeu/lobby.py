@@ -128,15 +128,7 @@ def termine(jeu, saison: str, r, f: dict | None = None) -> bool:
         return False
     if r["resultat"] is not None:
         return True
-    if DIRECT.MOTEUR == "B":
-        return DIRECT.termine(jeu, saison, r)
-    m = minute_de(r)
-    if m < SM.MINUTES:
-        return False
-    if m >= SM.MINUTES_MAX:
-        return True
-    f = f if f is not None else feuille(jeu, saison, r, m)
-    return bool(f.get("fini"))
+    return DIRECT.termine(jeu, saison, r)
 
 
 def duree_de(r) -> int:
@@ -156,11 +148,11 @@ def _champ(r, cle, defaut=None):
 def minute_de(r, maintenant_: datetime | None = None, jeu=None, saison: str | None = None) -> int:
     """The minute of a stored match, its pauses taken out.
 
-    With the B engine the clock is the match's own (direct.minute_de: the
-    minute its live copy has reached for the real time elapsed), so the
-    base and the season are needed to find it; without them, the A
-    engine's linear clock is returned."""
-    if DIRECT.MOTEUR == "B" and jeu is not None and r["debut"]:
+    The clock is the match's own (direct.minute_de: the minute its live
+    copy has reached for the real time elapsed), so the base and the season
+    are needed to find it; without them, a linear clock stands in (a match
+    not started, a test without a base)."""
+    if jeu is not None and r["debut"]:
         return DIRECT.minute_de(jeu, saison, r, maintenant_)
     return minute_courante(r["debut"], maintenant_, _champ(r, "pause"), _champ(r, "pause_cumul", 0) or 0,
                            duree_de(r))
@@ -168,11 +160,8 @@ def minute_de(r, maintenant_: datetime | None = None, jeu=None, saison: str | No
 
 def reel_pour(jeu, saison: str, r, minute: float) -> float:
     """Les secondes réelles depuis le coup d'envoi pour que l'horloge de ce
-    match atteigne `minute` : linéaire avec le moteur A, le match lui-même
-    le dit avec le B (direct.reel_pour)."""
-    if DIRECT.MOTEUR == "B":
-        return DIRECT.reel_pour(jeu, saison, r, minute)
-    return duree_de(r) * minute / SM.MINUTES
+    match atteigne `minute` : le match lui-même le dit (direct.reel_pour)."""
+    return DIRECT.reel_pour(jeu, saison, r, minute)
 
 
 def _dater(jeu, saison: str, r, ecrire) -> int:
@@ -181,7 +170,7 @@ def _dater(jeu, saison: str, r, ecrire) -> int:
     direct (direct.dater), pour que le match ne bouge pas entre les deux :
     la consigne s'applique alors exactement à sa minute, en direct comme
     au rejeu."""
-    if DIRECT.MOTEUR == "B" and r["debut"]:
+    if r["debut"]:
         return DIRECT.dater(jeu, saison, r, ecrire)
     cle = min(SM.MINUTES_MAX, minute_de(r) + 1)
     ecrire(cle)
@@ -204,7 +193,7 @@ def suspendre(jeu, r, oui: bool) -> bool:
     Only a match with one human in it: two managers cannot each hold the
     other's clock.  Restarting adds the time spent stopped to `pause_cumul`
     so the minute picks up exactly where it was left."""
-    if not r["debut"] or r["resultat"] is not None or (DIRECT.MOTEUR != "B" and minute_de(r) >= SM.MINUTES_MAX):
+    if not r["debut"] or r["resultat"] is not None:
         return False
     if oui:
         if en_pause(r):
@@ -556,14 +545,8 @@ def feuille(jeu, saison: str, r, minute: float | None = None, depuis: float | No
     # replaces its injured players — and the machine's in a challenge or a
     # campaign.  Side A's injuries are never replaced behind his back: the
     # sheet reports them and the screen stops to ask.
-    if DIRECT.MOTEUR == "B":
-        # le moteur B : un match vivant, avancé à l'horloge (jeu/direct.py)
-        f = DIRECT.feuille(jeu, saison, r, minute, depuis=depuis, trace=trace)     # None : l'horloge du direct
-    else:
-        f = SM.jouer(a, b, r["graine"], _tactiques(r), jusqua=m, changements=_remplacements(r),
-                     auto_remplacement=(False, True),
-                     causeries=(_champ(r, "causerie_a") or "rien", _champ(r, "causerie_b") or "rien"),
-                     permutations=_permutations(r))
+    # un match vivant, avancé à l'horloge (jeu/direct.py) ; None : l'horloge du direct
+    f = DIRECT.feuille(jeu, saison, r, minute, depuis=depuis, trace=trace)
     f["rencontre_id"] = r["rencontre_id"]
     f["pause"] = en_pause(r)
     f["solitaire"] = solitaire(r)
@@ -767,14 +750,9 @@ def cloturer(jeu, saison: str, r) -> dict | None:
         return json.loads(r["feuille"]) if r["feuille"] else None
     if not r["debut"]:
         return None
-    if DIRECT.MOTEUR == "B":
-        if not DIRECT.termine(jeu, saison, r):
-            return None                      # l'écran n'a pas encore vu la fin
-    elif minute_de(r) < SM.MINUTES:
-        return None
+    if not DIRECT.termine(jeu, saison, r):
+        return None                          # l'écran n'a pas encore vu la fin
     f = feuille(jeu, saison, r, SM.MINUTES_MAX)
-    if DIRECT.MOTEUR != "B" and not f.get("fini") and minute_de(r) < (f.get("total") or SM.MINUTES_MAX):
-        return None                          # le temps additionnel se joue encore
     f.pop("trace", None)                     # la trace ne se range pas dans la base (3 Mo par match)
     DIRECT.oublier(r)
     ea, eb = None, None

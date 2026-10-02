@@ -23,7 +23,7 @@ import threading
 from jeu import emergent as EM
 from jeu import simulation as SM
 
-MOTEUR = "B"                      # le moteur du direct : "B" (le terrain du bac) ou "A" (l'ancien fil minute par minute)
+MOTEUR = "B"                      # le moteur du direct : le B, le seul (l'ancien fil minute par minute du moteur A est retiré du direct)
 # L'horloge du moteur B est le temps affiché (emergent.Match.affiche) : le ballon
 # vivant compte en entier, chaque arrêt de jeu deux secondes (SAUT_ARRET), et
 # l'écran le joue à la vitesse de la rencontre (lobby.vitesse_de).  Le serveur

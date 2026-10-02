@@ -286,40 +286,6 @@ def test_a_ranked_match_between_two_managers_cannot_be_stopped():
     assert not LB.solitaire(r)          # le serveur refuse la pause (web/app/serveur.py)
 
 
-def test_an_injury_stops_a_solo_match_once_and_the_substitution_restarts_it(monkeypatch):
-    from jeu import direct as DIRECT
-    monkeypatch.setattr(DIRECT, "MOTEUR", "A")            # les blessures sont au moteur A ; le moteur B n'en a pas encore
-    monkeypatch.setattr(SM, "P_BLESSURE", 1.0)
-    jeu = base_avec_equipes(1)
-    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True, banc=[12, 13, 14, 15])
-    r = LB.en_cours(jeu, "2025/26", 1)
-    jeu.execute("UPDATE rencontre SET graine=7 WHERE rencontre_id=?", (r["rencontre_id"],))
-    jeu.commit()
-    r = _reculer(jeu, r, LB.DUREE_REELLE / 4)
-    f = LB.arbitrer(jeu, r, LB.feuille(jeu, "2025/26", r))
-    assert f["attente"]["a"], "le moteur doit signaler le blessé au lieu de le remplacer"
-    assert f["pause"] is True
-    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
-    fige = LB.minute_de(r)
-    # l'arbitre ne siffle qu'une fois : s'il repart sans changer, on le
-    # laisse jouer à dix
-    LB.suspendre(jeu, r, False)
-    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
-    f2 = LB.arbitrer(jeu, r, LB.feuille(jeu, "2025/26", r))
-    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
-    assert not LB.en_pause(r), "un seul coup de sifflet par blessure"
-    # et un changement sur le blessé remet le onze à onze
-    LB.suspendre(jeu, r, True)
-    r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
-    f3 = LB.feuille(jeu, "2025/26", r)
-    if f3["attente"]["a"]:
-        entrant = next(j["pid"] for j in f3["banc"]["a"] if j["pid"] not in f3["entres"]["a"])
-        LB.changer(jeu, "2025/26", 1, f3["attente"]["a"][0], entrant, r)
-        r = jeu.execute("SELECT * FROM rencontre WHERE rencontre_id=?", (r["rencontre_id"],)).fetchone()
-        assert not LB.en_pause(r), "le changement rend le coup de sifflet de reprise"
-    assert fige >= 0
-
-
 def test_a_formation_changed_in_play_is_recorded_like_any_other_adjustment():
     jeu = base_avec_equipes(1)
     LB.rejoindre(jeu, "2025/26", 1, ONZE, None, defi=True)
