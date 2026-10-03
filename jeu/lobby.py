@@ -390,10 +390,16 @@ def en_cours(jeu, saison: str, equipe_id: int):
 
 def rejoindre(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict | None,
               formation: str = "4-3-3", defi: bool = False, graine: int | None = None,
-              banc: list[int] | None = None, duree: int | None = None, vitesse: float | None = None) -> int:
+              banc: list[int] | None = None, duree: int | None = None, vitesse: float | None = None,
+              adversaire: dict | None = None) -> int:
     """Enter the lobby.  Pairs with whoever is waiting at a close ranked
     Elo, else opens a waiting entry — or kicks off at once against a
-    generated eleven when `defi`.  Returns the rencontre_id."""
+    generated eleven when `defi`.  Returns the rencontre_id.
+
+    `adversaire` (un match de coupe entre amis, jeu/coupe.py) : le onze
+    enregistré d'un autre membre, mené par la machine — un défi qui porte
+    son nom et son match de coupe ({onze, banc, formation, tactique, nom,
+    coupe_match_id})."""
     if en_cours(jeu, saison, equipe_id):
         raise ErreurLobby("deja_match")
     onze = verifier_onze(jeu, saison, equipe_id, onze, formation)
@@ -419,7 +425,13 @@ def rejoindre(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict 
             jeu.commit()
             return attente[0]
     onze_b, tac_b, banc_b = None, None, None
-    if defi:
+    formation_b, nom_adverse, coupe_match_id = "4-3-3" if defi else None, None, None
+    if adversaire is not None:
+        defi = True
+        onze_b, banc_b = json.dumps(adversaire["onze"]), json.dumps(adversaire.get("banc") or [])
+        tac_b = json.dumps(vars(SM.Tactique(**(adversaire.get("tactique") or {})).valide()))
+        formation_b, nom_adverse, coupe_match_id = adversaire.get("formation") or "4-3-3", adversaire.get("nom"), adversaire.get("coupe_match_id")
+    elif defi:
         # the challenge is built around the manager's own eleven, so it is a
         # match and not a punishment, and around the seed so it can be replayed
         niveau = jeu.execute(
@@ -434,11 +446,13 @@ def rejoindre(jeu, saison: str, equipe_id: int, onze: list[int], tactique: dict 
     duree_match = duree if defi and duree in DUREES else DUREE_REELLE
     vitesse_match = float(vitesse) if defi and vitesse in VITESSES else VITESSE_CLASSE
     cur = jeu.execute("""INSERT INTO rencontre(saison, equipe_a, equipe_b, defi, onze_a, onze_b, banc_a, banc_b,
-                            tactique_a, tactique_b, formation_a, formation_b, graine, debut, elo_a_avant, cree_le, duree, vitesse)
-                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                            tactique_a, tactique_b, formation_a, formation_b, graine, debut, elo_a_avant, cree_le, duree, vitesse,
+                            nom_adverse, coupe_match_id)
+                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                       (saison, equipe_id, None, int(defi), json.dumps(onze), onze_b, json.dumps(banc), banc_b,
-                       tac, tac_b, formation, "4-3-3" if defi else None, graine,
-                       maintenant() if defi else None, elo, maintenant(), duree_match, vitesse_match))
+                       tac, tac_b, formation, formation_b, graine,
+                       maintenant() if defi else None, elo, maintenant(), duree_match, vitesse_match,
+                       nom_adverse, coupe_match_id))
     jeu.commit()
     return cur.lastrowid
 
@@ -795,6 +809,9 @@ def cloturer(jeu, saison: str, r) -> dict | None:
                 (f["score"][0], f["score"][1], f["resultat"], json.dumps(f, ensure_ascii=False), ea, eb,
                  r["rencontre_id"]))
     jeu.commit()
+    if _champ(r, "coupe_match_id"):
+        from jeu import coupe as CP                      # un match de coupe entre amis : le vainqueur monte
+        CP.apres_match(jeu, saison, r, f)
     return f
 
 
@@ -882,7 +899,7 @@ def historique(jeu, saison: str, equipe_id: int, limite: int = 15) -> list[dict]
                             ORDER BY rencontre_id DESC LIMIT ?""", (saison, equipe_id, equipe_id, limite)):
         chez_a = r["equipe_a"] == equipe_id
         adv = r["equipe_b"] if chez_a else r["equipe_a"]
-        nom = "Le défi" if r["defi"] else (jeu.execute("SELECT nom FROM equipe WHERE equipe_id=?", (adv,)).fetchone() or ["?"])[0]
+        nom = (_champ(r, "nom_adverse") or "Le défi") if r["defi"] else (jeu.execute("SELECT nom FROM equipe WHERE equipe_id=?", (adv,)).fetchone() or ["?"])[0]
         avant = r["elo_a_avant"] if chez_a else r["elo_b_avant"]
         apres = r["elo_a_apres"] if chez_a else r["elo_b_apres"]
         out.append({"rencontre_id": r["rencontre_id"], "adversaire": nom, "defi": bool(r["defi"]),

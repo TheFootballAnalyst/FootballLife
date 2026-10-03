@@ -652,6 +652,25 @@ reconduite telle quelle sur la journée suivante (`pipeline.reconduire_compositi
 un manager qui oublie de la renvoyer garde son onze, et peut la modifier
 jusqu'au verrouillage.
 
+## La coupe entre amis
+
+Dans une ligue privée (écran Classement), une **coupe de la semaine** :
+un tableau à élimination directe entre les membres, huit au plus, les
+plus forts têtes de série (par Elo classé), les places vides sont des
+exemptions ; trois tours à huit, un pack Or au vainqueur, une coupe par
+semaine et par ligue. N'importe quel membre la lance.
+
+Chaque match se joue **comme un défi, par le premier des deux qui
+clique** : il joue en direct dans le lobby, avec sa tactique et ses
+changements ; l'autre est représenté par son onze enregistré (sa
+composition de la journée, sa tactique de club), mené par la machine,
+sous le nom de son club. L'autre voit le résultat dans le tableau. Un
+membre sans onze enregistré perd par forfait ; un nul se décide aux tirs
+au but. Rien n'est classé (pas d'Elo), la prime est celle d'un défi.
+Le tableau et le bouton « Jouer mon match » sont sous le classement de
+la ligue ; les limites du gratuit (`--limites`) comptent ces matchs
+comme des défis.
+
 ## Les comptes en ligne, le monde fictif
 
 La version en ligne se lance avec les limites du gratuit et le premium

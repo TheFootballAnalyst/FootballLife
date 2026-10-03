@@ -945,3 +945,15 @@ button.tac.actif{background:linear-gradient(180deg,var(--or2,#d8b45a),var(--or,#
 nav select#langue{background:transparent;border:1px solid transparent;color:var(--sourd);font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:12.5px;padding:4px 6px;border-radius:9px;cursor:pointer}
 nav select#langue:hover{color:var(--encre);background:rgba(255,255,255,.05)}
 nav select#langue option{background:var(--surface3,#141a2a);color:var(--encre,#eee);text-transform:none}
+
+/* la coupe entre amis */
+.coupe{margin-top:10px;padding-top:8px;border-top:1px dashed var(--ligne)}
+.coupe h4{margin:0 0 4px}
+.tableau-coupe{display:flex;gap:12px;overflow-x:auto;padding:6px 0}
+.tableau-coupe .tour{display:flex;flex-direction:column;justify-content:space-around;gap:8px;min-width:150px}
+.match-coupe{border:1px solid var(--ligne);border-radius:6px;padding:4px 6px;font-size:.85rem;background:var(--fond2,transparent)}
+.match-coupe.moi{border-color:var(--or2)}
+.match-coupe .equipe{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;opacity:.75}
+.match-coupe .equipe.gagne{opacity:1;font-weight:600}
+.match-coupe .equipe.moi{color:var(--or2)}
+.match-coupe .score{font-family:Anton,sans-serif;letter-spacing:.06em;color:var(--texte2,inherit);margin-top:2px}

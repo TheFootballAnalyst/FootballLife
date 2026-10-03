@@ -110,6 +110,15 @@ MESSAGES: dict[str, str] = {
     "signature": "Signature invalide",
     "email_pris": "Ce courriel est déjà utilisé par un compte",
     "compte_inconnu": "Compte inconnu",
+    # -- la coupe entre amis (jeu/coupe.py) ---------------------------------------------------
+    "pas_membre": "Tu n'es pas membre de cette ligue",
+    "coupe_en_cours": "Une coupe est déjà en cours dans cette ligue",
+    "coupe_semaine": "La coupe de cette semaine a déjà été jouée : la prochaine lundi",
+    "coupe_deux": "Il faut au moins deux membres pour une coupe",
+    "coupe_match_inconnu": "Ce match de coupe n'est pas le tien",
+    "coupe_match_joue": "Ce match de coupe est déjà joué",
+    "coupe_match_en_cours": "Ce match de coupe se joue en ce moment",
+    "coupe_match_attend": "Ton adversaire n'est pas encore connu",
 }
 
 

@@ -304,6 +304,7 @@ CREATE TABLE IF NOT EXISTS rencontre (
     arrets_vus       TEXT,                          -- JSON [player_id] the referee already stopped play for
     causerie_a       TEXT, causerie_b TEXT,          -- ce que chaque manager a dit à la mi-temps
     permutations     TEXT NOT NULL DEFAULT '{}',    -- JSON {minute: [[[pid, pid], ...] A, [...] B]} : deux joueurs échangent leurs postes
+    coupe_match_id   INTEGER,                       -- le match de coupe entre amis que cette rencontre joue (jeu/coupe.py)
     duree            INTEGER,                       -- secondes réelles pour les 90 minutes (NULL : lobby.DUREE_REELLE) ; moteur A
     vitesse          REAL,                          -- moteur B : la vitesse du ballon vivant à l'écran (NULL : lobby.VITESSE_CLASSE)
     cree_le          TEXT NOT NULL

@@ -111,7 +111,8 @@ MIGRATIONS = {                       # columns added after the first bases were 
                   ("formation_a", "TEXT"), ("formation_b", "TEXT"),
                   ("pause", "TEXT"), ("pause_cumul", "INTEGER NOT NULL DEFAULT 0"),
                   ("arrets_vus", "TEXT"), ("causerie_a", "TEXT"), ("causerie_b", "TEXT"),
-                  ("permutations", "TEXT NOT NULL DEFAULT '{}'"), ("duree", "INTEGER"), ("vitesse", "REAL")],
+                  ("permutations", "TEXT NOT NULL DEFAULT '{}'"), ("duree", "INTEGER"), ("vitesse", "REAL"),
+                  ("coupe_match_id", "INTEGER")],          # le match de coupe entre amis que cette rencontre joue (jeu/coupe.py)
 }
 
 

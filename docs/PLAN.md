@@ -156,11 +156,15 @@ et une phrase incomprise reçoit quatre exemples pris dans la situation.
 refus en clair), routes `/api/lobby/dire` et `/api/solo/dire`, la boîte
 est en tête du panneau Ajuster du match.
 
-**2.6 Jouer avec les autres (en option, 2 j).** Les ligues privées
+**2.6 Jouer avec les autres (en option, 2 j) — Fait.** Les ligues privées
 existent déjà pour le fantasy ; les ouvrir au classé : une **coupe
 entre amis** hebdomadaire (huit joueurs, trois tours, un pack au
 vainqueur), et un classement du club entre amis. C'est le levier de
-bouche à oreille.
+bouche à oreille. Fait (`jeu/coupe.py`, SITE.md « La coupe entre
+amis ») : le tableau par Elo avec exemptions, chaque match joué comme
+un défi par le premier des deux qui clique contre le onze enregistré de
+l'autre, forfait sans onze, tirs au but sur un nul, un pack Or au
+vainqueur.
 
 Ce que je ne propose pas : l'entraînement (une jauge qui monte en
 cliquant), les contrats, les blessures longue durée, le mercato à

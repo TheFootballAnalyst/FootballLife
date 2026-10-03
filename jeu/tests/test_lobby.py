@@ -177,7 +177,7 @@ BANC = [12, 13, 14, 15]
 
 def test_a_manager_names_a_bench_and_can_use_it_during_the_match():
     jeu = base_avec_equipes(2)
-    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, banc=BANC)
+    LB.rejoindre(jeu, "2025/26", 1, ONZE, None, banc=BANC, graine=1)   # (a seed: the sub could be injured or sent off before the 90th)
     LB.rejoindre(jeu, "2025/26", 2, ONZE, None, banc=BANC)
     r = LB.en_cours(jeu, "2025/26", 1)
     f = LB.feuille(jeu, "2025/26", r, 10)

@@ -2595,8 +2595,55 @@ async function rendreClassement() {
     const box = el("div", {class: "ligue"}, el("div", {class: "tete"}, el("h3", {class: "anton"}, l.nom), el("span", {class: "compteur"}, t("ligues.code_court") + " ", el("span", {class: "code"}, l.code))));
     const tab = el("table"); const b = el("tbody");
     for (const r of l.classement) b.append(el("tr", {class: r.equipe_id === G.equipe.equipe_id ? "moi" : ""}, el("td", {}, String(r.rang)), el("td", {}, r.equipe), el("td", {class: "num"}, f1(r.points))));
-    tab.append(b); box.append(el("div", {class: "tableau"}, tab)); L.append(box);
+    tab.append(b); box.append(el("div", {class: "tableau"}, tab));
+    box.append(blocCoupe(l));
+    L.append(box);
   }
+}
+
+// ---- la coupe entre amis (jeu/coupe.py) ----
+function nomTourCoupe(tour, nTours) {
+  const reste = nTours - tour;
+  if (reste === 0) return t("coupe.finale");
+  if (reste === 1) return t("coupe.demi");
+  if (reste === 2) return t("coupe.quart");
+  return t("coupe.tour", {n: tour});
+}
+
+function blocCoupe(l) {
+  const c = l.coupe;
+  const box = el("div", {class: "coupe"}, el("h4", {class: "anton"}, t("coupe.titre")), el("p", {class: "compteur"}, t("coupe.texte")));
+  const lancer = el("button", {onclick: async () => { try { await api(`/ligues/${l.id}/coupe`, {}); rendreClassement(); } catch (e) { toast(e.message); } }}, t("coupe.lancer"));
+  if (!c) { box.append(el("p", {class: "compteur"}, t("coupe.aucune")), lancer); return box; }
+  box.append(el("p", {class: "compteur"}, t("coupe.semaine", {semaine: c.semaine}) + (c.statut === "finie" ? " · " + t("coupe.finie", {nom: c.nom_vainqueur || "?"}) : "")));
+  const tableau = el("div", {class: "tableau-coupe"});
+  c.tours.forEach((tour, i) => {
+    const col = el("div", {class: "tour"}, el("div", {class: "etiq"}, nomTourCoupe(i + 1, c.n_tours)));
+    for (const m of tour) {
+      const moi = [m.a, m.b].includes(G.equipe.equipe_id);
+      const ligne = (eid, nom) => el("div", {class: "equipe" + (eid === m.vainqueur ? " gagne" : "") + (eid === G.equipe.equipe_id ? " moi" : "")}, nom || (m.vainqueur ? "" : "…"));
+      const etat = m.score ? (m.score === "exempt" ? t("coupe.exempt") : m.score === "forfait" ? t("coupe.forfait") : m.score)
+        : (m.rencontre_id ? t("coupe.en_cours") : t("coupe.a_venir"));
+      col.append(el("div", {class: "match-coupe" + (moi ? " moi" : "")}, ligne(m.a, m.nom_a), ligne(m.b, m.nom_b), el("div", {class: "score"}, etat)));
+    }
+    tableau.append(col);
+  });
+  box.append(tableau);
+  const mm = c.mon_match;
+  if (mm && mm.en_cours) box.append(el("p", {class: "avert"}, t("coupe.en_cours_moi", {nom: mm.adversaire})));
+  else if (mm) box.append(el("button", {class: "primaire", onclick: () => jouerCoupe(mm)}, t("coupe.jouer", {nom: mm.adversaire})));
+  if (c.peut_lancer) box.append(lancer);
+  return box;
+}
+
+async function jouerCoupe(mm) {
+  const onze = C.slots.every(x => x !== null) ? C.slots.slice() : null;
+  if (!onze) { toast(t("coupe.onze")); return; }
+  try {
+    const r = await api("/coupe/jouer", {coupe_match_id: mm.id, formation: C.formation, onze, banc: C.banc.slice(0, BANC_MAX), tactique: LOBBY.tac, defi: true, vitesse: VITESSE});
+    if (r.forfait) { toast(t("coupe.forfait_gagne")); rendreClassement(); return; }
+    toast(t("coupe.commence")); await montrer("lobby");
+  } catch (e) { toast(e.message); }
 }
 $("#btn-creer-ligue").addEventListener("click", async () => { try { const r = await api("/ligues", {nom: $("#ligue-nom").value}); toast(t("ligues.creee", {code: r.code})); $("#ligue-nom").value = ""; rendreClassement(); } catch (e) { toast(e.message); } });
 $("#btn-rejoindre-ligue").addEventListener("click", async () => { try { const r = await api("/ligues/rejoindre", {code: $("#ligue-code").value}); toast(t("ligues.rejointe", {nom: r.nom})); $("#ligue-code").value = ""; rendreClassement(); } catch (e) { toast(e.message); } });

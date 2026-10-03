@@ -35,6 +35,7 @@ RACINE = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(RACINE))
 
 from jeu import bareme as B  # noqa: E402
+from jeu import coupe as CP  # noqa: E402
 from jeu import evolution as E  # noqa: E402
 from jeu import direct as DIRECT  # noqa: E402
 from jeu import lobby as LB  # noqa: E402
@@ -1269,8 +1270,34 @@ def ligues(u=Depends(exiger), jeu=Depends(bd)):
                             WHERE m.equipe_id=? AND l.saison=?""", (e["equipe_id"], SAISON)):
         membres = [r[0] for r in jeu.execute("SELECT equipe_id FROM ligue_privee_membre WHERE ligue_privee_id=?", (l["ligue_privee_id"],))]
         out.append({"id": l["ligue_privee_id"], "nom": l["nom"], "code": l["code"],
-                    "classement": classement_equipes(jeu, membres)})
+                    "classement": classement_equipes(jeu, membres),
+                    "coupe": CP.etat(jeu, SAISON, l["ligue_privee_id"], e["equipe_id"])})
     return out
+
+
+# -- la coupe entre amis (jeu/coupe.py) ------------------------------------------------------
+class EntreeCoupe(EntreeLobby):
+    coupe_match_id: int
+
+
+@app.post("/api/ligues/{ligue_id}/coupe")
+def coupe_lancer(ligue_id: int, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    try:
+        return CP.lancer(jeu, SAISON, ligue_id, e["equipe_id"])
+    except CP.ErreurCoupe as err:
+        raise HTTPException(400, err.detail())
+
+
+@app.post("/api/coupe/jouer")
+def coupe_jouer(c: EntreeCoupe, u=Depends(exiger), jeu=Depends(bd)):
+    e = equipe_de(jeu, u)
+    try:
+        CO.verifier_match(jeu, SAISON, e["equipe_id"])
+        rid = CP.jouer(jeu, SAISON, c.coupe_match_id, e["equipe_id"], c.onze, c.tactique, c.formation, banc=c.banc, vitesse=c.vitesse)
+    except (CP.ErreurCoupe, LB.ErreurLobby, CO.ErreurCompte) as err:
+        raise HTTPException(400, err.detail())
+    return {"rencontre_id": rid, "forfait": rid == 0} | LB.etat(jeu, SAISON, e["equipe_id"])
 
 
 @app.post("/api/ligues")
