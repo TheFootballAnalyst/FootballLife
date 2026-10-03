@@ -1,23 +1,30 @@
 #!/usr/bin/env python3
-"""environnements.py — deux jeux côte à côte : celui qu'on développe et un
-témoin (le jeu initial, ou le miroir de ce qui est en ligne).
+"""environnements.py — ta prod, et un terrain d'essai pour les nouveautés.
 
-    py outils/environnements.py creer initial          # ../FootballLife-initial sur le tag jeu-initial, sa base, port 8001
-    py outils/environnements.py creer prod             # ../FootballLife-prod sur le tag prod (sinon la branche), port 8002
-    py outils/environnements.py lancer initial         # lance ce témoin (son propre lancer.py, sa propre base)
-    py outils/environnements.py lancer dev             # le dépôt courant, port 8000 (= py web/app/lancer.py)
-    py outils/environnements.py etat                   # où en est chacun : commit, base, port
-    py outils/environnements.py base initial           # recopie la base de dev dans le témoin (écrase la sienne)
+    py outils/environnements.py creer test             # jeu/test.sqlite : une copie de ta base, même code, port 8001
+    py outils/environnements.py lancer test            # http://localhost:8001 — essaie les nouveautés ici
+    py outils/environnements.py lancer test --fictif   # ... et le monde fictif, sur la copie seulement
+    py outils/environnements.py lancer prod            # http://localhost:8000 sur jeu/demo.sqlite (= py web/app/lancer.py)
+    py outils/environnements.py base test              # repart d'une copie fraîche de ta base
+    py outils/environnements.py etat                   # où en est chacun
 
-Chaque environnement est un **worktree git** : un dossier à part, posé sur un
-commit (un tag), avec SA base `jeu/demo.sqlite`, SON `jeu/.secret` et SON
-port.  Rien n'est partagé, sauf les portraits (`moteur/images/joueurs`,
-reliés et non copiés).  Le code du témoin ne change pas quand on commite
-dans le dépôt de dev ; pour le déplacer, on déplace son tag
-(`git tag -f prod <commit>` puis `creer prod` à nouveau).
+**test** est une seconde base dans le même dossier : les comptes, les
+équipes et les packs que tu y fais ne touchent pas à `jeu/demo.sqlite`, ta
+prod aux vrais noms, qui reste ce qu'elle est.  Même code (la branche),
+mêmes portraits.
 
-La base copiée vers un témoin est d'abord remise dans le monde réel
-(jeu/fictif.py) : le jeu initial ne connaît pas les noms fictifs.
+Deux témoins de plus, pour comparer avec un code figé : **initial** (le jeu
+d'avant les chantiers, tag `jeu-initial`) et **miroir** (ce qui est en
+ligne, tag `prod`).  Chacun est un *worktree* git, un dossier à côté
+(`../FootballLife-initial`, `../FootballLife-miroir`) posé sur un commit,
+avec SA base, SON secret de session et SON port ; le code n'y bouge pas
+quand on commite ici.  Pour déplacer le miroir : `git tag -f prod <commit>`
+puis `creer miroir`.  Une base copiée vers un témoin est d'abord remise
+dans le monde réel (jeu/fictif.py) : le jeu initial ne connaît pas les
+noms fictifs.
+
+    py outils/environnements.py creer initial          # ../FootballLife-initial, port 8002
+    py outils/environnements.py lancer initial
 """
 from __future__ import annotations
 
@@ -36,12 +43,13 @@ sys.path.insert(0, str(RACINE))
 # repli : le commit d'avant les chantiers pour « initial », la branche courante
 # pour « prod ».
 ENVIRONNEMENTS = {
-    "initial": {"revision": "jeu-initial", "repli": "891dc15", "port": 8001,
+    "initial": {"revision": "jeu-initial", "repli": "891dc15", "port": 8002,
                 "quoi": "le jeu initial, avant les chantiers du plan (docs/PLAN.md)"},
-    "prod": {"revision": "prod", "repli": "HEAD", "port": 8002,
-             "quoi": "le miroir de ce qui est en ligne (git tag -f prod <commit>)"},
+    "miroir": {"revision": "prod", "repli": "HEAD", "port": 8003,
+               "quoi": "le miroir de ce qui est en ligne (git tag -f prod <commit>)"},
 }
-PORT_DEV = 8000
+# les deux bases du dépôt courant : la prod (vrais noms, ce que tu joues) et le terrain d'essai
+BASES = {"prod": ("jeu/demo.sqlite", 8000), "test": ("jeu/test.sqlite", 8001)}
 
 
 def git(*args, cwd=RACINE, ok=True) -> str:
@@ -108,7 +116,7 @@ def creer(nom: str, saison: str, base: pathlib.Path | None) -> None:
     else:
         git("worktree", "add", "--detach", str(d), sha)
         print(f"{nom} : {d} créé sur {sha[:7]}")
-    src = base or (RACINE / "jeu" / "demo.sqlite")
+    src = base or (RACINE / BASES["prod"][0])
     if not (d / "jeu" / "demo.sqlite").exists():
         if src.exists():
             base_reelle(src, d / "jeu" / "demo.sqlite", saison)
@@ -121,18 +129,38 @@ def creer(nom: str, saison: str, base: pathlib.Path | None) -> None:
     print(f"  lancer :  py outils/environnements.py lancer {nom}   → http://localhost:{ENVIRONNEMENTS[nom]['port']}")
 
 
-def lancer(nom: str, port: int | None, extra: list[str]) -> None:
-    if nom == "dev":
-        d, p = RACINE, port or PORT_DEV
+def creer_test(saison: str, base: pathlib.Path | None) -> None:
+    src = base or RACINE / BASES["prod"][0]
+    cible = RACINE / BASES["test"][0]
+    if not src.exists():
+        sys.exit(f"Pas de base à copier ({src} absent) : lance d'abord  py web/app/demo.py")
+    if cible.exists():
+        print(f"test : {cible} existe déjà (py outils/environnements.py base test  pour repartir d'une copie fraîche)")
     else:
-        d, p = dossier(nom), port or ENVIRONNEMENTS[nom]["port"]
-        if not d.exists():
-            sys.exit(f"{d} n'existe pas : py outils/environnements.py creer {nom}")
+        c = sqlite3.connect(src); d = sqlite3.connect(cible); c.backup(d); c.close(); d.close()
+        print(f"test : {cible} créée, copie de {src}")
+    print(f"  lancer :  py outils/environnements.py lancer test   → http://localhost:{BASES['test'][1]}")
+
+
+def lancer(nom: str, port: int | None, extra: list[str]) -> None:
+    if nom in BASES:
+        base, p = BASES[nom]
+        if not (RACINE / base).exists():
+            sys.exit(f"{base} n'existe pas : " + ("py web/app/demo.py" if nom == "prod" else "py outils/environnements.py creer test"))
+        os.execv(sys.executable, [sys.executable, str(RACINE / "web" / "app" / "lancer.py"), "--jeu", str(RACINE / base),
+                                  "--port", str(port or p), *extra])
+    d, p = dossier(nom), port or ENVIRONNEMENTS[nom]["port"]
+    if not d.exists():
+        sys.exit(f"{d} n'existe pas : py outils/environnements.py creer {nom}")
     os.execv(sys.executable, [sys.executable, str(d / "web" / "app" / "lancer.py"), "--port", str(p), *extra])
 
 
 def etat() -> None:
-    print(f"dev      {RACINE}  {git('rev-parse', '--short', 'HEAD')} ({git('rev-parse', '--abbrev-ref', 'HEAD')})  port {PORT_DEV}")
+    sha, br = git("rev-parse", "--short", "HEAD"), git("rev-parse", "--abbrev-ref", "HEAD")
+    for nom, (base, port) in BASES.items():
+        b = RACINE / base
+        print(f"{nom:8} {RACINE}  {sha} ({br})  base {base} {'ok' if b.exists() else 'absente'}  port {port}"
+              + ("  — ta prod, les vrais noms" if nom == "prod" else "  — le terrain d'essai, même code, autre base"))
     for nom, e in ENVIRONNEMENTS.items():
         d = dossier(nom)
         if d.exists():
@@ -146,20 +174,28 @@ def etat() -> None:
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    c = sub.add_parser("creer", help="créer ou remettre à jour un témoin"); c.add_argument("nom", choices=list(ENVIRONNEMENTS))
+    c = sub.add_parser("creer", help="créer le terrain d'essai, ou un témoin"); c.add_argument("nom", choices=["test", *ENVIRONNEMENTS])
     c.add_argument("--base", default=None, help="la base à copier (défaut : jeu/demo.sqlite du dépôt de dev)")
     c.add_argument("--saison", default=os.environ.get("FL_SAISON", "2025/26"))
-    l = sub.add_parser("lancer", help="lancer un environnement"); l.add_argument("nom", choices=["dev", *ENVIRONNEMENTS])
+    l = sub.add_parser("lancer", help="lancer un environnement"); l.add_argument("nom", choices=[*BASES, *ENVIRONNEMENTS])
     l.add_argument("--port", type=int, default=None)
-    b = sub.add_parser("base", help="recopier la base de dev dans un témoin"); b.add_argument("nom", choices=list(ENVIRONNEMENTS))
+    b = sub.add_parser("base", help="recopier la base de prod dans le terrain d'essai ou un témoin"); b.add_argument("nom", choices=["test", *ENVIRONNEMENTS])
     b.add_argument("--base", default=None); b.add_argument("--saison", default=os.environ.get("FL_SAISON", "2025/26"))
     sub.add_parser("etat", help="l'état de chaque environnement")
     a, extra = ap.parse_known_args()
     if a.cmd == "creer":
-        creer(a.nom, a.saison, pathlib.Path(a.base) if a.base else None)
+        if a.nom == "test":
+            creer_test(a.saison, pathlib.Path(a.base) if a.base else None)
+        else:
+            creer(a.nom, a.saison, pathlib.Path(a.base) if a.base else None)
     elif a.cmd == "lancer":
         lancer(a.nom, a.port, extra)
     elif a.cmd == "base":
+        if a.nom == "test":
+            src = pathlib.Path(a.base) if a.base else RACINE / BASES["prod"][0]
+            cible = RACINE / BASES["test"][0]
+            c = sqlite3.connect(src); d = sqlite3.connect(cible); c.backup(d); c.close(); d.close()
+            print(f"test : {cible} recopiée depuis {src}"); return
         d = dossier(a.nom)
         if not d.exists():
             sys.exit(f"{d} n'existe pas : py outils/environnements.py creer {a.nom}")

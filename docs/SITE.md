@@ -52,11 +52,12 @@ pour un serveur lancé autrement (0 = sans limite). Pour une autre base :
 `py web/app/lancer.py --jeu jeu/jeu_2627.sqlite --saison 2026/27`. La
 fenêtre reste occupée tant que le site tourne ; `Ctrl+C` l'arrête.
 
-Pour garder à côté un **témoin** qui ne bouge pas (le jeu initial d'avant
-les chantiers, ou le miroir de ce qui est en ligne) pendant qu'on développe
-dans ce dépôt : `py outils/environnements.py creer initial` puis `lancer
-initial` (port 8001). Deux dossiers, deux bases, deux ports ; ce qui est
-réversible et comment, dans `docs/ENVIRONNEMENTS.md`.
+Pour essayer les nouveautés sans toucher à ta base : `py
+outils/environnements.py creer test` puis `lancer test` (port 8001, sur
+une copie `jeu/test.sqlite` ; ta prod reste `py web/app/lancer.py`). Pour
+garder à côté un témoin au code figé (le jeu initial d'avant les
+chantiers, le miroir de ce qui est en ligne) : `creer initial`, `lancer
+initial`. Ce qui est réversible et comment : `docs/ENVIRONNEMENTS.md`.
 
 La base est ouverte en mode WAL avec une attente de quinze secondes sur
 le verrou : les lectures (les cartes qui se dessinent par dizaines) ne
