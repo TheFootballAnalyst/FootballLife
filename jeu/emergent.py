@@ -163,6 +163,11 @@ PRESSE_DISTANCE = (2.5, 2.5, 30.0)           # le presseur contient à tant du p
                                              # 3,75 buts et 27,1 tirs (3,44 et 25,2 à 2,5 ; réel 2,9-3,2 et 26) : le porteur moins
                                              # pressé en fait trop — la pression du moteur est calibrée sur un presseur à deux mètres
                                              # et demi.  Gardé à 2,5 (TACTIQUE § 30, « les paires défensives serrées, reprises »).
+APPEL_FOND = (6.0, 14.0, 7.0)                # la destination d'un appel : de six à quatorze mètres derrière la ligne, en laissant sept
+                                             # mètres à la ligne de but.  Mesuré (TACTIQUE § 30, « la longue vers la surface ») : les
+                                             # longues vers la surface du moteur retombent à 7 m de la ligne de but et sortent une fois
+                                             # sur trois (réel : à 13 m, 8 % sortent) ; à douze mètres, elles se font plus rares (5,5 par
+                                             # match contre 7,8, réel 17) sans sortir moins (27 %) — gardé à sept, le levier est ailleurs
 RECEPTION_AERIENNE = True                    # le receveur d'un ballon en l'air va à son point de chute (avant : là où il roulerait, comme au sol)
 BALLON_AERIEN = True                         # sur un ballon en l'air, le défenseur le plus proche du point de chute va l'attaquer (l'attaquant, lui, l'attend)
 CHASSE_AERIEN = (6.0, 0.5, 6.0)              # ... s'il peut y être avant le ballon (six mètres par seconde, après une demi-seconde de lecture),
@@ -1779,7 +1784,7 @@ class Match:
                     self.dernier_appel[att] = self.t
                     # la destination : DERRIÈRE la ligne, dans la brèche si elle
                     # est à portée, sinon droit devant en glissant vers l'axe
-                    fond = min(14.0, max(6.0, derriere - 7.0))
+                    fond = min(APPEL_FOND[1], max(APPEL_FOND[0], derriere - APPEL_FOND[2]))
                     if breche is not None and math.hypot(breche[0] - j.x, breche[1] - j.y) < 30.0:
                         cx, cy = breche[0] + fond * sens, breche[1]
                         breche = None                   # un seul dans la brèche

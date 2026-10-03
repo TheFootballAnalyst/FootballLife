@@ -323,7 +323,9 @@ Tu me fais confiance là-dessus ; voilà ma liste, par ordre :
 4. ~~La boîte de dialogue~~ (chantier 2.5, fait) ; la suite, c'est une consigne
    joueur-vers-joueur dans le moteur (« cherche Dembélé dans l'axe »).
 5. Et tout ce que tu vois dans le bac : chaque remarque devient une
-   mesure avant d'être une règle, comme jusqu'ici.
+   mesure avant d'être une règle, comme jusqu'ici. Mesuré en plus : la
+   longue vers la surface (TACTIQUE § 30, 7,8 par match contre 17 en
+   vrai, une sur trois qui sort ; deux leviers essayés, rien de gardé).
 
 ## Le calendrier
 

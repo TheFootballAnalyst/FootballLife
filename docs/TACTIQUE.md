@@ -1575,6 +1575,25 @@ suivant, si on y revient, c'est le marqueur qui *arrive* : son homme
 anticipé, la cible lissée, un homme gardé jusqu'à ce qu'un autre soit
 vraiment libre.
 
+**La longue vers la surface, mesurée** (`outils/longues_surface_ref.py`,
+`outils/longues_surface_moteur.py`). Le réel joue 17 longues par match qui partent
+du milieu du terrain (x 43–62) et retombent à moins de 25 m du but (x 92,
+à 17 m de l'axe) : 80 % en l'air, 40 % arrivent, 8 % sortent, un tir dans
+les dix secondes 8,6 % du temps ; ce ne sont pas des centres (1 %), ce sont
+des ballons longs sur l'attaquant ou l'ailier, un sur dix dans la course.
+Mesurées à l'arrivée du ballon (là où il est pris ou là où il sort, comme
+le réel, pas à la position du receveur au départ, qui en cachait presque
+toutes), le moteur en joue 7,8 par match, 45 % arrivent, 77 % en l'air,
+depuis x 63 — et **34 % sortent**, parce qu'elles retombent à 7 m de la
+ligne de but (x 98 ; réel 13 m). Deux leviers essayés, retirés : la
+longue par-dessus comme vraie option de passe en profondeur de plus de
+25 m (`LONGUE_HAUTE`, la trajectoire au sol ne compte plus) n'en ajoute
+pas et les réussit moins (5,7 par match, 32 %) ; la destination des
+appels à douze mètres de la ligne de but au lieu de sept (`APPEL_FOND`)
+les raréfie (5,5) sans qu'elles sortent moins (27 %). Le levier, si on y
+revient, est le choix du receveur : la longue réelle vise un homme, pas
+un point derrière la ligne.
+
 ## 9. Pour les équipes fantasy
 
 Les principes sont les mêmes pour toutes les équipes. Ce qui varie :

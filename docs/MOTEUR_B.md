@@ -902,7 +902,11 @@ serrées, reprises »).** Mesurée, pas changée : le presseur contient à
 monte à 3,75 buts, la pression du moteur étant calibrée sur 2,5), et le
 marquage des options du porteur essayé et retiré. Les règles de mesure :
 `outils/duel_ref.py`, `outils/duel_moteur.py` (les options du porteur
-et leur couverture, les paires serrées avec leurs vitesses).
+et leur couverture, les paires serrées avec leurs vitesses). La longue
+vers la surface, mesurée aussi (`outils/longues_surface_ref.py`,
+`outils/longues_surface_moteur.py`) : 7,8 par match contre 17, et une sur trois
+qui sort (`APPEL_FOND`, gardé à sept mètres de la ligne de but : à douze,
+pas mieux).
 
 **La forme et la cohésion du jeu (PLAN.md § 2.3).** Un onze du jeu
 arrive sur le terrain avec la forme de ses cartes (trois bons vrais
