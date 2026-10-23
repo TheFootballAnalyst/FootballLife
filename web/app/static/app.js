@@ -205,12 +205,16 @@ function poserIcones() {
     if (i) b.prepend(i);
   }
 }
-const THEMES = ["tribune", "nuit"];
+// thème → (famille, couleur de la barre du navigateur).  La famille porte les règles communes :
+// « papier » pour les ambiances claires (Tribune, Album 94, Maillot 89), « nuit » pour les sombres.
+const THEMES = {tribune: ["papier", "#0E2A1F"], album: ["papier", "#1D3F8F"], maillot: ["papier", "#0B1E46"],
+                teletexte: ["nuit", "#0000C8"], nuit: ["nuit", "#080B14"]};
 function appliquerTheme(nom) {
-  const th = THEMES.includes(nom) ? nom : "tribune";
+  const th = nom in THEMES ? nom : "tribune";
   document.documentElement.dataset.theme = th;
+  document.documentElement.dataset.famille = THEMES[th][0];
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = th === "nuit" ? "#080B14" : "#0E2A1F";
+  if (meta) meta.content = THEMES[th][1];
   const sel = $("#theme"); if (sel) sel.value = th;
 }
 

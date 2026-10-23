@@ -7,13 +7,20 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 
 ## Écrans
 
-**Deux habillages**, au choix dans la barre (ou dans « Plus » sur un
+**Cinq habillages**, au choix dans la barre (ou dans « Plus » sur un
 téléphone), gardés dans le navigateur : **Tribune**, le programme de
 match (papier et encre, vert bouteille, bordeaux, l'or pour ce qui
-compte ; les titres en bois, les sous-titres à la plume), et **Nuit de
-stade**, l'habillage d'origine. Les deux lisent les mêmes écrans : le
-thème redéfinit les couleurs (`style.css`, les variables de
-`html[data-theme]`) et le reste suit. La barre porte une icône par
+compte ; les titres en bois, les sous-titres à la plume) ; **Album 94**,
+la vignette autocollante (blanc, rouge et bleu roi, liseré blanc et ombre
+dure sur chaque panneau, points de trame) ; **Maillot 89**, les bandes du
+kit (rouge, blanc, marine, un liseré rayé sous la barre et en tête de
+chaque panneau, les grandes diagonales en fond) ; **Télétexte**, la page
+302 (noir, jaune et cyan, titres en pavés bleus, police à pixels, lignes
+de balayage) ; et **Nuit de stade**, l'habillage d'origine. Tous lisent
+les mêmes écrans : un thème redéfinit les couleurs et ses motifs
+(`style.css`, les variables de `html[data-theme]`), les règles communes
+aux habillages clairs sont celles de la famille `html[data-famille="papier"]`,
+et le reste suit. La barre porte une icône par
 écran ; sur un téléphone, elle devient une barre d'onglets en bas avec les
 quatre écrans du quotidien (Cartes, Équipe, Lobby, Solo) et « Plus » qui
 ouvre les autres, la langue et le thème.
