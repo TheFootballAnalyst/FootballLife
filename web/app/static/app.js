@@ -1216,15 +1216,33 @@ let LOBBY = {timer: null, vus: 0,
 function arreterLobby() {
   if (G.ecran !== "solo") arreterTerrain(true); if (LOBBY.timer) { clearInterval(LOBBY.timer); LOBBY.timer = null; } }
 
+// Le sondage reconstruit l'écran toutes les deux secondes et demie ; le panneau
+// « Ajuster » est réutilisé (AJU), mais le détacher puis le rattacher fait perdre
+// le curseur au manager qui tape dans la boîte de dialogue (il était « enlevé du
+// champ » à chaque sondage).  On note qui a le clavier avant, on le lui rend après.
+function garderSaisie(reconstruire) {
+  const actif = document.activeElement;
+  const texte = actif && (actif.tagName === "INPUT" || actif.tagName === "TEXTAREA") ? actif : null;
+  const sel = texte ? [texte.selectionStart, texte.selectionEnd] : null;
+  reconstruire();
+  if (texte && texte.isConnected && document.activeElement !== texte) {
+    texte.focus({preventScroll: true});
+    try { if (sel[0] !== null) texte.setSelectionRange(sel[0], sel[1]); } catch (e) { /* un type sans sélection */ }
+  }
+}
+
 async function rendreLobby(donnees) {
   const d = donnees || await api(cheminSonde("/lobby"));
   LOBBY.etat = d;
   $("#lobby-info").textContent = `${t("statut.elo")} ${Math.round(d.elo)} · ${t("lobby.n_classes", {n: d.classees})}`;
-  const B = $("#lobby-corps"); B.replaceChildren();
-  if (d.etat === "libre") { arreterLobby(); B.append(panneauEntree(d)); B.append(panneauHistorique(d)); return; }
-  if (d.etat === "attente") { B.append(panneauAttente(d)); lancerBoucle(); return; }
-  B.append(panneauMatch(d));
-  if (d.etat === "fini") { arreterLobby(); B.append(panneauHistorique(d)); } else lancerBoucle();
+  const B = $("#lobby-corps");
+  garderSaisie(() => {
+    B.replaceChildren();
+    if (d.etat === "libre") { arreterLobby(); B.append(panneauEntree(d)); B.append(panneauHistorique(d)); return; }
+    if (d.etat === "attente") { B.append(panneauAttente(d)); lancerBoucle(); return; }
+    B.append(panneauMatch(d));
+    if (d.etat === "fini") { arreterLobby(); B.append(panneauHistorique(d)); } else lancerBoucle();
+  });
 }
 function lancerBoucle() { if (!LOBBY.timer) LOBBY.timer = setInterval(() => { if (G.ecran === "lobby") rendreLobby().catch(() => {}); }, 2500); }
 
@@ -1584,11 +1602,14 @@ let SOLO = {cle: null, timer: null};
 async function rendreSolo(donnees) {
   const d = donnees || await api("/solo");
   SOLO.d = d;
-  const B = $("#solo-corps"); B.replaceChildren();
+  const B = $("#solo-corps");
   const offerts = Object.values(d.packs_offerts || {}).reduce((a, b) => a + b, 0);
   $("#solo-info").textContent = offerts ? t("solo.packs_offerts", {n: offerts}) : t("solo.accroche");
-  B.append(d.campagne ? panneauCampagne(d) : panneauChoixSolo(d));
-  B.append(panneauPalmares(d));
+  garderSaisie(() => {
+    B.replaceChildren();
+    B.append(d.campagne ? panneauCampagne(d) : panneauChoixSolo(d));
+    B.append(panneauPalmares(d));
+  });
   if (d.campagne?.match && !d.campagne.match.fini) lancerBoucleSolo();
 }
 
