@@ -263,7 +263,11 @@ Détaillé dans `docs/ECONOMIE.md` § 5. Dans l'ordre :
    portraits sort du jeu et devient un outil de mod (1 j).
 5. **Les données sous contrat** : brancher un fournisseur (API-Football
    ou Sportmonks) sur l'importeur, le barème ne change pas (2 j, plus
-   l'abonnement au fournisseur).
+   l'abonnement au fournisseur). *Fait pour la source actuelle* : la
+   saison en cours se récupère et se rejoue en une commande
+   (`donnees/journee.py`, `outils/saison.py`, docs/SITE.md) ; un autre
+   fournisseur ne changera que `journee.py` (la liste d'un jour, la
+   feuille d'un match), le reste de la chaîne lit la base finalisée.
 
 Le jeu local garde l'option « réel » tant qu'on ne vend rien ; la
 version mise en ligne part fictive.

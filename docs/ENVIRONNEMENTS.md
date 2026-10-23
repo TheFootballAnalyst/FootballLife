@@ -28,6 +28,12 @@ Et ta prod ne change pas de commande : `py web/app/lancer.py`, ou
 `py outils/environnements.py lancer prod`, port 8000, `jeu/demo.sqlite`.
 Les deux peuvent tourner en même temps, dans deux onglets.
 
+La saison en cours, construite par `py outils/saison.py construire --saison
+2026/27` (docs/SITE.md), est une troisième base, `jeu/jeu_2627.sqlite`, avec
+sa propre saison : `py outils/environnements.py lancer 2627`, port 8004.
+Elle ne touche pas à la prod ; le jour où elle la remplace, on copie le
+fichier.
+
 Ce que tu peux essayer sur le test et pas sur la prod : le monde fictif
 (`lancer test --fictif`, réversible par `lancer test --reel` ; il réécrit
 les noms dans la base, donc dans `jeu/test.sqlite` seulement), les limites

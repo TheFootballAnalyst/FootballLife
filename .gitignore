@@ -14,6 +14,7 @@ cache/
 moteur/images/joueurs
 moteur/images/joueurs/
 moteur/topsflops.json
+moteur/entetes.json
 moteur/bareme_manuel.json
 moteur/postes_manuel.json
 moteur/coefs_championnats.json

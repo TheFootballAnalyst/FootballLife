@@ -101,12 +101,43 @@ carte dessinée : OVR courant, attributs de la saison, portrait, couleur du
 club. Elle est rendue par `/images/cartes/{player_id}.png` et mise en cache
 dans `out/cartes_site/` (variable `FL_CACHE`).
 
-Une base neuve pour une vraie saison :
+Une base neuve pour une vraie saison, en une commande, depuis une machine
+qui atteint fotmob.com :
 
 ```
-py -m jeu.importer --jeu jeu/jeu_2627.sqlite --fotmob moteur/fotmob_2526.db --saison 2025/26
+py outils/saison.py construire --saison 2026/27
+```
+
+`outils/saison.py` déduit tout de la saison : `donnees/journee.py`
+récupère les matchs du périmètre depuis le 1er août (feuilles en cache,
+ingérées dans `moteur/fotmob_2627.db`, base finalisée pour le barème),
+`jeu/importer.py` note chaque prestation et calcule le barème de saison
+par journée, les journées suivent les tours de Ligue 1, `pipeline.amorcer`
+fixe les cartes au Ballon d'or maison de 2025/26 (barème + palmarès lus
+dans `moteur/fotmob_2526.db`, release `data-2025-26`), puis chaque journée
+dont la fenêtre est passée est calculée comme elle l'aurait été à la
+semaine : transferts, nouveaux venus, évolution bornée des cartes. La note
+d'aujourd'hui est celle que le jeu aurait donnée en jouant depuis août,
+rien n'est inventé. Compter dix minutes de récupération, puis trois ou
+quatre de calcul ; la commande finit par les cartes qui ont le plus bougé.
+Si FotMob répond 403, l'en-tête `x-mas` se copie depuis l'onglet Réseau du
+navigateur et se passe une fois avec `--entete "x-mas: …"` (gardé dans
+`moteur/entetes.json`).
+
+La base est `jeu/jeu_2627.sqlite`, à part de la prod : `py
+outils/environnements.py lancer 2627` (port 8004). Ensuite
+`donnees/portraits.py --jeu jeu/jeu_2627.sqlite` et `donnees/pieds.py`
+pour les nouveaux venus. Le jour où cette base devient la prod, on la
+copie.
+
+À la main, les mêmes étapes :
+
+```
+py donnees/journee.py --du 2026-08-01 --au 2026-10-23                       # moteur/fotmob_2627.db
+py -m jeu.importer --jeu jeu/jeu_2627.sqlite --fotmob moteur/fotmob_2627.db --saison 2026/27
 py -m jeu.pipeline journees --saison 2026/27 --jeu jeu/jeu_2627.sqlite --fotmob moteur/fotmob_2627.db
 py -m jeu.pipeline amorcer  --saison 2026/27 --jeu jeu/jeu_2627.sqlite --source 2025/26 --fotmob moteur/fotmob_2526.db
+py -m jeu.pipeline calculer --saison 2026/27 --jeu jeu/jeu_2627.sqlite --fotmob moteur/fotmob_2627.db --journee 1   # puis 2, 3…
 ```
 
 (`amorcer` lit la saison source dans la base FotMob de cette saison :
@@ -119,18 +150,25 @@ la base du jeu — terrain seul, sans palmarès. Compter 1 min 30.)
 
 1. **Avant le premier coup d'envoi** : rien à faire, la journée se
    verrouille toute seule à l'heure `journee.cloture`.
-2. **Après le dernier match de la fenêtre**, sur ta machine, avec ta base
-   FotMob à jour :
+2. **Une fois la journée suivante entamée**, sur ta machine :
    ```
-   py -m jeu.exporter_journee --saison 2026/27 --journee 3 --jeu jeu/jeu_2627.sqlite --fotmob moteur/fotmob_2627.db
+   py outils/saison.py semaine --saison 2026/27
    ```
-   Ça écrit `out/journees/2026-27_J3.json` : toutes les prestations notées
-   de la fenêtre, avec attributs, et la fenêtre de barème de saison de
-   chaque joueur (ce qui fait bouger les cartes ; compter une minute de
-   calcul en plus).
-3. Sur le site, écran Admin : **Charger les prestations** (ce fichier),
-   puis **Clôturer la journée**. Scores, gains, cartes, prix : tout est
-   écrit en une transaction, et relancer ne change rien.
+   Elle récupère les nouveaux matchs, recalcule le barème de saison (une
+   minute), et calcule chaque journée dont la fenêtre est passée : scores,
+   gains, cartes, prix, transferts, nouveaux venus, en une transaction par
+   journée. Relancer ne change rien. La fenêtre d'une journée se ferme la
+   veille du premier coup d'envoi de la suivante (ses matchs de coupe
+   d'Europe du milieu de semaine en font partie) ; tant que la suivante
+   n'a pas commencé, la dernière journée connue court dix jours. La
+   commande dit elle-même ce qu'elle attend : « la J9 court jusqu'au … ».
+3. **Pour un site en ligne**, la même commande avec `--exporter` écrit
+   `out/journees/2026-27_J9.json` au lieu de calculer : toutes les
+   prestations notées de la fenêtre, avec attributs, et la fenêtre de
+   barème de saison de chaque joueur. Sur le site, écran Admin : **Charger
+   les prestations** (ce fichier), puis **Clôturer la journée**. C'est
+   `py -m jeu.exporter_journee --saison 2026/27 --journee 9 --jeu
+   jeu/jeu_2627.sqlite --fotmob moteur/fotmob_2627.db` journée par journée.
 
 Le serveur n'a donc jamais besoin de la base FotMob ni du cache.
 

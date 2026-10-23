@@ -53,6 +53,37 @@ et 31 % d'ambidextres — la réalité est plutôt 75 / 22 / 3. Une reprise, un
 but de près ou une frappe déviée se prennent du pied qui se présente. C'est
 un fait sur des personnes réelles : on le récupère, ou on le laisse vide.
 
+## La saison en cours
+
+Les matchs d'une fenêtre, depuis FotMob, dans la base du moteur :
+
+```
+py donnees/journee.py --semaine                             # les dix derniers jours, vers moteur/fotmob_2627.db
+py donnees/journee.py --du 2026-08-01 --au 2026-10-23       # depuis l'ouverture de la saison
+py donnees/journee.py --liste 2026-10-17                    # ce que FotMob liste ce jour-là, avec les identifiants
+```
+
+Jour par jour, la liste des matchs est réduite au **périmètre** : les
+compétitions que le barème connaît (`COMPETITIONS` dans le script, par
+identifiant FotMob, ou par nom exact dans un pays suivi ; jamais une
+qualification, un amical, les jeunes). Chaque match terminé a sa feuille
+écrite dans `moteur/cache/matches/<id>.json` puis ingérée par
+`moteur/ingest.py`. La base est enfin finalisée : la colonne
+`match.usable` et les vues `v_match` / `v_appearance` / `v_stat` que le
+barème et le palmarès lisent, les compétitions nommées comme dans la base
+de la saison précédente (`--reference moteur/fotmob_2526.db`). Relancer ne
+coûte rien : une feuille en cache n'est pas redemandée, seul un match
+listé « pas terminé » la fois d'avant est repris.
+
+Si FotMob répond 403, il lui faut l'en-tête `x-mas` : il se copie depuis
+l'onglet Réseau du navigateur (une requête vers `fotmob.com/api/…`) et se
+passe une fois avec `--entete "x-mas: …"` ; il est gardé dans
+`moteur/entetes.json`. Si un identifiant de compétition change d'une
+saison à l'autre, `--liste` le montre et `--competition ID` l'ajoute.
+
+Pour une saison entière, `outils/saison.py` enchaîne tout (récupération,
+import, amorce, journées rejouées) : voir `docs/SITE.md`.
+
 ## Pourquoi pas dans Git
 
 GitHub refuse tout fichier de plus de 100 Mo et avertit dès 50 Mo. Git LFS

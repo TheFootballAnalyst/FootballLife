@@ -48,8 +48,10 @@ ENVIRONNEMENTS = {
     "miroir": {"revision": "prod", "repli": "HEAD", "port": 8003,
                "quoi": "le miroir de ce qui est en ligne (git tag -f prod <commit>)"},
 }
-# les deux bases du dépôt courant : la prod (vrais noms, ce que tu joues) et le terrain d'essai
-BASES = {"prod": ("jeu/demo.sqlite", 8000), "test": ("jeu/test.sqlite", 8001)}
+# les bases du dépôt courant : la prod (vrais noms, ce que tu joues), le terrain d'essai,
+# et la saison en cours construite par outils/saison.py (sa propre saison, son propre port)
+BASES = {"prod": ("jeu/demo.sqlite", 8000, "2025/26"), "test": ("jeu/test.sqlite", 8001, "2025/26"),
+         "2627": ("jeu/jeu_2627.sqlite", 8004, "2026/27")}
 
 
 def git(*args, cwd=RACINE, ok=True) -> str:
@@ -144,11 +146,12 @@ def creer_test(saison: str, base: pathlib.Path | None) -> None:
 
 def lancer(nom: str, port: int | None, extra: list[str]) -> None:
     if nom in BASES:
-        base, p = BASES[nom]
+        base, p, saison = BASES[nom]
         if not (RACINE / base).exists():
-            sys.exit(f"{base} n'existe pas : " + ("py web/app/demo.py" if nom == "prod" else "py outils/environnements.py creer test"))
+            sys.exit(f"{base} n'existe pas : " + {"prod": "py web/app/demo.py", "test": "py outils/environnements.py creer test"}
+                     .get(nom, f"py outils/saison.py construire --saison {saison}"))
         os.execv(sys.executable, [sys.executable, str(RACINE / "web" / "app" / "lancer.py"), "--jeu", str(RACINE / base),
-                                  "--port", str(port or p), *extra])
+                                  "--saison", saison, "--port", str(port or p), *extra])
     d, p = dossier(nom), port or ENVIRONNEMENTS[nom]["port"]
     if not d.exists():
         sys.exit(f"{d} n'existe pas : py outils/environnements.py creer {nom}")
@@ -157,10 +160,11 @@ def lancer(nom: str, port: int | None, extra: list[str]) -> None:
 
 def etat() -> None:
     sha, br = git("rev-parse", "--short", "HEAD"), git("rev-parse", "--abbrev-ref", "HEAD")
-    for nom, (base, port) in BASES.items():
+    for nom, (base, port, saison) in BASES.items():
         b = RACINE / base
-        print(f"{nom:8} {RACINE}  {sha} ({br})  base {base} {'ok' if b.exists() else 'absente'}  port {port}"
-              + ("  — ta prod, les vrais noms" if nom == "prod" else "  — le terrain d'essai, même code, autre base"))
+        print(f"{nom:8} {RACINE}  {sha} ({br})  base {base} {'ok' if b.exists() else 'absente'}  port {port}  saison {saison}"
+              + {"prod": "  — ta prod, les vrais noms", "test": "  — le terrain d'essai, même code, autre base"}
+              .get(nom, "  — la saison en cours (outils/saison.py)"))
     for nom, e in ENVIRONNEMENTS.items():
         d = dossier(nom)
         if d.exists():
