@@ -957,3 +957,246 @@ nav select#langue option{background:var(--surface3,#141a2a);color:var(--encre,#e
 .match-coupe .equipe.gagne{opacity:1;font-weight:600}
 .match-coupe .equipe.moi{color:var(--or2)}
 .match-coupe .score{font-family:Anton,sans-serif;letter-spacing:.06em;color:var(--texte2,inherit);margin-top:2px}
+
+/* ====================================================================== */
+/* La barre : icônes, les cinq écrans du quotidien, « Plus » sur mobile    */
+/* ====================================================================== */
+nav button .ico{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none;display:none}
+nav button{display:inline-flex;align-items:center;gap:7px}
+nav .nav-outils{display:flex;align-items:center;gap:2px;margin-left:6px;padding-left:6px;border-left:1px solid var(--ligne)}
+nav #btn-plus{display:none}
+nav select#theme{background:transparent;border:1px solid transparent;color:var(--sourd);font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:12.5px;padding:4px 6px}
+nav select#theme option{background:var(--surface3,#141a2a);color:var(--encre,#eee);text-transform:none}
+@media (max-width:640px){
+  nav{display:grid;grid-template-columns:repeat(5,1fr);gap:0;padding:4px 4px calc(4px + env(safe-area-inset-bottom));border-radius:14px}
+  nav button{flex-direction:column;gap:3px;padding:6px 2px 5px;font-size:10.5px;letter-spacing:.04em;border-radius:10px;line-height:1}
+  nav button .ico{display:block;width:22px;height:22px;stroke-width:1.8}
+  nav button:not([data-primaire]):not(#btn-plus){display:none}
+  nav .nav-outils{display:none}
+  nav #btn-plus{display:inline-flex}
+  nav.ouvert{grid-template-columns:repeat(3,1fr);row-gap:2px}
+  nav.ouvert button:not([data-primaire]):not(#btn-plus){display:inline-flex}
+  nav.ouvert .nav-outils{display:flex;grid-column:1 / -1;justify-content:center;border:0;margin:0;padding:6px 0 2px;border-top:1px solid var(--ligne)}
+  nav.ouvert #btn-plus{color:var(--or2)}
+  nav.ouvert button[data-primaire]{order:-1}
+}
+
+/* ====================================================================== */
+/* Le thème « Tribune » : le programme de match, papier et encre, vert     */
+/* bouteille et bordeaux, l'or pour ce qui compte.  Les variables sont      */
+/* redéfinies, le reste du site les lit ; ce qui avait une couleur claire   */
+/* en dur (le texte des boutons de tactique, les fonds à 3 % de blanc) est  */
+/* repris ici.  Le thème « Nuit de stade » reste celui du dessus.           */
+/* ====================================================================== */
+html[data-theme="tribune"]{
+  --fond:#EFE6D2; --fond2:#E7DDC6;
+  --surface:#F8F2E4; --surface2:#EDE4CD; --surface3:#E1D5B6;
+  --ligne:rgba(28,26,23,.16); --ligne2:rgba(28,26,23,.36);
+  --encre:#1C1A17; --sourd:#6B6456; --sourd2:#9A9284;
+  --or:#B8891E; --or2:#8A6512; --or3:#D9B85A;
+  --vert:#1F7A4D; --rouge:#A93226; --bleu:#1F5FAE;
+  --pelouse:#2E7D4F; --pelouse2:#287045; --craie:rgba(255,255,255,.6);
+  --ombre:4px 4px 0 #1C1A17;
+  --r:8px;
+  --tribune-vert:#0E2A1F; --tribune-vert2:#143B2C; --bordeaux:#8B2A2A; --bordeaux2:#A63A3A; --papier:#FBF7EC;
+  --pan:#F8F2E4;
+  color-scheme:light;
+}
+html[data-theme="tribune"] body{color:var(--encre);
+  background:
+    radial-gradient(rgba(28,26,23,.07) .7px,transparent .8px) 0 0/9px 9px,
+    linear-gradient(180deg,#E9DFC8 0,#EFE6D2 220px,#EFE6D2 100%)}
+html[data-theme="tribune"] a{color:var(--bordeaux)}
+html[data-theme="tribune"] ::selection{background:var(--or3);color:var(--encre)}
+
+/* la typographie : les titres gardent le bois (Anton), les sous-titres prennent la plume (Playfair italique) */
+html[data-theme="tribune"] .anton{letter-spacing:.02em}
+html[data-theme="tribune"] .tete h2{position:relative;padding-bottom:4px}
+html[data-theme="tribune"] .tete h2::after{content:"";position:absolute;left:0;bottom:-3px;width:46px;height:4px;background:var(--bordeaux)}
+html[data-theme="tribune"] .tete .compteur,html[data-theme="tribune"] .hero p,html[data-theme="tribune"] .pan > p.compteur:first-of-type{font-family:"Playfair Display",Georgia,serif;font-style:italic;font-size:15.5px;color:#4E4739}
+html[data-theme="tribune"] .etiq{color:#5A5346}
+html[data-theme="tribune"] .compteur{color:var(--sourd)}
+
+/* la barre : un bandeau vert bouteille, les onglets soulignés d'or */
+html[data-theme="tribune"] header{background:var(--tribune-vert);border-bottom:3px solid var(--or);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 2px 0 #1C1A17}
+html[data-theme="tribune"] .marque h1{color:#F8F2E4}
+html[data-theme="tribune"] .marque h1 span{color:var(--or3)}
+html[data-theme="tribune"] .marque small{color:rgba(248,242,228,.6)}
+html[data-theme="tribune"] nav{background:transparent;border:0;padding:0;gap:0;border-radius:0}
+html[data-theme="tribune"] nav button{background:transparent;border:0;border-bottom:3px solid transparent;color:rgba(248,242,228,.72);border-radius:0;padding:9px 11px;margin-bottom:-3px;box-shadow:none;font-weight:600}
+html[data-theme="tribune"] nav button:hover{color:#F8F2E4;background:rgba(255,255,255,.05)}
+html[data-theme="tribune"] nav button[aria-current="page"]{background:transparent;color:#F8F2E4;box-shadow:none;border-bottom-color:var(--or3)}
+html[data-theme="tribune"] nav .nav-outils{border-left-color:rgba(255,255,255,.14)}
+html[data-theme="tribune"] nav select#langue,html[data-theme="tribune"] nav select#theme{color:rgba(248,242,228,.72)}
+html[data-theme="tribune"] nav select#langue option,html[data-theme="tribune"] nav select#theme option{background:var(--tribune-vert2);color:#F8F2E4}
+html[data-theme="tribune"] .statut div{border-right-color:rgba(255,255,255,.14)}
+html[data-theme="tribune"] .statut span{color:rgba(248,242,228,.55)}
+html[data-theme="tribune"] .statut b{color:#F8F2E4}
+html[data-theme="tribune"] .statut #st-cash{color:var(--or3)}
+html[data-theme="tribune"] #nav button.nouveau::after{background:var(--or3)}
+@media (max-width:640px){
+  html[data-theme="tribune"] header{background:var(--tribune-vert)}
+  html[data-theme="tribune"] nav{background:var(--tribune-vert);border:2px solid #1C1A17;box-shadow:4px 4px 0 #1C1A17;border-radius:14px;padding:4px 4px calc(4px + env(safe-area-inset-bottom))}
+  html[data-theme="tribune"] nav button{border:0;margin:0;border-radius:10px;background:transparent;box-shadow:none}
+  html[data-theme="tribune"] nav button[aria-current="page"]{background:rgba(217,184,90,.16);color:var(--or3)}
+  html[data-theme="tribune"] nav.ouvert .nav-outils{border-top-color:rgba(255,255,255,.14)}
+}
+
+/* boutons et champs : des tampons, un trait d'encre et une ombre portée dure */
+html[data-theme="tribune"] button{background:var(--surface);border:1.5px solid var(--encre);color:var(--encre);border-radius:6px;box-shadow:2px 2px 0 var(--encre);font-weight:600}
+html[data-theme="tribune"] button:hover{background:var(--papier);border-color:var(--encre)}
+html[data-theme="tribune"] button:active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--encre)}
+html[data-theme="tribune"] button.primaire{background:var(--bordeaux);color:#F8F2E4;border-color:#1C1A17;text-shadow:none}
+html[data-theme="tribune"] button.primaire:hover{background:var(--bordeaux2)}
+html[data-theme="tribune"] button.discret{background:transparent;border-color:transparent;box-shadow:none;color:var(--sourd)}
+html[data-theme="tribune"] button.discret:hover{background:rgba(28,26,23,.06)}
+html[data-theme="tribune"] button:disabled{opacity:.45;box-shadow:none}
+html[data-theme="tribune"] button.vente{background:var(--surface);color:var(--bordeaux);border-color:var(--bordeaux);box-shadow:2px 2px 0 var(--bordeaux)}
+html[data-theme="tribune"] button.vente:hover:not(:disabled){background:rgba(139,42,42,.08)}
+html[data-theme="tribune"] nav button,html[data-theme="tribune"] .onglets button,html[data-theme="tribune"] .pills button,html[data-theme="tribune"] .vue button,html[data-theme="tribune"] .ordre button,html[data-theme="tribune"] .slot-menu{box-shadow:none}
+html[data-theme="tribune"] input,html[data-theme="tribune"] select{background-color:var(--papier);border:1.5px solid var(--encre);color:var(--encre);border-radius:6px}
+html[data-theme="tribune"] input::placeholder{color:var(--sourd2)}
+html[data-theme="tribune"] select{background-image:linear-gradient(45deg,transparent 50%,var(--encre) 50%),linear-gradient(135deg,var(--encre) 50%,transparent 50%);background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:5px 5px;background-repeat:no-repeat}
+html[data-theme="tribune"] nav select#langue,html[data-theme="tribune"] nav select#theme{background-color:transparent;border-color:transparent;background-image:none}
+html[data-theme="tribune"] button:focus-visible,html[data-theme="tribune"] input:focus-visible,html[data-theme="tribune"] select:focus-visible{outline:2px solid var(--bordeaux);outline-offset:2px}
+html[data-theme="tribune"] .case input{accent-color:var(--bordeaux)}
+
+/* panneaux : des fiches de papier, un trait d'encre, l'ombre dure du tampon */
+html[data-theme="tribune"] .pan,html[data-theme="tribune"] .panneau,html[data-theme="tribune"] .pack,html[data-theme="tribune"] .vente,html[data-theme="tribune"] .tuile,html[data-theme="tribune"] .offert,html[data-theme="tribune"] .club-solo,html[data-theme="tribune"] .affiche,html[data-theme="tribune"] .equipe-aff{background:var(--surface);border:1.5px solid var(--encre);box-shadow:var(--ombre);border-radius:var(--r)}
+html[data-theme="tribune"] .panneau.interne{background:var(--surface2);box-shadow:none;border-width:1px;border-color:var(--ligne2)}
+html[data-theme="tribune"] .tuile,html[data-theme="tribune"] .offert,html[data-theme="tribune"] .club-solo,html[data-theme="tribune"] .equipe-aff{box-shadow:2px 2px 0 var(--encre)}
+html[data-theme="tribune"] .pack::before{opacity:.5}
+html[data-theme="tribune"] .pack.or{border-color:var(--encre)}
+html[data-theme="tribune"] .pack-prix{color:var(--or2)}
+html[data-theme="tribune"] .pack-tier{font-family:"Playfair Display",Georgia,serif;font-style:italic;text-transform:none;letter-spacing:0;font-size:14px;color:#4E4739}
+html[data-theme="tribune"] .ligne{background:var(--surface);border-color:var(--ligne2)}
+html[data-theme="tribune"] .ligne:hover{background:var(--papier)}
+html[data-theme="tribune"] .info{background:var(--surface2);border-color:var(--ligne2);color:#4E4739}
+html[data-theme="tribune"] .avert{background:rgba(169,50,38,.08);border-color:var(--bordeaux)}
+html[data-theme="tribune"] dialog{background:var(--surface);color:var(--encre);border:2px solid var(--encre);box-shadow:6px 6px 0 #1C1A17;border-radius:10px}
+html[data-theme="tribune"] dialog::backdrop{background:rgba(28,26,23,.55);backdrop-filter:none}
+html[data-theme="tribune"] .etape{border-bottom-color:rgba(28,26,23,.14)}
+html[data-theme="tribune"] .etape .num,html[data-theme="tribune"] .fiche-cote .prix,html[data-theme="tribune"] .cj-pied .prix,html[data-theme="tribune"] .vente-prix b,html[data-theme="tribune"] .gains .tuile b,html[data-theme="tribune"] .fiche.bilan h3{color:var(--or2)}
+html[data-theme="tribune"] .axe-detail{background:var(--surface2)}
+html[data-theme="tribune"] .attr .jauge,html[data-theme="tribune"] .axe-detail summary .jauge{background:rgba(28,26,23,.1)}
+html[data-theme="tribune"] .attr .jauge i,html[data-theme="tribune"] .axe-detail summary .jauge i{background:linear-gradient(90deg,#9A9284,#6B6456)}
+html[data-theme="tribune"] .attr .jauge i.haut,html[data-theme="tribune"] .axe-detail summary .jauge i.haut{background:linear-gradient(90deg,var(--or),var(--or3))}
+html[data-theme="tribune"] .attr b{color:var(--encre)}
+html[data-theme="tribune"] .pieds .pied .fond path{fill:rgba(28,26,23,.1);stroke:rgba(28,26,23,.4)}
+html[data-theme="tribune"] .pieds .pied .jauge path{fill:var(--or)}
+html[data-theme="tribune"] .potentiel b{color:var(--vert)}
+html[data-theme="tribune"] .globaux .global{background:var(--surface2);border-color:var(--ligne2)}
+html[data-theme="tribune"] .globaux .global b.haut{color:var(--or2)}
+html[data-theme="tribune"] .carte-img{filter:drop-shadow(4px 4px 0 rgba(28,26,23,.25))}
+
+/* les filtres et les pastilles */
+html[data-theme="tribune"] .filtres{background:rgba(239,230,210,.94);border-bottom:1.5px solid var(--encre)}
+html[data-theme="tribune"] .filtres input[type=search]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%231C1A17' stroke-width='2'%3E%3Ccircle cx='7' cy='7' r='5'/%3E%3Cpath d='M11 11l4 4'/%3E%3C/svg%3E")}
+html[data-theme="tribune"] .pills,html[data-theme="tribune"] .vue{background:var(--papier);border:1.5px solid var(--encre);border-radius:6px;padding:2px}
+html[data-theme="tribune"] .pills button,html[data-theme="tribune"] .vue button{color:var(--sourd);border-radius:4px}
+html[data-theme="tribune"] .pills button[data-fam=""][aria-current="page"],html[data-theme="tribune"] .vue button[aria-current="page"]{background:var(--encre);color:#F8F2E4}
+html[data-theme="tribune"] .marche-effectif .quota{background:var(--papier);border-color:var(--ligne2)}
+html[data-theme="tribune"] .onglets{background:transparent;border-bottom:1.5px solid var(--encre);padding:0;border-radius:0;gap:2px}
+html[data-theme="tribune"] .onglets button{color:var(--sourd);border-bottom:3px solid transparent;border-radius:0;margin-bottom:-1.5px}
+html[data-theme="tribune"] .onglets button:hover{color:var(--encre)}
+html[data-theme="tribune"] .onglets button.actif,html[data-theme="tribune"] .onglets button[aria-current="page"]{background:transparent;color:var(--bordeaux);border-bottom-color:var(--bordeaux)}
+html[data-theme="tribune"] .connexion-pan .onglets{background:var(--papier);border:1.5px solid var(--encre);border-radius:6px;padding:2px}
+html[data-theme="tribune"] .connexion-pan .onglets button{border:0;margin:0;border-radius:4px}
+html[data-theme="tribune"] .connexion-pan .onglets button[aria-current="page"]{background:var(--encre);color:#F8F2E4}
+
+/* l'accueil : la une du programme */
+html[data-theme="tribune"] .hero h2{color:var(--encre);font-size:clamp(40px,5.6vw,72px)}
+html[data-theme="tribune"] .hero h2 em{color:var(--bordeaux)}
+html[data-theme="tribune"] .hero li{color:#4E4739}
+html[data-theme="tribune"] .hero li b{color:var(--encre)}
+html[data-theme="tribune"] .hero li i{color:var(--bordeaux);font-family:"Playfair Display",Georgia,serif;font-weight:900;font-style:italic}
+html[data-theme="tribune"] .connexion-pan h3{font-family:"Playfair Display",Georgia,serif;font-weight:900;letter-spacing:0}
+html[data-theme="tribune"] .erreur{color:var(--bordeaux)}
+
+/* tableaux et classements */
+html[data-theme="tribune"] th{color:#4E4739;border-bottom:2px solid var(--encre)}
+html[data-theme="tribune"] td{border-bottom-color:rgba(28,26,23,.14)}
+html[data-theme="tribune"] tbody tr:hover td{background:rgba(28,26,23,.04)}
+html[data-theme="tribune"] tr.moi td{background:rgba(217,184,90,.28)}
+html[data-theme="tribune"] tr.moi td:first-child{box-shadow:inset 3px 0 0 var(--bordeaux)}
+html[data-theme="tribune"] td.podium.p1{color:var(--or2)}html[data-theme="tribune"] td.podium.p2{color:#6E6A63}html[data-theme="tribune"] td.podium.p3{color:#9B5B2A}
+html[data-theme="tribune"] .tl{background:var(--surface)}
+html[data-theme="tribune"] .tl.tete{background:transparent;color:#4E4739}
+html[data-theme="tribune"] .tl.moi{background:rgba(217,184,90,.25);outline-color:var(--or)}
+html[data-theme="tribune"] .tl b.pts,html[data-theme="tribune"] .btie b,html[data-theme="tribune"] .btie .gagne{color:var(--or2)}
+html[data-theme="tribune"] .btie{background:var(--surface);border-color:var(--ligne2)}
+html[data-theme="tribune"] .btie.moi{background:rgba(217,184,90,.2);outline-color:var(--or)}
+html[data-theme="tribune"] .ligue .code,html[data-theme="tribune"] .match-coupe .equipe.moi,html[data-theme="tribune"] .match-coupe.moi{color:var(--or2);border-color:var(--or)}
+html[data-theme="tribune"] .match-coupe{background:var(--surface);border-color:var(--ligne2)}
+html[data-theme="tribune"] .journees span{background:var(--papier);border-color:var(--ligne2)}
+html[data-theme="tribune"] .journees span.cour{background:var(--encre);color:#F8F2E4;border-color:var(--encre)}
+html[data-theme="tribune"] .journees span.ok{background:rgba(31,122,77,.14);border-color:var(--vert)}
+html[data-theme="tribune"] .gros,html[data-theme="tribune"] .tableau-score .score{color:var(--encre);text-shadow:none}
+html[data-theme="tribune"] .tuile b{color:var(--encre)}
+html[data-theme="tribune"] .note{background:var(--surface3);color:var(--encre)}
+html[data-theme="tribune"] .note.b{background:rgba(31,122,77,.18);color:#145236}html[data-theme="tribune"] .note.m{background:rgba(169,50,38,.16);color:#7A2318}
+html[data-theme="tribune"] .badge-res.N{background:rgba(28,26,23,.08);color:var(--sourd)}
+html[data-theme="tribune"] .elo-chip{background:rgba(28,26,23,.07);color:var(--sourd)}
+html[data-theme="tribune"] .vivante-ligne,html[data-theme="tribune"] .objectif,html[data-theme="tribune"] .homme,html[data-theme="tribune"] .evt,html[data-theme="tribune"] .chg-j,html[data-theme="tribune"] .compo-col,html[data-theme="tribune"] .consignes,html[data-theme="tribune"] .dialogue,html[data-theme="tribune"] .profil-col,html[data-theme="tribune"] .xg-course{background:var(--surface2);border-color:var(--ligne2)}
+html[data-theme="tribune"] .vivante-ligne:hover,html[data-theme="tribune"] .ligne-onze:hover,html[data-theme="tribune"] .chg-j:hover{background:var(--papier)}
+html[data-theme="tribune"] .vivante-ligne .delta.plus,html[data-theme="tribune"] .objectif.ok .coche,html[data-theme="tribune"] .profil-col.aise .profil-item b,html[data-theme="tribune"] .profil-tien.bon,html[data-theme="tribune"] .bilan-chiffre.bon,html[data-theme="tribune"] .bilan-ligne.bon span:last-child,html[data-theme="tribune"] .homme .note.haute,html[data-theme="tribune"] .compo-j .note.haute,html[data-theme="tribune"] .tend.plus,html[data-theme="tribune"] .delta.plus{color:#145236}
+html[data-theme="tribune"] .vivante-ligne .delta.moins,html[data-theme="tribune"] .objectif.rate .coche,html[data-theme="tribune"] .profil-col.gene .profil-item b,html[data-theme="tribune"] .profil-tien.mauvais,html[data-theme="tribune"] .bilan-chiffre.mauvais,html[data-theme="tribune"] .bilan-ligne.mauvais span:last-child,html[data-theme="tribune"] .homme .note.basse,html[data-theme="tribune"] .compo-j .note.basse,html[data-theme="tribune"] .tend.moins,html[data-theme="tribune"] .delta.moins{color:#7A2318}
+html[data-theme="tribune"] .vivante-ligne .delta.plus{background:rgba(31,122,77,.14)}html[data-theme="tribune"] .vivante-ligne .delta.moins{background:rgba(169,50,38,.12)}
+html[data-theme="tribune"] .titre-gagne,html[data-theme="tribune"] .forme.bonne{color:#7A5208;background:rgba(217,184,90,.28)}
+html[data-theme="tribune"] .forme.mauvaise,html[data-theme="tribune"] .etat.suspendu{color:#7A2318;background:rgba(169,50,38,.12)}
+html[data-theme="tribune"] .etat.blesse{color:#7A5208;background:rgba(217,184,90,.28)}html[data-theme="tribune"] .etat.fatigue{color:#1F5FAE;background:rgba(31,95,174,.12)}
+html[data-theme="tribune"] .tend.egal{color:var(--bleu)}
+html[data-theme="tribune"] .dessin > .tend{background:var(--papier);border-color:var(--encre);color:var(--encre)}
+html[data-theme="tribune"] .cj-doublon{background:var(--bordeaux)}
+html[data-theme="tribune"] .club-actions .doublon{color:var(--bordeaux);border-color:var(--bordeaux)}
+
+/* le match : les panneaux de la tribune, le terrain reste vert */
+html[data-theme="tribune"] .tac-titre,html[data-theme="tribune"] .sl span,html[data-theme="tribune"] .evt .min,html[data-theme="tribune"] .live-eq .style,html[data-theme="tribune"] .compo-forme,html[data-theme="tribune"] .compo-j .po,html[data-theme="tribune"] .compo-banc,html[data-theme="tribune"] .consignes summary,html[data-theme="tribune"] .t2d-action,html[data-theme="tribune"] .chg-j .qui .sous{color:#5A5346}
+html[data-theme="tribune"] .consignes summary:hover,html[data-theme="tribune"] .onglets button:hover{color:var(--encre)}
+html[data-theme="tribune"] button.tac{background:var(--papier);border:1.5px solid var(--encre);color:var(--encre)}
+html[data-theme="tribune"] button.tac:hover{background:var(--surface3)}
+html[data-theme="tribune"] button.tac.actif{background:var(--encre);color:#F8F2E4;border-color:var(--encre)}
+html[data-theme="tribune"] .tac.actif.attente{opacity:.75}
+html[data-theme="tribune"] .compo-tete{border-bottom-color:var(--ligne2)}
+html[data-theme="tribune"] .compo-col.mien{border-color:var(--bleu)}html[data-theme="tribune"] .compo-col.adverse{border-color:var(--bordeaux)}
+html[data-theme="tribune"] .compo-j .note.bonne{color:var(--encre)}html[data-theme="tribune"] .compo-j .note{color:var(--sourd)}
+html[data-theme="tribune"] .evt.mien{background:rgba(217,184,90,.22)}html[data-theme="tribune"] .evt.but{background:rgba(217,184,90,.4)}
+html[data-theme="tribune"] .homme.mien{background:rgba(31,95,174,.1)}
+html[data-theme="tribune"] .homme.premier{background:linear-gradient(90deg,rgba(217,184,90,.4),rgba(217,184,90,.1));border-color:var(--or)}
+html[data-theme="tribune"] .homme .medaille{color:var(--or2);border-color:var(--or)}
+html[data-theme="tribune"] .horloge{background:rgba(28,26,23,.1)}
+html[data-theme="tribune"] .horloge i{background:linear-gradient(90deg,var(--or3),var(--or))}
+html[data-theme="tribune"] .horloge b{color:var(--encre)}
+html[data-theme="tribune"] .barre-poss{background:rgba(169,50,38,.3)}
+html[data-theme="tribune"] .barre-poss i{background:linear-gradient(90deg,var(--or),var(--or3))}
+html[data-theme="tribune"] .mt-centre .live-score,html[data-theme="tribune"] .live-score{color:var(--encre)}
+html[data-theme="tribune"] .mt-min{color:var(--sourd)}
+html[data-theme="tribune"] .causerie{background:rgba(217,184,90,.2);border-color:var(--or)}
+html[data-theme="tribune"] .causerie .etiq{color:var(--or2)}
+html[data-theme="tribune"] .causerie.dite{background:var(--surface2);border-color:var(--ligne2)}
+html[data-theme="tribune"] .blessure-stop{background:rgba(169,50,38,.1);border-color:var(--bordeaux)}
+html[data-theme="tribune"] .blessure-stop .titre{color:var(--bordeaux)}
+html[data-theme="tribune"] .horloge.suspendue i{background:var(--bordeaux)}html[data-theme="tribune"] .horloge.suspendue b{color:#F8F2E4}
+html[data-theme="tribune"] .chg-j.choisi{outline-color:var(--or);background:rgba(217,184,90,.25)}
+html[data-theme="tribune"] .chg-j .num{color:var(--or2)}
+html[data-theme="tribune"] .endu{background:rgba(28,26,23,.14)}
+html[data-theme="tribune"] .dialogue .etiq{color:var(--bordeaux)}
+html[data-theme="tribune"] .dialogue .dit.toi{background:rgba(217,184,90,.35)}
+html[data-theme="tribune"] .dialogue .dit.coach{background:var(--papier);border:1px solid var(--ligne2)}
+html[data-theme="tribune"] .dialogue .dit.coach.non{color:var(--bordeaux)}
+html[data-theme="tribune"] .dialogue-saisie input{background-color:var(--papier);border:1.5px solid var(--encre);color:var(--encre)}
+html[data-theme="tribune"] .profil-col.aise{background:rgba(31,122,77,.1);border-color:var(--vert)}html[data-theme="tribune"] .profil-col.gene{background:rgba(169,50,38,.08);border-color:var(--bordeaux)}
+html[data-theme="tribune"] .xg-course polyline.mien{stroke:var(--bleu)}html[data-theme="tribune"] .xg-course polyline.adverse{stroke:var(--bordeaux)}
+html[data-theme="tribune"] .xg-legende .lg.mien{color:var(--bleu)}html[data-theme="tribune"] .xg-legende .lg.adverse{color:var(--bordeaux)}
+html[data-theme="tribune"] .t2d-legende .lg.mien::before{border-color:var(--bleu);background:rgba(31,95,174,.25)}html[data-theme="tribune"] .t2d-legende .lg.adverse::before{border-color:var(--bordeaux);background:rgba(139,42,42,.25)}
+html[data-theme="tribune"] .res.V{background:var(--vert)}html[data-theme="tribune"] .res.N{background:#6E6A63}html[data-theme="tribune"] .res.D{background:var(--bordeaux)}
+html[data-theme="tribune"] .maillot-choix label{color:var(--sourd)}
+html[data-theme="tribune"] .terrain{border:2px solid var(--encre);box-shadow:4px 4px 0 var(--encre),inset 0 0 60px rgba(0,0,0,.2)}
+html[data-theme="tribune"] .terrain2d,html[data-theme="tribune"] .terrain2d.terrain-b{border:2px solid var(--encre);box-shadow:4px 4px 0 var(--encre)}
+html[data-theme="tribune"] #banc.survol{outline-color:var(--or)}
+html[data-theme="tribune"] .slot.cible .mini > div,html[data-theme="tribune"] .slot.survol .mini > div,html[data-theme="tribune"] .ligne.prise{outline-color:var(--or3)}
+html[data-theme="tribune"] .onze-carte .n{color:var(--sourd)}
+html[data-theme="tribune"] .toast{background:var(--encre);color:#F8F2E4;border:1.5px solid var(--or3);box-shadow:3px 3px 0 var(--or)}
+html[data-theme="tribune"] .fiche-ligne,html[data-theme="tribune"] .attr{color:var(--sourd)}
+html[data-theme="tribune"] .coupe{border-top-color:var(--ligne2)}
+html[data-theme="tribune"] .rythme .compteur{color:var(--sourd)}

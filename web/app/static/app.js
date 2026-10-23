@@ -174,6 +174,46 @@ function t(cle, p) {
   if (typeof s === "object") s = (p && +p.n === 1) ? (s["1"] ?? s.n) : (s.n ?? s["1"]);
   return String(s).replace(/\{(\w+)\}/g, (_, k) => (p && p[k] !== undefined && p[k] !== null) ? p[k] : "");
 }
+// La barre : une icône par écran (dessinée ici, pas de police d'icônes), les cinq
+// écrans du quotidien en premier, les autres derrière « Plus » sur un téléphone ;
+// et le thème (Tribune, le programme de match ; Nuit de stade, l'ancien).
+const ICONES = {
+  marche: '<path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h4"/>',
+  equipe: '<circle cx="12" cy="7" r="3.2"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
+  lobby: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5l2.6 2.3-1 3.3h-3.2l-1-3.3zM3.6 10.6l3.3.8 1.3 3-2 2.6-3-1.6M20.4 10.6l-3.3.8-1.3 3 2 2.6 3-1.6M9 20l1.2-3h3.6l1.2 3"/>',
+  solo: '<path d="M7 4h10v3a5 5 0 0 1-10 0z"/><path d="M7 5H4.5a2.5 2.5 0 0 0 0 5H7M17 5h2.5a2.5 2.5 0 0 1 0 5H17M12 12v4M8.5 20h7M10 16h4v4h-4z"/>',
+  packs: '<path d="M4 7l8-4 8 4-8 4z"/><path d="M4 7v10l8 4 8-4V7M12 11v10"/>',
+  encheres: '<path d="M4 20h9M8.5 15.5l6-6M6 13l5 5M12 7l5 5M14 5l5 5"/>',
+  journee: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  classement: '<path d="M4 20V11h4v9M10 20V5h4v15M16 20v-7h4v7"/>',
+  compte: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/><path d="M19 4l1 1-1 1-1-1z"/>',
+  admin: '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>',
+  plus: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+};
+function icone(cle) {
+  const d = ICONES[cle]; if (!d) return null;
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("class", "ico"); svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = d;
+  return svg;
+}
+function poserIcones() {
+  for (const b of document.querySelectorAll("nav button[data-ecran], nav #btn-plus")) {
+    if (b.querySelector(".ico")) continue;
+    const i = icone(b.dataset.ecran || "plus");
+    if (i) b.prepend(i);
+  }
+}
+const THEMES = ["tribune", "nuit"];
+function appliquerTheme(nom) {
+  const th = THEMES.includes(nom) ? nom : "tribune";
+  document.documentElement.dataset.theme = th;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = th === "nuit" ? "#080B14" : "#0E2A1F";
+  const sel = $("#theme"); if (sel) sel.value = th;
+}
+
 function appliquerLangue() {
   document.documentElement.lang = LANGUE === "xx" ? "fr" : LANGUE;
   for (const e of document.querySelectorAll("[data-t]")) e.textContent = t(e.dataset.t);
@@ -186,6 +226,13 @@ function appliquerLangue() {
     sel.value = LANGUE;
     sel.onchange = () => { try { localStorage.setItem("fl_langue", sel.value); } catch (e) {} location.reload(); };
   }
+  const th = $("#theme");
+  if (th) {
+    let voulu = "tribune"; try { voulu = localStorage.getItem("fl_theme") || "tribune"; } catch (e) {}
+    appliquerTheme(voulu);
+    th.onchange = () => { try { localStorage.setItem("fl_theme", th.value); } catch (e) {} appliquerTheme(th.value); };
+  }
+  poserIcones();
 }
 // Le commentaire d'un événement de match : par gabarit dans la langue de
 // l'écran quand la feuille en donne un (moteur B), sinon le texte tel quel.
@@ -2738,7 +2785,10 @@ async function rendreAdmin() {
 }
 
 // ---- démarrage ----
-for (const b of document.querySelectorAll("nav button[data-ecran]")) b.addEventListener("click", () => montrer(b.dataset.ecran));
+for (const b of document.querySelectorAll("nav button[data-ecran]")) b.addEventListener("click", () => { fermerPlus(); montrer(b.dataset.ecran); });
+function fermerPlus() { const n = $("#nav"); n.classList.remove("ouvert"); const p = $("#btn-plus"); if (p) p.setAttribute("aria-expanded", "false"); }
+$("#btn-plus")?.addEventListener("click", () => { const n = $("#nav"); const ouvert = n.classList.toggle("ouvert"); $("#btn-plus").setAttribute("aria-expanded", String(ouvert)); });
+document.addEventListener("click", ev => { if (!ev.target.closest("#nav")) fermerPlus(); });
 for (const id of ["f-nom", "f-fam", "f-ligue", "f-tri", "f-abord", "f-miens"]) $("#" + id).addEventListener("input", () => { marcheLimite = 60; rendreMarche(); });
 for (const id of ["e-nom", "e-fam", "e-tri", "e-miennes"]) $("#" + id).addEventListener("input", () => rendreEncheres());
 $("#marche-plus").addEventListener("click", () => { marcheLimite += 100; rendreMarche(); });

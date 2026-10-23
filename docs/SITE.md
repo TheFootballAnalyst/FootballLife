@@ -7,6 +7,18 @@ journée est `jeu/pipeline.py`, déclenchée depuis l'écran Admin.
 
 ## Écrans
 
+**Deux habillages**, au choix dans la barre (ou dans « Plus » sur un
+téléphone), gardés dans le navigateur : **Tribune**, le programme de
+match (papier et encre, vert bouteille, bordeaux, l'or pour ce qui
+compte ; les titres en bois, les sous-titres à la plume), et **Nuit de
+stade**, l'habillage d'origine. Les deux lisent les mêmes écrans : le
+thème redéfinit les couleurs (`style.css`, les variables de
+`html[data-theme]`) et le reste suit. La barre porte une icône par
+écran ; sur un téléphone, elle devient une barre d'onglets en bas avec les
+quatre écrans du quotidien (Cartes, Équipe, Lobby, Solo) et « Plus » qui
+ouvre les autres, la langue et le thème.
+
+
 | écran | ce qu'on y fait |
 |---|---|
 | Connexion | créer un compte (pseudo, mot de passe, nom d'équipe) ; le premier compte est administrateur |

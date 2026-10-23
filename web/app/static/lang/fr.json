@@ -1016,5 +1016,9 @@
  "coupe.en_cours_moi": "Ton match contre {nom} est en cours : va au lobby.",
  "coupe.onze": "Aligne un onze complet dans l'écran Équipe pour jouer ton match.",
  "coupe.forfait_gagne": "Ton adversaire n'avait pas de onze enregistré : tu passes.",
- "coupe.commence": "Ton match de coupe commence : va au lobby."
+ "coupe.commence": "Ton match de coupe commence : va au lobby.",
+ "nav.plus": "Plus",
+ "theme.tribune": "Tribune",
+ "theme.nuit": "Nuit de stade",
+ "nav.theme": "Thème"
 }

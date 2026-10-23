@@ -3,28 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#080B14">
+<meta name="theme-color" content="#0E2A1F">
 <title>FootballLife</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css">
+<script>try{var _t=localStorage.getItem("fl_theme");document.documentElement.dataset.theme=(_t==="nuit"||_t==="tribune")?_t:"tribune"}catch(e){document.documentElement.dataset.theme="tribune"}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Playfair+Display:ital,wght@0,700;0,900;1,500;1,700&display=swap">
+<link rel="stylesheet" href="/static/style.css?v=2">
 </head>
 <body>
 <header>
   <div class="barre">
     <div class="marque"><h1 class="anton">FOOTBALL<span>LIFE</span></h1><small id="marque-sous">saison</small></div>
     <nav id="nav" hidden>
-      <button data-ecran="packs" data-t="nav.packs">Packs</button>
-      <button data-ecran="encheres" data-t="nav.encheres">Enchères</button>
-      <button data-ecran="marche" data-t="nav.marche">Cartes</button>
-      <button data-ecran="equipe" data-t="nav.equipe">Équipe</button>
-      <button data-ecran="lobby" data-t="nav.lobby">Lobby</button>
-      <button data-ecran="solo" data-t="nav.solo">Solo</button>
-      <button data-ecran="journee" data-t="nav.journee">Journée</button>
-      <button data-ecran="classement" data-t="nav.classement">Classement</button>
-      <button data-ecran="compte" data-t="nav.compte">Compte</button>
-      <button data-ecran="admin" id="nav-admin" hidden data-t="nav.admin">Admin</button>
-      <select id="langue" class="discret" aria-label="Langue"></select>
-      <button class="discret" id="btn-deconnexion" data-t-title="nav.deconnexion" title="Se déconnecter">↩</button>
+      <button data-ecran="marche" data-primaire><span class="lib" data-t="nav.marche">Cartes</span></button>
+      <button data-ecran="equipe" data-primaire><span class="lib" data-t="nav.equipe">Équipe</span></button>
+      <button data-ecran="lobby" data-primaire><span class="lib" data-t="nav.lobby">Lobby</span></button>
+      <button data-ecran="solo" data-primaire><span class="lib" data-t="nav.solo">Solo</span></button>
+      <button data-ecran="packs"><span class="lib" data-t="nav.packs">Packs</span></button>
+      <button data-ecran="encheres"><span class="lib" data-t="nav.encheres">Enchères</span></button>
+      <button data-ecran="journee"><span class="lib" data-t="nav.journee">Journée</span></button>
+      <button data-ecran="classement"><span class="lib" data-t="nav.classement">Classement</span></button>
+      <button data-ecran="compte"><span class="lib" data-t="nav.compte">Compte</span></button>
+      <button data-ecran="admin" id="nav-admin" hidden><span class="lib" data-t="nav.admin">Admin</span></button>
+      <div class="nav-outils">
+        <select id="langue" class="discret" aria-label="Langue"></select>
+        <select id="theme" class="discret" aria-label="Thème"><option value="tribune" data-t="theme.tribune">Tribune</option><option value="nuit" data-t="theme.nuit">Nuit de stade</option></select>
+        <button class="discret" id="btn-deconnexion" data-t-title="nav.deconnexion" title="Se déconnecter">↩</button>
+      </div>
+      <button id="btn-plus" class="plus" aria-expanded="false"><span class="lib" data-t="nav.plus">Plus</span></button>
     </nav>
     <div class="statut" id="statut" hidden>
       <div><span data-t="statut.journee">Journée</span><b id="st-j" class="num">—</b></div>
@@ -201,6 +206,6 @@
 <dialog id="fiche"></dialog>
 <div class="toast" id="toast"></div>
 <script src="/static/terrain_b.js?v=3"></script>
-<script src="/static/app.js?v=13"></script>
+<script src="/static/app.js?v=14"></script>
 </body>
 </html>

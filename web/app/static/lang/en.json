@@ -1016,5 +1016,9 @@
  "coupe.en_cours_moi": "Your tie against {nom} is in play: go to the lobby.",
  "coupe.onze": "Line up a full eleven on the Team screen to play your tie.",
  "coupe.forfait_gagne": "Your opponent had no saved eleven: you go through.",
- "coupe.commence": "Your cup tie kicks off: go to the lobby."
+ "coupe.commence": "Your cup tie kicks off: go to the lobby.",
+ "nav.plus": "More",
+ "theme.tribune": "Tribune",
+ "theme.nuit": "Stadium night",
+ "nav.theme": "Theme"
 }
