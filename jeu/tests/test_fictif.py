@@ -71,3 +71,59 @@ def test_avatars_and_crests_are_drawn_deterministically():
     e = AV.ecusson(8456, "Manchester 1880", "#69A8D8", 64)
     assert e.size == (64, 64) and AV.initiales("Manchester 1880") == "MAN" and AV.initiales("Paris 1970") == "PAR" and AV.initiales("Real Sociedad") == "RS"
     buf = io.BytesIO(); e.save(buf, format="PNG"); assert buf.getvalue()[:4] == b"\x89PNG"
+
+
+# --------------------------------------------------------------------------
+# Le monde « proche » : un nom déformé, reconnaissable ; la recherche répond au vrai nom
+# --------------------------------------------------------------------------
+
+def test_a_close_name_keeps_the_first_name_and_changes_one_vowel_of_the_surname():
+    assert FI.nom_proche("Ousmane Dembélé") == "Ousmane Dembéli"
+    assert FI.nom_proche("Kylian Mbappé") == "Kylian Mbappi"
+    assert FI.nom_proche("Mohamed Salah") == "Mohamed Saleh"
+    assert FI.nom_proche("Erling Haaland") == "Erling Haalend"
+    assert FI.nom_proche("Lionel Messi") == "Lionel Messa"
+    assert FI.nom_proche("Vinícius Júnior") == "Vinícius Júniur"
+    # the variants, in order, when a name is taken ; never the real one
+    variantes = [FI.nom_proche("Mohamed Salah", e) for e in range(6)]
+    assert variantes[0] == "Mohamed Saleh" and variantes[1] == "Mohamed Saloh" and variantes[2] == "Mohamed Selah"
+    assert len(set(variantes)) == 6 and "Mohamed Salah" not in variantes
+    assert FI.nom_proche("Nkrm") == "Nkrmi"                        # no vowel at all: a letter added
+
+
+def test_search_aliases_answer_to_the_real_name_without_holding_it():
+    alias = FI.alias_recherche("Ousmane Dembélé")
+    assert all(len(a) == 6 and int(a, 16) >= 0 for a in alias)
+    assert "dembele" not in json_str(alias) and "ousmane" not in json_str(alias)
+    for q in ("dembele", "Dembélé", "demb", "ousmane dembele", "OUSMANE", "ousm demb"):
+        assert FI.correspond(q, alias), q
+    for q in ("dembeli", "mbappe", "dem", "", "ousmane mbappe"):
+        assert not FI.correspond(q, alias), q
+    assert FI.fnv("demb") == FI.fnv("demb") and FI.fnv("demb") != FI.fnv("dembe")
+
+
+def json_str(x):
+    import json
+    return json.dumps(x)
+
+
+def test_applying_the_close_world_renames_recognisably_and_keeps_the_aliases():
+    jeu = base_avec_equipes(1)
+    jeu.execute("UPDATE joueur SET nom='Ousmane Dembélé', nom_normalise='ousmane dembele', pays='FRA' WHERE player_id=1")
+    jeu.execute("UPDATE joueur SET nom='Mohamed Saleh', nom_normalise='mohamed saleh', pays='EGY' WHERE player_id=2")   # a real player whose name is Salah's first variant
+    jeu.execute("UPDATE joueur SET nom='Mohamed Salah', nom_normalise='mohamed salah', pays='EGY' WHERE player_id=3")
+    c = FI.appliquer(jeu, "2025/26", "proche")
+    assert c["joueurs"] == 15 and FI.monde(jeu, "2025/26") == "proche"
+    noms = dict(jeu.execute("SELECT player_id, nom FROM joueur"))
+    assert noms[1] == "Ousmane Dembéli" and noms[2] == "Mohamed Salih"          # Saleh, deformed
+    assert noms[3] == "Mohamed Saloh"                                            # Salah: « Saleh » is a real name of the base, next variant
+    assert jeu.execute("SELECT nom_reel FROM joueur WHERE player_id=1").fetchone()[0] == "Ousmane Dembélé"
+    import json
+    alias = json.loads(jeu.execute("SELECT alias FROM joueur WHERE player_id=1").fetchone()[0])
+    assert FI.correspond("dembele", alias) and not FI.correspond("salah", alias)
+    # back to the real world: names restored, aliases gone ; the pure fictional world has none either
+    FI.appliquer(jeu, "2025/26", "reel")
+    assert dict(jeu.execute("SELECT player_id, nom FROM joueur"))[1] == "Ousmane Dembélé"
+    assert jeu.execute("SELECT COUNT(*) FROM joueur WHERE alias IS NOT NULL").fetchone()[0] == 0
+    FI.appliquer(jeu, "2025/26", "fictif")
+    assert jeu.execute("SELECT COUNT(*) FROM joueur WHERE alias IS NOT NULL").fetchone()[0] == 0

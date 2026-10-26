@@ -184,6 +184,12 @@ Le serveur n'a donc jamais besoin de la base FotMob ni du cache.
 
 ## Mettre en ligne
 
+Le monde de la base se choisit au lancement : `--reel` (les vrais noms),
+`--fictif` (noms sans ressemblance, clubs par ville, avatars) ou
+`--proche` (noms déformés mais reconnaissables, la recherche répond au
+vrai nom) ; docs/MODS.md dit ce que chacun engage.
+
+
 Le conteneur `Dockerfile` à la racine tient sur n'importe quel hébergeur
 qui lance des images Docker avec un volume persistant (Fly.io, Railway,
 Render, un petit VPS). Deux choses à fournir : la variable `FL_SECRET`

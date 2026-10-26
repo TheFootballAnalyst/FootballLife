@@ -28,6 +28,34 @@ nom fictif d'une base à l'autre (même identifiant, même nom), sauf dans le
 cas rare où l'autre base a un vrai joueur de ce nom-là : un nom fictif
 n'est jamais un vrai nom de la base, et deux cartes n'ont jamais le même.
 
+## Le monde « proche » : reconnaissable, pas le vrai nom
+
+```
+py web/app/lancer.py --proche      # ou : py jeu/fictif.py --proche --jeu jeu/demo.sqlite
+```
+
+Le prénom reste, une voyelle du nom de famille change : Ousmane Dembéli,
+Kylian Mbappi, Mohamed Saleh, Erling Haalend, Lionel Messa. Jamais un vrai
+nom de la base, jamais deux cartes du même nom (la variante suivante
+sinon). Les clubs et les compétitions sont ceux du monde fictif (la ville,
+le pays), les portraits sont les avatars dessinés. La **recherche répond
+au vrai nom** : taper « dembele » trouve Dembéli. Le vrai nom n'est ni
+affiché ni envoyé à l'écran : la carte porte les empreintes (FNV-1a, six
+hexas) des préfixes de quatre lettres et plus de chaque mot du vrai nom,
+l'écran hache ce qu'on tape et compare (`jeu/fictif.py`,
+`alias_recherche` ; `app.js`, `chercheCarte`).
+
+**À savoir avant de le mettre en ligne.** C'est le procédé des jeux sans
+licence (noms déformés, clubs par ville), et il marche parce que le joueur
+reconnaît. C'est précisément là qu'est le risque : un nom proche, le
+club, l'âge, le poste, les statistiques réelles identifient la personne,
+et le droit (nom, image, personnalité ; marques des clubs et des ligues)
+s'attache à l'identification, pas à l'orthographe. Ce mode n'est donc pas
+plus sûr juridiquement que les vrais noms, il est seulement moins
+frontal. Le mode **fictif** (noms sans ressemblance) est le seul des trois
+qui ne désigne personne. Le choix se prend avec un avis juridique, pays
+de la société en main.
+
 ## Les mods
 
 Un dossier `mods/` à la racine du jeu, chez le joueur. Le jeu le lit en

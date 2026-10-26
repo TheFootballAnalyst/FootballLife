@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import json
 import pathlib
 import re
 import unicodedata
@@ -162,6 +163,75 @@ def normaliser(nom: str) -> str:
 
 
 # --------------------------------------------------------------------------
+# Le mode « proche » : un nom déformé, reconnaissable, jamais le vrai
+# --------------------------------------------------------------------------
+# La dernière voyelle du nom de famille change (Dembélé → Dembéli, Mbappé → Mbappi,
+# Salah → Saleh, Haaland → Haalend, Messi → Messa) ; le prénom reste.  Une
+# collision avec un vrai nom de la base, ou un autre nom déformé, prend la
+# voyelle suivante du cycle, puis touche l'avant-dernière voyelle.  C'est le
+# procédé des jeux sans licence : le joueur reconnaît, le nom n'est pas le vrai.
+# ATTENTION, ce mode IDENTIFIE la personne (nom proche + club + âge + stats) :
+# juridiquement il n'est pas plus sûr que le vrai nom, c'est une décision à
+# prendre avec un avis (docs/MODS.md).
+VOYELLES = "aeiouy"
+CYCLE = {"a": "eo", "e": "ia", "i": "ae", "o": "ua", "u": "oi", "y": "ia"}
+ACCENTS = {"é": "e", "è": "e", "ê": "e", "á": "a", "à": "a", "ã": "a", "í": "i", "ó": "o", "ô": "o", "ú": "u", "ü": "u", "ö": "o", "ä": "a"}
+
+
+def _deformer(mot: str, rang: int = 1, choix: int = 0) -> str:
+    """`mot` avec sa `rang`-ième voyelle en partant de la fin remplacée (choix 0 ou 1 du cycle)."""
+    pos = [i for i, ch in enumerate(mot) if ACCENTS.get(ch.lower(), ch.lower()) in VOYELLES]
+    if len(pos) < rang:
+        return mot + ("i" if choix == 0 else "a")
+    i = pos[-rang]
+    base = ACCENTS.get(mot[i].lower(), mot[i].lower())
+    rempl = CYCLE[base][choix % 2]
+    if mot[i].isupper():
+        rempl = rempl.upper()
+    return mot[:i] + rempl + mot[i + 1:]
+
+
+def nom_proche(nom_reel: str, essai: int = 0) -> str:
+    """Le nom déformé d'une carte : le nom de famille (le dernier mot) avec une
+    voyelle changée ; `essai` parcourt les variantes (0..3) quand la première
+    est déjà prise."""
+    mots = nom_reel.split()
+    if not mots:
+        return nom_reel
+    rang, choix = ((1, 0), (1, 1), (2, 0), (2, 1))[essai % 4]
+    deforme = _deformer(mots[-1], rang, choix)
+    if essai >= 4:
+        deforme += "i"
+    return " ".join(mots[:-1] + [deforme])
+
+
+def fnv(s: str) -> str:
+    """FNV-1a 32 bits, en six hexas : la même fonction côté écran (app.js, fnv)."""
+    h = 0x811C9DC5
+    for b in s.encode("utf-8"):
+        h = ((h ^ b) * 0x01000193) & 0xFFFFFFFF
+    return f"{h:08x}"[-6:]
+
+
+def alias_recherche(nom_reel: str, minimum: int = 4, maximum: int = 12) -> list[str]:
+    """Ce qui permet de retrouver une carte en tapant son vrai nom sans que ce
+    nom soit dans la base ni à l'écran : les empreintes des préfixes (4 lettres
+    et plus) de chaque mot du vrai nom normalisé.  L'écran hache ce qu'on
+    tape et compare."""
+    out = []
+    for mot in normaliser(nom_reel).replace("-", " ").split():
+        for n in range(minimum, min(len(mot), maximum) + 1):
+            out.append(fnv(mot[:n]))
+    return sorted(set(out))
+
+
+def correspond(requete: str, alias: list[str]) -> bool:
+    """Vrai quand chaque mot tapé (4 lettres et plus) est un préfixe d'un mot du vrai nom."""
+    mots = [m for m in normaliser(requete).replace("-", " ").split() if len(m) >= 4]
+    return bool(mots) and all(fnv(m[:12]) in alias for m in mots)
+
+
+# --------------------------------------------------------------------------
 # Les clubs : la ville, et l'année de fondation quand la ville en a plusieurs
 # --------------------------------------------------------------------------
 # nom réel → (ville, année ou None).  L'année ne sert qu'à distinguer deux clubs
@@ -298,7 +368,7 @@ def monde(jeu, saison: str) -> str:
     if not row:
         return "reel"
     v = row[0].strip('"')
-    return "fictif" if v == "fictif" else "reel"
+    return v if v in ("fictif", "proche") else "reel"
 
 
 def _colonne(jeu, table: str, colonne: str):
@@ -311,14 +381,16 @@ def appliquer(jeu, saison: str, mode: str, dossier_mods: pathlib.Path | None = N
     """Écrit les noms du monde demandé dans la base (joueur.nom, club.nom,
     competition.nom), en gardant les vrais dans `nom_reel` ; « fictif » lit
     ensuite les mods s'il y en a.  Rend le compte de ce qui a changé."""
-    assert mode in ("reel", "fictif")
+    assert mode in ("reel", "fictif", "proche")
     for table in ("joueur", "club", "competition"):
         _colonne(jeu, table, "nom_reel")
         _colonne(jeu, table, "nom_fictif")
+    _colonne(jeu, "joueur", "alias")          # les empreintes du vrai nom, en mode proche (alias_recherche)
     # les vrais noms sont gardés une fois pour toutes (la première application)
     for table in ("joueur", "club", "competition"):
         jeu.execute(f"UPDATE {table} SET nom_reel = nom WHERE nom_reel IS NULL")
     compte = {"joueurs": 0, "clubs": 0, "competitions": 0, "mods": 0}
+    jeu.execute("UPDATE joueur SET alias = NULL")
     if mode == "reel":
         jeu.execute("UPDATE joueur SET nom = nom_reel, nom_normalise = ? WHERE nom_reel IS NOT NULL", ("",))
         for pid, nom in [tuple(r) for r in jeu.execute("SELECT player_id, nom FROM joueur")]:
@@ -333,17 +405,25 @@ def appliquer(jeu, saison: str, mode: str, dossier_mods: pathlib.Path | None = N
         reels = {normaliser(r[0]) for r in jeu.execute("SELECT nom_reel FROM joueur")}
         pris: set[str] = set()
         for pid, pays, nom_reel in [tuple(r) for r in jeu.execute("SELECT player_id, pays, nom_reel FROM joueur ORDER BY player_id")]:
-            fictif = nom_joueur(pid, pays)
-            if normaliser(fictif) in reels or normaliser(fictif) in pris:
-                for sel in range(1, 50):
-                    fictif = nom_joueur(pid, pays, sel=sel)
+            if mode == "proche":
+                fictif = nom_proche(nom_reel)
+                for essai in range(1, 12):
                     if normaliser(fictif) not in reels and normaliser(fictif) not in pris:
                         break
+                    fictif = nom_proche(nom_reel, essai)
+            else:
+                fictif = nom_joueur(pid, pays)
+                if normaliser(fictif) in reels or normaliser(fictif) in pris:
+                    for sel in range(1, 50):
+                        fictif = nom_joueur(pid, pays, sel=sel)
+                        if normaliser(fictif) not in reels and normaliser(fictif) not in pris:
+                            break
             pris.add(normaliser(fictif))
             nom = m["noms"].get(pid) or fictif
             if pid in m["noms"]:
                 compte["mods"] += 1
-            jeu.execute("UPDATE joueur SET nom=?, nom_fictif=?, nom_normalise=? WHERE player_id=?", (nom, fictif, normaliser(nom), pid))
+            alias = json.dumps(alias_recherche(nom_reel)) if mode == "proche" else None
+            jeu.execute("UPDATE joueur SET nom=?, nom_fictif=?, nom_normalise=?, alias=? WHERE player_id=?", (nom, fictif, normaliser(nom), alias, pid))
             compte["joueurs"] += 1
         for tid, nom_reel in [tuple(r) for r in jeu.execute("SELECT team_id, nom_reel FROM club")]:
             fictif = nom_club(tid, nom_reel)
@@ -375,6 +455,7 @@ def main(argv=None):
     ap.add_argument("--saison", default="2025/26")
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--fictif", action="store_true", help="noms générés, clubs par ville, puis les mods de mods/")
+    g.add_argument("--proche", action="store_true", help="noms déformés mais reconnaissables (Dembéli), clubs par ville ; la recherche répond au vrai nom")
     g.add_argument("--reel", action="store_true", help="les vrais noms, tels qu'importés")
     g.add_argument("--etat", action="store_true", help="dire le monde de la base")
     ap.add_argument("--mods", default=None, help="un autre dossier de mods que mods/")
@@ -383,8 +464,9 @@ def main(argv=None):
     if a.etat:
         print(monde(jeu, a.saison))
         return 0
-    c = appliquer(jeu, a.saison, "fictif" if a.fictif else "reel", pathlib.Path(a.mods) if a.mods else None)
-    print(("monde fictif" if a.fictif else "monde réel") + f" : {c['joueurs']} joueurs, {c['clubs']} clubs, {c['competitions']} compétitions"
+    mode = "fictif" if a.fictif else "proche" if a.proche else "reel"
+    c = appliquer(jeu, a.saison, mode, pathlib.Path(a.mods) if a.mods else None)
+    print({"fictif": "monde fictif", "proche": "monde proche", "reel": "monde réel"}[mode] + f" : {c['joueurs']} joueurs, {c['clubs']} clubs, {c['competitions']} compétitions"
           + (f", {c['mods']} lignes de mods" if c["mods"] else ""))
     return 0
 

@@ -112,6 +112,15 @@ const drapeau = code => { const c = ISO2[code] || (code && code.length === 2 ? c
 const ageTxt = c => c.age ? t("carte.ans", {n: c.age}) : "";
 // pour chercher : minuscules, sans accents
 const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+// Le monde « proche » (jeu/fictif) : la carte porte les empreintes des préfixes de son VRAI nom
+// (FNV-1a, six hexas, la même fonction que fictif.fnv) ; taper « dembele » trouve « Dembéli ».
+function fnv(s) { let h = 0x811C9DC5; for (const b of new TextEncoder().encode(s)) { h ^= b; h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, "0").slice(-6); }
+function chercheCarte(q, c) {
+  if (norm(c.nom).includes(q) || norm(c.club).includes(q)) return true;
+  if (!c.alias) return false;
+  const mots = q.replace(/-/g, " ").split(/\s+/).filter(m => m.length >= 4);
+  return mots.length > 0 && mots.every(m => c.alias.includes(fnv(m.slice(0, 12))));
+}
 const FAM_COURT = tableT("fam_court.");
 
 // ---- état local (miroir de ce que le serveur a renvoyé) ----
@@ -534,7 +543,7 @@ function rendreMarche() {
   let rows = G.cartes.filter(c => {
     if (fam && c.fam !== fam) return false; if (ligue && c.ligue !== ligue) return false;
     if (abord && !ventesDe(c.id).length) return false; if (miens && !G.equipe.effectif[c.id]) return false;
-    if (q && !norm(c.nom).includes(q) && !norm(c.club).includes(q)) return false; return true;
+    if (q && !chercheCarte(q, c)) return false; return true;
   });
   const cle = {ovr: c => -c.ovr, prix: c => -c.prix, rapport: c => -(c.ovr - 40) / Math.max(c.prix, 0.1), forme: c => -formeMoy(c), age: c => c.age || 99, part: c => -c.part, nom: c => 0}[tri];
   rows.sort((a, b) => cle(a) - cle(b) || a.nom.localeCompare(b.nom));
@@ -801,7 +810,7 @@ function auto(formation) {
 // La recherche de l'écran Équipe : un nom tapé une fois filtre le banc,
 // le club, et allume la carte sur le terrain.
 function normEq() { const n = $("#eq-nom"); return n ? norm(n.value) : ""; }
-function cherche(id, q) { const c = carte(id); return !!c && (norm(c.nom).includes(q) || norm(c.club || "").includes(q)); }
+function cherche(id, q) { const c = carte(id); return !!c && chercheCarte(q, c); }
 
 function rendreEquipe(recalc = true) {
   if (recalc) {

@@ -475,6 +475,10 @@ def cartes_toutes(jeu):
     limite = dj["au"] if dj else "9999-12-31"
     valeurs = dict(jeu.execute("SELECT player_id, valeur FROM valeur_marche WHERE date <= ? ORDER BY date", (limite,)))
     formes = SM.forme_cartes(jeu, SAISON)
+    # en monde « proche », les empreintes du vrai nom : la recherche y répond sans que le nom soit là
+    alias = {}
+    if FI.monde(jeu, SAISON) == "proche" and "alias" in {c[1] for c in jeu.execute("PRAGMA table_info(joueur)")}:
+        alias = {pid: json.loads(a) for pid, a in jeu.execute("SELECT player_id, alias FROM joueur WHERE alias IS NOT NULL")}
     out = []
     for r in jeu.execute("""
             SELECT c.player_id, c.ovr, c.prix, c.part, c.note_ovr, c.matchs, c.minutes,
@@ -495,6 +499,7 @@ def cartes_toutes(jeu):
                         or [S.FAMILLE_POSTE.get(r["poste"], "MID")],
             "club": r["club"] or "", "couleur": r["couleur"] or "#14161E", "team_id": r["team_id"],
             "ligue": ligues.get(ligue_club.get(r["team_id"], (0,))[0], ""),
+            **({"alias": alias[r["player_id"]]} if r["player_id"] in alias else {}),
             "ovr": r["ovr"], "prix": r["prix"], "part": round(r["part"], 3),
             "attributs": json.loads(r["attributs"] or "{}"),
             "valeur_base": r["valeur_base"], "ovr_base": r["ovr_base"], "valeur_marche": valeurs.get(r["player_id"]),
@@ -530,7 +535,7 @@ def vitrine(jeu=Depends(bd)):
         if c["fam"] in vus or not (IMAGES / "joueurs" / f"{c['id']}.png").exists():
             continue
         vus.add(c["fam"])
-        out.append({k: c[k] for k in ("id", "nom", "club", "couleur", "team_id", "ovr", "poste", "fam", "age", "pays", "prix")})
+        out.append({k: c[k] for k in ("id", "nom", "club", "couleur", "team_id", "ovr", "poste", "fam", "age", "pays", "prix", "alias") if k in c})
         if len(out) == 4:
             break
     return out
@@ -1451,7 +1456,7 @@ def logo_fictif(jeu, tid: int) -> pathlib.Path | None:
 
 @app.get("/images/joueurs/{pid}.png")
 def portrait(pid: int, jeu=Depends(bd)):
-    if FI.monde(jeu, SAISON) == "fictif":
+    if FI.monde(jeu, SAISON) != "reel":
         f = portrait_fictif(jeu, pid)
         if f is None:
             raise HTTPException(404)
@@ -1495,7 +1500,7 @@ def carte_dessinee(jeu, pid: int, largeur: int = 420) -> pathlib.Path | None:
         comps[comp] = comps.get(comp, 0) + 1
     competition = max(comps, key=comps.get) if comps else "Ligue 1"
     largeur = largeur if largeur in LARGEURS_CARTE else 420
-    fictif = FI.monde(jeu, SAISON) == "fictif"
+    fictif = FI.monde(jeu, SAISON) != "reel"
     # le nom est dessiné sur la carte : le monde (et le nom lui-même, un mod peut le changer) fait partie de la clé
     monde = ("f" + hashlib.sha1(nom.encode("utf-8")).hexdigest()[:6]) if fictif else "r"
     cle = f"{pid}_{ovr}_{sum(attributs.values())}_{pied or 'x'}_{S.CODE_POSTE.get(poste, 'x').replace('/', '')}_s4_{monde}_{largeur}"   # s4: side on the position
@@ -1533,7 +1538,7 @@ def logo_ligue(nom: str):
 
 @app.get("/images/logos/{tid}.png")
 def logo(tid: int, jeu=Depends(bd)):
-    if FI.monde(jeu, SAISON) == "fictif":
+    if FI.monde(jeu, SAISON) != "reel":
         f = logo_fictif(jeu, tid)
         if f is None:
             raise HTTPException(404)

@@ -27,6 +27,7 @@ def main():
     g = ap.add_mutually_exclusive_group()
     g.add_argument("--fictif", action="store_true", help="le monde fictif : noms générés, clubs par ville, mods de mods/ (jeu/fictif.py)")
     g.add_argument("--reel", action="store_true", help="les vrais noms (le monde réel)")
+    g.add_argument("--proche", action="store_true", help="le monde proche : noms déformés mais reconnaissables, la recherche répond au vrai nom (jeu/fictif.py)")
     ap.add_argument("--limites", action="store_true",
                     help="les limites du gratuit et le premium (jeu/comptes.py) : la version en ligne ; sans, aucune limite")
     ap.add_argument("--copies", type=int, default=None,
@@ -50,11 +51,12 @@ def main():
     os.environ["FL_SAISON"] = a.saison
 
     c = sqlite3.connect(jeu)
-    if a.fictif or a.reel:
+    if a.fictif or a.reel or a.proche:
         sys.path.insert(0, str(RACINE))
         from jeu import fictif as FI
-        r = FI.appliquer(c, a.saison, "fictif" if a.fictif else "reel")
-        print(("Monde fictif" if a.fictif else "Monde réel") + f" : {r['joueurs']} joueurs, {r['clubs']} clubs"
+        mode = "fictif" if a.fictif else "proche" if a.proche else "reel"
+        r = FI.appliquer(c, a.saison, mode)
+        print({"fictif": "Monde fictif", "proche": "Monde proche", "reel": "Monde réel"}[mode] + f" : {r['joueurs']} joueurs, {r['clubs']} clubs"
               + (f", {r['mods']} lignes de mods" if r["mods"] else ""))
     if a.limites:
         sys.path.insert(0, str(RACINE))
