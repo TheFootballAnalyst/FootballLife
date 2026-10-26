@@ -36,7 +36,8 @@ PRIX_PREMIUM = {"mois": 4.99, "an": 39.99}            # € ; les durées en jou
 DUREES_PREMIUM = {"mois": 31, "an": 366}
 AGE_ACHAT = 18                                        # un mineur joue, n'achète pas
 JETON_DUREE_H = 24
-MIGRATIONS = {"utilisateur": [("naissance", "TEXT"), ("premium_jusqua", "TEXT"), ("jeton_mdp", "TEXT"), ("jeton_expire", "TEXT")]}
+MIGRATIONS = {"utilisateur": [("naissance", "TEXT"), ("premium_jusqua", "TEXT"), ("jeton_mdp", "TEXT"), ("jeton_expire", "TEXT"),
+                              ("club_favori", "INTEGER")]}
 
 
 class ErreurCompte(ErreurJeu):

@@ -212,6 +212,23 @@ class Identifiants(BaseModel):
     equipe: Optional[str] = None
     email: Optional[str] = None          # pour le mot de passe oublié (jeu/comptes)
     naissance: Optional[str] = None      # AAAA-MM-JJ ; un mineur joue, n'achète pas
+    club_favori: Optional[int] = None    # le club de cœur : l'habillage Maillot 89 prend ses couleurs
+
+
+def club_favori(jeu, team_id):
+    """Le club de cœur tel que l'écran le lit : son nom et sa couleur, ou None."""
+    if team_id is None:
+        return None
+    r = jeu.execute("SELECT team_id, nom, couleur FROM club WHERE team_id=?", (team_id,)).fetchone()
+    return {"team_id": r["team_id"], "nom": r["nom"], "couleur": r["couleur"]} if r else None
+
+
+def verifier_club(jeu, team_id):
+    if team_id is None:
+        return None
+    if not jeu.execute("SELECT 1 FROM club WHERE team_id=?", (team_id,)).fetchone():
+        raise erreur(400, "club_inconnu")
+    return int(team_id)
 
 
 def poser_session(reponse: Response, uid: int):
@@ -235,11 +252,12 @@ def inscription(ident: Identifiants, reponse: Response, jeu=Depends(bd)):
         raise HTTPException(400, err.detail())
     if email and jeu.execute("SELECT 1 FROM utilisateur WHERE lower(email)=?", (email,)).fetchone():
         raise erreur(409, "email_pris")
+    club = verifier_club(jeu, ident.club_favori)
     sel = secrets.token_hex(8)
     premier = jeu.execute("SELECT COUNT(*) FROM utilisateur").fetchone()[0] == 0
     admin = 1 if (premier or pseudo in ADMINS) else 0
-    cur = jeu.execute("INSERT INTO utilisateur(pseudo, email, naissance, cree_le, mdp_hash, mdp_sel, est_admin) VALUES (?,?,?,?,?,?,?)",
-                      (pseudo, email, naissance, P.maintenant(), hacher(ident.mot_de_passe, sel), sel, admin))
+    cur = jeu.execute("INSERT INTO utilisateur(pseudo, email, naissance, cree_le, mdp_hash, mdp_sel, est_admin, club_favori) VALUES (?,?,?,?,?,?,?,?)",
+                      (pseudo, email, naissance, P.maintenant(), hacher(ident.mot_de_passe, sel), sel, admin, club))
     uid = cur.lastrowid
     lm = ligue_monde(jeu)
     budget = jeu.execute("SELECT budget_initial FROM ligue_jeu WHERE ligue_jeu_id=?", (lm,)).fetchone()[0]
@@ -300,6 +318,28 @@ def mdp_remettre(r: Remise, reponse: Response, jeu=Depends(bd)):
     return {"pseudo": pseudo, "admin": bool(u["est_admin"])}
 
 
+@app.get("/api/clubs")
+def clubs(jeu=Depends(bd)):
+    """Les clubs qui ont des cartes cette saison, pour choisir son club de cœur (écran public)."""
+    rows = jeu.execute("""SELECT c.team_id, c.nom, c.couleur FROM club c
+                          WHERE c.team_id IN (SELECT DISTINCT j.team_id FROM joueur j JOIN carte ca ON ca.player_id = j.player_id WHERE ca.saison = ?)
+                          ORDER BY c.nom""", (SAISON,)).fetchall()
+    return [{"team_id": r["team_id"], "nom": r["nom"], "couleur": r["couleur"]} for r in rows]
+
+
+class ClubFavori(BaseModel):
+    club_favori: Optional[int] = None
+
+
+@app.post("/api/compte/club")
+def compte_club(c: ClubFavori, u=Depends(exiger), jeu=Depends(bd)):
+    """Changer de club de cœur (ou n'en plus avoir)."""
+    club = verifier_club(jeu, c.club_favori)
+    jeu.execute("UPDATE utilisateur SET club_favori=? WHERE utilisateur_id=?", (club, u["utilisateur_id"]))
+    jeu.commit()
+    return {"club_favori": club_favori(jeu, club)}
+
+
 @app.get("/api/compte")
 def compte(u=Depends(exiger), jeu=Depends(bd)):
     """Le compte : le palier (gratuit, premium), ses limites et où on en est, le catalogue."""
@@ -353,7 +393,7 @@ def moi(u=Depends(utilisateur_courant), jeu=Depends(bd)):
     e = equipe_de(jeu, u)
     cadeau = MA.pack_du_jour(jeu, e["equipe_id"], packs=CO.packs_du_jour(jeu, SAISON, e["equipe_id"])) if e else None      # le pack du jour, à la première visite du jour
     return {"connecte": True, "pseudo": u["pseudo"], "admin": bool(u["est_admin"]),
-            "equipe": e["nom"] if e else None, "cadeau": cadeau,
+            "equipe": e["nom"] if e else None, "cadeau": cadeau, "club_favori": club_favori(jeu, u["club_favori"]),
             "palier": CO.regles(jeu, u["utilisateur_id"])["nom"], "limites": CO.limites_actives(jeu, SAISON)}
 
 

@@ -93,6 +93,7 @@ MESSAGES: dict[str, str] = {
     "pas_de_resultat": "Pas de résultat pour cette journée",
     "reglage_inconnu": "Réglage tactique inconnu",
     "couleur": "Couleur attendue en #rrggbb",
+    "club_inconnu": "Ce club n'est pas dans le jeu",
     "motif_inconnu": "Motif inconnu",
     "ligue_nom_court": "Nom de ligue trop court",
     "code_inconnu": "Code inconnu",

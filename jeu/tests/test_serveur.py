@@ -316,3 +316,21 @@ def test_a_lost_password_is_replaced_from_the_command_line(client):
     assert client.post("/api/connexion", json={"pseudo": "MANO", "mot_de_passe": "ancien1"}).status_code == 401
     assert client.post("/api/connexion", json={"pseudo": "MANO", "mot_de_passe": "nouveau1"}).status_code == 200
     assert client.get("/api/moi").json()["pseudo"] == "MANO"
+
+
+def test_favourite_club_is_given_at_sign_up_and_changed_from_the_account(client):
+    clubs = client.get("/api/clubs").json()
+    assert [c["team_id"] for c in clubs] == [1]                       # the clubs with cards this season
+    assert clubs[0]["nom"] == "A" and "couleur" in clubs[0]
+    r = client.post("/api/inscription", json={"pseudo": "ana", "mot_de_passe": "secret1", "club_favori": 1})
+    assert r.status_code == 200, r.text
+    moi = client.get("/api/moi").json()
+    assert moi["club_favori"]["team_id"] == 1 and moi["club_favori"]["nom"] == "A" and "couleur" in moi["club_favori"]
+    # a club the game does not know is refused ; none at all is allowed
+    assert client.post("/api/inscription", json={"pseudo": "bob", "mot_de_passe": "secret1", "club_favori": 99}).json()["detail"]["code"] == "club_inconnu"
+    assert client.post("/api/compte/club", json={"club_favori": 99}).status_code == 400
+    assert client.post("/api/compte/club", json={"club_favori": 2}).json()["club_favori"]["nom"] == "B"
+    assert client.get("/api/moi").json()["club_favori"]["team_id"] == 2
+    assert client.post("/api/compte/club", json={"club_favori": None}).json()["club_favori"] is None
+    assert client.get("/api/moi").json()["club_favori"] is None
+    assert inscrire(client, "zoe")["pseudo"] == "zoe" and client.get("/api/moi").json()["club_favori"] is None

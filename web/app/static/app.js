@@ -320,8 +320,41 @@ async function vitrine() {
   const V = $("#vitrine"); if (!V || V.childElementCount) return;
   try { for (const c of await api("/vitrine")) V.append(carteMarche(c, {vitrine: true, largeur: 240})); } catch (e) {}
 }
+// ---- le club de cœur : l'habillage Maillot 89 prend ses couleurs ----
+// De la couleur du club (celle de son maillot domicile, dans la base) on tire quatre nuances :
+// l'accent (assez foncé pour porter du texte blanc), son éclairci, le bandeau (très foncé) et le sien.
+// Une couleur sans teinte (blanc, gris, noir) laisse le thème à ses propres rouge et marine.
+function hslDe(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return null;
+  const r = parseInt(m[1].slice(0, 2), 16) / 255, g = parseInt(m[1].slice(2, 4), 16) / 255, b = parseInt(m[1].slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+  if (d < 1e-6) return {h: 0, s: 0, l};
+  const sat = d / (1 - Math.abs(2 * l - 1));
+  let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  h = (h * 60 + 360) % 360;
+  return {h, s: sat, l};
+}
+function hslTexte(h, s, l) { return `hsl(${h.toFixed(0)} ${(s * 100).toFixed(0)}% ${(l * 100).toFixed(0)}%)`; }
+function appliquerClub(club) {
+  const st = document.documentElement.style;
+  const c = club && hslDe(club.couleur);
+  if (!c || c.s < 0.12) { for (const k of ["--club-1", "--club-1b", "--club-2", "--club-2b"]) st.removeProperty(k); return; }
+  const s = Math.max(c.s, 0.55);
+  st.setProperty("--club-1", hslTexte(c.h, s, Math.min(Math.max(c.l, 0.30), 0.46)));
+  st.setProperty("--club-1b", hslTexte(c.h, s, Math.min(Math.max(c.l, 0.30), 0.46) + 0.10));
+  st.setProperty("--club-2", hslTexte(c.h, Math.max(c.s, 0.5), 0.15));
+  st.setProperty("--club-2b", hslTexte(c.h, Math.max(c.s, 0.5), 0.24));
+}
+let CLUBS = [];
+async function chargerClubs() {
+  try { CLUBS = await api("/clubs"); } catch (e) { CLUBS = []; }
+  const sel = $("#auth-club");
+  if (sel) sel.replaceChildren(el("option", {value: ""}, t("auth.club_aucun")), ...CLUBS.map(c => el("option", {value: String(c.team_id)}, c.nom)));
+}
+
 function connecte(moi) {
   G.moi = moi;
+  appliquerClub(moi && moi.connecte ? moi.club_favori : null);
   const on = !!(moi && moi.connecte);
   if (!on) vitrine();
   $("#statut").hidden = !on; $("#nav").hidden = !on; $("#nav-admin").hidden = !(on && moi.admin);
@@ -336,6 +369,7 @@ for (const b of document.querySelectorAll(".onglets button")) b.addEventListener
   $("#champ-equipe").hidden = modeAuth !== "inscription";
   $("#champ-email").hidden = modeAuth !== "inscription";
   $("#champ-naissance").hidden = modeAuth !== "inscription";
+  $("#champ-club").hidden = modeAuth !== "inscription";
   $("#btn-oublie").hidden = modeAuth === "inscription";
   $("#auth-bouton").textContent = modeAuth === "inscription" ? t("auth.creer") : t("auth.se_connecter");
 });
@@ -363,8 +397,9 @@ $("#form-auth").addEventListener("submit", async e => {
   const fd = new FormData(e.target);
   try {
     const r = await api("/" + modeAuth, {pseudo: fd.get("pseudo"), mot_de_passe: fd.get("mot_de_passe"), equipe: fd.get("equipe") || null,
-                                           email: fd.get("email") || null, naissance: fd.get("naissance") || null});
-    connecte({connecte: true, ...r});
+                                           email: fd.get("email") || null, naissance: fd.get("naissance") || null,
+                                           club_favori: fd.get("club_favori") ? Number(fd.get("club_favori")) : null});
+    connecte(await api("/moi"));
     await montrer(idsEffectif().length ? "equipe" : "packs");
     if (modeAuth === "inscription") toast(t("auth.bienvenue"));
   } catch (err) { $("#auth-erreur").textContent = err.message; }
@@ -2735,6 +2770,18 @@ async function rendreCompte() {
   P.append(el("p", {class: "compteur"}, c.limites ? t("compte.limites_texte") : t("compte.sans_limites")));
   P.append(el("p", {class: "compteur"}, t("compte.email_texte", {email: c.email || t("compte.aucun_email")})));
   if (c.mineur) P.append(el("p", {class: "avert"}, t("compte.mineur")));
+  const actuel = G.moi && G.moi.club_favori ? String(G.moi.club_favori.team_id) : "";
+  const selClub = el("select", {}, el("option", {value: ""}, t("auth.club_aucun")), ...CLUBS.map(x => el("option", {value: String(x.team_id)}, x.nom)));
+  selClub.value = actuel;
+  P.append(el("div", {class: "etiq", style: "margin-top:12px"}, t("compte.club")),
+    el("p", {class: "compteur"}, t("compte.club_texte")),
+    el("div", {class: "droite", style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap"}, selClub,
+      el("button", {onclick: async () => {
+        try {
+          const r = await api("/compte/club", {club_favori: selClub.value ? Number(selClub.value) : null});
+          G.moi.club_favori = r.club_favori; appliquerClub(r.club_favori); toast(t("compte.club_enregistre"));
+        } catch (e) { toast(e.message); }
+      }}, t("compte.club_bouton"))));
   B.append(el("h2", {class: "anton"}, t("boutique.titre")),
     el("p", {class: "compteur"}, t("boutique.texte")));
   if (c.paiement === "manuel") B.append(el("p", {class: "info"}, t("boutique.fermee")));
@@ -2992,6 +3039,7 @@ function sparkline(vals, fmt = f1) {
     if (s.libelles_formation) LIBELLES_FORMATION = s.libelles_formation;
     if (s.affinites) AFFINITES = s.affinites;
     if (s.aise) AISE = s.aise;
+    await chargerClubs();                       // la liste du club de cœur, pour l'inscription comme pour le compte
     const moi = await api("/moi"); connecte(moi);
     if (moi.cadeau) toast(moi.cadeau.bonus
       ? t("cadeau.serie", {tier: tierTxt(moi.cadeau.bonus), n: moi.cadeau.serie})

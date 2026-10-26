@@ -99,7 +99,7 @@ section[hidden]{display:none}
 .onglets button{flex:1;border-color:transparent;background:transparent;font-weight:600;color:var(--sourd)}
 .onglets button[aria-current="page"]{background:var(--surface3);color:var(--encre)}
 form label{display:block;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.1em;font-size:11.5px;color:var(--sourd);font-weight:600;margin:10px 0}
-form label input{display:block;width:100%;margin-top:5px;font-family:Barlow,sans-serif;text-transform:none;letter-spacing:0;font-size:15px;color:var(--encre);padding:9px 12px}
+form label input,form label select{display:block;width:100%;margin-top:5px;font-family:Barlow,sans-serif;text-transform:none;letter-spacing:0;font-size:15px;color:var(--encre);padding:9px 12px}
 form button.primaire{width:100%;margin-top:14px;padding:11px;font-size:15px;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.1em}
 .erreur{color:var(--rouge);font-size:14px;min-height:18px;margin-top:6px}
 
@@ -1258,13 +1258,14 @@ html[data-theme="maillot"]{
   --fond:#EEF0F3; --fond2:#E3E6EB;
   --surface:#FFFFFF; --surface2:#F3F5F8; --surface3:#E4E8EE;
   --ligne:rgba(11,30,70,.16); --ligne2:rgba(11,30,70,.4);
-  --encre:#0B1E46; --sourd:#4D5A78; --sourd2:#8A94AA;
+  --encre:var(--club-2,#0B1E46); --sourd:#4D5A78; --sourd2:#8A94AA;
   --or:#D4A017; --or2:#8F6A0A; --or3:#F0C84A;
   --vert:#118A4F; --rouge:#D62828; --bleu:#1F4FB8;
   --pelouse:#2C7A4E; --pelouse2:#266C45; --craie:rgba(255,255,255,.6);
-  --ombre:5px 5px 0 #D62828;
+  --ombre:5px 5px 0 var(--club-1,#D62828);
   --r:2px;
-  --bandeau:#0B1E46; --bandeau2:#13306B; --accent:#D62828; --accent2:#EA3A3A; --papier:#FFFFFF;
+  /* les couleurs du club de cœur (app.js, appliquerClub) ; sans club, rouge et marine */
+  --bandeau:var(--club-2,#0B1E46); --bandeau2:var(--club-2b,#13306B); --accent:var(--club-1,#D62828); --accent2:var(--club-1b,#EA3A3A); --papier:#FFFFFF;
   --pan:#FFFFFF; --clair:#FFFFFF; --encre2:#2C3A5C;
   color-scheme:light;
 }

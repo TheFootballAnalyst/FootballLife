@@ -103,7 +103,8 @@ MIGRATIONS = {                       # columns added after the first bases were 
                          ("sommes", "TEXT"), ("min90", "REAL NOT NULL DEFAULT 0")],
     "utilisateur": [("mdp_hash", "TEXT"), ("mdp_sel", "TEXT"), ("est_admin", "INTEGER NOT NULL DEFAULT 0"),
                     # les comptes en ligne (jeu/comptes.py) : la naissance, le premium, le mot de passe oublié
-                    ("naissance", "TEXT"), ("premium_jusqua", "TEXT"), ("jeton_mdp", "TEXT"), ("jeton_expire", "TEXT")],
+                    ("naissance", "TEXT"), ("premium_jusqua", "TEXT"), ("jeton_mdp", "TEXT"), ("jeton_expire", "TEXT"),
+                    ("club_favori", "INTEGER")],      # le club de cœur, donné à l'inscription : l'habillage Maillot 89 prend ses couleurs
     "rencontre": [("banc_a", "TEXT"), ("banc_b", "TEXT"),
                   ("remplacements", "TEXT NOT NULL DEFAULT '{}'"),
                   ("campagne_id", "INTEGER"), ("tour", "INTEGER"),

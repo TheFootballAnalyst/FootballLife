@@ -14,7 +14,10 @@ compte ; les titres en bois, les sous-titres à la plume) ; **Album 94**,
 la vignette autocollante (blanc, rouge et bleu roi, liseré blanc et ombre
 dure sur chaque panneau, points de trame) ; **Maillot 89**, les bandes du
 kit (rouge, blanc, marine, un liseré rayé sous la barre et en tête de
-chaque panneau, les grandes diagonales en fond) ; **Télétexte**, la page
+chaque panneau, les grandes diagonales en fond ; il prend les couleurs du
+**club de cœur** donné à l'inscription ou changé depuis l'écran Compte :
+la couleur du maillot domicile du club, lue dans la base, donne l'accent
+et le bandeau, blanc reste blanc ; sans club, rouge et marine) ; **Télétexte**, la page
 302 (noir, jaune et cyan, titres en pavés bleus, police à pixels, lignes
 de balayage) ; et **Nuit de stade**, l'habillage d'origine. Tous lisent
 les mêmes écrans : un thème redéfinit les couleurs et ses motifs

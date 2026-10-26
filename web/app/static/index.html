@@ -7,7 +7,7 @@
 <title>FootballLife</title>
 <script>(function(){var f={tribune:"papier",album:"papier",maillot:"papier",teletexte:"nuit",nuit:"nuit"},t="tribune";try{t=localStorage.getItem("fl_theme")||t}catch(e){}if(!(t in f))t="tribune";document.documentElement.dataset.theme=t;document.documentElement.dataset.famille=f[t]})()</script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Playfair+Display:ital,wght@0,700;0,900;1,500;1,700&family=VT323&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=3">
+<link rel="stylesheet" href="/static/style.css?v=4">
 </head>
 <body>
 <header>
@@ -63,6 +63,7 @@
         <label id="champ-equipe" hidden><span data-t="auth.equipe">Nom de l'équipe</span><input name="equipe" maxlength="40" data-t-placeholder="auth.facultatif" placeholder="facultatif"></label>
         <label id="champ-email" hidden><span data-t="auth.email">Courriel</span><input name="email" type="email" maxlength="120" autocomplete="email" data-t-placeholder="auth.email_aide" placeholder="facultatif, pour un mot de passe oublié"></label>
         <label id="champ-naissance" hidden><span data-t="auth.naissance">Date de naissance</span><input name="naissance" type="date" autocomplete="bday" data-t-title="auth.naissance_aide" title="Un mineur joue, n'achète pas"></label>
+        <label id="champ-club" hidden><span data-t="auth.club">Club de cœur</span><select name="club_favori" id="auth-club" data-t-title="auth.club_aide" title="L'habillage Maillot 89 prend ses couleurs"><option value="" data-t="auth.club_aucun">aucun</option></select></label>
         <div class="erreur" id="auth-erreur"></div>
         <button class="primaire" type="submit" id="auth-bouton" data-t="auth.se_connecter">Se connecter</button>
         <button type="button" class="discret" id="btn-oublie" data-t="auth.oublie">Mot de passe oublié ?</button>
@@ -206,6 +207,6 @@
 <dialog id="fiche"></dialog>
 <div class="toast" id="toast"></div>
 <script src="/static/terrain_b.js?v=3"></script>
-<script src="/static/app.js?v=15"></script>
+<script src="/static/app.js?v=16"></script>
 </body>
 </html>

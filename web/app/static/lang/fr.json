@@ -1023,5 +1023,13 @@
  "nav.theme": "Thème",
  "theme.album": "Album 94",
  "theme.maillot": "Maillot 89",
- "theme.teletexte": "Télétexte"
+ "theme.teletexte": "Télétexte",
+ "auth.club": "Club de cœur",
+ "auth.club_aide": "L'habillage Maillot 89 prend ses couleurs",
+ "auth.club_aucun": "aucun",
+ "compte.club": "Club de cœur",
+ "compte.club_texte": "L'habillage Maillot 89 prend les couleurs de ton club ; sans club, il garde les siennes.",
+ "compte.club_enregistre": "Club de cœur enregistré.",
+ "err.club_inconnu": "Ce club n'est pas dans le jeu",
+ "compte.club_bouton": "Enregistrer"
 }

@@ -1023,5 +1023,13 @@
  "nav.theme": "Theme",
  "theme.album": "Album 94",
  "theme.maillot": "Kit 89",
- "theme.teletexte": "Teletext"
+ "theme.teletexte": "Teletext",
+ "auth.club": "Favourite club",
+ "auth.club_aide": "The Kit 89 theme takes its colours",
+ "auth.club_aucun": "none",
+ "compte.club": "Favourite club",
+ "compte.club_texte": "The Kit 89 theme takes your club's colours; without a club it keeps its own.",
+ "compte.club_enregistre": "Favourite club saved.",
+ "err.club_inconnu": "This club is not in the game",
+ "compte.club_bouton": "Save"
 }
